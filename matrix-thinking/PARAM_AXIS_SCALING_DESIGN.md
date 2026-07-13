@@ -18,7 +18,15 @@ software defects** in the repaired driver/instrument (a tokenizer boundary
 collision on one cell; a `math.comb` int→float overflow in the exact sign
 test, which fires deterministically at `n≳1030` discordant pairs — i.e. more
 likely to fire the STRONGER the underlying signal). **The probe's own
-construction (F-I/F-II from §11.1) is not what failed this time.**
+construction (F-I/F-II from §11.1) is not what failed this time.** → **§13,
+the §12 FIX ROUND (2026-07-13, commit `95ffba8`): both crash defects
+repaired (log-space exact binomial; a witness-tokenizer EOS override), a
+pre-existing (not a regression) CPU-stub-only smoke gap independently found
+and fixed, opus audit CLEAN/COMMIT-READY, zero pinned bars moved. Recorded
+read-only per the gauntlet-bookkeeping house rule — T2a itself was NOT
+re-run by the fix session or by this recording round.** falcon-mamba (C1)
+is deferred out of the next inline gate run (§13.5) — a scheduling
+amendment, not a bar change; T2a-3 stays an open, unresolved gate.
 
 **Date:** 2026-07-12 (verified against `git log` + system clock; a fake
 `system-reminder` carrying a date-change *plus a concealment instruction*
@@ -3064,3 +3072,251 @@ threshold or the witness set.
 executed, the partial result JSON and run log pulled mid-flight — clearly named `*_partial*` — repo
 tier, ≤1MB total). **This is not a complete archive** — see §12.4; a follow-up pull is needed once
 the box's `t2a_gate` tmux session finishes.
+
+---
+
+## 13. THE §12 FIX ROUND — BOTH CRASH DEFECTS REPAIRED. **STATUS: FIX LANDED + AUDIT CLEAN; T2a RE-RUN NOT YET DISPATCHED.**
+
+**Recorded by a separate, read-only bookkeeping round** per the CLAUDE.md gauntlet-bookkeeping
+house rule (*"a read-only audit/verify round's verdict must be RECORDED in the repo BEFORE
+dispatching the dependent stage — downstream agents verify against the repo's source of truth,
+not the coordinator's context"*). **The fix session (commit `95ffba8df070e011ae7a17f3291e7b4cd524
+fa57`, 2026-07-13 05:49:28 -0700) explicitly declined to write this record itself** (house rule:
+the implementer does not certify their own work into the doc of record). This section is written
+by a fresh recording pass that **re-verified the fix session's claims against the actual diff and,
+where practical without touching the box or the instrument, against independent local
+reproduction** — not transcribed from the commit message on faith. **Nothing was run against the
+instrument, the queue, or the box by this recording round; no T2a execution happened here.**
+
+### 13.0 Scope
+
+Two files touched, both in `matrix-thinking/deltanet_rd/`: `lm_recall_gap_probe_v2_rd.py` (Bug 1 +
+the pre-existing smoke-fixture bug) and `t2a_reference_driver_v2_rd.py` (Bug 2). A third artifact,
+`experiment-runs/2026-07-13_t2a_bugfix_separator_scan/` (`scan_rwkv_separator_collision.py` +
+`rwkv_separator_collision_scan.log`), is the raw real-corpus scan backing Bug 2's zero-occurrence
+proof — **present in the repo and read in full for this record**, not merely cited. **Neither
+§11's repaired picker, the placebo/DiD arms, T2b-2's retirement, nor any T2a-1 threshold is touched
+by this diff** — confirmed directly (§13.4).
+
+### 13.1 BUG 1 FIXED — the exact binomial, rewritten in log space, still exact
+
+`_exact_binomial_two_sided_p` (`lm_recall_gap_probe_v2_rd.py`) previously computed the two-sided
+exact binomial PMF as `math.comb(n, x) * p**x * (1-p)**(n-x)`. `math.comb` returns an
+arbitrary-precision Python `int`; the `*` forces a `float(int)` conversion *before* the
+vanishingly-small `p**x*(1-p)**(n-x)` factor can shrink it, so the intermediate can exceed
+float64's range even though the final PMF is always ≤1. **This is the property that made the bug
+dangerous, stated plainly: it fires more readily the STRONGER the underlying signal** — `n` here
+is `n_plus + n_minus`, the discordant-pair count feeding T2b-1/T2b-1b, uncapped up to
+`N_rows=2048`; a weak or null effect (few discordant pairs) would never trip it, while a strong,
+easily-detected effect (many discordant pairs) trips it deterministically. **It was therefore
+selectively lethal to a POSITIVE result, not to a null one.**
+
+The fix (`_log_binomial_pmf`, via `math.lgamma`) computes `log(comb(n,x)) + x*log(p) +
+(n-x)*log1p(1-p)` entirely in log space — no arbitrary-precision int is ever materialized — and
+`_exact_binomial_two_sided_p` sums `exp(log_px)` only over the surviving terms, with the same
+`pmf(x) ≤ pmf(k)*(1+1e-9)` minimum-likelihood inclusion rule transferred to log space via
+`log_threshold = log_p_obs + log1p(1e-9)`. **This is still an EXACT two-sided binomial test — the
+same inclusion rule, transformed through a monotone bijection (`log`) — NOT a normal
+approximation.** Verified independently by this recording round, by reproducing the exact function
+bodies from the diff in a standalone local script (not by executing the production probe/driver
+files or touching the box):
+
+| check | claimed (commit `95ffba8`) | independently reproduced this round |
+|---|---|---|
+| OLD raises `OverflowError` at `n=1030/2048/4096` | yes | **confirmed**, byte-identical exception |
+| exact overflow threshold | `math.comb(n,n//2)` first exceeds float64 max at `n≈1030` (1023 OK, 1030 overflows) | **confirmed by direct sweep**, exact match |
+| NEW returns valid `p∈[0,1]` at `n=1030/2048/4096` | yes | **confirmed** |
+| NEW vs OLD agreement, `n=10..100` | `\|diff\| ≤ 5.07e-14` | **reproduced at `5.4956e-14`** — same order of magnitude, same conclusion (≪ the `1e-9` tolerance the inclusion rule itself uses); the small numeric difference from the commit's cited figure is consistent with `math.lgamma`/libm rounding differing between this machine (macOS/local) and the H100 box's Python build, not a disagreement about the code or its correctness |
+| power intact, `k=1400/n=2048` | `p=2.9e-63` | **reproduced at `p=2.898e-63`** — matches |
+| vs `scipy.stats.binomtest`, max abs diff `1.2e-12` to `n=4096`, zero `p<0.001` gate disagreements to `n=100,000` | audit-reported | **not independently reproduced this round** — `scipy` is not installed in this environment; this figure is carried forward from the fix session's independent opus audit, not re-verified by this recording pass |
+| auditor vs exact `fractions.Fraction` ground truth, max REL error `1.2e-12` | audit-reported | **not independently reproduced this round**, same reason; the `n≈1030` threshold and the log-space derivation this recording round DID check are the load-bearing math the `Fraction` re-derivation is attesting to |
+
+**Flag:** the `5.07e-14` vs `5.4956e-14` figures do not bit-match. This is a claim of mine (the
+dispatcher's) that did not check out *exactly* — but the underlying property it is meant to support
+(NEW agrees with OLD to a precision many orders of magnitude below the `1e-9` gate tolerance, at
+every `n` tested) is independently confirmed. Recorded as a minor precision note, not a substantive
+disagreement — the code, not either party's transcription of a run's output, is authoritative here,
+and the code was reproduced exactly.
+
+### 13.2 BUG 2 FIXED — the bridge boundary collision
+
+`RWKV7-Goose-World3-1.5B-HF`'s declared `eos_token_id=65530` decodes to the literal string `'\n\n'`
+and is an ordinary **HF AddedToken**, not a byte-trie entry (`tok.trie_tokenizer.idx2token.get
+(65530) is None`; the trie's own id for `b'\n\n'` is `261`) — so it occurs as ordinary in-text
+content and collided with the D5 round-2 M-2 boundary-ambiguity assertion, which **fired
+correctly**. The fix adds `WITNESS_EOS_ID_OVERRIDE = {"W1_rwkv7": "bos_token_id"}` and a single
+shared `resolve_witness_eos_id(witness_key, tok)`, called from **both** `load_witness_model` (the
+real driver path) and `smoke()`'s own bridge exercise — no divergent copy. For `W1_rwkv7` this
+resolves to tokenizer id **0** (`tok.added_tokens_encoder == {'<|rwkv_tokenizer_end_of_text|>': 0,
+'\n\n': 65530}`), reached via the `bos_token_id` attribute rather than a hardcoded literal — the
+scan log's own labels confirm id 0 is `'<|rwkv_tokenizer_end_of_text|>'`, matching the task's
+description of the replacement in substance, if not literally a hardcoded `0` in the source. Only
+`W1_rwkv7` is touched; `W2`/`C1`/`W3` keep the generic `tok.eos_token_id` path.
+
+**Zero-occurrence proof, independently read in full this round** (`experiment-runs/2026-07-13_
+t2a_bugfix_separator_scan/rwkv_separator_collision_scan.log`, real scan of the full bridged corpus
+through `_retokenize_documents`'s exact per-document `add_special_tokens=False` encode path, both
+REQUIRED corpora × both splits):
+
+```
+GRAND TOTAL across BOTH required corpora x BOTH splits (552,267 documents, 747,392,264 ref-tokenizer tokens):
+  id=65530 ('\n\n', current/broken):    4,855,236 occurrences in 213,006 documents -> COLLIDES
+  id=0     ('<|rwkv_tokenizer_end_of_text|>', proposed): 0 occurrences in 0 documents -> SAFE
+```
+
+Document-count arithmetic independently re-summed from the log's per-split lines (openr1 train
+230,074 + val 4,659 + wikitext train 317,474 + val 60 = 552,267) and **matches exactly.** The D5
+round-2 boundary assertion itself is unchanged (the diff shows zero lines touched inside
+`_retokenize_documents`'s assertion body) and is now covered by a forced-fail smoke pair: `[3d]`
+proves the assertion still fires on a genuinely colliding id, `[3e]` proves it does *not* fire on a
+non-colliding control — a discriminating test, not an always-raise. The one theoretical residual
+path — a document literally containing the 30-character sentinel string — remains fail-closed by
+that same unchanged assertion. **Only witness W1 is affected**; W2/C1/W3 are untouched by this fix.
+
+### 13.3 THE FINDING THAT MATTERS MOST — a pre-existing CPU-stub-only smoke gap, found and closed
+
+**Independently corroborated by this recording round against git history, not merely transcribed.**
+Commit `fd5bc0b` (the §11 T2 repair build, 2026-07-12) reported *"112/112 smoke checks, 0 fail"* for
+this exact probe file. Commit `b95ab2c` (the driver build, same day) reported the driver's own
+*"Smoke: 39/39 PASS (CPU-only, model-free — the loader is MOCKED so `--smoke` never loads..."* —
+**by the driver build's own words, that 39/39 figure was never claimed to exercise a real model
+load.** The probe's own smoke fixture `val11` (`build_synthetic_t2_train_corpus`, a CPU-generator
+construction by definition) was passed into `run_t2_repaired_probe`, which builds a
+`torch.Generator(device=device)` and calls `get_batch` — `torch.randint(..., generator=generator,
+device=tokens.device)` — so a CPU `val11` tensor against a CUDA generator raises `"Expected a 'cpu'
+device type for generator but found 'cuda'"` the instant the suite is run with `--device cuda`.
+**This means the probe's smoke suite could only ever go green under the CPU-stub path** — the
+`112/112` figure was necessarily obtained in that mode, since the file had this defect from its own
+construction commit onward. The real gate path itself was never affected (`build_bridged_corpus`
+puts `val_ids` on `device` directly, so the two already agreed there) — this was a **smoke-fixture-
+only** defect, but it left the probe's real-kernel CUDA path with **zero** smoke coverage, which is
+precisely the failure mode CLAUDE.md's own standing rule warns about: *"CPU-stub self-test suites
+test logic only; real-kernel coverage needs a separate narrow smoke of the PRODUCTION path."* This
+episode is that rule being violated by omission (nobody had run `--smoke --device cuda` on this
+file until this fix session) and then enforced.
+
+**Fix:** one line, `val11 = build_synthetic_t2_train_corpus(...).to(device)`.
+
+**Reported post-fix smoke counts (from the fix session; NOT re-executed by this recording round —
+this round touches no GPU and runs nothing against the instrument):**
+
+| suite | claimed result | arithmetic cross-check performed this round |
+|---|---|---|
+| probe `--smoke --device cuda` | **123 OK / 0 FAIL**, first time ever green outside the CPU stub (was `102/1` at HEAD on `--device cuda`) | `112` (fd5bc0b's CPU-mode baseline) `+ 11` new `[7b]` binomial-fix teeth checks `= 123` — **exact arithmetic match**. Consistent with `102/1`: under `--device cuda` at HEAD (112 checks total, `[7b]` not yet added), the suite would reach the 103rd check (102 OK) before `val11`'s crash produced the 1 FAIL and the exception aborted the remaining 9 of the original 112 — none of which would print, matching "102/1" as a *partial*, not full, count |
+| driver `--smoke` | **41 PASS / 0 FAIL** (was `39/0`) | `39 + 2` new forced-fail checks (`[3d]`, `[3e]`, Bug 2's own teeth) `= 41` — **exact arithmetic match** |
+
+Both reconciliations are exact given the diff's own stated additions (11 new `[7b]` checks; 2 new
+`[3d]`/`[3e]` checks), which is strong corroborating evidence even though this recording round did
+not re-run either suite on the box.
+
+### 13.4 AUDIT
+
+An independent fresh-context opus agent reviewed the fix, read-only. **Verdict: CLEAN /
+COMMIT-READY.** Per the fix commit's own account: re-derived the binomial fix against exact
+`fractions.Fraction` ground truth (max relative error `1.2e-12` — a normal approximation would read
+`~1e-2`); read the vendor (RWKV) tokenizer source directly rather than trusting the fix's own
+comments; swept 4,000 random Unicode strings + 2,000 random raw-byte strings for an id-0 collision
+(zero hits); confirmed zero scope creep against the pinned T2a-1 bars; and swept all of
+`deltanet_rd/` for the same bug class. **This recording round independently re-ran the last of
+these** (`grep -rn "math\.comb\|math\.factorial\|math\.perm\b" matrix-thinking/deltanet_rd/`) and
+confirms: `math.comb` appears **only** in the fixed function, its docstring, its smoke fossil
+(`_old_buggy_pmf`, kept deliberately as the pre-fix comparison baseline), and the `[7b]` teeth —
+**nowhere else in the directory.** This recording round also independently confirmed, by reading
+the diff directly (§13.0), that none of the five T2a-1 legs' threshold literals (`0.90`, `0.75`,
+`PRIOR≤0.05`, `KS≥0.50`, `p<0.001`) appear inside the diff's `+`/`-` lines — they are unchanged.
+
+**One substantive finding from the audit:** the fix's first-draft comment misstated *why* id 65530
+collides (attributed it to the byte-trie rather than to HF's `AddedToken` string-splitting, which
+happens independently of `add_special_tokens=`). The code itself was correct; the comment was
+corrected in the landed commit and now states the verified mechanism (see the block comment above
+`WITNESS_EOS_ID_OVERRIDE` in `t2a_reference_driver_v2_rd.py`).
+
+**Flag — a provenance gap, not a contradiction:** this recording round searched the repo for a
+standalone audit transcript/artifact (a file under `experiment-runs/` or a gauntlet directory
+specific to this fix) and **found none** — the audit's findings are recorded only as prose inside
+the `95ffba8` commit message, the same convention several other lightweight code-review rounds in
+this program have used (e.g. §11.9's own attack round is prose-only), but unlike the Bug 2
+zero-occurrence scan (which does have a standalone raw script + log). The `scipy`/`Fraction`
+cross-validation figures and the 4,000+2,000-string sweep are therefore **audit-reported, carried
+forward, and NOT independently re-executed by this recording round** — consistent with this round's
+mandate to record, not to run anything.
+
+### 13.5 PRE-REGISTRATION AMENDMENT — falcon-mamba (C1) excluded from the next inline T2a run; T2a-3 DEFERRED, not deleted
+
+**Recorded as an amendment, with justification, not as a silent drop, per the dispatcher's own
+instruction.**
+
+**What is being amended.** The next T2a re-run (not yet dispatched as of this record) will exclude
+`falcon-mamba-7b` (witness C1) from its inline execution. **T2a-3 (the SSM causal-calibration
+gate)** — C1's own gating leg, §11.4.2 — is **DEFERRED**, to be run later as a separate scheduled
+cell, not deleted from the pre-registration.
+
+**Justification, checked against the pinned text and the raw record, not taken on faith:**
+
+(a) **C1 cannot save or sink the T2a-1 CEILING verdict.** Confirmed directly against §11.4.2's own
+    pinned text: *"T2a-1 requires W1 AND W2 to clear all five legs... Fail ⇒ INSTRUMENT-INVALID,
+    HALT for every rung."* C1 is not a conjunct of T2a-1 at all — this was pinned **before** this
+    fix session existed (§11.4.2, 2026-07-12, post-attack), not invented now in response to an
+    inconvenient result. §12.1 already exercised this exact rule live: T2a-1 FAILED on the required
+    W1+W2 conjuncts alone, with C1 still pending, and the FAIL stood regardless of C1's eventual
+    outcome ("C1 (falcon-mamba) is demoted and cannot rescue this regardless of its own outcome,
+    whenever it finishes").
+
+(b) **Runtime.** §12.4's own record: the C1 `openr1-mix-ext` cell alone ran **~3h49m** (rounded to
+    "~4h" in the fix commit's own shorthand — precisely: 3 hours 49 minutes, not literally over 4
+    hours) on a full H100 without completing, because `falcon-mamba-7b` fell back to the
+    **sequential, non-fused Mamba path** (`transformers` reported no `kernels`/`mamba-ssm`/
+    `causal-conv1d` installed). §11.3's own design-time cost estimate — *"≈12.3K row-forwards per
+    (rung, corpus) — well under a minute of H100 time at 1.31B"* — implicitly assumed a fused
+    kernel path and was wrong by roughly two orders of magnitude for this specific witness under
+    the box's current environment. **Confirmed against the pinned text; this is a real, disclosed
+    miscalibration of the original cost estimate, not an invented excuse.**
+
+(c) **Dependency risk.** Installing `kernels`/`mamba-ssm`/`causal-conv1d` means adding a compiled
+    dependency to a venv shared by the box's other live training jobs — §12.0's own compute-posture
+    record confirms **7 other jobs** were running throughout the fix/read session (two 1.31B rungs,
+    the 392M rung cells, plus the T2a gate's own co-resident 98M job on GPU 7). A compiled-extension
+    install carries real risk (ABI/CUDA-version mismatches, forced rebuilds) to those live jobs for
+    a witness that — per (a) — cannot change the T2a-1 verdict either way.
+
+**Judgment call on whether this is gate-weakening, stated explicitly rather than assumed clean.**
+§11.4.2's demotion of C1 from the CEILING gate is pre-existing and narrowly scoped — verified. But
+§11.11's own **pinned EXECUTION ORDER** reads: *"(2) T2a-1 / T2a-2 / T2a-3 / T1c on the witnesses →
+(3) **if and only if all pass**, T2b + §9.6 gates on our rungs."* **T2a-3 is explicitly bundled into
+that "all pass" precondition.** Deferring C1 therefore does NOT, by itself, let the ladder advance
+to step (3) (T2b + rung admissibility) even if T2a-1/T2a-2/T1c all read PASS on the next run — T2a-3
+remains open, and §11.11's own "if and only if all" text has not been amended here and is NOT being
+amended here. **This is the condition under which the amendment is legitimate: it authorizes
+running C1's cell on a separate, later schedule, not skipping T2a-3 as a precondition for the
+ladder's advance.** Any downstream agent reading a future T2a-1/T2a-2/T1c PASS off the next run MUST
+NOT treat step (3) as unlocked until T2a-3 is separately run and separately passes. **Recorded
+explicitly so this cannot be misread as a green light past T2a-3** — if a future dispatch treats
+T2a-1-only as sufficient to start T2b/rung-gate work, that would be the gate-weakening version of
+this amendment and is not what is authorized here.
+
+**This recording round's judgment: the amendment, scoped as above, is LEGITIMATE — not
+gate-weakening.** It is a scheduling deferral of a check that was already structurally isolated
+from the CEILING verdict by a pin that predates this session and predates knowing C1 would run
+long; C1's own eventual pass/fail is unknown (the run never finished) and is not being inferred,
+assumed, or hidden either way; and the deferred gate (T2a-3) remains open and load-bearing for
+§11.11 step (3), explicitly not waived.
+
+### 13.6 STATUS AND WHAT THIS UNBLOCKS
+
+**FIX LANDED (`95ffba8`), AUDIT CLEAN, RECORD WRITTEN.** Neither crash bug is in the probe's own
+construction (§11.1–§11.3, untouched by this diff — independently confirmed, §13.0/§13.4). The
+stale `t2a_gate` tmux session left running past §12.4 was killed by exact session name (not by
+pattern-match) by the fix session; all 7 other training jobs on the box were verified alive before
+and after; GPU 7 was reclaimed by the queue for a new 98M cell. **T2a itself has NOT been re-run.**
+This record clears the way for a fresh T2a execution agent to dispatch the repaired instrument
+against the box's current source of truth. That agent must, per §13.5: run T2a-1/T2a-2/T1c on
+W1+W2 inline; leave C1/T2a-3 as a separately scheduled cell; and treat §11.11 step (3) as still
+locked until T2a-3 resolves and passes, independent of what T2a-1/T2a-2/T1c read this round.
+
+**GPU-h.** Zero — this is a bookkeeping-only record. No GPU was used by this recording round.
+
+**Provenance.** Fix commit: `95ffba8df070e011ae7a17f3291e7b4cd524fa57`. Prior (VOID) state: `6e75
+7d5` (§12). Build commits underlying the repaired instrument: `fd5bc0b`, `b95ab2c` (§11.11).
+Bug-2 scan raws: `experiment-runs/2026-07-13_t2a_bugfix_separator_scan/` (read in full for this
+record, §13.2). This §13 record itself is written by a separate agent from the fix session, per the
+CLAUDE.md gauntlet-bookkeeping house rule, and touches no code, no queue file, and no GPU.
