@@ -296,7 +296,7 @@ section p.lede {
 .results { margin-top: 32px; border-top: 1px solid var(--line); }
 a.result {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 240px);
     gap: 28px;
     padding: 32px 0;
     border-bottom: 1px solid var(--line);
@@ -332,7 +332,9 @@ a.result .meta {
     font-weight: 700;
     padding: 5px 11px;
     border: 1px solid var(--accent);
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
     align-self: start;
     margin-top: 4px;
     text-decoration: none;
