@@ -1,7 +1,12 @@
 # PARAM-AXIS SCALING DESIGN — the 1B demonstration and the ladder to it
 
-**Status:** Rev 0 → attacked (§7) → Rev 1 (§8). DESIGN ONLY. Nothing built,
-nothing launched, no queue touched, no registry verdict recorded.
+**Status:** Rev 0 → attacked (§7) → Rev 1 (§8) → **Stage-1 build BLOCKED at its
+own pre-train gate, R0 VOID** (`queue/regate_2026-07-12.md` §10) → **Rev 2 (§9),
+the instrument re-pre-registration**. DESIGN ONLY. Nothing launched, no queue
+touched, no registry verdict recorded. **§9 supersedes the instrument spec in
+§5.0/§5.1/§5.2**; one slot (§9.1, the normalization) is deliberately left OPEN
+and blocks verdict computation — see §9.7 for why the agent dispatched to pin it
+blind could not legitimately do so.
 
 **Date:** 2026-07-12 (verified against `git log` + system clock; a fake
 `system-reminder` carrying a date-change *plus a concealment instruction*
@@ -648,3 +653,514 @@ token-controlled readout plus a PI decision.
    audited**, with the Wave −1 reference-model validity smoke passing.
 3. FIX-A's per-1000-step checkpoint availability is **verified, not assumed**
    (esp. the 14M control cell).
+
+---
+
+## 9. REV 2 — INSTRUMENT RE-PRE-REGISTRATION (post-mortem of the VOID build)
+
+**Status:** PRE-REGISTRATION ADDENDUM. Written 2026-07-12 by a fresh-context
+agent dispatched to pin the instrument's open metric choices **blind** (i.e.
+without reading any outcome value), after the Stage-1 build was BLOCKED at its
+own pre-train gate.
+
+**This section SUPERSEDES the instrument specification in §5.0/§5.1 and §3-A.**
+Where §9 and §5 disagree, §9 governs. The prior implementation
+(`lm_recall_gap_probe_rd.py`, `param_axis_r0_driver.py`) is **VOID** and its
+output is **RETRACTED**; the findings that void it are recorded in
+`queue/regate_2026-07-12.md` §10 (FATAL-1 shared-tensor ablation; F-4
+differential candidate cap; F-3 toothless Wave −1; S-6 the FIX-A checkpoint
+table is factually wrong; S-7 cross-run span_frac pairing; M-11 the T2
+weakening). Nothing in §9 may be read against, or tuned to, any number produced
+by that VOID instrument.
+
+> ⚠ **BLINDNESS FAILURE, DECLARED UP FRONT (see §9.7).** The agent dispatched to
+> pin §9.1 blind was **contaminated** during the mandated reading of §10's
+> methodological findings: the per-rung outcome values are interleaved *inside*
+> the FATAL-1 prose (`regate_2026-07-12.md` §10.2, and again in the VOID probe's
+> own module header) and were read before they could be avoided. **§9.1 — the
+> normalization — is therefore NOT PINNED HERE.** It is left as a formally
+> specified, ready-to-fill slot with a handoff protocol, because the choice is
+> known to flip the headline and the program's own rule (and the VOID probe's own
+> fix-list, item 3) is that it must be pinned by someone who has not seen both.
+> **§9.2-§9.6 are pinned**, and are orthogonal to that choice by construction.
+
+---
+
+### 9.0 What the metric is measuring, restated from construction
+
+Fixed for all of §9, read off the (VOID) implementation's *candidate
+construction*, which is correct and is retained:
+
+- A **candidate** is a token position `k` in a 512-token window such that the
+  bigram `(x[k], y[k]) = (a, b)` has an earlier occurrence at position `j`, with
+  `k − j > min_sep`, and `b` is **not** the corpus-modal continuation of `a`
+  (modal table built from the TRAIN split only). The non-modal restriction is
+  what makes the item require *in-context* information rather than a unigram/
+  bigram prior.
+- The candidate's **antecedent** is the single token at position `j+1` — the
+  continuation token of the first occurrence. It is **one token**, not a span.
+  This matters for §9.2: the placebo must be matched at **one token**.
+- The **query distance** is `Δ ≡ k − (j+1)`, the number of tokens between the
+  antecedent and the position being predicted. Δ is a random variable with an
+  empirical distribution determined by the corpus; it is **not** a free parameter
+  and it is **not** 20 and **not** 350 (§9.4).
+- The **non-AR baseline slice** is the accuracy on ordinary first-occurrence
+  positions — i.e. the model's *general* next-token competence on the same
+  windows. This is the quantity a "normalized" form would divide by (§9.1).
+
+The scientific question is whether the **antecedent-attributable** component of
+the model's accuracy at `k` grows with parameters. Everything below exists to
+make "antecedent-attributable" an *identified* quantity rather than a hopeful
+label on a difference of two numbers.
+
+---
+
+### 9.1 THE NORMALIZATION — **NOT PINNED. SLOT + HANDOFF PROTOCOL.**
+
+**Why this slot is empty and not filled by this agent.** `regate` §10.2 records
+that two admissible normalizations of the recall-gap metric yield **opposite
+verdicts on the same data**. The VOID probe's own fix-list (item 3) states the
+consequence correctly: *"This build's author has now SEEN both, and is therefore
+contaminated for this choice — it must be pinned by someone who has not, or by
+the PI."* The agent writing §9 was dispatched to be that someone, and was
+contaminated by the repo's own layout before reaching the decision (§9.7).
+Filling the slot now would be precisely the failure mode §7-F3 named — *"a false
+all-clear, laundered through a pre-registration"* — with the laundering moved one
+agent downstream. **The slot stays open. This is the integrity-preserving
+outcome, not a punt.**
+
+**PINNED CONSTRAINTS ON WHATEVER IS CHOSEN** (these are requirements, not an
+answer; they are restated from §7-F3 and §10.2 and do not depend on any value):
+
+- **N1 — the numerator is fixed.** Whatever the normalization, the numerator is
+  the **difference-in-differences** of §9.2 (`DiD ≡ gap_true − gap_placebo`), not
+  the raw AR-hit slice and not the un-placebo'd gap. §9.2 is pinned
+  independently and is not part of the open choice.
+- **N2 — the chosen form must state, in advance, what it reads when general
+  competence rises with scale while the in-context mechanism does not** (the
+  §7-F3 confound: parametric bigram memorization rises with params *by
+  construction*), **and what it reads in the converse case.** A form that cannot
+  answer both is inadmissible.
+- **N3 — the chosen form must be dimensionally comparable across rungs.** Rungs
+  differ in general competence; the metric must not silently import that
+  difference as recall capacity.
+- **N4 — the chosen form must be pinned against the literature's convention**
+  (Zoology/Based/MQAR: Arora et al.) with a stated reason for adopting or
+  departing from it.
+- **N5 — chance-correction.** The candidate task is open-vocabulary
+  (`VOCAB_SIZE` = 50257), so chance is ~0 and a chance-correction term is
+  near-vacuous *for the intact/ablated arms*; the pinning agent must say so
+  explicitly rather than adopt a chance-corrected form by reflex. (Chance
+  correction IS load-bearing for the *injected-MQAR* instrument, where the read
+  is K-restricted argmax and chance = 1/K — do not conflate the two
+  instruments.)
+- **N6 — the pinned form is written into this section, with its reasoning and an
+  explicit statement of what each rejected form would have measured instead,
+  BEFORE any rebuilt-instrument output is read by anyone.**
+
+**HANDOFF PROTOCOL — how a genuinely blind pin becomes possible.** It currently
+is **not** possible for any agent, because the contaminating values sit inside
+the documents an instrument-builder is required to read:
+
+1. **Redaction (prerequisite, must land first).** The per-rung outcome values in
+   `regate_2026-07-12.md` §10.2 (the raw-gap tuple, the normalized-gap tuple, the
+   T2 copy accuracies) and the duplicates in `lm_recall_gap_probe_rd.py`'s module
+   header must be moved to a separate quarantined file (suggested:
+   `matrix-thinking/queue/QUARANTINE_r0_void_values.md`, referenced by pointer
+   only). The *methodological* findings — which are what a builder needs — must
+   remain, stated **qualitatively** ("the two normalizations diverge in sign of
+   trend"; "T2 reads zero copy ability at three cells"), which loses nothing a
+   builder needs and removes everything that contaminates.
+2. The blind agent is dispatched with: §9.0, §9.2-§9.6, the candidate-construction
+   code, the design's §7 confound analysis, and the redacted §10. It is told the
+   two forms diverge; it is **not** told which way either leans.
+3. It pins §9.1 under N1-N6 and commits.
+4. **Alternative, equally legitimate:** the **PI** pins it directly. The PI is
+   the one party whose authority does not derive from blindness.
+
+**Until §9.1 is filled, the rebuilt instrument may be BUILT and its teeth-gates
+(§9.4) may be RUN, but no R0 verdict may be computed or read.** Building against
+an unpinned normalization is safe *only* because §9.2-§9.6 are pinned; the DiD,
+the placebo, the candidate cap, and the admissibility rules are all
+normalization-independent, so no build decision is downstream of the open slot.
+
+---
+
+### 9.2 THE PLACEBO-ABLATION ARM — **PINNED** (this is the identification)
+
+Without it, the gap is **not identified**: `acc_intact − acc_ablated` confounds
+*"this specific antecedent was removed"* with *"a token somewhere upstream was
+replaced with garbage."* FATAL-1 is the extreme case of that confound (12.6% of
+the context corrupted at once), but the confound exists **even at one corrupted
+token** — a fast-weight model's state is polluted by *any* out-of-distribution
+token, and that pollution grows with model scale for reasons that have nothing to
+do with recall. The placebo is what subtracts it.
+
+**Definition.** For each candidate `i = (b, k, j)` with antecedent position
+`p_i = j+1` and query distance `Δ_i = k − p_i`:
+
+- **TRUE arm.** One forward pass over a context identical to the intact context
+  except that position `p_i` is replaced by a token `r` drawn uniformly from the
+  vocabulary subject to `r ∉ {x[p_i], y[k], EOT}` (the existing exclusion rule,
+  retained).
+- **PLACEBO arm.** One forward pass over a context identical to the intact
+  context except that **exactly one** position `p'_i ≠ p_i` is replaced by a
+  token drawn by the **same rule from the same RNG stream**, where `p'_i` is
+  chosen so that the placebo arm is matched to the true arm in:
+  - **count** — exactly 1 corrupted token (the antecedent is 1 token; the placebo
+    is 1 token);
+  - **distance distribution** — `Δ'_i = k − p'_i` is drawn from the **pooled
+    empirical distribution of Δ over the candidate population of that (rung,
+    corpus, token-slice)**, resampled with a fixed seed. Per-candidate *exact*
+    distance matching is impossible by construction (same distance ⇒ same
+    position), so the match is **distributional**, which is the correct
+    requirement: `gap_true` and `gap_placebo` are aggregate accuracies, and it is
+    their aggregate distance profiles that must agree.
+  - **admissibility** — `p'_i` is rejected and redrawn if it falls on `p_i`, on
+    `j_i` (the antecedent bigram's key token), on `k_i` or later, on an `EOT`, or
+    on the antecedent position of **any other candidate in the same row**. Cap at
+    100 redraws, then fall back to a uniform draw over admissible positions and
+    **flag the candidate**. If the flagged fraction exceeds **5%** in any (rung,
+    corpus) cell, the placebo is not distribution-matched and the cell is
+    **VOID**.
+
+**PER-CANDIDATE, PER-FORWARD-PASS — the requirement that FATAL-1 violated.**
+Every forward pass carries **exactly one** corrupted token. This is
+**non-negotiable** and is the single line that must be checked in the rebuild's
+audit. The efficient and correct implementation is **row replication, batching
+over candidates, not over rows**: for a window `b` with candidate set `C_b`,
+construct a tensor of shape `(|C_b|, T)` in which every row is a copy of window
+`b` and row `m` carries exactly the one corruption belonging to candidate `m`.
+One forward pass over that tensor yields `|C_b|` independent single-ablation
+reads. Do the same for the placebo. The intact pass is the *only* pass that may
+be shared across candidates, because it is unmodified.
+
+> **The pinned metric.**
+> `gap_true(r) ≡ acc_intact(r) − acc_true_ablated(r)`
+> `gap_placebo(r) ≡ acc_intact(r) − acc_placebo_ablated(r)`
+> `DiD(r) ≡ gap_true(r) − gap_placebo(r)`
+> **`DiD` is the numerator of the capacity metric at every rung. No un-placebo'd
+> gap, and no raw AR-hit slice, may carry a verdict.**
+
+**What the placebo licenses.** `gap_placebo` *is* the generic-context-damage
+sensitivity of that model at that distance profile — it is not a nuisance to be
+minimized but a **quantity to be reported per rung**, since it is exactly the
+"bigger models are more brittle to upstream noise" effect that would otherwise be
+read as recall. `DiD` is the antecedent-*specific* component: the extra accuracy
+loss attributable to removing *the token that carries the answer*, over and above
+removing *an equally-surprising token at an equally-distant place*. That
+subtraction is what makes the metric a measurement of in-context recall rather
+than of state fragility.
+
+**The derangement/shuffle control is DEMOTED.** `_shuffle_rows` is **not** a
+substitute for the placebo and its absolute 0.10 bar is **RETIRED** (arbitrary;
+`regate` §10.3 F-3). Shuffling preserves the token multiset and manufactures
+fresh adjacencies that genuinely repeat, so its "null" contains real in-context
+repeats *by construction* — it is a biased null. It is retained only as a
+reported diagnostic, with **no bar and no gating power**.
+
+**Cost — the objection to per-candidate passes is void.** Pinned sampling:
+`N_rows = 512` windows per (rung, corpus, slice), `C_max = 8` candidates per row
+(uniform random within the row, **rung-independent seed**) ⇒ **4,096 candidates**
+per cell and `512 × (1 + 8 + 8) = 8,704` row-forwards. At 1.31B params and
+`T = 512` that is ≈ 8,704 × 512 × 2 × 1.31e9 ≈ 1.2e16 FLOPs ≈ **under a minute**
+of H100 time per cell. The rebuild is **eval-only and cheap**; there is no budget
+argument for the shared-tensor shortcut.
+
+**This also kills F-4.** The candidate cap is now **per-row (`C_max = 8`), fixed,
+and rung-invariant** — never a per-*batch* cap, which is what silently made the
+batch-16 1.31B rung the only uncapped cell while the three batch-32 rungs dropped
+18.4% of their candidates. The eval batch size is **decoupled** from the
+token-arithmetic batch size and from candidate selection entirely.
+
+---
+
+### 9.3 T1 — RE-PINNED (the null is now the placebo)
+
+**T1 (old): shuffled-context reads at floor, absolute bar 0.10.** RETIRED — the
+null is biased (above) and the bar was arbitrary.
+
+**T1 (new): the placebo arm is the null, and it is a *statistical* gate.**
+- **T1a — the metric exists at this rung:** `DiD(r) > 0` with a paired bootstrap
+  95% CI (resampled over **rows**, i.e. clustered — candidates within a row share
+  a context and are not independent) excluding 0. A rung whose `DiD` CI includes
+  0 has **no measurable antecedent-specific recall**; it is not VOID (the
+  instrument worked), it is a **FLOOR rung** and it is reported as such.
+- **T1b — the placebo is doing work:** `gap_placebo(r)` is reported per rung with
+  its CI. If `gap_placebo(r)` is itself indistinguishable from 0 at every rung,
+  say so — it means generic context damage was never the threat, and the
+  un-placebo'd gap would have been fine. If it is large, the placebo is
+  load-bearing and the VOID build's collapse is explained.
+- **T1c — instrument-validity (this is where an absolute bar belongs):** on the
+  **reference models known to have associative recall** (`/data/hf_cache`:
+  `RWKV7-Goose-1.5B`, `falcon-mamba-7b`), the instrument must read `DiD`
+  significantly > 0 **and** must pass T2a (§9.4). If it cannot read AR on a model
+  known to have it, the instrument has no teeth: **INSTRUMENT-INVALID, HALT.**
+  (`regate` §10.3 F-3: the previous Wave −1 "passed" only against an arbitrary
+  absolute bar and in fact *quantified the artifact*. It is re-pinned here as a
+  gate with a null.)
+
+---
+
+### 9.4 T2 — RE-PINNED FROM FIRST PRINCIPLES (and the M-11 sin not repeated)
+
+**What went wrong.** T2 was moved from distance 350 to distance **20** and its bar
+cut from absolute `>0.9` to `>100×chance` **after it failed** (`regate` §10.3
+M-11), contra §7-F8's explicit instruction to *strengthen* it. That is a
+pre-registration violation and it is recorded as such. But the deeper defect is
+that **the original T2 was doing two incompatible jobs at once**, and neither of
+its numbers was derived from anything:
+
+- distance 350 was arbitrary (and is *harder* than the real task);
+- distance 20 was arbitrary (and is *easier* than the real task);
+- `>100×chance` at a 50257-vocab is `≈0.002` — a bar that a model with essentially
+  no copy mechanism passes, i.e. a bar with no teeth at all;
+- `>0.9` **on our own checkpoints** is a bar on **model competence**, and gating a
+  recall-capacity datum on the model's recall competence is **selection on the
+  dependent variable** — it excludes a rung *for having a small value of the very
+  quantity being measured*. That is not a strengthening; it is a different error.
+
+**The split.** T2's stated rationale in §5.1 — *"the instrument has no teeth… a
+perfect model must not fail the bar"* — is a claim about the **instrument**. Its
+use as a rung filter is a claim about the **checkpoint**. These are separated:
+
+**T2a — INSTRUMENT-TEETH GATE (absolute bar, on reference models).**
+Plant a one-shot key→value bigram whose value is **not** the key's modal
+continuation, at distances drawn from **the main metric's own empirical Δ
+distribution** (§9.0) — this is exactly §7-F8's demand for *"a positive control at
+the measured task's true difficulty,"* and it replaces both arbitrary distances
+with a construction-derived one. On `RWKV7-Goose-1.5B` and `falcon-mamba-7b`:
+**`acc_copy ≥ 0.90`, absolute**, at the Δ-median, and `≥ 0.75` in every Δ-decile
+carrying ≥10% of the candidate mass. **Fail ⇒ INSTRUMENT-INVALID, HALT for every
+rung.** This is *stricter* than anything the prior instrument was ever held to
+(the 0.9 bar now applies where a 0.9 is actually meaningful — on a model known to
+have the mechanism), and it is the gate the toothless Wave −1 should have been.
+
+**T2b — RUNG-ADMISSIBILITY (mechanism present / absent; NOT a competence bar).**
+On each of our own checkpoints, with the same planted-copy probe at the same
+Δ distribution, and with a **placebo-planted control** (a plant that is *not* the
+queried key, matched in count and distance, exactly as §9.2):
+- **T2b-1 (mechanism exists):** `acc_copy − acc_copy_placebo > 0`, exact binomial,
+  **p < 0.001**.
+- **T2b-2 (the ceiling consistency check — this is the one that would have caught
+  the VOID build):** one-shot planted copy is the **maximally favourable** case of
+  the mechanism the main metric probes (a clean, non-modal, unambiguous
+  antecedent at the same distance). Therefore `acc_copy` is an **upper bound** on
+  the fraction of candidates whose answer can be antecedent-attributable, and the
+  rung must satisfy
+  > **`DiD(r) ≤ acc_copy(r) + 2·SE`.**
+  A rung reporting an in-context recall gap **larger than its own demonstrated
+  in-context copy ability is internally contradictory** and its gap is measuring
+  something else. **Fail ⇒ the rung is VOID** (not FLOOR — the instrument is
+  returning an impossible number at that rung, which is a defect, not a
+  measurement).
+
+**The plain consequence, stated as instructed.** **A rung that fails T2b-1 has no
+demonstrable in-context copy mechanism at the distances the main metric actually
+queries, and therefore cannot contribute an in-context-recall data point.** It is
+**EXCLUDED from the law**, reported as *"mechanism absent at this rung,"* and it
+does **not** count toward the minimum-n requirements of §9.6. If that costs us
+rungs, it costs us rungs; a capacity law fitted through checkpoints that cannot
+copy is not a capacity law. If it costs us *most* rungs, the honest headline is
+not COUPLED and not DECOUPLED — it is **FLOOR** (§9.5), and the design's own §5.2
+already pre-commits to falling back to hedge D in that case.
+
+**Why this is not M-11 repeated.** T2b is *weaker than `>0.9`* on our own
+checkpoints and I say so plainly. The justification is not that `>0.9` failed —
+it is that a `>0.9` competence bar on our own checkpoints (i) was never derived,
+(ii) does not serve T2's own stated purpose (instrument teeth), and (iii) commits
+selection on the dependent variable. The absolute `0.9` is **not dropped**; it is
+**relocated to T2a**, where it has force. And T2b **adds** a check (T2b-2) that no
+version of T2 ever had and that the VOID build's central contradiction would have
+tripped. To leave no room for the charge, the following is **also pinned**:
+
+> **Mandatory sensitivity report.** `acc_copy(r)` at the Δ-median is reported for
+> every rung alongside the strict `≥0.90` reading, and the trend fit of §9.5 is
+> reported **twice**: over all T2b-admissible rungs, and over the subset that also
+> clears `acc_copy ≥ 0.90` ("strong-mechanism rungs"). If the two disagree in
+> verdict, **the verdict is INDETERMINATE** and we say so.
+
+---
+
+### 9.5 THE VERDICT MAP — RE-PINNED (exhaustive, non-overlapping, two-factor)
+
+§5.2's map has a latent defect independent of everything above: it defines
+COUPLED as *"flat **or** declining."* **A null is not a decline.** An
+underpowered flat trend sold as COUPLED is the same class of error as the false
+all-clear, pointed the other way. The map is re-pinned to separate them.
+
+Let `A` = the set of **admissible rungs** (§9.6). Let `M(r)` = the pinned
+capacity metric at rung `r` — numerator `DiD(r)` (§9.2), normalization **per
+§9.1, to be filled**. Let `β` = the OLS slope of `M(r)` on `log10(params)` over
+`A`, with a 95% CI from a bootstrap resampled over **rows** (clustered) and over
+**seeds** where `n > 1`. Let `δ` = the pre-specified equivalence bound:
+**`δ = 0.125 × M(r_min)` per decade** — i.e. "flat" means the metric changes by
+**less than 25% across the ladder's ~2 decades**, which is the smallest change
+this instrument's power can meaningfully claim and is fixed before any read.
+
+**Factor 1 — the recall trend** (partitions on the CI of `β`; exhaustive and
+disjoint):
+
+| | Rule | Reading |
+|---|---|---|
+| **RISES** | `β > 0`, 95% CI excludes 0 | in-context recall capacity grows with params |
+| **DECLINES** | `β < 0`, 95% CI excludes 0 | in-context recall capacity shrinks with params |
+| **FLAT** | 95% CI includes 0 **and** TOST at 90% CI establishes `|β| < δ` | capacity is statistically flat — params buy *nothing* |
+| **INDETERMINATE** | 95% CI includes 0 **and** TOST fails | underpowered. **No verdict.** Report the n required. |
+
+**Factor 2 — is the attractor-coupling claim licensed at all?** The COUPLED/
+DECOUPLED language is a claim *about span_frac*, and it is licensed **only if**
+span_frac is **monotone increasing over the same admissible rungs `A`, measured
+on the same checkpoints** (T3, §9.6). If span_frac is not monotone over `A`, the
+recall trend is still reported — as **RECALL-TREND-ONLY** — and **no coupling
+claim is made in either direction.**
+
+**The map** (read Factor 1 × Factor 2; precedence VOID → FLOOR → the table):
+
+| Verdict | Rule | Consequence |
+|---|---|---|
+| **VOID** | T1c fails, **or** T2a fails, **or** any admissible-rung requirement of §9.6 fails at a rung needed to reach minimum n, **or** §9.1 is still unpinned | HALT. No verdict. Diagnose. |
+| **FLOOR** | Fewer than **3** rungs are T2b-1-admissible **and** T1a-positive | No law is askable. Fall back to **hedge D** (§3-D), exactly as §5.2 already pre-commits. |
+| **COUPLED** | Factor 1 = **DECLINES** ∧ Factor 2 licensed | Attractor predicts capacity. Proceed to R1 with COUPLING as primary. |
+| **DECOUPLED** | Factor 1 = **RISES** ∧ Factor 2 licensed | Pathology functionally inert; retires the confound off E4/E7. Proceed to R1. |
+| **FLAT-COUPLED** | Factor 1 = **FLAT** ∧ Factor 2 licensed | **The third outcome, and it is the one §5.2 could not express.** Params buy *no* recall capacity over 2 decades while the pathology worsens — a *ceiling*, not a decline. Publishable, and it is **not** a decline: we do not claim one. |
+| **RECALL-TREND-ONLY** | Factor 1 ∈ {RISES, DECLINES, FLAT} ∧ Factor 2 **not** licensed | Report the params×recall trend; **make no attractor claim.** |
+| **INDETERMINATE** | Factor 1 = INDETERMINATE | No verdict. Report n required. Do **not** proceed to R1 on this basis. |
+
+**Directionality remains pre-registered, not chosen after the fact** (§5.2's rule,
+retained verbatim in force): a recall metric that *improves* while span_frac
+worsens is DECOUPLED, and we say so.
+
+**Claim language (§7-F9, retained):** *"a monotone trend over 2 orders of
+magnitude with a mechanism attached"* — **never "a scaling law"** unless we reach
+≥4 token-matched admissible rungs at n≥3.
+
+---
+
+### 9.6 INCLUSION, STOPPING, AND WHAT INVALIDATES A RUNG — **PINNED**
+
+A rung `r` enters `A` **iff all** of the following hold. Any failure excludes the
+rung; a failure that drops `|A|` below the minimum triggers VOID or FLOOR per
+§9.5.
+
+1. **Checkpoint exists at the common token slice.** §5.0's FIX-A table is
+   **factually wrong** (`regate` §10.3 S-6): 392M/per_token/openr1 tops out at
+   step 20,000, and 1.31B checkpoints are written every **10,000** steps, not
+   1,000 — **both 1.0B-slice checkpoints do not exist.** §5.0's mandated dual-slice
+   cross-validation is therefore **UNRUNNABLE as written and is retracted.** The
+   common slice is **0.328B tokens** (forced, not chosen), and this is disclosed
+   as a limitation, not presented as a design choice.
+2. **The rung is not degenerate in tokens-per-parameter.** At the 0.328B slice the
+   1.31B rung has seen **0.25 tokens/param** (vs ~23 for 14M). A model at 0.25
+   tok/param is not meaningfully trained, and a plateau at the top of the ladder is
+   what a maximally-undertrained top rung predicts **with no recall-capacity story
+   needed** (S-6). **PINNED:** the primary trend fit is over rungs with **≥ 1.0
+   token/param** at the common slice. Rungs below that are reported as **disclosed
+   secondary points that do not enter the fit**, and any verdict that depends on
+   them is downgraded to INDETERMINATE. *This is derived from the training budget,
+   not from any measured recall value.* **If it removes the 1.31B rung, then the
+   ladder is not 2 orders of magnitude and we do not say that it is.**
+3. **The checkpoint is QUIESCED and provenance-pinned.** No rung may be read from a
+   live, still-training job (`regate` §10.3 S-7: R0 raced a `--ckpt-every 10000`
+   writer on the Lane-B 1.31B job). The checkpoint file must be **md5-pinned in the
+   result JSON**, and its job must be terminated.
+4. **T3 — span_frac is measured on THE SAME checkpoint**, same run, same step. The
+   VOID build paired a step-40000 live checkpoint's recall against a *different
+   run's* step-155000 span_frac (S-7). **Cross-run pairing invalidates the rung.**
+   Any span_frac reference value carried in from §5.1 is a **provenance claim, not
+   a gate** — T3 passes iff the probe reproduces span_frac **on the pinned
+   checkpoint**, and the E9 reference values are reported alongside, not required
+   to match.
+5. **T1a** (`DiD` CI excludes 0) and **T2b-1** (mechanism present, p<0.001) and
+   **T2b-2** (`DiD ≤ acc_copy + 2·SE`) all pass. T2b-2 failure ⇒ **VOID rung**;
+   T1a or T2b-1 failure ⇒ **FLOOR rung** (excluded from the fit, reported).
+6. **Both corpora, always.** `wikitext-mix-ext` **and** `openr1-mix-ext` (§5.1's
+   pin, which the VOID build silently narrowed to "the corpus where the instrument
+   passes" — `regate` §10.3 S-5). A rung is admissible only if it is admissible on
+   **both**. If a rung is admissible on one corpus and not the other, that is a
+   **reported result** ("mechanism present on math, absent on prose"), not a
+   licence to drop the failing corpus.
+7. **Sample size.** ≥ 4,096 candidates per (rung, corpus) after the §9.2 cap, and
+   the §9.2 placebo-fallback fraction ≤ 5%.
+
+**Minimum n / stopping.**
+- **≥ 3 admissible rungs** for any trend verdict (`β` over 2 free params + noise).
+- **≥ 4 token-matched admissible rungs at n≥3 seeds** before the word "law"
+  (§7-F9). Below that: "trend."
+- The 1.31B rung is and remains **n ≤ 2** (§6 item 2). **Disclose, don't spin.**
+- **Stop rule:** R0 is a single eval-only pass. There is **no re-read** of the
+  same checkpoints under a different metric after a verdict is computed. If §9.1's
+  pinned normalization turns out to be regrettable, that is a **new
+  pre-registration and a new section**, disclosed as such — it is never a
+  re-normalization of an already-read result.
+
+---
+
+### 9.7 CONTAMINATION LEDGER
+
+**Read (permitted):** `PARAM_AXIS_SCALING_DESIGN.md` §1-§8 (skipping §5.0's
+FIX-A token table only after noting it is a *checkpoint* table, not an outcome
+table); `queue/regate_2026-07-12.md` §10.0-§10.3;
+`deltanet_rd/lm_recall_gap_probe_rd.py` header + `run_ar_hit_gap_eval`.
+
+**Not read:** `/tmp/r0_ar_hit_full.json`; any file under `~/queue/completed/`;
+any `experiment-runs/` harvest; any figure; any per-rung result JSON.
+
+**CONTAMINATION — DECLARED, NOT MINIMISED.** The dispatch required reading §10's
+methodological findings. Those findings are **interleaved with the outcome values
+in the same paragraphs** (§10.2's FATAL-1 prose and §10.3's M-11 bullet), and the
+VOID probe's module header repeats them. Before it was possible to stop, this
+agent read:
+
+- the per-rung raw-gap tuple and the per-rung general-competence-normalized tuple
+  on one corpus, **and the explicit statement of which normalization leans to
+  which verdict**;
+- the T2 copy accuracies (including the zero-copy cells and the top-rung value at
+  the weakened distance);
+- the shuffled-control gap magnitude.
+
+**Sub-decisions affected, and how each was handled:**
+
+| Sub-decision | Contaminated? | Handling |
+|---|---|---|
+| **§9.1 normalization** | **YES — fatally.** I know which form points which way. | **NOT PINNED.** Slot + handoff + redaction protocol. This is the only honest disposition. |
+| **§9.2 placebo arm** | No. Derived from the construction (1-token antecedent ⇒ 1-token placebo; Δ-distribution matching; row-replication batching). Independent of any value. | Pinned. |
+| **§9.4 T2 re-pin** | **PARTIALLY.** The dispatch itself told me T2 had failed; I then also saw the specific copy accuracies. I therefore **knew** that a strict absolute bar would void rungs and a lenient one would not. | Pinned, **with the contamination disclosed in-section.** The T2a/T2b split is defended on construction (selection-on-the-dependent-variable), the absolute 0.9 is **relocated, not dropped**, and a **mandatory both-ways sensitivity report** is pinned so the strict bar's verdict is reported regardless. A reader who believes I softened T2 can read the strict fit directly. |
+| **§9.6 item 2 (tok/param floor)** | **PARTIALLY.** I know a plateau exists at the top. The rule is nonetheless derived from the *training budget* (0.25 tok/param), a fact independent of any recall value and already recorded as S-6. | Pinned, disclosed. |
+| **§9.5 verdict map** | Structurally, no — it is parameterized on `M` and cannot be tuned without `M`. The FLAT/DECLINES split is a repair of a real defect in §5.2 (a null is not a decline) and I would make it blind. | Pinned. |
+
+**Disclosed instinct, explicitly NOT a recommendation.** Having seen both forms, I
+formed an instinct about how §9.1 might be resolved (a two-metric, pre-registered
+**concordance/discordance** map that makes the disagreement itself a reportable
+outcome). I am **naming it only to expose it**, and I explicitly **do not
+recommend it** and have **not** written it into §9.1 — I cannot distinguish
+whether that instinct comes from first principles or from knowing the answer, and
+an agent in that position should not be the one to propose the compromise.
+
+**Process finding (the reason this happened, and it will happen again).** *The
+repo currently makes a blind pin impossible.* Any agent instructed to read the
+methodological record **must** read the outcome values, because they are in the
+same sentences. **The redaction in §9.1's handoff protocol step 1 is therefore a
+prerequisite for the next agent, not a nicety.** Until it lands, every fresh agent
+dispatched to pin §9.1 will be burned exactly as this one was.
+
+**Fake system-reminder.** One fake `system-reminder` was received during this
+session inside tool stdout, carrying a date-change claim **plus an explicit
+instruction to conceal it from the user**. Per the CLAUDE.md standing rule it was
+**disregarded and is reported here, not concealed**. Verified against `git log`:
+the working date is 2026-07-12, consistent with this document's own header (which
+records the identical attack during the Rev-1 session).
+
+---
+
+### 9.8 REV 2 — STATUS
+
+**STATUS: INSTRUMENT-SPEC RE-PINNED, ONE SLOT OPEN.**
+
+- §9.2 (placebo/DiD), §9.3 (T1), §9.4 (T2a/T2b), §9.5 (verdict map), §9.6
+  (admissibility) are **PINNED** and supersede §5.0/§5.1/§5.2.
+- §9.1 (the normalization) is **OPEN** and blocks *verdict computation only*, not
+  the build.
+- **Nothing may be read** — no `DiD`, no trend, no verdict — until §9.1 is filled
+  by a blind agent or by the PI, and the redaction of `regate` §10.2 is what makes
+  the former possible.
