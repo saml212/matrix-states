@@ -1,0 +1,50 @@
+Loading RWKV7-Goose-World3-1.5B-HF tokenizer...
+Loading GPT2 fast tokenizer (for decode)...
+[openr1-mix-ext/train] decoded 230,074 documents (117.3s)
+  ...[openr1-mix-ext/train] 20,000/230,074 docs, 8,924,186 tokens so far, 12s elapsed, running totals={65530: 94707, 0: 0}
+  ...[openr1-mix-ext/train] 40,000/230,074 docs, 17,866,751 tokens so far, 25s elapsed, running totals={65530: 188970, 0: 0}
+  ...[openr1-mix-ext/train] 60,000/230,074 docs, 26,824,555 tokens so far, 38s elapsed, running totals={65530: 283020, 0: 0}
+  ...[openr1-mix-ext/train] 80,000/230,074 docs, 35,808,390 tokens so far, 50s elapsed, running totals={65530: 379935, 0: 0}
+  ...[openr1-mix-ext/train] 100,000/230,074 docs, 61,746,460 tokens so far, 94s elapsed, running totals={65530: 769624, 0: 0}
+  ...[openr1-mix-ext/train] 120,000/230,074 docs, 102,080,272 tokens so far, 166s elapsed, running totals={65530: 1383193, 0: 0}
+  ...[openr1-mix-ext/train] 140,000/230,074 docs, 143,057,282 tokens so far, 241s elapsed, running totals={65530: 2005875, 0: 0}
+  ...[openr1-mix-ext/train] 160,000/230,074 docs, 183,804,860 tokens so far, 311s elapsed, running totals={65530: 2628733, 0: 0}
+  ...[openr1-mix-ext/train] 180,000/230,074 docs, 224,905,707 tokens so far, 382s elapsed, running totals={65530: 3257452, 0: 0}
+  ...[openr1-mix-ext/train] 200,000/230,074 docs, 264,020,123 tokens so far, 449s elapsed, running totals={65530: 3866552, 0: 0}
+  ...[openr1-mix-ext/train] 220,000/230,074 docs, 304,263,350 tokens so far, 519s elapsed, running totals={65530: 4495459, 0: 0}
+[openr1-mix-ext/train] DONE: 230,074 docs, 326,636,452 ref-tokenizer tokens, 559.9s
+    id=65530 (eos_token ('\n\n', current/broken)): total occurrences=4,833,550, in 209,232/230,074 documents
+    id=0 (bos/pad/unk_token ('<|rwkv_tokenizer_end_of_text|>', proposed)): total occurrences=0, in 0/230,074 documents
+[openr1-mix-ext/val] decoded 4,659 documents (3.5s)
+[openr1-mix-ext/val] DONE: 4,659 docs, 2,095,752 ref-tokenizer tokens, 4.3s
+    id=65530 (eos_token ('\n\n', current/broken)): total occurrences=21,686, in 3,774/4,659 documents
+    id=0 (bos/pad/unk_token ('<|rwkv_tokenizer_end_of_text|>', proposed)): total occurrences=0, in 0/4,659 documents
+[wikitext-mix-ext/train] decoded 317,474 documents (216.9s)
+  ...[wikitext-mix-ext/train] 20,000/317,474 docs, 83,597,232 tokens so far, 211s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 40,000/317,474 docs, 131,420,134 tokens so far, 305s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 60,000/317,474 docs, 152,414,379 tokens so far, 348s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 80,000/317,474 docs, 173,026,407 tokens so far, 389s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 100,000/317,474 docs, 193,227,579 tokens so far, 430s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 120,000/317,474 docs, 213,554,989 tokens so far, 473s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 140,000/317,474 docs, 234,501,400 tokens so far, 521s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 160,000/317,474 docs, 255,135,608 tokens so far, 567s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 180,000/317,474 docs, 275,352,140 tokens so far, 610s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 200,000/317,474 docs, 295,421,793 tokens so far, 652s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 220,000/317,474 docs, 315,920,265 tokens so far, 695s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 240,000/317,474 docs, 336,721,850 tokens so far, 738s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 260,000/317,474 docs, 358,178,124 tokens so far, 780s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 280,000/317,474 docs, 379,084,458 tokens so far, 823s elapsed, running totals={65530: 0, 0: 0}
+  ...[wikitext-mix-ext/train] 300,000/317,474 docs, 399,842,778 tokens so far, 865s elapsed, running totals={65530: 0, 0: 0}
+[wikitext-mix-ext/train] DONE: 317,474 docs, 418,408,949 ref-tokenizer tokens, 902.1s
+    id=65530 (eos_token ('\n\n', current/broken)): total occurrences=0, in 0/317,474 documents
+    id=0 (bos/pad/unk_token ('<|rwkv_tokenizer_end_of_text|>', proposed)): total occurrences=0, in 0/317,474 documents
+[wikitext-mix-ext/val] decoded 60 documents (2.5s)
+[wikitext-mix-ext/val] DONE: 60 docs, 251,111 ref-tokenizer tokens, 0.5s
+    id=65530 (eos_token ('\n\n', current/broken)): total occurrences=0, in 0/60 documents
+    id=0 (bos/pad/unk_token ('<|rwkv_tokenizer_end_of_text|>', proposed)): total occurrences=0, in 0/60 documents
+
+==============================================================================
+GRAND TOTAL across BOTH required corpora x BOTH splits (552,267 documents, 747,392,264 ref-tokenizer tokens):
+  id=65530 (eos_token ('\n\n', current/broken)): 4,855,236 occurrences in 213,006 documents -> NONZERO -- COLLIDES, DO NOT USE
+  id=0 (bos/pad/unk_token ('<|rwkv_tokenizer_end_of_text|>', proposed)): 0 occurrences in 0 documents -> ZERO -- SAFE AS SEPARATOR
+==============================================================================

@@ -558,6 +558,60 @@ WITNESS_SPECS = {
                          "t2a3": True},
 }
 
+# BUG 2 FIX (this session's diagnosis; the crash this fixes is documented at
+# PARAM_AXIS_SCALING_DESIGN.md sec 12.3 "DEFECT A"). RWKV7-Goose-World3-1.5B-HF's declared
+# `tok.eos_token_id` (65530) is NOT a reserved sentinel: `tok.decode([65530]) == '\n\n'`, so it
+# collides with real in-document text (openr1-mix-ext's math/code-heavy documents are full of
+# literal "\n\n"), tripping the hard boundary-ambiguity assertion in `_retokenize_documents`
+# -- correctly, per D5 round-2 M-2.
+#
+# THE ACTUAL MECHANISM (verified against the tokenizer's own source + live objects; an earlier
+# draft of this comment guessed wrong and an independent audit caught it, so the checked facts
+# are recorded here rather than a plausible story). BOTH ids are HF **AddedTokens**, NOT raw
+# byte-level trie entries:
+#     tok.added_tokens_encoder == {'<|rwkv_tokenizer_end_of_text|>': 0, '\n\n': 65530}
+#     tok.trie_tokenizer.idx2token.get(65530) is None   # 65530 is NOT in the trie at all
+#     tok.trie_tokenizer.idx2token.get(0)     is None   # nor is 0
+#     tok.trie_tokenizer.token2idx[b'\n\n']   == 261    # the REAL trie id for a double newline
+# (65530 is registered by THIS repo's tokenizer_config.json, which overrides only `eos_token`
+# to '\n\n'; the RwkvTokenizer class's own default eos_token is '<|rwkv_tokenizer_end_of_text|>',
+# matching bos/unk/pad. id 0 comes from `RwkvTokenizer.__init__`'s
+# `self._added_tokens_decoder = {0: AddedToken(str(bos_token))}`.)
+#
+# So the two ids are reachable by EXACTLY ONE mechanism, symmetrically: HF's `tokenize()`
+# splits the input on registered added-token STRINGS before ever consulting the byte-trie, and
+# it does so independently of `add_special_tokens=` (verified empirically: 'a\n\nb' encodes to
+# [98, 65530, 99] under add_special_tokens=False). The difference is ONLY in the trigger
+# string's natural frequency:
+#   - 65530's trigger is '\n\n'                          -- ubiquitous in real prose/math/code.
+#   - 0's trigger is the literal 30-char sentinel
+#     '<|rwkv_tokenizer_end_of_text|>'                    -- never occurs in natural text.
+# Ordinary text can therefore NEVER produce id 0 through the trie path (the trie holds all 256
+# single-byte values, so `find_longest` always makes progress and never needs an unk fallback;
+# `_convert_token_to_id` is the identity on the trie's own int ids).
+#
+# PROVEN, not assumed: a real scan of the FULL bridged corpus -- both REQUIRED corpora x both
+# splits (552,267 documents / 747,392,264 reference-tokenizer tokens), through
+# `_retokenize_documents`'s exact per-document add_special_tokens=False encode path -- counted
+#     id 0     -> 0 occurrences         (ZERO, in 0 of 552,267 documents)  => SAFE
+#     id 65530 -> 4,855,236 occurrences (in 213,006 documents)             => COLLIDES
+# (raw log: experiment-runs/2026-07-13_t2a_bugfix_separator_scan/). And the one theoretical
+# path to a collision -- a document literally containing the sentinel string -- is FAIL-CLOSED,
+# not merely improbable: `_retokenize_documents`'s assertion (UNCHANGED by this fix) raises on
+# it, which smoke test [3d] forces to fire.
+#
+# Scope: ONLY W1_rwkv7 is touched. W2 (gpt2-large) is never bridged (`bridge=False`) and this
+# whole class of bug does not apply to it. C1 (falcon-mamba) and W3 (Llama, not fetched) are
+# NOT touched -- C1's own `tok.eos_token_id` bridged openr1-mix-ext cleanly in the run this
+# session is cleaning up after (no Defect-A collision observed), so there is no diagnosed
+# defect to fix there; per this task's own instruction, undiagnosed machinery is left alone.
+WITNESS_EOS_ID_OVERRIDE = {
+    # witness_key -> tokenizer attribute name to read the boundary-splice id FROM, instead of
+    # the generic `tok.eos_token_id`, because that witness's OWN declared eos_token_id is a
+    # proven (not merely suspected) in-document collider.
+    "W1_rwkv7": "bos_token_id",
+}
+
 # D5 round-1 SERIOUS-5 fix: use mode_run's OWN offset for every witness AND T2a-2, not a
 # witness-specific offset. Candidate detection (detect_candidates_and_baseline) is model-free,
 # so two witnesses on the SAME corpus at the SAME seed get the IDENTICAL window/candidate
@@ -996,6 +1050,34 @@ def build_bridged_corpus(data_dir: str, corpus_name: str, ref_tokenizer, gpt2_to
     }
 
 
+def resolve_witness_eos_id(witness_key: str, tok) -> int:
+    """The SINGLE source of truth for which tokenizer attribute supplies the document-boundary
+    splice id for `witness_key` -- used by BOTH `load_witness_model` (the real driver path) AND
+    `smoke()`'s own bridge exercises, so the smoke suite tests the exact resolution logic that
+    runs for real rather than a hand-rolled duplicate of it. See WITNESS_EOS_ID_OVERRIDE's
+    comment (BUG 2 FIX, this session) for why this is not always `tok.eos_token_id`."""
+    override_attr = WITNESS_EOS_ID_OVERRIDE.get(witness_key)
+    if override_attr is not None:
+        eos_id = getattr(tok, override_attr, None)
+        if eos_id is None:
+            raise RuntimeError(
+                f"{witness_key}: WITNESS_EOS_ID_OVERRIDE names tokenizer attribute "
+                f"{override_attr!r} but it is None or missing on this tokenizer -- the override "
+                f"was calibrated against a specific tokenizer revision and no longer holds. "
+                f"Refusing to silently fall back to the known-colliding tok.eos_token_id."
+            )
+        return int(eos_id)
+    eos_id = tok.eos_token_id
+    if eos_id is None:
+        raise RuntimeError(
+            f"{witness_key}'s tokenizer has no eos_token_id -- the D6 fix "
+            f"(eot_override / build_key_value_pools's eot_token_id=) requires one. "
+            f"Refusing to fall back to GPT-2's 50256 under a foreign tokenizer -- "
+            f"that IS D6, the exact defect this driver exists to fix."
+        )
+    return int(eos_id)
+
+
 # =============================================================================
 # Witness model / corpus loaders.
 # =============================================================================
@@ -1036,14 +1118,12 @@ def load_witness_model(witness_key: str, device: str, dtype=torch.bfloat16):
     wrapped = HFLogitsWrapper(hf_model).to(device)
     wrapped.eval()
     vocab_size = getattr(hf_model.config, "vocab_size", None) or len(tok)
-    eos_id = tok.eos_token_id
-    if eos_id is None:
-        raise RuntimeError(
-            f"{witness_key} ({repo})'s tokenizer has no eos_token_id -- the D6 fix "
-            f"(eot_override / build_key_value_pools's eot_token_id=) requires one. "
-            f"Refusing to fall back to GPT-2's 50256 under a foreign tokenizer -- "
-            f"that IS D6, the exact defect this driver exists to fix."
-        )
+    # BUG 2 FIX: resolve via the single shared helper (also used by smoke()'s own bridge
+    # exercise below) rather than reading `tok.eos_token_id` directly -- that witness's OWN
+    # declared eos_token_id is, for W1_rwkv7, a PROVEN in-document collider (WITNESS_EOS_ID_
+    # OVERRIDE's comment). Every other witness is unaffected: the generic `tok.eos_token_id`
+    # path is exactly what ran before this fix.
+    eos_id = resolve_witness_eos_id(witness_key, tok)
     return wrapped, tok, int(vocab_size), int(eos_id)
 
 
@@ -2023,6 +2103,38 @@ def smoke(device: str = "cpu") -> int:
         docs_all = decode_corpus_to_documents(toks, offs, gpt2_tok, n_source_tokens=None)
         report("[3c] n_source_tokens=None decodes the FULL split (no truncation)",
                len(docs_all) == 2)
+        # --- [3d] BUG 2's own forced-fail: the D5 round-2 M-2 boundary-ambiguity assertion
+        #     MUST STILL FIRE when a colliding separator is passed -- this session's fix changes
+        #     WHICH id W1_rwkv7 uses, it does not touch the assertion itself, and "a structural
+        #     check without a forced-fail negative test is not a check" applies here exactly as
+        #     it does elsewhere in this file. Picks a token id that provably occurs INSIDE one
+        #     of doc_a's own re-tokenized ids (not a document-boundary id) and confirms
+        #     _retokenize_documents refuses rather than silently splicing an ambiguous boundary. ---
+        colliding_id = gpt2_tok(docs[0], add_special_tokens=False)["input_ids"][0]
+        collided = False
+        collide_detail = ""
+        try:
+            _retokenize_documents(docs, gpt2_tok, colliding_id)
+        except RuntimeError as e:
+            collided = True
+            collide_detail = str(e)
+        report("[3d] FORCED-FAIL: _retokenize_documents RAISES RuntimeError when the chosen "
+               "eos_id occurs INSIDE a document's own encoding (the exact D5 round-2 M-2 "
+               "assertion this session's BUG 2 fix must NOT weaken, move, or bypass)",
+               collided and "boundary would then be ambiguous" in collide_detail,
+               f"colliding_id={colliding_id}, raised={collided}: {collide_detail[:160]}")
+        # --- [3e] CONTROL: the SAME assertion does NOT fire on a genuinely non-colliding id
+        #     (eos_probe=99999, already used in [3b] and never present in either doc's real
+        #     GPT-2 encoding) -- proves [3d] is a real discriminating test, not something that
+        #     always raises regardless of input. ---
+        no_collide_raised = False
+        try:
+            _retokenize_documents(docs, gpt2_tok, eos_probe)
+        except RuntimeError:
+            no_collide_raised = True
+        report("[3e] CONTROL: the SAME assertion does NOT fire on a genuinely non-colliding id "
+               "(proves [3d] discriminates rather than always raising)",
+               not no_collide_raised, f"eos_probe={eos_probe}")
     except Exception as e:  # noqa: BLE001
         report("[3] decode_corpus_to_documents / _retokenize_documents", False,
                f"EXCEPTION: {type(e).__name__}: {e}")
@@ -2052,7 +2164,12 @@ def smoke(device: str = "cpu") -> int:
                    "W1 tokenizer not cached/reachable -- run this smoke on the H100 box "
                    "(/data/hf_cache), where it is cached.")
         else:
-            eos_id = foreign_tok.eos_token_id if foreign_tok.eos_token_id is not None else 0
+            # BUG 2 FIX: go through the SAME resolve_witness_eos_id() the real driver path uses
+            # (load_witness_model), instead of a hand-rolled `foreign_tok.eos_token_id or 0`
+            # fallback -- so this smoke test exercises the production id-selection logic
+            # (W1_rwkv7 -> bos_token_id=0, not the colliding eos_token_id=65530) rather than a
+            # separate, silently-divergent copy of it.
+            eos_id = resolve_witness_eos_id("W1_rwkv7", foreign_tok)
 
             # --- [4-neg] D5 round-2 SERIOUS-2: a REAL forced-fail test of build_bridged_corpus's
             #     OWN floor assertion, with NO filesystem dependency. Round 1's version was

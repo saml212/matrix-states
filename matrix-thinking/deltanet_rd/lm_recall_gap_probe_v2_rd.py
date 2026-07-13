@@ -2002,19 +2002,50 @@ def check_t2b1b_key_conditioned(paired_records: list) -> dict:
                               [r["hit_keyswap"] for r in paired_records])
 
 
+def _log_binomial_pmf(x: int, n: int, p: float) -> float:
+    """log(P(X=x)) for X ~ Binomial(n, p), computed via `math.lgamma`
+    (log of the arbitrary-precision `math.comb(n, x)`) instead of the raw
+    integer, so nothing is ever converted to a float before the
+    vanishingly-small `p**x*(1-p)**(n-x)` factor has been applied in log
+    space. `math.lgamma`/`math.log`/`math.log1p` operate on doubles the
+    entire way through -- there is no intermediate arbitrary-precision int
+    for ANY `n` (unlike `math.comb(n, x)` itself, whose magnitude grows
+    with `n` without bound). Handles `p in {0, 1}` explicitly since
+    `math.log(0)` raises. Result is always <= 0 (a valid log-probability)."""
+    if p <= 0.0:
+        return 0.0 if x == 0 else float("-inf")
+    if p >= 1.0:
+        return 0.0 if x == n else float("-inf")
+    log_n_choose_x = math.lgamma(n + 1) - math.lgamma(x + 1) - math.lgamma(n - x + 1)
+    return log_n_choose_x + x * math.log(p) + (n - x) * math.log1p(-p)
+
+
 def _exact_binomial_two_sided_p(k: int, n: int, p: float = 0.5) -> float:
+    """Exact two-sided binomial test p-value (the 'sum of all outcomes at
+    least as extreme as observed' / minimum-likelihood method), IDENTICAL
+    in method to the original implementation (same inclusion rule:
+    pmf(x) <= pmf(k)*(1+1e-9)) but computed entirely in log space so it
+    never materializes `math.comb(n, x)` as a Python int that Python must
+    convert to float before the shrinking p**x*(1-p)**(n-x) factor applies
+    -- THE bug (OverflowError at n>=~1030, verified by direct sweep,
+    lm_recall_gap_probe_v2_rd.py's own binding N_rows=2048 ceiling). Every
+    intermediate value here (log_pmf, and pmf=exp(log_pmf) for the
+    surviving terms only) stays in [0, 1] / (-inf, 0], so nothing can
+    overflow float64 regardless of n. Still an EXACT test, not a normal
+    approximation -- the pinned spec (sec 11.5/9.4) requires exact."""
     if n == 0:
         return 1.0
 
-    def pmf(x):
-        return math.comb(n, x) * (p ** x) * ((1 - p) ** (n - x))
-
-    p_obs = pmf(k)
+    log_p_obs = _log_binomial_pmf(k, n, p)
+    # the same multiplicative (1+1e-9) tolerance as the original, transferred
+    # to log space via log1p so x==k itself is always included despite
+    # floating-point noise in the lgamma evaluation.
+    log_threshold = log_p_obs + math.log1p(1e-9)
     total = 0.0
     for x in range(n + 1):
-        px = pmf(x)
-        if px <= p_obs * (1 + 1e-9):
-            total += px
+        log_px = _log_binomial_pmf(x, n, p)
+        if log_px <= log_threshold:
+            total += math.exp(log_px)
     return min(1.0, total)
 
 
@@ -3308,6 +3339,92 @@ def smoke(device: str) -> int:
     report("  does NOT fire (passes=False) on a perfectly symmetric 5-vs-5 split", not r_sym["passes"],
            str(r_sym))
 
+    # --- [7b] _exact_binomial_two_sided_p OVERFLOW FIX (BUG 1, sec 12.3 Defect B): a test
+    #     with teeth per the mandate -- must FAIL on the OLD (math.comb-based) implementation
+    #     and PASS on the NEW (log-space) one, at n>=~1030 (the verified overflow threshold)
+    #     up through n=4096 (>= N_ROWS_DEFAULT=2048's worst case). Also verifies the new
+    #     implementation agrees with the old one to high precision at small n, where the old
+    #     one was never wrong -- a rewrite that changes small-n p-values would be a DIFFERENT
+    #     test, not a fix. ---
+    print("\n  [7b] _exact_binomial_two_sided_p OVERFLOW FIX (sec 12.3 Defect B) teeth")
+
+    def _old_buggy_pmf(k_, n_, p_=0.5):
+        # THE ORIGINAL (pre-fix) formula, byte-for-byte, kept ONLY here as a fossil to prove
+        # the fix against -- math.comb returns an arbitrary-precision int; Python converts it
+        # to float on the first `*` before the shrinking p**x*(1-p)**(n-x) factor can apply.
+        def pmf(x):
+            return math.comb(n_, x) * (p_ ** x) * ((1 - p_) ** (n_ - x))
+        p_obs = pmf(k_)
+        total = 0.0
+        for x in range(n_ + 1):
+            px = pmf(x)
+            if px <= p_obs * (1 + 1e-9):
+                total += px
+        return min(1.0, total)
+
+    # [7b.1] FAILS on old, PASSES on new, at n=1030 (first-overflow, verified by sweep),
+    #        n=2048 (N_ROWS_DEFAULT, the design's own pinned constant), n=4096 (2x headroom).
+    for n_test in (1030, 2048, 4096):
+        k_test = n_test // 2   # the worst case: math.comb(n, n//2) is the largest binomial
+        # coefficient for this n, so it overflows soonest / most severely.
+        old_raised = False
+        old_detail = ""
+        try:
+            _old_buggy_pmf(k_test, n_test)
+        except OverflowError as e:
+            old_raised = True
+            old_detail = str(e)
+        report(f"  OLD implementation FAILS (raises OverflowError) at n={n_test}, k=n//2 "
+               f"(confirms the bug is real and reproduced, not merely inferred)",
+               old_raised, old_detail)
+        new_raised = False
+        new_p = None
+        try:
+            new_p = _exact_binomial_two_sided_p(k_test, n_test)
+        except OverflowError as e:
+            new_raised = True
+            new_detail = str(e)
+        ok_new = (not new_raised) and new_p is not None and 0.0 <= new_p <= 1.0
+        report(f"  NEW implementation PASSES (no overflow, returns a valid p-value in [0,1]) "
+               f"at n={n_test}, k=n//2", ok_new,
+               f"p={new_p}" if not new_raised else f"OverflowError: {new_detail}")
+        # a perfectly balanced (k=n//2) sample under H0:p=0.5 should read p_value~=1.0
+        # (least extreme possible outcome) -- a real sanity check on the NEW value, not just
+        # "didn't crash".
+        if ok_new:
+            report(f"  NEW implementation's p-value at k=n//2, n={n_test} is close to 1.0 "
+                   f"(the least-extreme possible split under H0 -- a real correctness check, "
+                   f"not just 'did not crash')", new_p > 0.98, f"p={new_p}")
+
+    # [7b.2] a STRONGLY asymmetric split at large n (the case that actually fires in
+    #        production, e.g. T2b-1/T2b-1b on a real strong signal) must still read a tiny
+    #        p-value (highly significant) and PASS the p<0.001 gate -- the fix must not have
+    #        accidentally neutered the test's power along with fixing the crash.
+    n_big, k_big = 2048, 1400   # n_plus=1400, n_minus=648 -- a strong, realistic asymmetry
+    p_big = _exact_binomial_two_sided_p(k_big, n_big)
+    report(f"  NEW implementation: a strongly asymmetric split (k={k_big}/{n_big}) at "
+           f"N_ROWS_DEFAULT scale still reads p<0.001 (the fix did not neuter statistical "
+           f"power along with fixing the crash)", p_big < 0.001, f"p={p_big}")
+
+    # [7b.3] SMALL-n AGREEMENT: the old (buggy-but-valid-at-small-n) implementation and the
+    #        new (log-space) one must agree to high precision everywhere the old one worked --
+    #        a rewrite that changes small-n p-values is a DIFFERENT test, not a fix.
+    max_abs_diff = 0.0
+    worst = None
+    n_small_range = range(10, 101)
+    for n_s in n_small_range:
+        for k_s in (0, n_s // 4, n_s // 2, (3 * n_s) // 4, n_s):
+            old_p = _old_buggy_pmf(k_s, n_s)
+            new_p = _exact_binomial_two_sided_p(k_s, n_s)
+            diff = abs(old_p - new_p)
+            if diff > max_abs_diff:
+                max_abs_diff = diff
+                worst = (n_s, k_s, old_p, new_p)
+    report(f"  NEW implementation agrees with OLD to within 1e-9 absolute across n=10..100, "
+           f"k in {{0, n/4, n/2, 3n/4, n}} (worst-case |diff|={max_abs_diff:.3e} at "
+           f"n={worst[0] if worst else None}, k={worst[1] if worst else None})",
+           max_abs_diff < 1e-9, str(worst))
+
     # --- [8] QUIESCENCE / md5-pin: catches a checkpoint being actively written,
     #     clears once the writer stops. ---
     print("\n  [8] CHECKPOINT QUIESCENCE (partially-written checkpoint detection)")
@@ -3492,7 +3609,21 @@ def smoke(device: str) -> int:
         V11 = 20_220
         t0_corpus = time.time()
         train11 = build_synthetic_t2_train_corpus(15_000_000, vocab_size=V11, seed=11)
-        val11 = build_synthetic_t2_train_corpus(2_000_000, vocab_size=V11, seed=12)
+        # PRE-EXISTING BUG FIX (found by this session's independent audit; NOT one of the two
+        # crash bugs, and INDEPENDENTLY REPRODUCED on the pre-fix HEAD file, so it is not a
+        # regression introduced here). `build_synthetic_t2_train_corpus` builds on CPU (its
+        # torch.Generator is a CPU generator by construction), but run_t2_repaired_probe builds
+        # a `torch.Generator(device=device)` and calls get_batch, which does
+        # `torch.randint(..., generator=generator, device=tokens.device)` -- so a CPU val tensor
+        # + a cuda generator raises "Expected a 'cpu' device type for generator but found
+        # 'cuda'" and this whole [10b] block died on `--device cuda`. The REAL gate path was
+        # never affected (build_bridged_corpus puts val_ids on `device`, so the two agree) --
+        # this is a SMOKE-FIXTURE defect only. But it meant the probe's smoke suite could only
+        # ever go green under the CPU-stub path, leaving the CUDA production path with zero
+        # real-kernel smoke coverage -- exactly the gap CLAUDE.md's own learned rule
+        # ("CPU-stub self-test suites test logic only") warns about. Moving val11 to `device`
+        # buys that coverage.
+        val11 = build_synthetic_t2_train_corpus(2_000_000, vocab_size=V11, seed=12).to(device)
         report("  synthetic T2 corpus built (15M train + 2M val tokens, calibrated shape)",
                True, f"{time.time() - t0_corpus:.2f}s")
 
