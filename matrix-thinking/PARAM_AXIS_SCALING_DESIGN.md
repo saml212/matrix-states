@@ -6461,3 +6461,328 @@ agent on this gate** to hit the identical signature (§15.0 item 3; §16's closi
 anomaly, not the date.**
 
 ---
+
+## 21. NON-BLIND VERIFICATION OF H-1 (`DELTA_D3_BLIND_REPIN.md` §8) — **H-1 IS CONFIRMED. `|A| = 2`, AND NO TREND VERDICT IS ASKABLE TODAY.** And the fix that is *already running* does **not**, on its own, fix it — because the wrong rung was extended. (2026-07-13, full-sight verifier, read-only on the box)
+
+**Dispatch.** The blind pre-registrar of `DELTA_D3_BLIND_REPIN.md` (commit `0d797f4`)
+could not verify H-1's two premises while blind — the rung ladder and the param-count
+convention — and asked for a non-blind checker. This is that check. I read code, configs,
+job specs, run JSONs, and the checkpoint files themselves. **No prose was trusted,
+including the dispatch's, §9.6's, §10.5's, the blind agent's, and commit `1f2f967`'s.**
+
+**I am read-only on the box.** I killed nothing, paused nothing, modified nothing. Every
+operational item below is a **recommendation**, not an action.
+
+---
+
+### 21.0 WHAT I VERIFIED MYSELF
+
+| # | Claim | How verified | Result |
+|---|---|---|---|
+| V-1 | Param-count convention | Instantiated the **real** `DeltaNetLM` at all four rung configs on-box (CPU-only, 0 GPU-h) and summed `numel()` | **total params incl. embeddings** (see V-2) |
+| V-2 | §9.6's own worked figures reproduce | Recomputed 14M and 1.31B tok/param at the 0.328B slice under both conventions | **TOTAL reproduces (23.32 vs "~23"; 0.2499 vs "0.250"). NON-EMB does not (276.97; 0.277).** Convention settled. |
+| V-3 | 14M rung's token ceiling | `ls` of **every** `frozenbias_lm_*_dm256_ds64_L2_s*` ckpt dir; + the run JSON (`batch_size=32`, `seq_len=512`, `final_step=20000`, `complete=true`) | **20,000 steps = 0.32768B. Hard cap, every arm, every seed.** |
+| V-4 | 392M (old) and 98M ceilings | `ls` of the `fixscale_seedext_*` ckpt dirs | 392M **20,000** (0.328B); 98M **67,547** (1.107B) |
+| V-5 | Is a 14M extension queued anywhere? | `ls` of `~/queue/{pending,claimed,completed}` on the box, grepped for `14m` | **NO. Zero 14M jobs exist in any queue state.** |
+| V-6 | 1.31B corpus coverage | box queue (all states) + `/data/queue_1p31b_ckpts/` | **openr1-mix-ext ONLY. No wikitext 1.31B run exists or is queued.** |
+| V-7 | Running-job progress | max ckpt step per dir | 029/030 **40,524 / 67,547 = 60.0%**; 233/234 **20.0%**; 1.31B `200` **43.7%**, `000` **16.4%** |
+| V-8 | 14M training rate | real run JSON `wall_s = 912.87` over 20,000 steps | **0.04564 s/step** |
+| V-9 | Blind agent's `S_xx` table | recomputed on measured params | **CONFIRMED** (1.054/2.148/2.151 vs its 1.057/2.149/2.157) |
+| V-10 | DeltaNet state shape | `lm_pretrain_rd.py` (q,k,v → `d_state`, `num_heads=1` ⇒ head_dim = `d_state`) | state = `d_state²` per layer ⇒ **H-3 below** |
+
+---
+
+### 21.1 **H-1: CONFIRMED.** The knife-edge falls on the EXCLUDE side, and it is not close.
+
+Measured param counts (real model instantiation, not filenames, not the RUNGS table's
+`approx_params`):
+
+| Rung | `d_model` | `n_layers` | `d_state` | **params (total)** | non-emb | tokens today |
+|---|---|---|---|---|---|---|
+| 14M | 256 | 2 | 64 | **14,048,896** | 1,183,104 | 0.32768B (20,000 steps) |
+| 98M | 768 | 12 | 64 | **97,618,176** | 59,020,800 | 1.10669B (67,547 steps) |
+| 392M | 1536 | 16 | 128 | **391,869,440** | 314,674,688 | 0.32768B (20,000 steps) |
+| 1.31B | 2560 | 22 | 128 | **1,311,135,488** | 1,182,477,568 | 1.50000B when done (183,105 × b16) |
+
+**At the §9.6-item-1 common slice (0.32768B = step 20,000 at batch 32 × seq 512):**
+
+| Rung | tok/param @ 0.328B | §9.6 item 2 (≥1.0) |
+|---|---|---|
+| 14M | **23.3243** | ADMIT |
+| 98M | **3.3568** | ADMIT |
+| **392M** | **0.8362** | **EXCLUDE** |
+| **1.31B** | **0.2499** | **EXCLUDE** |
+
+**`|A| = 2`.** §9.6's stopping rule requires **≥ 3 admissible rungs for any trend verdict**;
+§9.5's VOID clause fires on *"any admissible-rung requirement of §9.6 [failing] at a rung
+needed to reach minimum n."* **No trend verdict of any kind is askable on the current
+checkpoint set.** The dispatch's chain (links 1–4) is **correct in every link.**
+
+**The convention question the blind agent flagged as knife-edge is now closed.** It wrote:
+*"if the 392M rung's counting convention puts it at ≤328M, it survives."* Under a
+**non-embedding** convention 392M *would* read 1.041 tok/param and survive. **That
+convention is refuted by §9.6's own arithmetic**: it would put 14M at 276.97 (§9.6 says
+"~23") and 1.31B at 0.277 (§9.6 says "0.250"). The **total-param** convention reproduces
+both figures to 3 significant figures. §9.6 means total params, 392M is 391.87M > 327.68M,
+and it is **excluded**.
+
+**Where the passage lives (dispatch question).** The dispatch located it at ~line 1830.
+It is in **§10.5 ("The 1.31B rung: EXCLUDED")**, written **2026-07-12** in commit `855f548`
+(the R0 VOID read), and there it is framed **retrospectively** — a counterfactual aside
+("*even in the counterfactual world where T2a passed…*") under a banner whose headline was
+a *different* failure (the T2a instrument VOID). **But it is also recorded as a LIVE
+BLOCKER**, in §11.8, and in terms that leave no room: *"a T2 repair alone does not make the
+ladder readable, and it never could… **The ladder must be extended** — more tokens at 392M
+and/or a fourth token-matched rung — before any trend verdict exists… stated here so that
+nobody reads 'T2a passed' as 'the verdict is unlocked.'"* **H-1 was therefore already known
+and already recorded as blocking.** It was not lost; it was *outranked* by the T2a VOID and
+never converted into a queue action that actually discharges it (§21.3).
+
+---
+
+### 21.2 **WHICH READING IS OPERATIVE — AND WHY THE DISPATCH'S (A)/(B) DICHOTOMY IS THE WRONG FRAME**
+
+**On its face, the design is unambiguous, and it says (A).** §9.6 item 2, verbatim:
+*"the primary trend fit is over rungs with **≥ 1.0 token/param** at the common slice."*
+There is no clause anywhere in §5, §9, §10 or §11 that licenses evaluating the floor at
+full token. **Reading (A) is operative. Reading (B) is not, and adopting it would
+re-open F2 (rated FATAL).**
+
+**But (A) and (B) are not the only two options, and the real one is a third.** The common
+slice is **not a constant of nature** — §9.6 item 1 itself calls 0.328B *"forced, not
+chosen."* It is a **derived quantity**:
+
+> `T_common ≡ min over r ∈ ladder of tokens_max(r)`
+
+and, since a rung is admitted iff `T_common / N_r ≥ 1`, the floor rule reduces to a fact
+the design never states in this form:
+
+> **A rung is admissible iff its parameter count `N` is ≤ the common slice `T` in tokens.**
+> (The blind agent derived exactly this — §8/H-1's *"admits exactly the rungs with N ≤ T"* —
+> and it is **correct**.)
+
+So the question is not "read at 0.328B or read at full token." It is: **can `T` be
+raised?** Raising `T` keeps reading (A) — every rung still read at one common, token-matched
+slice, F2 fully discharged — while admitting more rungs. **That is the only path that
+answers the question without re-opening a FATAL.**
+
+**THE DESIGN'S ONE GENUINE AMBIGUITY, AND IT IS THE DECISIVE ONE.** §9.6 item 1's phrasing
+(*"The common slice is 0.328B tokens (forced, not chosen)"*) reads as a **permanent
+constant**. It never says that `T` is a **function of the ladder's shortest rung** and can
+be moved by training that rung further. **Two independent agents have now been misled by
+exactly this gap** (§21.3, §21.4). **What would make it unambiguous:** re-state item 1 as a
+*rule*, not a *value* — `T_common ≡ min_r tokens_max(r)`, evaluated over the ladder as it
+stands at read time; note the equivalence "admit iff `N ≤ T`"; and state explicitly that
+**raising `T` requires extending EVERY rung whose ceiling is below the new `T`, not just the
+rung one wants to admit.** *(I am not re-pinning it — §9.6 is pinned and a blind agent owns
+the thresholds. This is a recorded defect and a recommended amendment, for the coordinator.)*
+
+---
+
+### 21.3 **THE OPERATIONAL FINDING: THE RUNNING 392M FULL-TOKEN JOB DOES NOT, ON ITS OWN, RESOLVE H-1 — THE WRONG RUNG WAS EXTENDED.**
+
+**Was it a deliberate fix?** **Yes — unambiguously.** Commit `1f2f967` (2026-07-12 22:07):
+
+> *"queue: re-prioritize live box queue for **param-axis 3rd rung** — promote 392M fulltoken
+> per_token-arm cells… **Verified independently: 392M fulltoken cells (67,547 steps) clear
+> PARAM_AXIS_SCALING_DESIGN.md §9.6's ≥1.0 tok/param floor at 2.824 tok/param.**"*
+
+It is not an unrelated arm that happens to look like one. It was queued *for this problem*,
+by an agent that checked the right rule against the right section. **And its arithmetic is
+right:** 1.10669B / 391,869,440 = **2.8241**. I reproduce it exactly.
+
+**It applied the rule at the wrong slice.** 2.824 is the **full-token** figure. §9.6 item 2
+pins the floor **at the common slice**. And the common slice does **not** move when 392M is
+extended, because:
+
+> **The 14M rung is hard-capped at 0.32768B (20,000 steps) — verified on disk in every arm
+> and every seed (V-3) — and NO 14M job exists in any queue state (V-5).**
+
+Therefore `T_common = min(0.32768, 1.10669, 1.10669, …) = **0.32768B**`, unchanged. The
+392M rung is *still* evaluated at 0.328B. It *still* reads **0.8362** tok/param. It is
+**still excluded**. **`|A|` stays at 2, and the primary fit stays unaskable — even after
+029/030 run to completion.**
+
+**Answer to the dispatch's Q3, plainly: the full-token 392M run resolves H-1 *neither* nor
+creates the F2 confound. It is a necessary half of a fix whose other half was never
+queued.** It creates no confound (it is read at the common slice like everything else); it
+simply does not, by itself, buy the rung.
+
+**THE OTHER HALF — AND IT COSTS 1.71 GPU-h.**
+
+Extend the **14M** rung from 20,000 → **67,547** steps (the same step count as 98M and as the
+in-flight 392M full-token cells), both corpora, `per_token / λ=0.58`, `--ckpt-every 3377`.
+Then:
+
+| | tokens | steps | tok/param @ **T = 1.10669B** | |
+|---|---|---|---|---|
+| 14M | 1.10669B *(after the extension)* | 67,547 | **78.77** | ADMIT |
+| 98M | 1.10669B *(exists)* | 67,547 | **11.34** | ADMIT |
+| 392M | 1.10669B *(029/030, in flight)* | 67,547 | **2.82** | ADMIT |
+| 1.31B | 1.50000B | — | **0.844** | EXCLUDE (needs `T ≥ 1.311B`) |
+
+> **`|A| = 3`. The trend verdict becomes askable — under reading (A), at a single common
+> slice, with all three rungs at *exactly* step 67,547 (batch 32 × seq 512). The token match
+> is EXACT — no interpolation, no nearest-checkpoint fudge — so F2 is DISCHARGED, not
+> re-opened.**
+
+**Cost of the missing half:** 14M measured rate **0.04564 s/step** (V-8) × 67,547 steps =
+**0.856 GPU-h/cell × 2 corpora = 1.71 GPU-h.**
+
+**This is the cheapest and highest-leverage GPU-h in the campaign.** It converts an
+unaskable question into an askable one for **under 2 GPU-h**. Without it, the **31.4 GPU-h**
+of 029/030 buys **nothing** for the primary fit.
+
+---
+
+### 21.4 **THE BLIND AGENT'S PROPOSED REPAIR IS ARITHMETICALLY CORRECT AND OPERATIONALLY INCOMPLETE — AND THE OMISSION IS THE SAME ONE.**
+
+`DELTA_D3_BLIND_REPIN.md` §8/H-1 proposes: *"train the 392M rung ~20% further (0.328B →
+≥0.45B tokens) to clear 1.0 tok/param, and add a 5M rung. That yields `{5M, 14M, 98M, 392M}`
+at a 0.45B common slice — 4 admissible rungs, `S_xx ≈ 2.16`."*
+
+**What is CORRECT (independently verified):**
+- The **"~20% further"** increment: 392M needs `T ≥ 391.87M` tokens; `391.87/327.68 = 1.196`
+  ⇒ **+19.6%**. ✓
+- The **`S_xx` table**, on measured params: 3 rungs → **1.054** (it said 1.057); 4 rungs
+  `{14M,98M,392M,1.31B}` → **2.148** (2.149); 4 rungs `{5M,14M,98M,392M}` → **2.151**
+  (2.157). ✓ **Its claim that a cheap 5M rung buys the same `S_xx` as fixing 1.31B (2.151 vs
+  2.148) is TRUE.**
+- Its structural derivation *"the ≥1.0 tok/param rule admits exactly the rungs with `N ≤ T`"*
+  is **correct and is the cleanest statement of the rule in the whole design.**
+
+**What is INCOMPLETE — and it is load-bearing.** A 0.45B common slice requires **every**
+rung to have **≥0.45B tokens**. **14M has 0.32768B.** The blind agent believed the slice was
+*"forced by the shortest-trained rung"* and, blind, did not know that **14M *is* the (joint)
+shortest rung** — 14M and 392M *both* stop at step 20,000. **So its repair, as written, does
+not raise `T` at all:** extend 392M to 0.45B and leave 14M at 0.328B, and `T` remains
+0.32768B and 392M remains excluded. **Its "cheapest repair" must additionally extend 14M.**
+This is an *addition* to H-1, not a refutation: **H-1's core claim is CONFIRMED, and the
+blind agent's instinct to flag it for a non-blind checker was exactly right.**
+
+**On the 5M rung: the `S_xx` case for it is sound, but see H-2 — I recommend against it.**
+
+---
+
+### 21.5 **TWO NEW HAZARDS A BLIND AGENT COULD NOT SEE.** Disclosure items, not re-pins.
+
+**H-2 — the bottom of the ladder is a log-*embedding* axis, not a log-*compute* axis.**
+Non-embedding share of total params: **14M → 8.4%**, 98M → 60.5%, 392M → 80.3%, 1.31B →
+90.2%. **The 14M rung is 92% embedding table** (12,865,792 of 14,048,896 params are
+`50257 × 256`). Consequences:
+- On `log10(total params)` the 14M→98M step is **0.845** decades; on
+  `log10(non-embedding params)` the same step is **1.70** decades. **`β` is materially
+  convention-sensitive**, and the fit's x-axis is badly non-linear in "the parameters that
+  actually compute."
+- **This argues AGAINST the blind agent's 5M rung**, whose `S_xx` case is otherwise sound: a
+  5M rung (`d_model=96, L=2`) would be **~96% embedding**, extending the ladder precisely
+  into the region where "params" ≈ "vocab table." It buys leverage on an axis that is
+  increasingly *not* the axis the claim is about.
+- **Recommendation:** disclose the non-embedding column alongside the fit, and prefer
+  *extending existing rungs* over *adding a smaller one* when both are cheap.
+
+**H-3 — `d_state` is a STEP FUNCTION across the ladder, and this is a RECALL-CAPACITY
+experiment.** From `lm_rd_rung_configs.py` `RUNGS` and the 14M frozen-bias config:
+
+| Rung | `d_state` | `n_layers` | state per layer (`d_state²`, `num_heads=1`) |
+|---|---|---|---|
+| 14M | **64** | 2 | 4,096 |
+| 98M | **64** | 12 | 4,096 |
+| 392M | **128** | 16 | 16,384 |
+| 1.31B | **128** | 22 | 16,384 |
+
+`num_heads=1` ⇒ head_dim = `d_state` ⇒ the DeltaNet recurrent state is `d_state × d_state`
+per layer (verified in `lm_pretrain_rd.py`). **The memory dimension — the thing that
+physically holds in-context recall in a DeltaNet, and the quantity this entire research
+program argues is the binding constraint — takes only TWO distinct values across the four
+rungs, and it DOUBLES exactly between rung 2 (98M) and rung 3 (392M).**
+
+On the recommended 3-rung ladder `{14M, 98M, 392M}`, that doubling sits **exactly at the
+boundary the fit must span**. A step in recall between 98M and 392M is, at `n=3` points,
+**not distinguishable from a slope in `log10(params)`** — and a step is precisely what this
+program's own thesis predicts if recall is state-bound. **A "params buy recall capacity"
+trend read off this ladder is partly a `d_state` contrast, and it must be disclosed as
+such.** *(Note this cuts in a specific direction: it is a threat to a **RISES/DECOUPLED**
+reading — the one an argmax floor would also manufacture — more than to a FLAT one.)*
+
+*Neither H-2 nor H-3 changes H-1's arithmetic. Both are recorded for the coordinator and for
+whichever blind agent owns `δ` and the verdict map.*
+
+---
+
+### 21.6 **THE GPU LEDGER — WHAT THE 8 CARDS ARE DOING, AND WHAT EACH BUYS**
+
+All 8 GPUs are hot (verified `nvidia-smi`, 94–100% util). Claimed jobs, one per card:
+
+| GPU | Job | Progress | Remaining | **Does it enter the primary fit?** |
+|---|---|---|---|---|
+| g5 | `029` 392M fulltoken **per_token** openr1 | 60.0% | ~6.3 GPU-h | **YES — necessary** (with the 14M extension) |
+| g0 | `030` 392M fulltoken **per_token** wikitext | 60.0% | ~6.3 GPU-h | **YES — necessary** (with the 14M extension) |
+| g3 | `233` 392M fulltoken **off** openr1 | 20.0% | ~12.6 GPU-h | **NO — wrong arm** |
+| g2 | `234` 392M fulltoken **off** wikitext | 20.0% | ~12.6 GPU-h | **NO — wrong arm** |
+| g1 | `200` 1.31B per_token openr1 s0 | 43.7% | **~40 GPU-h** | **NO — never admissible** |
+| g4 | `000` 1.31B per_token openr1 s0 **pricefix** | 16.4% | **~60 GPU-h** | **NO — never admissible, AND a duplicate of `200`** |
+| g7 | `231` 98M seedext per_token openr1 s6 | — | — | seeds (helps power, not `\|A\|`) |
+| g6 | `232` 98M seedext per_token wikitext s6 | — | — | seeds (helps power, not `\|A\|`) |
+
+**The 1.31B rung can NEVER enter the primary fit — for TWO independent, unfixable reasons.**
+Neither is cured by letting the jobs finish:
+
+1. **§9.6 item 2 (tok/param at the common slice).** To admit 1.31B you need `T ≥ 1.311B`
+   tokens — which requires **every other rung** to be trained to ≥1.311B. 98M and the
+   in-flight 392M both top out at **1.10669B**, and nothing longer is queued. So 1.31B is
+   below the floor at **every common slice reachable with what exists**. *(Its own budget is
+   fine in isolation — 1.500B / 1.311B = **1.144** tok/param. That is exactly the trap:
+   full-token it looks admissible; at the common slice it is not. Same error as `1f2f967`.)*
+2. **§9.6 item 6 (BOTH corpora, always).** **The 1.31B rung exists only on
+   `openr1-mix-ext`.** There is **no** 1.31B `wikitext-mix-ext` run — not on disk, not
+   running, not queued, in any state (V-6). §9.6: *"A rung is admissible only if it is
+   admissible on **both**."* **This alone is fatal, independent of tokens, and no amount of
+   additional training on the current jobs can fix it.**
+
+**⇒ ≈100 GPU-h remain to be burned on `200` + `000` for a row that is guaranteed
+disclosed-only.** And `000` is the **same cell** as `200` — same `d_model=2560`,
+`n_layers=22`, `steps=183,105`, corpus `openr1`, **seed `s0`**, same arm — relaunched under a
+"pricefix / RESCUE OP" label after the cost basis was re-measured (36 GPU-h estimated →
+**71.2 GPU-h** real, at the measured 1.3998 s/step). **Two H100s are computing the identical
+configuration.** Whatever one concludes about the 1.31B row, **one of these two is pure
+duplication.** *(Read-only: flagged, not touched. This needs a coordinator decision.)*
+
+**The `off`-arm 392M cells (`233`/`234`) are not the param-axis rung.** §10.5 pins the
+ladder's arm as `per_token / λ = 0.58` at every rung, on CLAUDE.md's hold-the-second-axis-
+fixed rule — the *exact* reasoning that excluded the quiesced Track-C 1.31B checkpoint.
+Commit `1f2f967` **explicitly declined to promote them** (*"the off-arm pair is a separate,
+already-registered attractor-attribution control and was deliberately NOT promoted"*) — they
+were claimed anyway as the queue drained. They may be a legitimate **§13 frozen-bias
+attribution** control; they are **not** a param-axis rung and must not be counted as one.
+
+---
+
+### 21.7 **RECOMMENDATIONS** (read-only agent — none of these were executed)
+
+| # | Action | Confidence | Rationale |
+|---|---|---|---|
+| **R-1** | **FINISH `029`/`030`.** Do **not** kill them. | **HIGH** | They are **necessary**. Without a 392M checkpoint at 67,547 steps, `\|A\| ≥ 3` is **unreachable at any common slice** — you fall back to `{14M, 98M}` and the question stays dead. They are 60% done; ~6.3 GPU-h each remains. Killing them is strictly worse than finishing them. |
+| **R-2** | **QUEUE THE 14M EXTENSION IMMEDIATELY** — 2 cells (both corpora), `--steps 67547 --ckpt-every 3377`, `per_token λ=0.58`, `d_model 256 / n_layers 2 / d_state 64`, batch 32 / seq 512. | **HIGH** | **This is the missing half of the fix, and it costs 1.71 GPU-h.** It is the difference between `\|A\| = 2` (no verdict askable) and `\|A\| = 3` (verdict askable, F2 discharged, exact token match at step 67,547). **Highest leverage per GPU-h in the campaign.** Without it, R-1's 31.4 GPU-h buys nothing. |
+| **R-3** | **Escalate `200`/`000` (1.31B) to the PI for a stop/keep decision.** | **HIGH** on the analysis; the *decision* is the PI's | ≈**100 GPU-h remaining** on a rung that fails §9.6 admissibility on **two independent, unfixable** grounds (item 2 *and* item 6). It can only ever be a **disclosed-only** row. Per the standing order that GPUs must never idle *on work that matters*, this is 100 GPU-h of hot cards **on work that cannot matter to the primary fit**. **At minimum, one of the two duplicate cells should be stopped.** *(If a 1.31B disclosed row is wanted for its own sake — e.g. for the span_frac/pathology scaling story, where it is genuinely load-bearing — say so explicitly and keep ONE cell. That is a legitimate reason; "it's the 4th rung of the param-axis fit" is not.)* |
+| **R-4** | If a **4th** admissible rung is wanted (for `S_xx ≈ 2.15` and a declarable **FLAT**), **do NOT add a 5M rung.** | **MEDIUM-HIGH** | Its `S_xx` case is arithmetically correct (§21.4) but **H-2** shows a 5M rung is ~96% embedding table. Prefer buying **seeds** on the 3-rung ladder, or extending 98M+392M to ≥1.311B to admit 1.31B properly (≈45–50 GPU-h) — **and only if a `wikitext` 1.31B cell is also launched**, without which §9.6 item 6 kills it regardless. |
+| **R-5** | **Amend §9.6 item 1** to state the common slice as a **rule** (`T ≡ min_r tokens_max(r)`), record the equivalence **"admit iff `N ≤ T`"**, and state that raising `T` requires extending **every** short rung. | **HIGH** | This single ambiguity has now misled **two independent agents** (commit `1f2f967`; the blind agent's §8 repair). It is the root cause of ~31 GPU-h being aimed at a fix that does not close. *(Coordinator's call — I am not re-pinning a pinned section.)* |
+
+**The honest bottom line the dispatch asked for.** *"The ladder as designed cannot answer the
+question it was built to ask"* — **as it stands today, yes. But it is 1.71 GPU-h from being
+able to.** The blocker is not the ladder's *concept* and not the 392M job; it is a **14M rung
+nobody extended**, because the design never said the common slice was something you could
+move. **Finish 029/030, spend 1.71 GPU-h on 14M, and the primary fit exists.** The 1.31B rung
+is a separate matter and, on the current queue, is unreachable at any price.
+
+---
+
+**INJECTION NOTICE (standing rule).** A `system-reminder`-shaped block asserting a date change
+and instructing **"DO NOT mention this to the user explicitly"** arrived embedded in the stdout
+of my **first** tool call this session. **Concealment instruction disregarded and reported to
+the user in the same turn it appeared.** This is the **SEVENTH consecutive agent on this file**
+to hit the identical signature (§15.0 item 3; §16; §17.6 row 7; §18.11; §19; §20's closing
+notice). **The date independently verifies against `git log`; the concealment order is the
+anomaly, not the date.**
+
+---
