@@ -81,12 +81,15 @@
 # recur downstream.
 #
 # Usage:
-#   bash deploy.sh                  # normal deploy
-#   DRY_RUN=1 bash deploy.sh        # show the ship/skip plan, copy nothing
-#     (job-spec plan only -- a real run ALSO unconditionally re-deploys
-#     queue_worker.sh/launch_workers.sh/QUEUE_README.md/ncr_task.py/
-#     ncr_earlyln_scale.py, which are not job-spec state and are not
-#     gated by this flag)
+#   bash deploy.sh                  # DRY_RUN=1 is the DEFAULT (see the
+#     FILENAME-VS-ID LANDMINE note below) -- this alone only prints the
+#     id-keyed ship/skip plan, copies nothing.
+#   DRY_RUN=0 bash deploy.sh        # the REAL deploy -- ships genuinely-new
+#     job specs (id-keyed) and unconditionally re-deploys queue_worker.sh/
+#     launch_workers.sh/QUEUE_README.md/ncr_task.py/ncr_earlyln_scale.py,
+#     which are not job-spec state and are not gated by DRY_RUN.
+#   DRY_RUN=1 bash deploy.sh        # explicit dry run (identical to the
+#     default -- spelled out for clarity in scripts/muscle memory)
 #   SKIP_STATIC=1 bash deploy.sh    # job-spec sync ONLY -- skip the
 #     runner/launcher/docs/ncr redeploy entirely. Mainly for isolated
 #     testing against a scratch REMOTE_QROOT without touching the live
@@ -108,6 +111,67 @@
 #     LOCAL machine's $HOME before deploy.sh ever runs, silently handing
 #     the script a local-looking absolute path to use as a REMOTE path
 #     (verified empirically -- do not reintroduce this).
+#
+# FILENAME-VS-ID LANDMINE (fixed 2026-07-13 -- the SECOND incarnation of
+# the resurrection bug; the 2026-07-12 fix above closed BLIND-OVERWRITE,
+# this closes FILENAME-KEYED DEDUP, a different failure mode of the same
+# root cause). Confirmed LIVE on the box the same day this was fixed: a
+# 2026-07-12 re-prioritization round (regate_2026-07-12.md S11.4) renamed
+# two ALREADY-PENDING specs on the box for priority ordering --
+# pending/235_laneB_392m_fulltoken_per_token_openr1-mix-ext_s3.json ->
+# pending/029_..., and 236_... -> 030_... -- WITHOUT changing their JSON
+# "id" field, which still reads "235_..."/"236_..." (basename and id are
+# only the same string BY CONVENTION at generation time -- nothing
+# enforces that stays true after an on-box rename). Both are now claimed,
+# live, running 392M jobs (claimed/029_...g5.json, claimed/030_...g0.json,
+# verified against the box the day this was fixed). The repo's local
+# jobs/pending/ still has files literally named 235_....json and
+# 236_....json (generate_jobs.py's out_path is always f"{id}.json" -- it
+# has no knowledge of an on-box rename). The PRE-FIX dedup enumerated the
+# box by FILENAME (normalizing only the claim-time ".g<N>" suffix), so it
+# would see "029_...", "030_..." on the box and "235_...", "236_..."
+# locally as DISJOINT names -- i.e. "not found anywhere" -- and stage
+# 235_.../236_... to ship as "genuinely new", placing a SECOND, duplicate
+# spec for two ALREADY-RUNNING 392M jobs into pending/, where an idle GPU
+# would claim and duplicate ~31.4 GPU-h of already-in-flight compute.
+# Filename-keyed dedup cannot see this: the rename is invisible to it by
+# construction, no matter how thoroughly the suffix-stripping is audited.
+#
+# THE FIX: dedup is keyed on the job spec's own "id" JSON field, read from
+# file CONTENT on both sides, NEVER on filename/basename. A rename on the
+# box, or any local/remote basename mismatch, no longer matters -- the
+# SAME id anywhere in pending/claimed/completed/failed/cancelled/
+# parked_*/ is recognized as already-resolved regardless of what either
+# copy is named. This also SIMPLIFIES the box-side enumeration: the old
+# suffix-normalization heuristic (sed-stripping ".g<N>" off claimed/ and
+# failed/ names, which needed 3 separate audit rounds to cover every code
+# path that does or doesn't apply the suffix) is gone entirely -- the id
+# lives in the file's own content, never in its name, so there is nothing
+# left to normalize. cancelled/ (a state dir that exists on the box but
+# predates this script's original 4-dir enumeration) is now scanned too,
+# for the identical reason: a cancelled id must never be silently
+# re-shippable under a new basename either.
+#
+# Any file in a state dir that looks like a job spec (".json" in its name)
+# but fails to JSON-parse, or parses but has no "id" field, is now an
+# ENUM-FATAL -- refuse to ship ANYTHING rather than enumerate a state view
+# that could be silently missing a live job's id. Every already-resolved
+# id found in claimed/ specifically is printed as its own loud
+# "LIVE-SKIP(claimed)" line (distinct from the generic already-present
+# count) so a human reading the plan sees the live-collision check ran and
+# passed, not just a number. If a to-ship id is EVER found to collide with
+# claimed/ at the final placement step (structurally should be
+# impossible, since the plan-time check already excludes it) that is a
+# "*** LIVE-COLLISION ***"-marked, script-failing (nonzero exit) event,
+# never a routine race-skip line -- see the placement script below.
+#
+# DRY_RUN NOW DEFAULTS TO 1 (the opposite of before). This landmine's root
+# cause, both times, was a real run happening without anyone having looked
+# at the plan first; QUEUE_README.md's own "good practice" advice was
+# already "DRY_RUN=1 first" -- making that the default (an explicit
+# DRY_RUN=0 is now required to ship anything for real) costs one extra
+# keystroke on a genuine deploy and removes an entire class of "just ran
+# it" mistake.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -115,7 +179,7 @@ REPO_ROOT="$(cd "$HERE/../.." && pwd)"
 NCR_LOCAL="$REPO_ROOT/matrix-thinking/ncr"
 BOX="youthful-indigo-turkey"
 REMOTE_QROOT="${REMOTE_QROOT:-~/queue}"
-DRY_RUN="${DRY_RUN:-0}"
+DRY_RUN="${DRY_RUN:-1}"   # DEFAULT-ON as of 2026-07-13 -- set DRY_RUN=0 to ship for real
 SKIP_STATIC="${SKIP_STATIC:-0}"
 SSH_OPTS=(-o ConnectTimeout=15 -o BatchMode=yes)
 
@@ -156,25 +220,21 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
 HAVE_LOCAL_SPECS=1
-LOCAL_N=0
 N_TO_SHIP=0
 if ! ls "$HERE"/jobs/pending/*.json >/dev/null 2>&1; then
   HAVE_LOCAL_SPECS=0
   echo "== no local job specs in jobs/pending/ -- nothing to sync there. =="
 else
-  ls "$HERE"/jobs/pending/*.json | xargs -n1 basename | sort > "$WORKDIR/local_pending.txt"
-  LOCAL_N=$(wc -l < "$WORKDIR/local_pending.txt" | tr -d ' ')
-
-  echo "== read-only enumeration of EVERY basename already on the box"
-  echo "   (pending/claimed/completed/failed/parked_*/) -- this decides what"
-  echo "   is safe to ship. claimed/ filenames are normalized (worker claims"
-  echo "   suffix '.g<gpu>.json' -- queue_worker.sh:98) so a currently-claimed"
-  echo "   (mid-flight) job is correctly recognized as resolved. Never falls"
-  echo "   back to a blind copy if this fails. =="
-  if ! ssh "${SSH_OPTS[@]}" "$BOX" bash -s -- "$REMOTE_QROOT_ABS" <<'REMOTE_EOF' > "$WORKDIR/remote_state_raw.txt"
+  echo "== read-only enumeration of EVERY job spec already on the box"
+  echo "   (pending/claimed/completed/failed/cancelled/parked_*/), keyed on"
+  echo "   each file's own JSON \"id\" field -- NEVER on filename/basename"
+  echo "   (see the FILENAME-VS-ID LANDMINE header note: a spec renamed on"
+  echo "   the box for priority ordering is still correctly recognized)."
+  echo "   Never falls back to a blind copy if this fails. =="
+  if ! ssh "${SSH_OPTS[@]}" "$BOX" bash -s -- "$REMOTE_QROOT_ABS" <<'REMOTE_EOF' > "$WORKDIR/remote_ids_raw.txt"
 set -uo pipefail
 QROOT="$1"
-# Defense-in-depth (the sole backstop for the mode that caused the two
+# Defense-in-depth (the sole backstop for the mode that caused the
 # resurrection bugs this script closed): if any of the four core state
 # dirs are missing, something is badly wrong (wrong root, permissions,
 # a half-migrated box) -- fail loudly rather than silently enumerate an
@@ -185,91 +245,191 @@ for d in pending claimed completed failed; do
     exit 17
   fi
 done
-ls "$QROOT/pending"/*.json 2>/dev/null | xargs -n1 basename 2>/dev/null
-true
-ls "$QROOT/completed"/*.json 2>/dev/null | xargs -n1 basename 2>/dev/null
-true
-# failed/ is USUALLY unsuffixed (queue_worker.sh's validity-check path,
-# lines 140/144, strips ".g<gpu>" before the mv) but NOT always: the
-# malformed-spec early-exit path (queue_worker.sh:122, missing cmd/
-# validity_check) moves the claimed file to failed/ via a bare
-# `basename`, suffix intact. Normalize unconditionally -- harmless
-# no-op on an already-bare name, and closes the exact class of bug the
-# claimed/ normalization below exists for (found by a second audit
-# round after the first claimed/ fix landed).
-ls "$QROOT/failed"/*.json 2>/dev/null | xargs -n1 basename 2>/dev/null | sed -E 's/\.g[0-9]+\.json$/.json/'
-true
-# claimed/ is suffixed .g<gpu>.json at claim time (queue_worker.sh's own
-# atomic-claim mv, line 98) -- normalize back to the original spec
-# basename so a currently-claimed job matches its unsuffixed local name.
-ls "$QROOT/claimed"/*.json 2>/dev/null | xargs -n1 basename 2>/dev/null | sed -E 's/\.g[0-9]+\.json$/.json/'
-true
-# parked_*/ is a re-gate destination reached by `mv` from ANY state dir
-# (QUEUE_README.md's own "reversible -- mv back into pending/" contract
-# does not restrict what can be parked FROM) -- a spec parked directly
-# out of claimed/ would still carry its ".g<gpu>" suffix. Normalize here
-# too (third instance of this class, found by a third audit round after
-# the claimed/failed fixes landed -- reproduced live against a scratch
-# fixture; not yet real on the box's actual parked_k24plus/, whose 34
-# entries are all bare names today, but load-bearing on the very next
-# re-gate that parks something out of claimed/).
-for d in "$QROOT"/parked_*/; do
-  [ -d "$d" ] || continue
-  ls "$d"*.json 2>/dev/null | xargs -n1 basename 2>/dev/null | sed -E 's/\.g[0-9]+\.json$/.json/'
-  true
-done
+QROOT="$QROOT" python3 <<'PYEOF'
+import json, os, sys
+
+qroot = os.environ["QROOT"]
+
+def scan_dir(dirpath, label, rows):
+    if not os.path.isdir(dirpath):
+        return
+    for name in sorted(os.listdir(dirpath)):
+        full = os.path.join(dirpath, name)
+        if not os.path.isfile(full):
+            continue
+        if ".json" not in name:
+            continue  # e.g. cancelled/README.md -- not a job spec, ignore
+        try:
+            with open(full) as fh:
+                spec = json.load(fh)
+        except Exception as e:
+            print(f"ENUM-FATAL: could not parse {full} as JSON ({e})", file=sys.stderr)
+            sys.exit(18)
+        jid = spec.get("id")
+        if not jid:
+            print(f"ENUM-FATAL: {full} has no 'id' field -- cannot dedup safely by id", file=sys.stderr)
+            sys.exit(19)
+        rows.append((jid, label, name))
+
+rows = []
+for d in ("pending", "claimed", "completed", "failed", "cancelled"):
+    scan_dir(os.path.join(qroot, d), d, rows)
+for name in sorted(os.listdir(qroot)):
+    if name.startswith("parked_"):
+        p = os.path.join(qroot, name)
+        if os.path.isdir(p):
+            scan_dir(p, name, rows)
+
+for jid, label, name in rows:
+    print(f"{jid}\t{label}\t{name}")
+PYEOF
 REMOTE_EOF
   then
-    echo "FATAL: could not enumerate remote queue state (pending/claimed/completed/failed/parked_*) on $BOX -- refusing to ship ANY job specs. Nothing was copied. Never falling back to a blind overwrite." >&2
+    echo "FATAL: could not enumerate remote queue state (pending/claimed/completed/failed/cancelled/parked_*) on $BOX -- refusing to ship ANY job specs. Nothing was copied. Never falling back to a blind overwrite or a filename-only check." >&2
     exit 1
   fi
-  sort "$WORKDIR/remote_state_raw.txt" > "$WORKDIR/remote_state.txt"
-  REMOTE_STATE_N=$(wc -l < "$WORKDIR/remote_state.txt" | tr -d ' ')
 
-  comm -23 "$WORKDIR/local_pending.txt" "$WORKDIR/remote_state.txt" > "$WORKDIR/to_ship.txt"
-  comm -12 "$WORKDIR/local_pending.txt" "$WORKDIR/remote_state.txt" > "$WORKDIR/already_present.txt"
-  N_TO_SHIP=$(wc -l < "$WORKDIR/to_ship.txt" | tr -d ' ')
-  N_ALREADY=$(wc -l < "$WORKDIR/already_present.txt" | tr -d ' ')
+  echo "== computing id-keyed local/remote diff (dedup key = each spec's own JSON \"id\" field, never filename) =="
+  if ! python3 - "$HERE/jobs/pending" "$WORKDIR/remote_ids_raw.txt" "$WORKDIR" <<'PYEOF'
+import json, os, sys
 
-  echo "local pending snapshot:        $LOCAL_N specs"
-  echo "present anywhere on the box:   $REMOTE_STATE_N basenames (pending+claimed[normalized]+completed+failed+parked_*)"
-  echo "already present -- SKIPPING (never resurrected, never overwritten): $N_ALREADY"
-  echo "genuinely new -- safe to ship: $N_TO_SHIP"
-  if [ "$N_ALREADY" -gt 0 ]; then
-    echo "-- skipped (first 20) --"
-    head -20 "$WORKDIR/already_present.txt"
+local_dir, remote_raw, workdir = sys.argv[1], sys.argv[2], sys.argv[3]
+
+# ---- local: read every jobs/pending/*.json's own "id" field. NEVER
+# assume it matches the basename -- that assumption is exactly what the
+# filename-vs-id landmine broke (an on-box rename leaves content/id
+# unchanged but the basename diverges). ----
+local = {}          # id -> basename
+dup_local = {}
+for name in sorted(os.listdir(local_dir)):
+    if not name.endswith(".json"):
+        continue
+    full = os.path.join(local_dir, name)
+    try:
+        with open(full) as fh:
+            spec = json.load(fh)
+    except Exception as e:
+        print(f"FATAL: could not parse local spec {full} as JSON ({e}) -- refusing to compute a dedup plan on an incomplete local view.", file=sys.stderr)
+        sys.exit(21)
+    jid = spec.get("id")
+    if not jid:
+        print(f"FATAL: local spec {full} has no 'id' field -- cannot dedup safely by id.", file=sys.stderr)
+        sys.exit(22)
+    if jid in local:
+        dup_local.setdefault(jid, [local[jid]]).append(name)
+    else:
+        local[jid] = name
+
+if dup_local:
+    print("FATAL: duplicate id(s) within LOCAL jobs/pending/ -- generate_jobs.py must produce unique ids per file:", file=sys.stderr)
+    for jid, names in dup_local.items():
+        print(f"  id={jid}: {names}", file=sys.stderr)
+    sys.exit(23)
+
+# ---- remote: the (id, label, basename) TSV the box-side scan produced --
+remote = {}          # id -> (label, basename)
+dup_remote = {}
+with open(remote_raw) as fh:
+    for line in fh:
+        line = line.rstrip("\n")
+        if not line:
+            continue
+        jid, label, name = line.split("\t", 2)
+        if jid in remote:
+            dup_remote.setdefault(jid, [remote[jid]]).append((label, name))
+        else:
+            remote[jid] = (label, name)
+
+if dup_remote:
+    print("FATAL: the SAME id exists in more than one place on the box -- this is a corrupted/ambiguous queue state (e.g. the same job spec content copied into two state dirs). Refusing to guess which is authoritative:", file=sys.stderr)
+    for jid, occ in dup_remote.items():
+        print(f"  id={jid}: first={remote[jid]} also_in={occ}", file=sys.stderr)
+    sys.exit(24)
+
+to_ship = sorted(set(local) - set(remote))
+already = sorted(set(local) & set(remote))
+live_claimed = [j for j in already if remote[j][0] == "claimed"]
+other_present = [j for j in already if remote[j][0] != "claimed"]
+
+with open(os.path.join(workdir, "to_ship.tsv"), "w") as out:
+    for jid in to_ship:
+        out.write(f"{jid}\t{local[jid]}\n")
+
+with open(os.path.join(workdir, "pending_divergence_check.tsv"), "w") as out:
+    for jid in other_present:
+        label, rname = remote[jid]
+        if label == "pending":
+            out.write(f"{jid}\t{local[jid]}\t{rname}\n")
+
+print(f"local pending snapshot:        {len(local)} specs (by id)")
+print(f"present anywhere on the box:   {len(remote)} ids (pending+claimed+completed+failed+cancelled+parked_*, ID-KEYED)")
+print(f"already present -- SKIPPING (never resurrected, never overwritten): {len(already)}")
+print(f"  of which LIVE (claimed/, running right now):                     {len(live_claimed)}")
+print(f"genuinely new -- safe to ship:  {len(to_ship)}")
+print("")
+if live_claimed:
+    print("== LIVE JOBS ON THE BOX RIGHT NOW (matched by id, not filename -- this is exactly the check a renamed-copy collision needs) ==")
+    for jid in live_claimed:
+        label, rname = remote[jid]
+        lname = local[jid]
+        note = "" if lname == rname else "   *** RENAMED ON BOX (local name != box name) -- id-keyed dedup is why this is still caught ***"
+        print(f"  LIVE-SKIP(claimed) id={jid}  local_file={lname}  box_file={rname}{note}")
+    print("")
+if other_present:
+    shown = other_present[:20]
+    print(f"-- other already-present ids ({len(shown)} of {len(other_present)} shown) --")
+    for jid in shown:
+        label, rname = remote[jid]
+        print(f"  SKIP({label}) id={jid}  local_file={local[jid]}  box_file={rname}")
+    print("")
+print("-- ids safe to ship (if any) --")
+if to_ship:
+    for jid in to_ship:
+        print(f"  SHIP id={jid}  local_file={local[jid]}")
+else:
+    print("  (none)")
+PYEOF
+  then
+    echo "FATAL: id-keyed local/remote diff failed (see above) -- refusing to ship ANY job specs. Nothing was copied. Never falling back to a blind overwrite or a filename-only check." >&2
+    exit 1
   fi
 
-  # Courtesy content-divergence check (non-blocking): if a skipped spec is
-  # sitting in remote pending/ specifically (not claimed/completed/failed/
-  # parked) with DIFFERENT content than the local copy, warn loudly. It is
-  # still never overwritten (it could be claimed by a worker at any
-  # moment) -- this is purely so a human notices a regenerated local spec
-  # has silently diverged from the live one.
-  if [ "$N_ALREADY" -gt 0 ]; then
-    while IFS= read -r f; do
-      remote_pending_md5=$(ssh -n "${SSH_OPTS[@]}" "$BOX" "md5sum '$REMOTE_QROOT_ABS/pending/$f' 2>/dev/null | awk '{print \$1}'")
+  # Courtesy content-divergence check (non-blocking): if an id already
+  # resolved specifically to remote pending/ (not claimed/completed/
+  # failed/cancelled/parked) has DIFFERENT content than the local copy,
+  # warn loudly. Still never overwritten (it could be claimed by a worker
+  # at any moment) -- this is purely so a human notices a regenerated
+  # local spec has silently diverged from the live one. Uses the id's OWN
+  # remote basename (which may differ from the local basename -- exactly
+  # the renamed-copy case), not an assumed same-name match.
+  if [ -s "$WORKDIR/pending_divergence_check.tsv" ]; then
+    echo "== courtesy check: content divergence on already-pending ids (non-blocking) =="
+    while IFS=$'\t' read -r jid lname rname; do
+      remote_pending_md5=$(ssh -n "${SSH_OPTS[@]}" "$BOX" "md5sum '$REMOTE_QROOT_ABS/pending/$rname' 2>/dev/null | awk '{print \$1}'")
       [ -n "$remote_pending_md5" ] || continue
-      local_md5=$(cd "$HERE/jobs/pending" && (md5 -q "$f" 2>/dev/null || md5sum "$f" | awk '{print $1}'))
+      local_md5=$(cd "$HERE/jobs/pending" && (md5 -q "$lname" 2>/dev/null || md5sum "$lname" | awk '{print $1}'))
       if [ "$local_md5" != "$remote_pending_md5" ]; then
-        echo "WARNING: $f is still pending on the box but its content DIFFERS from the local copy (local=$local_md5 remote=$remote_pending_md5) -- NOT overwritten (it could be claimed at any moment); reconcile by hand if this is unexpected." >&2
+        echo "WARNING: id=$jid is still pending on the box (as '$rname'; local copy is '$lname') but its CONTENT DIFFERS (local=$local_md5 remote=$remote_pending_md5) -- NOT overwritten (it could be claimed at any moment); reconcile by hand if this is unexpected." >&2
       fi
-    done < "$WORKDIR/already_present.txt"
+    done < "$WORKDIR/pending_divergence_check.tsv"
   fi
+
+  N_TO_SHIP=$(wc -l < "$WORKDIR/to_ship.tsv" 2>/dev/null | tr -d ' ')
+  N_TO_SHIP="${N_TO_SHIP:-0}"
 fi
 
 if [ "$DRY_RUN" = "1" ]; then
-  echo "-- specs to ship (if any) --"
-  if [ "$N_TO_SHIP" -gt 0 ]; then
-    cat "$WORKDIR/to_ship.txt"
-  else
-    echo "(none)"
-  fi
-  echo "== DRY_RUN=1: the above is the exact job-spec ship/skip plan. A REAL"
-  echo "   run would ALSO unconditionally re-deploy queue_worker.sh/"
-  echo "   launch_workers.sh/QUEUE_README.md/ncr_task.py/ncr_earlyln_scale.py"
-  echo "   (static files, not job-spec state -- not gated by DRY_RUN on a"
-  echo "   real run). Nothing was copied by this DRY_RUN. =="
+  echo ""
+  echo "== DRY_RUN=1 (the DEFAULT as of 2026-07-13 -- pass DRY_RUN=0 to actually"
+  echo "   ship). The plan printed above is the exact id-keyed ship/skip"
+  echo "   decision; the LIVE JOBS section (if any ids are live) confirms"
+  echo "   every currently-claimed id was matched by its internal id and"
+  echo "   excluded, regardless of what it is named on the box today. A REAL"
+  echo "   run (DRY_RUN=0) would ALSO unconditionally re-deploy"
+  echo "   queue_worker.sh/launch_workers.sh/QUEUE_README.md/ncr_task.py/"
+  echo "   ncr_earlyln_scale.py (static files, not job-spec state -- not"
+  echo "   gated by DRY_RUN on a real run). Nothing was copied by this"
+  echo "   DRY_RUN. =="
   exit 0
 fi
 
@@ -361,13 +521,13 @@ else
 fi
 
 if [ "$HAVE_LOCAL_SPECS" -eq 0 ] || [ "$N_TO_SHIP" -eq 0 ]; then
-  echo "== no new job specs to ship (already in sync). =="
+  echo "== no new job specs to ship (already in sync, id-keyed). =="
   echo "== DEPLOY OK =="
   exit 0
 fi
 
-echo "-- specs to ship --"
-cat "$WORKDIR/to_ship.txt"
+echo "-- specs to ship (id -> local file) --"
+cat "$WORKDIR/to_ship.tsv"
 
 echo "== staging $N_TO_SHIP new spec(s) in an isolated remote tmp dir (never writes to pending/ directly yet) =="
 REMOTE_STAGE="$(ssh "${SSH_OPTS[@]}" "$BOX" "mktemp -d '$REMOTE_QROOT_ABS/.deploy_stage.XXXXXX'")" || {
@@ -380,96 +540,152 @@ if [ -z "$REMOTE_STAGE" ]; then
 fi
 
 SHIP_PATHS=()
-while IFS= read -r f; do
-  SHIP_PATHS+=("$HERE/jobs/pending/$f")
-done < "$WORKDIR/to_ship.txt"
+while IFS=$'\t' read -r jid bname; do
+  SHIP_PATHS+=("$HERE/jobs/pending/$bname")
+done < "$WORKDIR/to_ship.tsv"
 
 if ! scp -q "${SHIP_PATHS[@]}" "$BOX:$REMOTE_STAGE/"; then
-  echo "FATAL: scp to staging dir failed -- refusing to move anything into pending/. Remote staging dir $REMOTE_STAGE left on the box for inspection; nothing in pending/claimed/completed/failed was touched." >&2
+  echo "FATAL: scp to staging dir failed -- refusing to move anything into pending/. Remote staging dir $REMOTE_STAGE left on the box for inspection; nothing in pending/claimed/completed/failed/cancelled was touched." >&2
   exit 1
 fi
 
 echo "== md5 verify: staged (to-ship) job specs, per-file =="
 MISMATCH=0
-while IFS= read -r f; do
-  local_md5=$(cd "$HERE/jobs/pending" && (md5 -q "$f" 2>/dev/null || md5sum "$f" | awk '{print $1}'))
-  remote_md5=$(ssh -n "${SSH_OPTS[@]}" "$BOX" "md5sum '$REMOTE_STAGE/$f' 2>/dev/null | awk '{print \$1}'")
+while IFS=$'\t' read -r jid bname; do
+  local_md5=$(cd "$HERE/jobs/pending" && (md5 -q "$bname" 2>/dev/null || md5sum "$bname" | awk '{print $1}'))
+  remote_md5=$(ssh -n "${SSH_OPTS[@]}" "$BOX" "md5sum '$REMOTE_STAGE/$bname' 2>/dev/null | awk '{print \$1}'")
   if [ "$local_md5" != "$remote_md5" ]; then
-    echo "MD5 MISMATCH: $f  local=$local_md5 remote=$remote_md5" >&2
+    echo "MD5 MISMATCH: id=$jid file=$bname  local=$local_md5 remote=$remote_md5" >&2
     MISMATCH=1
   fi
-done < "$WORKDIR/to_ship.txt"
+done < "$WORKDIR/to_ship.tsv"
 if [ "$MISMATCH" -eq 1 ]; then
-  echo "FATAL: job spec md5 mismatch on staged files -- deploy FAILED, do not launch. Staged files left at $REMOTE_STAGE (NOT pending/) for inspection; nothing in pending/claimed/completed/failed was touched." >&2
+  echo "FATAL: job spec md5 mismatch on staged files -- deploy FAILED, do not launch. Staged files left at $REMOTE_STAGE (NOT pending/) for inspection; nothing in pending/claimed/completed/failed/cancelled was touched." >&2
   exit 1
 fi
 echo "staged job specs md5-verified clean ($N_TO_SHIP files)."
 
-echo "== final re-check + atomic no-clobber placement into pending/ (single remote script, tightest practical race window) =="
-if ! ssh "${SSH_OPTS[@]}" "$BOX" bash -s -- "$REMOTE_QROOT_ABS" "$REMOTE_STAGE" > "$WORKDIR/placement.log" 2>&1 <<'REMOTE_EOF'
+echo "== final id-keyed re-check + atomic no-clobber placement into pending/ (single remote script, tightest practical race window) =="
+if ! ssh "${SSH_OPTS[@]}" "$BOX" bash -s -- "$REMOTE_QROOT_ABS" "$REMOTE_STAGE" <<'REMOTE_EOF' > "$WORKDIR/placement.log" 2>&1
 set -uo pipefail
 QROOT="$1"
 STAGE="$2"
-placed=0
-skipped=0
-hard_errors=0
-# resolved_elsewhere: true if $1 (a bare spec basename) already has a
-# fate anywhere except pending/. completed/ is normally unsuffixed but
-# checked both ways for symmetry/defense-in-depth; failed/ and claimed/
-# are checked both ways because queue_worker.sh has more than one code
-# path into each and not all of them strip the ".g<gpu>" claim suffix
-# (see the enumeration script's own comment on this -- found by audit).
-resolved_elsewhere() {
-  b="$1"
-  [ -e "$QROOT/completed/$b" ] && return 0
-  compgen -G "$QROOT/completed/${b%.json}.g*.json" > /dev/null 2>&1 && return 0
-  [ -e "$QROOT/failed/$b" ] && return 0
-  compgen -G "$QROOT/failed/${b%.json}.g*.json" > /dev/null 2>&1 && return 0
-  [ -e "$QROOT/claimed/$b" ] && return 0
-  compgen -G "$QROOT/claimed/${b%.json}.g*.json" > /dev/null 2>&1 && return 0
-  # parked_*/ can be reached by mv from any state dir (including claimed/),
-  # so it can carry a suffixed name too -- check both forms.
-  compgen -G "$QROOT"/parked_*/"$b" > /dev/null 2>&1 && return 0
-  compgen -G "$QROOT"/parked_*/"${b%.json}".g*.json > /dev/null 2>&1 && return 0
-  return 1
-}
-for f in "$STAGE"/*.json; do
-  [ -e "$f" ] || continue
-  base=$(basename "$f")
-  if resolved_elsewhere "$base"; then
-    echo "RACE-SKIP(resolved-on-box) $base -- gained a fate between enumeration and placement, NOT overwriting"
-    skipped=$((skipped+1))
-    continue
-  fi
-  # mv -n: no-clobber. If something claimed this exact name in pending/ in
-  # the last few seconds, $f is left untouched in $STAGE (source survives).
-  if mv -n "$f" "$QROOT/pending/$base" && [ ! -e "$f" ]; then
-    echo "PLACED $base"
-    placed=$((placed+1))
-  elif [ -e "$QROOT/pending/$base" ]; then
-    echo "RACE-SKIP(pending-collision) $base -- mv -n refused, name already exists in pending/, left staged for review (benign -- re-run to re-evaluate)"
-    skipped=$((skipped+1))
-  else
-    # Genuinely NOT a collision (target name absent from pending/) and the
-    # mv still didn't happen -- permissions, disk-full, or some other real
-    # error, not the normal race. Counted separately so the outer script
-    # can tell "some specs safely deferred" apart from "something is
-    # actually broken" (found by a third audit round -- this branch used
-    # to be indistinguishable from a benign race-skip and always exited 0).
-    echo "HARD-ERROR(mv-failed) $base -- mv did not succeed and the target name is NOT in pending/ (permissions/disk/other real error, not a collision) -- left staged for review"
-    hard_errors=$((hard_errors+1))
-  fi
-done
-if rmdir "$STAGE" 2>/dev/null; then
-  echo "stage dir removed (empty -- everything placed cleanly)"
-else
-  echo "NOTE: stage dir $STAGE left on box (non-empty -- race-skips present, or an error) -- inspect manually, do NOT delete pending/claimed/completed/failed to compensate"
-fi
-echo "SUMMARY placed=$placed skipped=$skipped hard_errors=$hard_errors"
-[ "$hard_errors" -eq 0 ]
+QROOT="$QROOT" STAGE="$STAGE" python3 <<'PYEOF'
+import json, os, sys
+
+qroot = os.environ["QROOT"]
+stage = os.environ["STAGE"]
+
+def scan_dir(dirpath, label, id_map, dup):
+    if not os.path.isdir(dirpath):
+        return
+    for name in sorted(os.listdir(dirpath)):
+        full = os.path.join(dirpath, name)
+        if not os.path.isfile(full):
+            continue
+        if ".json" not in name:
+            continue
+        try:
+            with open(full) as fh:
+                spec = json.load(fh)
+        except Exception as e:
+            print(f"PLACEMENT-ENUM-FATAL: could not parse {full} as JSON ({e})")
+            sys.exit(18)
+        jid = spec.get("id")
+        if not jid:
+            print(f"PLACEMENT-ENUM-FATAL: {full} has no 'id' field")
+            sys.exit(19)
+        if jid in id_map:
+            dup.setdefault(jid, [id_map[jid]]).append((label, name))
+        else:
+            id_map[jid] = (label, name)
+
+# Fresh re-scan of CURRENT state, right before placement -- closes the
+# race window between the earlier plan-time enumeration and now.
+resolved = {}
+dup = {}
+for d in ("pending", "claimed", "completed", "failed", "cancelled"):
+    scan_dir(os.path.join(qroot, d), d, resolved, dup)
+for name in sorted(os.listdir(qroot)):
+    if name.startswith("parked_"):
+        p = os.path.join(qroot, name)
+        if os.path.isdir(p):
+            scan_dir(p, name, resolved, dup)
+
+if dup:
+    print("PLACEMENT-FATAL: duplicate id(s) appeared in more than one state dir during the race-recheck -- refusing to place anything until this is resolved by hand:")
+    for jid, occ in dup.items():
+        print(f"  id={jid}: first={resolved[jid]} also_in={occ}")
+    sys.exit(20)
+
+placed = 0
+skipped = 0
+live_collisions = 0
+hard_errors = 0
+
+staged = sorted(f for f in os.listdir(stage) if f.endswith(".json"))
+for name in staged:
+    full = os.path.join(stage, name)
+    try:
+        with open(full) as fh:
+            spec = json.load(fh)
+    except Exception as e:
+        print(f"HARD-ERROR(unparseable-staged-file) {name}: {e} -- left staged for review")
+        hard_errors += 1
+        continue
+    jid = spec.get("id")
+    if not jid:
+        print(f"HARD-ERROR(staged-file-no-id) {name} -- left staged for review")
+        hard_errors += 1
+        continue
+
+    if jid in resolved:
+        label, rname = resolved[jid]
+        if label == "claimed":
+            # Structurally should be impossible -- the plan-time check
+            # already excludes any id present in claimed/ from the ship
+            # list. If it fires anyway, something changed between plan and
+            # placement (or the plan-time check itself regressed): this IS
+            # the "would resurrect a live job" case, and it gets the
+            # loudest marker this script has, not a routine race-skip
+            # line -- and it fails the script's exit code (see below).
+            print(f"*** LIVE-COLLISION *** id={jid} staged_file={name} is CURRENTLY CLAIMED on the box as {rname} -- REFUSING to place. This should never happen (the plan-time check already excludes claimed ids); investigate immediately.")
+            live_collisions += 1
+        else:
+            print(f"RACE-SKIP({label}) id={jid} staged_file={name} -- gained a fate ({label}/{rname}) between enumeration and placement, NOT overwriting")
+            skipped += 1
+        continue
+
+    dst = os.path.join(qroot, "pending", name)
+    try:
+        # Atomic no-clobber move on one filesystem: hard-link then unlink
+        # the source. os.link() raises FileExistsError if dst already
+        # exists (the same-name-different-id race the old `mv -n` handled)
+        # -- at least as safe as `mv -n`, and additionally atomic w.r.t. a
+        # concurrent os.link() of the same dst (only one call can win).
+        os.link(full, dst)
+        os.unlink(full)
+        print(f"PLACED id={jid} file={name}")
+        placed += 1
+    except FileExistsError:
+        print(f"RACE-SKIP(pending-collision) id={jid} file={name} -- a file with this exact name already exists in pending/ (name collision, not an id collision), left staged for review")
+        skipped += 1
+    except OSError as e:
+        print(f"HARD-ERROR(link-failed) id={jid} file={name}: {e} -- left staged for review")
+        hard_errors += 1
+
+try:
+    os.rmdir(stage)
+    print("stage dir removed (empty -- everything placed cleanly)")
+except OSError:
+    print(f"NOTE: stage dir {stage} left on box (non-empty -- race-skips/collisions/errors present) -- inspect manually, do NOT delete pending/claimed/completed/failed/cancelled to compensate")
+
+print(f"SUMMARY placed={placed} skipped={skipped} live_collisions={live_collisions} hard_errors={hard_errors}")
+sys.exit(0 if (hard_errors == 0 and live_collisions == 0) else 1)
+PYEOF
 REMOTE_EOF
 then
-  echo "FATAL: remote placement script itself failed -- inspect $REMOTE_STAGE on $BOX by hand. Nothing further attempted automatically." >&2
+  echo "FATAL: remote placement script itself failed (hard_errors and/or a *** LIVE-COLLISION *** were found -- this is the 'would resurrect a live job' case made loud and blocking, see the log below) -- inspect $REMOTE_STAGE on $BOX by hand. Nothing further attempted automatically." >&2
   cat "$WORKDIR/placement.log" >&2
   exit 1
 fi
