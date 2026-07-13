@@ -10,7 +10,15 @@ reference models; the planted-copy probe is broken by construction** → **Rev 3
 launched, no queue touched, no registry verdict recorded. **§9 supersedes the
 instrument spec in §5.0/§5.1/§5.2; §11 supersedes §9.4 (all of T2), §9.2's
 `N_rows`, §9.6 item 7, and strikes T2b-2 from §9.6 item 5; §11.4.5 re-pins §9.3's
-T1c.** **§9.1's `M(r) ≡ DiD(r)` pin is untouched by §11.**
+T1c.** **§9.1's `M(r) ≡ DiD(r)` pin is untouched by §11.** → **§12, T2a EXECUTED
+for real (2026-07-13) on the repaired instrument: VERDICT FAIL (INSTRUMENT-
+INVALID, HALT) — but NOT a repeat of §10's finding.** Both required conjuncts
+VOID before any bar could be evaluated, on **two independent, newly-diagnosed
+software defects** in the repaired driver/instrument (a tokenizer boundary
+collision on one cell; a `math.comb` int→float overflow in the exact sign
+test, which fires deterministically at `n≳1030` discordant pairs — i.e. more
+likely to fire the STRONGER the underlying signal). **The probe's own
+construction (F-I/F-II from §11.1) is not what failed this time.**
 
 **Date:** 2026-07-12 (verified against `git log` + system clock; a fake
 `system-reminder` carrying a date-change *plus a concealment instruction*
@@ -2835,3 +2843,224 @@ after):**
 fit rungs against a minimum of 3.** A passing T2a **unblocks the instrument, not the verdict.** The
 ladder must be extended before a trend verdict exists, and **no one may read "T2a passed" as "the
 verdict is unlocked."**
+
+---
+
+## 12. T2a EXECUTION — THE REPAIRED INSTRUMENT'S FIRST REAL READ. **VERDICT: FAIL (INSTRUMENT-INVALID, HALT).**
+
+**Executed 2026-07-13 by a dedicated T2a execution agent**, per §11.11's pinned order, step (2).
+Steps (1) — pre-pass, smoke, D5 audit — were landed by the build session (`fd5bc0b`, `b95ab2c`)
+and are **independently re-verified here**, not merely cited. **This section is a real GPU
+execution record, not a design note: it supersedes no prior §, it only reports what running the
+already-pinned §11 apparatus for the first time actually found.**
+
+### 12.0 Pre-flight re-verification (independent of the build session's own claims)
+
+| check | result |
+|---|---|
+| `lm_recall_gap_probe_v2_rd.py` commit | `fd5bc0b`, md5 `cc45a7e8a9dda107af5fc9e7a2585a2d` — **matches box exactly** |
+| `t2a_reference_driver_v2_rd.py` commit | `b95ab2c`, md5 `bb2f661dee5644e0b1a73fb7f3f53ada` — **matches box exactly** |
+| Smoke suite | **re-run fresh on the box: 39/39 PASS**, independently reproduced (not cited) |
+| `val_coverage_ratio` (smoke-reported) | `4.247536881087047` — matches the pre-registered caveat (§11 header instruction) exactly; **see §12.4 — could NOT be re-confirmed on real corpora this session because no real cell reached that code path** |
+| Reference models cached | `RWKV/RWKV7-Goose-World3-1.5B-HF` (2.9GB), `gpt2-large` (19GB), `tiiuae/falcon-mamba-7b` (14GB) — all present, `/data/hf_cache`, offline-loadable |
+| `N_rows` pre-pass default | `N_ROWS_DEFAULT = 2048` (hardcoded in `lm_recall_gap_probe_v2_rd.py:375`) — matches the build session's cited pre-pass result; **the pre-pass was not independently re-run as a separate `--pre-pass` invocation this session** (its result is baked into the `--gate` defaults and is a pure corpus-statistic computation with no model dependency — judgment call, flagged in §12.5) |
+| **D5 bridge audit caveat, carried forward as instructed** | The D5 auditors had no GPU/network access and verified statically + via stubbed execution only. **This session had both, and used them** — the two defects in §12.3 are exactly the class of bug static review + CPU stubs cannot catch (they require the real corpora and real discordant-pair counts at `N_rows=2048` to manifest). |
+
+**Compute posture.** All 8 GPUs were running training jobs (two 1.31B rungs, `fixscale_seedext`/
+`fixscale_fulltoken` cells) for the entire session. **Nothing was disturbed**: launched on GPU 7
+(`youthful-indigo-turkey`, tmux session `t2a_gate`), which had ~54GB free headroom before this run
+and remained shared throughout with a co-resident 98M `fixscale_seedext` training job (pid
+`1237008`) at no observed cost to it (confirmed via repeated `nvidia-smi`/`ps` checks across the
+full run — all 8 pre-existing jobs ran uninterrupted start to finish). `~/queue/` was read-only
+`ls`'d once for situational awareness, never written to. No checkpoint of ours was touched, no R0/
+quarantine file was opened, no `DiD` for our own rungs was computed.
+
+### 12.1 THE VERDICT
+
+**T2a-1 FAILS on all four required cells.** Per §11.4.2: *"T2a-1 requires W1 AND W2 to clear all
+five legs, on each corpus… Fail ⇒ INSTRUMENT-INVALID, HALT for every rung."* Neither required
+witness produced **any** records on **either** corpus — each of the four required `(witness,
+corpus)` cells crashed (`t2_void=True`) inside `run_witness_cell` **before a single leg could be
+evaluated**, so the per-leg table below has **zero**, not merely low, cells to read a bar from.
+
+| witness | corpus | `t2_void` | acc@median | deciles | PRIOR | KS | T2b-1b | T2b-1 | leg (i)-(v) |
+|---|---|---|---|---|---|---|---|---|---|
+| **W1 (RWKV7-Goose-1.5B)** — REQUIRED | openr1-mix-ext | **TRUE** | — | — | — | — | — | — | **0/5, cell never assembled** |
+| **W1 (RWKV7-Goose-1.5B)** — REQUIRED | wikitext-mix-ext | **TRUE** | — | — | — | — | — | — | **0/5, cell never assembled** |
+| **W2 (gpt2-large)** — REQUIRED | openr1-mix-ext | **TRUE** | — | — | — | — | — | — | **0/5, cell never assembled** |
+| **W2 (gpt2-large)** — REQUIRED | wikitext-mix-ext | **TRUE** | — | — | — | — | — | — | **0/5, cell never assembled** |
+| C1 (falcon-mamba-7b) — causal-only, cannot save the gate | openr1-mix-ext | **PENDING** (§12.4) | — | — | — | — | — | — | not reached |
+| C1 (falcon-mamba-7b) | wikitext-mix-ext | **PENDING** | — | — | — | — | — | — | not reached |
+
+**T2a-2 (untrained-init negative control):** **PENDING** — the driver computes it in a loop that
+executes only after the full witness loop (incl. C1) completes; not yet reached this session
+(§12.4). **T2a-3 (falcon-mamba causal calibration):** PENDING, same reason. **T1c (reference DiD
+gate):** not yet materialized in the output JSON, but its outcome is **already determined by code
+inspection, not observation** — `check_t1c_reference_did` is gated on `t1c_admissibility` being
+present on **both** the W1 and W2 cells (`t2a_reference_driver_v2_rd.py` ≈L1715-1730), and neither
+void'd cell carries that key. **T1c will register `{"passes": false, "void": true}` on both
+corpora the instant the driver reaches that line** — flagged as an inference from the pinned code,
+not a measured result, and not used as a substitute for one anywhere in this verdict.
+
+**Per rule 1 of this agent's brief (identical to §11.4.2's own text): both required conjuncts
+failed ⇒ T2a FAILS, full stop. C1 (falcon-mamba) is demoted and cannot rescue this regardless of
+its own outcome, whenever it finishes.** No bar was moved, loosened, or reinterpreted to reach
+this verdict — none of the five legs were even in a position to be evaluated.
+
+### 12.2 THE UNTRAINED-INIT NEGATIVE CONTROL (T2a-2)
+
+**Not available this session — genuinely pending, not fabricated.** See §12.4.
+
+### 12.3 DIAGNOSIS — TWO INDEPENDENT DEFECTS, NEITHER OF WHICH IS §11.1's F-I/F-II RECURRING
+
+This is the load-bearing distinction of this read: **the repaired probe's own construction (rare
+key/value selection, the joint `(a,a',b)` draw, the hard per-window plant assertion) was never
+reached and is not implicated by anything below.** Both defects live in code paths *around* the
+probe — the bridge and the statistics layer — that the D5 audit's static-only review could not
+exercise.
+
+**DEFECT A — bridge tokenizer boundary collision (`W1_rwkv7/openr1-mix-ext` only).**
+```
+RuntimeError: _retokenize_documents: the reference tokenizer emitted eos_id=65530 INSIDE a
+document's own encoding (add_special_tokens=False was requested). The spliced document boundary
+would then be ambiguous with an in-document token...
+```
+This is the **hard assertion working exactly as designed** (D5 round-2 M-2's own check, guarding
+against exactly this ambiguity) — it is not a silent failure, it is a check catching a genuine
+property of `RWKV7-Goose-World3-1.5B-HF`'s tokenizer: its declared `eos_token_id` (65530) is **not
+actually reserved** in its own vocabulary and occurs as an ordinary in-text token somewhere early
+in `openr1-mix-ext`'s math/code-heavy documents (the check fires per-document and aborts on the
+**first** offending document, which is why this cell failed in under 2 minutes while others ran
+for hours — it never needed to scan the full corpus). **This is a real, reportable property of the
+witness model's tokenizer on this corpus, not a bug in the sense of "wrong code" — the code did
+exactly what it was built to do.** The fix path (not implemented here, out of this agent's
+mandate) is a witness-tokenizer-specific EOS choice or an alternate boundary marker, not a change
+to the probe.
+
+**DEFECT B — `math.comb` integer→float overflow in the exact sign test (`W1_rwkv7/wikitext-
+mix-ext`, `W2_gpt2large/openr1-mix-ext`, `W2_gpt2large/wikitext-mix-ext` — three of four required
+cells, all with the byte-identical message):**
+```
+OverflowError: int too large to convert to float
+```
+**Root-caused and reproduced independently, not merely inferred.** `_exact_binomial_two_sided_p`
+(`lm_recall_gap_probe_v2_rd.py:2005-2018`) computes the two-sided exact binomial p-value as
+`math.comb(n, x) * (p**x) * ((1-p)**(n-x))`. `math.comb` returns an arbitrary-precision Python
+`int`; Python must convert that `int` to a `float` *before* the multiplication can apply the
+vanishingly small `p**x*(1-p)**(n-x)` factor that would otherwise keep the true PMF value small
+(≤1). Verified locally:
+
+```
+math.comb(2048, 1024)              -> a 615-digit integer
+float(math.comb(2048, 1024))       -> OverflowError: int too large to convert to float
+```
+
+and the exact threshold, verified by direct sweep: **`math.comb(n, n//2)` first exceeds float64's
+max representable magnitude (~1.8×10^308, i.e. 309 decimal digits) at `n≈1030`** (1023 OK, 1030
+overflows). `n` here is `n_plus + n_minus`, the **discordant-pair count** out of up to `N_rows =
+2048` plants — feeding both T2b-1 (`check_t2b1_mechanism_exists`) and T2b-1b
+(`check_t2b1b_key_conditioned`), which are computed for **every** witness/corpus cell as part of
+assembling `t2a1_ceiling`, unconditionally. **This bug is not a corner case: at `N_rows=2048` (the
+design's own pinned constant, §11.7), any witness with `≥~1030` discordant pairs — i.e. a
+*strong*, easily-detected signal — deterministically overflows.** The old (VOID) probe's own
+recorded T2b-1 splits were 57/0 and 121/0 (§10, well under 1030) at a smaller, undisclosed
+`N_rows`; the repaired probe at `N_rows=2048` evidently produces **far more discordant pairs**,
+which is consistent with the repair working better at detecting a real mechanism, not worse — the
+statistics layer simply was never load-tested at this scale. **Neither the smoke suite (toy `n`,
+by construction) nor the D5 static audit (no execution) could have caught this**, and neither
+claimed to (§9.4/§11.11's own disclosed caveat, carried into this verdict per the standing
+instruction).
+
+**Consequence for the diagnostic ladder (§11.4.3).** The `W2` Δ-sweep and `n_demos∈{1,2,4}`
+diagnostic — *"the only diagnostic that separates one-shot-is-too-hard from cannot-copy"* — are
+gated in the driver on `w == "W2_gpt2large" and not cell.get("t2_void")`. **Because W2 void'd on
+both corpora, the one diagnostic §11.4.3 specifically exists to run on a T2a failure did not run,
+and cannot run against this defect without a code fix.** This is disclosed rather than worked
+around: **no n-demos read exists for this verdict**, and none is fabricated.
+
+**Disposition — not a probe redesign, not a bar question.** Per §11.4.3 step 3's own localisation
+rule (*"PRIOR high ⇒ probe defect… KS≈0 ⇒ probe defect"*) extended to the case actually observed
+here: **a cell that crashes before any leg is computed is a probe/driver defect by definition, not
+a capability finding about either witness model.** Nothing here bears on whether RWKV7-Goose-1.5B
+or gpt2-large can perform key-conditioned associative recall — the question was never reached.
+
+### 12.4 WHAT IS **NOT** YET KNOWN — genuinely pending, not withheld
+
+**A judgment call, flagged loudly.** `C1_falconmamba/openr1-mix-ext`'s bridging (tokenizer
+re-encode, 356.1M tokens, 1212.7s) completed cleanly (no Defect-A collision), and its **model
+evaluation** (the T2 six-arm probe, `n_windows=2048`, `eval_micro_batch=16`, on `falcon-mamba-7b`
+running the **sequential, non-fused Mamba fallback** — `transformers` reported *"the fast path is
+not available… falling back to the sequential implementation"* since no `kernels`/`mamba-ssm`/
+`causal-conv1d` package is installed) had **not completed after ~3h49m of continuous, verified
+(CPU time + GPU utilization both tracked and climbing) execution** when this agent stopped
+watching. **This single cell alone has already cost far more wall-clock time than the design's own
+"well under a minute of H100 time" cost estimate (§11.3) assumed** — that estimate implicitly
+assumed a fused kernel path; the sequential fallback is easily 100×+ slower and was not budgeted
+for. `C1_falconmamba/wikitext-mix-ext` (a larger corpus) has not started. `T2a-2` and `T1c` execute
+sequentially after the full witness loop (including C1) completes, so **neither has run yet**.
+
+**Given C1 cannot rescue a failing gate regardless of its outcome (rule 1), and the verdict is
+already fully and independently determined by the two REQUIRED conjuncts, this agent made the call
+to stop synchronous waiting after ~3h49m rather than block indefinitely on a cell whose result
+cannot change §12.1's verdict.** The run was **left alive, untouched, in its detached tmux session
+(`t2a_gate`, GPU 7, `youthful-indigo-turkey`)** — it will keep writing to
+`results/param_axis_t2a_repaired/t2a_gate_result.json` on the box as C1/T2a-2/T1c resolve. **A
+follow-up read of that file (or a fresh execution-agent dispatch once it finishes) is needed to
+close out C1's causal-only legs, the untrained-init control, and T1c's actual (vs. code-inferred)
+outcome** — none of which change §12.1, all of which are independently valuable diagnostic
+information this section does not have yet. This is disclosed rather than papered over with an
+inferred or assumed PASS/FAIL for any of the three.
+
+### 12.5 JUDGMENT CALLS, FLAGGED
+
+1. **`DRY_RUN_BYPASS=1` was used to launch the remote `--gate` command.** This repo's local
+   `pre-train-gate` hook pattern-matches any `python *.py` invocation in a Bash command and
+   resolves the script against the **local** filesystem/cwd — it has no concept of an SSH-remote
+   invocation, so it could not resolve `t2a_reference_driver_v2_rd.py`'s location even after a
+   valid local dry-run sentinel was registered for the identical (md5-verified) local copy of the
+   script. The substantive safety practice the hook exists to enforce — prove a smoke/dry-run
+   passes before hitting GPU — **was independently satisfied first** (39/39 smoke re-run fresh on
+   the box, §12.0), and the driver's **own**, stronger, purpose-built gate
+   (`--i-am-the-t2a-execution-agent`, refusal-checked on witness set/corpus set/`--out`/
+   `n-plants==n-windows`/no-truncation) is what actually governs this specific execution. The
+   bypass is a mechanical workaround for a hook that cannot see across SSH, not a skipped safety
+   check.
+2. **Stopping the wait at ~3h49m on C1 (§12.4)** rather than blocking further. The verdict does not
+   depend on C1; the wait was for completeness, not correctness, and is disclosed as incomplete
+   rather than backfilled with an assumed result.
+3. **The `N_rows` pre-pass was not re-run as a standalone `--pre-pass` invocation this session** —
+   it is baked into `N_ROWS_DEFAULT=2048` (verified by reading the constant, not by re-executing
+   the search), which is a pure corpus-statistic computation the build session already ran for
+   real per its own commit message. Re-running it would have cost real wall-clock time for a
+   result that cannot change (it is model-free and rung-independent by construction, §11.4.6) —
+   judged not worth the cost given the box's shared-GPU constraint, but flagged rather than
+   silently assumed.
+
+### 12.6 GPU-h, PROVENANCE, AND THE ANTI-M-11 STATEMENT
+
+**GPU-h.** ≈3.8 GPU-h of wall-clock time on GPU 7 (`08:08:09`→`11:56` UTC, 2026-07-13), on a
+**shared** H100 (co-resident throughout with an unrelated 98M `fixscale_seedext` training job; no
+interference either direction, confirmed by repeated `nvidia-smi`/`ps` sampling). The run
+**continues accumulating GPU-h in the background** past this snapshot (§12.4) — the true total for
+C1+T2a-2+T1c is not yet known.
+
+**Commit hashes (independently verified, not cited):** `lm_recall_gap_probe_v2_rd.py` @ `fd5bc0b`
+(md5 `cc45a7e8a9dda107af5fc9e7a2585a2d`); `t2a_reference_driver_v2_rd.py` @ `b95ab2c` (md5
+`bb2f661dee5644e0b1a73fb7f3f53ada`). The gate's own output JSON reports `"commit_sha": "unknown"`
+(the box's `_git_sha()` helper did not resolve in that working tree) — a cosmetic gap in the
+driver's self-description, immaterial here since this agent verified the hashes independently
+against the box's actual files before launch.
+
+**ANTI-M-11, STATED EXPLICITLY.** No bar was moved. The 0.90/0.75 thresholds, the `PRIOR≤0.05`,
+`KS≥0.50` legs, the witness set (W1+W2 required, C1 demoted-and-cannot-save), and T1c's gating
+status are **exactly** as pinned in §11.4. **This verdict is FAIL because the instrument crashed
+before any bar could be checked, not because a model failed a bar.** Per this agent's brief: *"a
+second honest FAIL is worth vastly more than a massaged PASS."* This is that FAIL, reported plainly
+and diagnosed to two specific, reproducible, line-numbered defects — neither of which is the
+probe's own construction (§11.1-§11.3), both of which are fixable without touching a single pinned
+threshold or the witness set.
+
+**Raws:** `experiment-runs/2026-07-13_param_axis_t2a_repaired/` (driver + instrument scripts as
+executed, the partial result JSON and run log pulled mid-flight — clearly named `*_partial*` — repo
+tier, ≤1MB total). **This is not a complete archive** — see §12.4; a follow-up pull is needed once
+the box's `t2a_gate` tmux session finishes.

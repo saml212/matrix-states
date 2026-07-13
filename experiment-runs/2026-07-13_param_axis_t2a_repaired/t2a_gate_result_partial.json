@@ -1,0 +1,51 @@
+{
+  "execution_attested": true,
+  "corpora": [
+    "openr1-mix-ext",
+    "wikitext-mix-ext"
+  ],
+  "witnesses": [
+    "W1_rwkv7",
+    "W2_gpt2large",
+    "C1_falconmamba"
+  ],
+  "config": {
+    "seq_len": 512,
+    "n_windows": 2048,
+    "n_plants": 2048,
+    "eval_micro_batch": 16,
+    "device": "cuda",
+    "data_dir": "/data/deltanet_rd_data",
+    "min_bridged_train_tokens": 25000000,
+    "val_size_gate": null,
+    "val_coverage_reported_per_cell": true,
+    "seed_offset": 424242
+  },
+  "commit_sha": "unknown",
+  "cells": {
+    "W1_rwkv7/openr1-mix-ext": {
+      "witness": "W1_rwkv7",
+      "corpus": "openr1-mix-ext",
+      "t2_void": true,
+      "t2_void_reason": "RuntimeError: _retokenize_documents: the reference tokenizer emitted eos_id=65530 INSIDE a document's own encoding (add_special_tokens=False was requested). The spliced document boundary would then be ambiguous with an in-document token, and every EOT-exclusion downstream (detect_candidates_and_baseline / assign_placebo_positions / draw_exclusive_replacement / build_key_value_pools) would silently mean something other than 'document boundary'. D5 round-2 M-2."
+    },
+    "W1_rwkv7/wikitext-mix-ext": {
+      "witness": "W1_rwkv7",
+      "corpus": "wikitext-mix-ext",
+      "t2_void": true,
+      "t2_void_reason": "OverflowError: int too large to convert to float"
+    },
+    "W2_gpt2large/openr1-mix-ext": {
+      "witness": "W2_gpt2large",
+      "corpus": "openr1-mix-ext",
+      "t2_void": true,
+      "t2_void_reason": "OverflowError: int too large to convert to float"
+    },
+    "W2_gpt2large/wikitext-mix-ext": {
+      "witness": "W2_gpt2large",
+      "corpus": "wikitext-mix-ext",
+      "t2_void": true,
+      "t2_void_reason": "OverflowError: int too large to convert to float"
+    }
+  }
+}
