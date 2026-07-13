@@ -1758,6 +1758,153 @@ def draw_pool_replacement(p_key: list, exclude: set, rng: random.Random) -> int:
             return tok
 
 
+# =============================================================================
+# sec 20 R-4 -- THE T2a-2 LIVENESS WITNESS.
+#
+# WHY IT EXISTS (sec 19.3d, the sixth adversary): every model-dependent number
+# the T2a-2 negative control ever persisted -- `acc_copy`, `ks_point`, `ks_ci`
+# -- is a function of ONE indicator bit per row, `argmax(logits[row, k0]) == b`.
+# That bit is 0 for the intended null (a live, varied, mechanism-free forward
+# pass) AND for a model returning CONSTANT logits AND for a model returning NaN
+# logits (torch.argmax over all-NaN returns index 0, and `b` is never token 0).
+# The three artifacts are BIT-IDENTICAL. The control therefore could not
+# distinguish "no mechanism" from "no measurement," and the gate's own record
+# cited that degeneracy as its strongest evidence. It was its weakest.
+#
+# WHAT SEPARATES THEM, AND WHY IT IS THE *ONLY* THING THAT CAN: liveness is the
+# property that THE READOUT DEPENDS ON THE INPUT. Post-argmax, that property is
+# gone -- collapsed into a bit. Pre-argmax it is directly observable, and it is
+# observable EXACTLY, with no tolerance and no tuned number:
+#
+#   (L1) `readout_logits_finite_frac == 1.0`  -- EXACT. A NaN/Inf forward pass
+#        cannot produce it; `torch.isfinite` is evaluated on the very tensor
+#        `argmax` consumed. There is no path from a non-finite pass to 1.0.
+#
+#   (L2) `readout_logit_max_abs_dev_from_row0 > 0.0` -- EXACT, and it is the
+#        DEFINITION of input-dependence, not a proxy for it: the max over all
+#        rows/vocab of |L[i] - L[0]|. A model whose output does not depend on
+#        its input emits a BIT-IDENTICAL readout vector for every window, so
+#        this is EXACTLY 0.0 -- a float subtraction of a value from itself, not
+#        a variance estimate, so there is no cancellation epsilon to hide in.
+#        (A streaming sum/sumsq variance would NOT do: for n identical values it
+#        returns ~1e-14, not 0, and a constant-logit model would sail through.)
+#        Any input-dependent map gives > 0.
+#
+# WHY NOT sec 19's own suggestion (the count of DISTINCT argmax tokens at k0):
+# it is recorded below, but it is NOT part of `ok`. It is unsound in BOTH
+# directions. A genuinely LIVE random-init model can have one globally dominant
+# token and collapse to n_distinct == 1 (a false HALT); and a NaN pass ALSO
+# reads n_distinct == 1 (index 0) -- so the statistic cannot separate the two
+# cases it would be introduced to separate. Argmax-distinctness is a *symptom*
+# of deadness; logit dispersion is deadness itself. The symptom is reported; the
+# thing itself is what gates.
+#
+# NO NEW NUMERIC GATING THRESHOLD IS INTRODUCED (RULE T, sec 20.1): `== 1.0`
+# (all entries finite) and `> 0.0` (any dispersion at all) are the exact
+# boundaries of degeneracy, fixed BY CONSTRUCTION -- a constant function has
+# exactly zero dispersion; a finite tensor is exactly 100% finite. Neither is a
+# tolerance, neither is a magnitude, and neither came from measuring a model.
+# =============================================================================
+class _LiveLogitAccumulator:
+    """Streams the readout-position logit vectors of ARM 1 and reduces them to
+    a small liveness record WITHOUT ever materializing the (N_rows, V) tensor
+    (2048 x 50257 fp32 = 412 MB) or issuing a single extra forward pass.
+
+    Structural (gating) fields: `readout_logits_finite_frac`,
+    `readout_logit_max_abs_dev_from_row0`. Everything else is REPORTED AND
+    NON-GATING -- distributional detail so a reader can tell a live-but-null
+    pass from a dead one by eye, which the old three-zeros artifact could not."""
+
+    def __init__(self):
+        self.ref = None                 # row 0's readout logit vector (the bit-equality anchor)
+        self.n_rows = 0
+        self.n_finite = 0
+        self.n_total = 0
+        self.max_abs_dev = 0.0          # max_i,v |L[i,v] - L[0,v]|; NaN-propagating
+        self.argmax_tokens = []
+        self.entropies = []             # softmax entropy (nats) per row
+        self.max_logits = []            # max logit value per row
+
+    def absorb(self, readout: torch.Tensor) -> None:
+        """readout: (n_chunk, V) -- the logit vectors at each row's OWN k0."""
+        rd = readout.detach().float()
+        self.n_rows += int(rd.shape[0])
+        fin = torch.isfinite(rd)
+        self.n_finite += int(fin.sum().item())
+        self.n_total += int(rd.numel())
+        if self.ref is None:
+            self.ref = rd[0].clone()
+        dev = (rd - self.ref.to(rd.device)).abs()
+        chunk_max = float(dev.max().item()) if dev.numel() else 0.0
+        # NaN must PROPAGATE (a NaN pass must not be rescued by max()); `math.isnan` guard
+        # rather than max(), because max(nan, x) is order-dependent in Python.
+        if math.isnan(chunk_max) or math.isnan(self.max_abs_dev):
+            self.max_abs_dev = float("nan")
+        else:
+            self.max_abs_dev = max(self.max_abs_dev, chunk_max)
+        self.argmax_tokens.extend(rd.argmax(dim=-1).tolist())
+        lp = rd.log_softmax(dim=-1)
+        self.entropies.extend((-(lp.exp() * lp).sum(dim=-1)).tolist())
+        self.max_logits.extend(rd.max(dim=-1).values.tolist())
+
+    def report(self) -> dict:
+        finite_frac = (self.n_finite / self.n_total) if self.n_total else 0.0
+        dev = self.max_abs_dev
+        finite_ok = (self.n_total > 0) and (finite_frac == 1.0)
+        dispersion_ok = (not math.isnan(dev)) and dev > 0.0
+        reasons = []
+        if self.n_total == 0:
+            reasons.append("no readout logits were read (zero rows / no forward pass)")
+        if not finite_ok and self.n_total > 0:
+            reasons.append(f"readout logits are not all finite (finite_frac={finite_frac!r}) -- "
+                            f"NaN/Inf forward pass")
+        if not dispersion_ok:
+            reasons.append(f"readout logits do not depend on the input: "
+                            f"max|L[i]-L[0]| = {dev!r} (EXACTLY 0 => every window produced a "
+                            f"BIT-IDENTICAL readout => constant-logit / dead forward pass)"
+                            if not math.isnan(dev) else
+                            "max|L[i]-L[0]| is NaN -- non-finite forward pass")
+        return {
+            # ---- STRUCTURAL, GATING (exact degeneracy boundaries; no tuned number) ----
+            "ok": bool(finite_ok and dispersion_ok),
+            "readout_logits_finite_frac": finite_frac,
+            "readout_logit_max_abs_dev_from_row0": (None if math.isnan(dev) else dev),
+            "readout_logit_max_abs_dev_is_nan": bool(math.isnan(dev)),
+            "n_rows_read": self.n_rows,
+            "n_logit_entries_read": self.n_total,
+            "degenerate_reasons": reasons,
+            # ---- REPORTED, NON-GATING (distributional detail; see class docstring) ----
+            "n_distinct_argmax_at_k": len(set(self.argmax_tokens)),
+            "top1_argmax_share": _modal_share(self.argmax_tokens),
+            "mean_softmax_entropy_nats": _finite_mean(self.entropies),
+            "std_softmax_entropy_nats": _finite_std(self.entropies),
+            "mean_max_logit": _finite_mean(self.max_logits),
+            "std_max_logit": _finite_std(self.max_logits),
+        }
+
+
+def _modal_share(xs: list) -> float:
+    if not xs:
+        return float("nan")
+    counts = {}
+    for x in xs:
+        counts[x] = counts.get(x, 0) + 1
+    return max(counts.values()) / len(xs)
+
+
+def _finite_mean(xs: list):
+    vals = [x for x in xs if math.isfinite(x)]
+    return (sum(vals) / len(vals)) if vals else None
+
+
+def _finite_std(xs: list):
+    vals = [x for x in xs if math.isfinite(x)]
+    if len(vals) < 2:
+        return None
+    m = sum(vals) / len(vals)
+    return math.sqrt(sum((v - m) ** 2 for v in vals) / (len(vals) - 1))
+
+
 def run_t2_repaired_probe(model, val_tokens: torch.Tensor, seq_len: int, device: str,
                            corpus_name: str, delta_pool: list, pools: dict,
                            counts_by_token: list, n_plants: int,
@@ -1888,11 +2035,25 @@ def run_t2_repaired_probe(model, val_tokens: torch.Tensor, seq_len: int, device:
 
     # ARM 1 -- INTACT: one shared batched forward pass over the planted windows.
     x_intact = torch.stack([w[:-1] for w in all_windows_planted])
+    k0_all = torch.tensor([s["k0"] for s in specs], device=device_t, dtype=torch.long)
     pred_chunks = []
+    live = _LiveLogitAccumulator()
     for start in range(0, x_intact.shape[0], eval_micro_batch):
         with torch.no_grad():
             logits = model(x_intact[start:start + eval_micro_batch])
         pred_chunks.append(logits.argmax(dim=-1))
+        # sec 20 R-4 LIVENESS WITNESS: read the PRE-ARGMAX logit vectors at each row's OWN
+        # readout position k0, from the SAME logits the argmax above already consumed (zero
+        # extra forward passes, no RNG touched -- determinism per sec 19.4c is preserved by
+        # construction). Everything downstream of `argmax` is a single indicator bit per row
+        # (`argmax == b`), which is 0 for a live-but-mechanism-free model AND for a
+        # constant-logit / NaN-logit model alike; the pre-argmax logits are the ONLY place
+        # those two are distinguishable, and this is the only point in the program where they
+        # exist. See _LiveLogitAccumulator for what is recorded and why.
+        n_c = logits.shape[0]
+        live.absorb(logits[torch.arange(n_c, device=logits.device),
+                           k0_all[start:start + n_c], :])
+        del logits
     pred_intact = torch.cat(pred_chunks, dim=0)
 
     for s in specs:
@@ -1915,7 +2076,8 @@ def run_t2_repaired_probe(model, val_tokens: torch.Tensor, seq_len: int, device:
     for s in specs:
         b = s["b"]
         row_idx, k0 = s["row_idx"], s["k0"]
-        hit_intact = int(pred_intact[row_idx, k0].item() == b)
+        argmax_intact = int(pred_intact[row_idx, k0].item())
+        hit_intact = int(argmax_intact == b)
         hit_true = int(s.get("pred_true") == b) if "pred_true" in s else None
         hit_placebo = int(s.get("pred_placebo") == b) if s.get("pred_placebo") is not None else None
         hit_pool_placebo = int(s.get("pred_pool_placebo") == b) if s.get("pred_pool_placebo") is not None else None
@@ -1924,6 +2086,17 @@ def run_t2_repaired_probe(model, val_tokens: torch.Tensor, seq_len: int, device:
         records.append({
             "row_idx": row_idx, "orig_row_idx": s["orig_row_idx"], "k": k0, "j": s["j0"],
             "delta": s["delta"], "a": s["a"], "a_prime": s["a_prime"], "b": b,
+            # sec 20 R-4: the ARGMAX TOKENS THEMSELVES, not just the `== b` bits they collapse
+            # to. These are computed today and thrown away; keeping them is what lets a reader
+            # (and check_t2a2_untrained_control) see WHAT a null model predicted, not merely
+            # that it did not predict `b`. Pure serialization -- no new computation.
+            "argmax_intact_at_k": argmax_intact,
+            "argmax_keyswap_at_k": (int(s["pred_keyswap"]) if s.get("pred_keyswap") is not None
+                                     else None),
+            "argmax_true_ablated_at_k": (int(s["pred_true"]) if s.get("pred_true") is not None
+                                          else None),
+            "argmax_noplant_at_k": (int(s["pred_noplant"]) if s.get("pred_noplant") is not None
+                                     else None),
             "hit_intact": hit_intact, "hit_true_ablated": hit_true,
             "hit_placebo_ablated": hit_placebo, "hit_pool_placebo": hit_pool_placebo,
             "hit_keyswap": hit_keyswap, "hit_noplant": hit_noplant,
@@ -1948,11 +2121,26 @@ def run_t2_repaired_probe(model, val_tokens: torch.Tensor, seq_len: int, device:
     tries_pool = [r["delta_tries"] for r in records if r.get("delta_tries")]
     rejected_pool = [r["delta_rejected"] for r in records if r.get("delta_rejected") is not None]
     delta_excluded_mass_pooled = (sum(rejected_pool) / sum(tries_pool)) if tries_pool and sum(tries_pool) else 0.0
+
+    # sec 20 R-4, REPORTED / NON-GATING: does corrupting the KEY at j0 change the model's
+    # readout at k0 AT ALL? A constant-logit model reads EXACTLY 0.0 here. A live one does
+    # not. This witnesses the ABLATION machinery (arms 2-5), not just arm 1 -- but it is not
+    # gated, because a live model that happens to ignore position j0 could legitimately read
+    # 0.0, and gating on it would be an un-derived condition of exactly the kind RULE T
+    # forbids. Zero extra forward passes: both argmaxes are already in `records`.
+    ks_pairs = [(r["argmax_intact_at_k"], r["argmax_keyswap_at_k"]) for r in records
+                if r.get("argmax_keyswap_at_k") is not None]
+    argmax_changed_frac_keyswap = (_mean([int(a != b_) for a, b_ in ks_pairs])
+                                    if ks_pairs else float("nan"))
+    liveness = live.report()
+    liveness["argmax_changed_frac_keyswap"] = argmax_changed_frac_keyswap
+
     return {
         "void": False, "records": records, "n_plants": len(records),
         "n_plants_requested": n_plants, "n_dropped": n_dropped, "drop_reasons": drop_reasons,
         "acc_copy": acc_copy, "acc_copy_se": acc_copy_se,
         "delta_excluded_mass_pooled": delta_excluded_mass_pooled,
+        "logit_liveness": liveness,
         "corpus": corpus_name,
     }
 
@@ -2124,23 +2312,106 @@ def check_t2a1_ceiling(records: list, t2b1_result: dict, t2b1b_result: dict) -> 
     }
 
 
-def check_t2a2_untrained_control(records: list, n_boot: int = 2000, seed: int = 0) -> dict:
-    """T2a-2 NEGATIVE CONTROL (sec 11.4.2, GATING, NEW). A randomly-
-    initialised, UNTRAINED model of the 14M rung's exact architecture must
-    read acc_copy <= 0.02 with a KS bootstrap 95% CI INCLUDING 0. Fail =>
-    INSTRUMENT-INVALID, HALT (sec 11.4.2: 'If an untrained model passes the
-    probe, the probe is passable with no learned mechanism'). Each plant is
-    its own independent row by construction (one plant per window), so the
-    existing clustered_bootstrap_ci (which resamples over `row_idx`)
-    reduces to an ordinary per-plant bootstrap here -- reused, not
-    reimplemented."""
+def check_t2a2_untrained_control(records: list, logit_liveness: dict = None,
+                                  n_boot: int = 2000, seed: int = 0) -> dict:
+    """T2a-2 NEGATIVE CONTROL (sec 11.4.2, GATING). A randomly-initialised,
+    UNTRAINED model of the 14M rung's exact architecture must read acc_copy
+    <= 0.02 with a KS bootstrap 95% CI INCLUDING 0. Fail => INSTRUMENT-
+    INVALID, HALT (sec 11.4.2: 'If an untrained model passes the probe, the
+    probe is passable with no learned mechanism'). Each plant is its own
+    independent row by construction (one plant per window), so the existing
+    clustered_bootstrap_ci (which resamples over `row_idx`) reduces to an
+    ordinary per-plant bootstrap here -- reused, not reimplemented.
+
+    ===== sec 20 R-4 (2026-07-13) -- WHAT CHANGED, AND WHAT DID NOT =====
+
+    THE PINNED BAR IS UNCHANGED, BYTE FOR BYTE: `acc_copy <= 0.02` AND `KS
+    bootstrap 95% CI includes 0`. Same constants, same estimators, same
+    bootstrap, same seed. It is now computed into its OWN field,
+    `pinned_bar_passes`, so an auditor can verify by inspection that nothing
+    was moved. NO NEW NUMERIC GATING THRESHOLD IS INTRODUCED ANYWHERE IN THIS
+    FUNCTION (sec 20.1 RULE T's core anti-laundering property).
+
+    TWO THINGS ARE ADDED.
+
+    (1) SERIALIZATION. Everything this control ALREADY COMPUTED and then
+        DELETED is now persisted: all six arms' accuracies (intact, true-
+        ablated, placebo-ablated, pool-placebo, KEY-SWAP, NO-PLANT/PRIOR),
+        their raw hit counts, `acc_copy_se`, the arm-2/arm-3 DiD contrast
+        with its clustered-bootstrap CI, the Delta-decile profile, and the
+        T2b-1 / T2b-1b paired sign tests. All REPORTED, NONE GATING. The old
+        artifact was three numbers -- `acc_copy=0.0`, `ks_point=0.0`,
+        `ks_ci=[0.0,0.0]` -- and a dead forward pass reproduces all three
+        exactly (sec 19.3d).
+
+    (2) A LIVENESS PRECONDITION (`liveness`, from `run_t2_repaired_probe`'s
+        `logit_liveness`). `passes` is now the CONJUNCTION
+            passes = pinned_bar_passes AND liveness["ok"]
+        This is a MONOTONE TIGHTENING: a conjunction can only turn a PASS
+        into a HALT, never a FAIL into a PASS, so it cannot launder anything
+        in any direction. Certifying INSTRUMENT_VALID off a forward pass that
+        never happened is not a null result -- it is no result, and the leg
+        exists to certify the former.
+
+    FAIL-CLOSED: `logit_liveness=None` (a caller that did not thread the
+    witness through) yields `liveness["ok"] = False` and therefore
+    `passes = False`. A control cannot pass by OMITTING its own witness."""
     def stat_ks(recs):
         return _acc(recs, "hit_intact") - _acc(recs, "hit_keyswap")
+
+    def stat_arm_did(recs):
+        # Same estimand SHAPE as stat_did (acc_intact cancels in the paired design), on the
+        # T2 probe's own arm names. REPORTED ONLY -- T2a-2 gates on the pinned bar, not this.
+        return _acc(recs, "hit_placebo_ablated") - _acc(recs, "hit_true_ablated")
+
+    # ---- THE PINNED BAR (sec 11.4.2) -- UNCHANGED, verbatim from the blind pre-registration.
     acc_copy = _acc(records, "hit_intact")
     ks_pt, ks_lo, ks_hi = clustered_bootstrap_ci(records, stat_ks, n_boot=n_boot, seed=seed)
     ci_includes_zero = (ks_lo is not None and ks_hi is not None and ks_lo <= 0 <= ks_hi)
-    passes = (not math.isnan(acc_copy)) and acc_copy <= 0.02 and ci_includes_zero
-    return {"passes": passes, "acc_copy": acc_copy, "ks_point": ks_pt, "ks_ci": [ks_lo, ks_hi]}
+    pinned_bar_passes = (not math.isnan(acc_copy)) and acc_copy <= 0.02 and ci_includes_zero
+
+    # ---- THE LIVENESS PRECONDITION (sec 20 R-4). Structural, exact, fail-closed.
+    if logit_liveness is None:
+        liveness = {"ok": False, "degenerate_reasons": [
+            "no logit_liveness witness was supplied to check_t2a2_untrained_control -- the "
+            "caller did not thread run_t2_repaired_probe's `logit_liveness` through. A negative "
+            "control cannot certify the instrument while omitting the only evidence that its "
+            "forward pass ran at all (sec 19.3d / sec 20 R-4). FAIL-CLOSED."]}
+    else:
+        liveness = dict(logit_liveness)
+
+    # ---- EVERYTHING ELSE: computed already, deleted before this fix. REPORTED, NON-GATING.
+    arm_did_pt, arm_did_lo, arm_did_hi = clustered_bootstrap_ci(records, stat_arm_did,
+                                                                 n_boot=n_boot, seed=seed)
+    n = len(records)
+    arms = {}
+    for name, key in (("intact", "hit_intact"), ("true_ablated", "hit_true_ablated"),
+                      ("placebo_ablated", "hit_placebo_ablated"),
+                      ("pool_placebo", "hit_pool_placebo"), ("keyswap", "hit_keyswap"),
+                      ("noplant_PRIOR", "hit_noplant")):
+        vals = [r[key] for r in records if r.get(key) is not None]
+        arms[name] = {"acc": (_mean(vals) if vals else None), "hits": sum(vals) if vals else 0,
+                      "n": len(vals),
+                      "se": (binomial_se(sum(vals), len(vals)) if vals else None)}
+    deciles = _decile_bucket(records, key_fn=lambda r: r["delta"]) if records else []
+
+    return {
+        # ---- THE VERDICT: pinned bar AND liveness. See the docstring: monotone tightening.
+        "passes": bool(pinned_bar_passes and liveness.get("ok")),
+        "pinned_bar_passes": bool(pinned_bar_passes),
+        "liveness": liveness,
+        # ---- the three original fields, unchanged, at their original keys (back-compatible).
+        "acc_copy": acc_copy, "ks_point": ks_pt, "ks_ci": [ks_lo, ks_hi],
+        # ---- sec 20 R-4 SERIALIZATION: computed all along, deleted all along.
+        "acc_copy_se": binomial_se(sum(r["hit_intact"] for r in records), n) if n else None,
+        "n_plants": n,
+        "arms": arms,
+        "arm_did_placebo_minus_true": {"point": arm_did_pt, "ci": [arm_did_lo, arm_did_hi]},
+        "decile_accs_intact": [_acc(bkt, "hit_intact") for bkt in deciles],
+        "decile_accs_keyswap": [_acc(bkt, "hit_keyswap") for bkt in deciles],
+        "t2b1_mechanism_exists_REPORTED": check_t2b1_mechanism_exists(records),
+        "t2b1b_key_conditioned_REPORTED": check_t2b1b_key_conditioned(records),
+    }
 
 
 def check_t2a3_ssm_calibration(records: list, t2b1_result: dict, t2b1b_result: dict,
@@ -3605,6 +3876,11 @@ def smoke(device: str) -> int:
     #     the negative-control claim, not a trained-competence claim). Replaces the RETIRED
     #     run_t2_planted_copy / check_t2b2_ceiling end-to-end block entirely. ---
     print("\n  [10b] sec 11 T2 REPAIR END-TO-END: pools -> per-window plant -> six arms -> gates")
+    # sec 20 R-4: [10f]'s forced-fail tests reuse [10b]'s (expensive) synthetic fixture. It is
+    # captured into this explicit sentinel rather than relied on by NameError-luck: if [10b]
+    # dies before building it, [10f] reports a HARD FAIL instead of vanishing. (This repo has
+    # already shipped one "30/30 PASS" whose test body had ZERO coverage behind a NameError.)
+    t2_fixture = None
     try:
         V11 = 20_220
         t0_corpus = time.time()
@@ -3690,7 +3966,8 @@ def smoke(device: str) -> int:
         t2b1_11 = check_t2b1_mechanism_exists(recs11)
         t2b1b_11 = check_t2b1b_key_conditioned(recs11)
         t2a1_11 = check_t2a1_ceiling(recs11, t2b1_11, t2b1b_11)
-        t2a2_11 = check_t2a2_untrained_control(recs11, n_boot=200)
+        t2a2_11 = check_t2a2_untrained_control(recs11, logit_liveness=t2_result["logit_liveness"],
+                                                n_boot=200)
         report("  check_t2b1 / check_t2b1b / check_t2a1_ceiling run on REAL-pipeline output "
                "without error", True,
                f"acc_copy={t2_result['acc_copy']:.4f} t2b1_p={t2b1_11['p_value']:.4g} "
@@ -3698,7 +3975,24 @@ def smoke(device: str) -> int:
         report("  T2a-2 (untrained negative control): an UNTRAINED random-init model reads "
                "acc_copy<=0.02 with a KS bootstrap CI including 0 -- PASSES on a genuinely "
                "untrained model, exactly as sec 11.4.2 requires",
-               t2a2_11["passes"], str(t2a2_11))
+               t2a2_11["passes"] and t2a2_11["pinned_bar_passes"],
+               f"passes={t2a2_11['passes']} pinned_bar={t2a2_11['pinned_bar_passes']} "
+               f"acc_copy={t2a2_11['acc_copy']} ks_ci={t2a2_11['ks_ci']}")
+        # sec 20 R-4: the LIVE arm of the liveness witness. The SAME untrained model that reads
+        # three zeros above must nonetheless prove its forward pass HAPPENED.
+        lv11 = t2a2_11["liveness"]
+        report("  [R-4 LIVE ARM] the untrained model's liveness witness is OK: readout logits "
+               "100% finite AND input-dependent (max|L[i]-L[0]| > 0) -- 'no mechanism' is now "
+               "DISTINGUISHED from 'no measurement' on the very artifact that reads acc_copy=0",
+               lv11["ok"] is True
+               and lv11["readout_logits_finite_frac"] == 1.0
+               and lv11["readout_logit_max_abs_dev_from_row0"] > 0.0,
+               f"finite_frac={lv11['readout_logits_finite_frac']} "
+               f"max_abs_dev={lv11['readout_logit_max_abs_dev_from_row0']:.6g} "
+               f"n_distinct_argmax={lv11['n_distinct_argmax_at_k']} "
+               f"top1_share={lv11['top1_argmax_share']:.4f} "
+               f"H={lv11['mean_softmax_entropy_nats']:.4f}+-{lv11['std_softmax_entropy_nats']:.4f} "
+               f"keyswap_changed_argmax={lv11['argmax_changed_frac_keyswap']:.4f}")
         report("  T2a-1 (the 0.90/0.75 ceiling) correctly FAILS on an untrained model "
                "(sec 11.4.2's positive-control logic: no mechanism -> no pass)",
                not t2a1_11["passes"], f"acc_copy={t2a1_11['acc_copy']}")
@@ -3726,8 +4020,173 @@ def smoke(device: str) -> int:
                    f"count(b)={r_show['count_b']:.0f} -- an UNCONTESTED key/value pair "
                    f"(the hard assertion did not fire for this or any of the "
                    f"{len(recs11)} accepted windows)", True)
+        t2_fixture = {"val": val11, "pools": pools11, "counts": counts11, "V": V11,
+                      "delta_pool": delta_pool11, "n_plants": n_plants11,
+                      "live_t2a2": t2a2_11}
     except Exception as e:  # noqa: BLE001
         report("  sec 11 T2 REPAIR end-to-end pipeline", False, f"EXCEPTION: {type(e).__name__}: {e}")
+
+    # --- [10f] sec 20 R-4 -- THE T2a-2 LIVENESS WITNESS: FORCED-FAIL NEGATIVE TESTS, RUN TO
+    #     COMPLETION. THE CHECK THIS SUITE EXISTS TO PROVE HAS TEETH.
+    #
+    #     sec 19.3d: the T2a-2 artifact's entire model-dependent content was
+    #         {"passes": true, "acc_copy": 0.0, "ks_point": 0.0, "ks_ci": [0.0, 0.0]}
+    #     and a CONSTANT-logit or NaN-logit forward pass reproduces it BIT FOR BIT. This block
+    #     BUILDS those two dead models, runs them through the REAL probe (not a mock of it),
+    #     and demands:
+    #        (1) the old artifact IS in fact reproduced bit-identically -- i.e. sec 19.3d's
+    #            charge is DEMONSTRATED, not merely asserted (the pinned bar still reads PASS);
+    #        (2) the NEW liveness witness FIRES on both, so `passes` is now FALSE.
+    #     Failing (1) would mean the charge was wrong. Failing (2) would mean the fix is
+    #     decorative. This repo's standing rule -- "always run the negative unit test that is
+    #     supposed to prove the check has teeth TO COMPLETION" -- is what this block discharges.
+    print("\n  [10f] sec 20 R-4: T2a-2 LIVENESS WITNESS -- FORCED-FAIL NEGATIVE TESTS")
+    n_forced_fail_assertions = 0
+    if t2_fixture is None:
+        report("  [10f] FIXTURE UNAVAILABLE -- [10b] did not complete, so the forced-fail "
+               "negative tests DID NOT RUN. This is a HARD FAIL, not a skip: an unrun teeth "
+               "test is indistinguishable from a toothless one.", False)
+    else:
+        try:
+            class _ConstantLogitsModel(torch.nn.Module):
+                """The dead model sec 19.3d names first: input-independent logits, peaked on
+                one token `c`. argmax == c at EVERY position of EVERY window; `b` is drawn from
+                the licensed pool and is never `c`, so every hit indicator is 0 and the T2a-2
+                artifact is the same three zeros a live null model produces."""
+
+                def __init__(self, vocab_size: int, c: int = 0):
+                    super().__init__()
+                    self.vocab_size, self.c = vocab_size, c
+
+                def forward(self, x: torch.Tensor) -> torch.Tensor:
+                    B, T = x.shape
+                    logits = torch.full((B, T, self.vocab_size), -3.0, device=x.device)
+                    logits[:, :, self.c] = 7.0
+                    return logits
+
+            class _NaNLogitsModel(torch.nn.Module):
+                """The second dead model sec 19.3d names: all-NaN logits. torch.argmax over
+                all-NaN returns index 0; `b` is never token 0 => the identical artifact."""
+
+                def __init__(self, vocab_size: int):
+                    super().__init__()
+                    self.vocab_size = vocab_size
+
+                def forward(self, x: torch.Tensor) -> torch.Tensor:
+                    B, T = x.shape
+                    return torch.full((B, T, self.vocab_size), float("nan"), device=x.device)
+
+            def _run_dead(model):
+                r = run_t2_repaired_probe(model, t2_fixture["val"], seq_len=256, device=device,
+                                           corpus_name="smoke-synth-corpus",
+                                           delta_pool=t2_fixture["delta_pool"],
+                                           pools=t2_fixture["pools"],
+                                           counts_by_token=t2_fixture["counts"],
+                                           n_plants=t2_fixture["n_plants"],
+                                           vocab_size=t2_fixture["V"], eval_micro_batch=32)
+                chk = check_t2a2_untrained_control(r["records"],
+                                                    logit_liveness=r["logit_liveness"], n_boot=200)
+                return r, chk
+
+            # ---------- DEAD MODEL 1: CONSTANT LOGITS ----------
+            const_model = _ConstantLogitsModel(t2_fixture["V"], c=0).to(device).eval()
+            r_const, chk_const = _run_dead(const_model)
+            lv_c = chk_const["liveness"]
+
+            # (1) sec 19.3d's charge, DEMONSTRATED: the OLD artifact is bit-identical.
+            n_forced_fail_assertions += 1
+            report("  [CONSTANT LOGITS] sec 19.3d's charge is TRUE and is DEMONSTRATED, not "
+                   "asserted: a dead forward pass reproduces the OLD T2a-2 artifact BIT FOR BIT "
+                   "(acc_copy=0.0, ks_point=0.0, ks_ci=[0.0,0.0]) and the PINNED BAR still reads "
+                   "PASS -- this is precisely why the old three-number artifact was worthless",
+                   chk_const["acc_copy"] == 0.0 and chk_const["ks_point"] == 0.0
+                   and chk_const["ks_ci"] == [0.0, 0.0]
+                   and chk_const["pinned_bar_passes"] is True,
+                   f"acc_copy={chk_const['acc_copy']} ks_point={chk_const['ks_point']} "
+                   f"ks_ci={chk_const['ks_ci']} pinned_bar_passes={chk_const['pinned_bar_passes']}")
+
+            # (2) THE TEETH: the liveness witness FIRES, and `passes` is now FALSE.
+            n_forced_fail_assertions += 1
+            report("  [CONSTANT LOGITS] FORCED FAIL: the liveness witness FIRES "
+                   "(max|L[i]-L[0]| is EXACTLY 0.0 => the readout does not depend on the input) "
+                   "and T2a-2 now reads passes=FALSE. The control can no longer certify the "
+                   "instrument off a forward pass that never looked at its input.",
+                   lv_c["ok"] is False
+                   and lv_c["readout_logit_max_abs_dev_from_row0"] == 0.0
+                   and lv_c["readout_logits_finite_frac"] == 1.0
+                   and chk_const["passes"] is False,
+                   f"liveness.ok={lv_c['ok']} "
+                   f"max_abs_dev={lv_c['readout_logit_max_abs_dev_from_row0']} "
+                   f"finite_frac={lv_c['readout_logits_finite_frac']} "
+                   f"n_distinct_argmax={lv_c['n_distinct_argmax_at_k']} "
+                   f"passes={chk_const['passes']} reasons={lv_c['degenerate_reasons']}")
+
+            # ---------- DEAD MODEL 2: NaN LOGITS ----------
+            nan_model = _NaNLogitsModel(t2_fixture["V"]).to(device).eval()
+            r_nan, chk_nan = _run_dead(nan_model)
+            lv_n = chk_nan["liveness"]
+
+            n_forced_fail_assertions += 1
+            report("  [NaN LOGITS] sec 19.3d's second charge, DEMONSTRATED: torch.argmax over "
+                   "all-NaN returns index 0, `b` is never token 0, so the OLD artifact is again "
+                   "reproduced bit-identically and the PINNED BAR again reads PASS",
+                   chk_nan["acc_copy"] == 0.0 and chk_nan["ks_point"] == 0.0
+                   and chk_nan["ks_ci"] == [0.0, 0.0]
+                   and chk_nan["pinned_bar_passes"] is True,
+                   f"acc_copy={chk_nan['acc_copy']} ks_point={chk_nan['ks_point']} "
+                   f"ks_ci={chk_nan['ks_ci']} pinned_bar_passes={chk_nan['pinned_bar_passes']}")
+
+            n_forced_fail_assertions += 1
+            report("  [NaN LOGITS] FORCED FAIL: the liveness witness FIRES on BOTH structural "
+                   "conditions (finite_frac < 1.0 AND max|L[i]-L[0]| is NaN, not > 0) and T2a-2 "
+                   "now reads passes=FALSE",
+                   lv_n["ok"] is False
+                   and lv_n["readout_logits_finite_frac"] < 1.0
+                   and lv_n["readout_logit_max_abs_dev_is_nan"] is True
+                   and chk_nan["passes"] is False,
+                   f"liveness.ok={lv_n['ok']} "
+                   f"finite_frac={lv_n['readout_logits_finite_frac']} "
+                   f"max_abs_dev_is_nan={lv_n['readout_logit_max_abs_dev_is_nan']} "
+                   f"passes={chk_nan['passes']} reasons={lv_n['degenerate_reasons']}")
+
+            # ---------- FAIL-CLOSED: a caller that OMITS the witness cannot pass. ----------
+            chk_omitted = check_t2a2_untrained_control(r_const["records"],
+                                                        logit_liveness=None, n_boot=200)
+            n_forced_fail_assertions += 1
+            report("  [FAIL-CLOSED] a caller that does NOT thread `logit_liveness` through gets "
+                   "passes=FALSE, not a silent pass -- the control cannot certify the instrument "
+                   "by OMITTING its own witness",
+                   chk_omitted["passes"] is False and chk_omitted["liveness"]["ok"] is False
+                   and chk_omitted["pinned_bar_passes"] is True,
+                   f"passes={chk_omitted['passes']} pinned_bar={chk_omitted['pinned_bar_passes']}")
+
+            # ---------- THE SEPARATION, STATED AS ONE NUMBER ----------
+            lv_live = t2_fixture["live_t2a2"]["liveness"]
+            n_forced_fail_assertions += 1
+            report("  [SEPARATION] LIVE untrained vs DEAD constant-logit: the two produce "
+                   "IDENTICAL acc_copy / ks_point / ks_ci (0.0 / 0.0 / [0.0,0.0]) and are "
+                   "SEPARATED ONLY by the liveness witness -- which is the whole point",
+                   lv_live["ok"] is True and lv_c["ok"] is False
+                   and t2_fixture["live_t2a2"]["acc_copy"] == chk_const["acc_copy"]
+                   and t2_fixture["live_t2a2"]["ks_ci"] == chk_const["ks_ci"],
+                   f"LIVE: max_abs_dev={lv_live['readout_logit_max_abs_dev_from_row0']:.6g} "
+                   f"n_distinct={lv_live['n_distinct_argmax_at_k']} | "
+                   f"DEAD: max_abs_dev={lv_c['readout_logit_max_abs_dev_from_row0']} "
+                   f"n_distinct={lv_c['n_distinct_argmax_at_k']}")
+
+            # ---------- COVERAGE: the body actually ran. ----------
+            # The expected count is PINNED (6), not derived from the counter, so a skipped or
+            # exception-truncated assertion cannot hide behind a self-consistent tally. It has
+            # already earned its keep: on the first run of this block it caught the BUILDER's
+            # own miscount (6 increments asserted against a hardcoded 5) and turned the suite
+            # red. A counter compared against itself would have gone green.
+            report(f"  [COVERAGE] all {n_forced_fail_assertions}/6 forced-fail assertions "
+                   f"EXECUTED (not skipped, not NameError'd behind a green count)",
+                   n_forced_fail_assertions == 6, f"n={n_forced_fail_assertions}")
+        except Exception as e:  # noqa: BLE001
+            report("  [10f] sec 20 R-4 forced-fail negative tests", False,
+                   f"EXCEPTION after {n_forced_fail_assertions} assertions: "
+                   f"{type(e).__name__}: {e}")
 
     # --- [10d] sec 11.7 N_ROWS PRE-PASS: model-free, both corpora, real DeltaNetLM class NOT
     #     touched (the pre-pass never loads a checkpoint) -- confirm it terminates, VOIDs with a

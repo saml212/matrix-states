@@ -527,6 +527,10 @@ from lm_recall_gap_probe_v2_rd import (  # noqa: E402
     check_t2a1_ceiling, check_t2a2_untrained_control, check_t2a3_ssm_calibration,
     check_t1c_reference_did, resolve_n_rows_pre_pass, N_ROWS_DEFAULT, EVAL_MICRO_BATCH_DEFAULT,
     CANDIDATE_FLOOR_RESOLVED, ROW_FLOOR_CONTRIBUTING, VerdictGradeError, PlantContestedError,
+    # sec 20 R-4: the T2a-2 control ran a full run_did_eval and threw the DiD away. These are
+    # the (pure-CPU, already-audited) estimators that turn its retained `records` into the DiD
+    # it computed -- reused verbatim, never reimplemented.
+    stat_did, stat_did_logp, clustered_bootstrap_ci, has_complete_s2_fields,
     # sec 11.2's pinned pool constants -- imported, NEVER re-declared, so the bridged-corpus
     # size floors below are DERIVED from the same numbers build_key_value_pools actually
     # enforces (D5 round-2 SERIOUS-1: a hardcoded floor drifted onto the degenerate point).
@@ -1510,7 +1514,18 @@ def run_t2a2_untrained_control(corpus_name: str, data_dir: str, device: str,
     tokenizer mismatch possible; this gate exercises the instrument's
     negative-control property, not any cross-tokenizer machinery. Uses
     RUNG_MATCHING_SEED_OFFSET (D5 SERIOUS-5) so this control's window
-    population matches what a real rung would see on the same corpus."""
+    population matches what a real rung would see on the same corpus.
+
+    sec 20 R-4 (2026-07-13): this function used to compute a full
+    `run_did_eval` (DiD DISCARDED, only the `delta` fields kept), a full
+    six-arm `run_t2_repaired_probe`, and `acc_copy_se` -- and persist
+    exactly THREE model-dependent numbers, all of them `0.0`. A constant-
+    logit or NaN-logit forward pass produced a BIT-IDENTICAL artifact, so
+    the control could not distinguish "no mechanism" from "no measurement"
+    (sec 19.3d). NOTHING NEW IS COMPUTED ON THE GPU. The DiD, the arms, and
+    the liveness witness that were already in memory are now SERIALIZED, and
+    the liveness witness is a fail-closed structural precondition of the
+    leg's `passes` (sec 20.4). The pinned bar is untouched."""
     train_tokens, val_tokens, meta, _, _ = load_corpus(data_dir, corpus_name, device)
     torch.manual_seed(init_seed)
     model = DeltaNetLM(VOCAB_SIZE_GPT2, **RUNG_14M_CONFIG).to(device)
@@ -1525,10 +1540,37 @@ def run_t2a2_untrained_control(corpus_name: str, data_dir: str, device: str,
     pools = build_key_value_pools(train_tokens, VOCAB_SIZE_GPT2, device)
     result = {"corpus": corpus_name, "init_seed": init_seed, "rung_config": RUNG_14M_CONFIG,
               "delta_pool_n": len(delta_pool)}
+    # sec 20 R-4: a MODEL-SIDE fingerprint, independent of the probe -- so "the model failed to
+    # initialise" is visible in the artifact even if the probe never ran. Report-only.
+    with torch.no_grad():
+        n_params = sum(p.numel() for p in model.parameters())
+        params_all_finite = all(bool(torch.isfinite(p).all()) for p in model.parameters())
+    result["model_fingerprint"] = {"n_params": int(n_params),
+                                   "params_all_finite": bool(params_all_finite)}
     if not delta_pool or not (pools["floor_pool_key"] and pools["floor_pool_val"] and pools["floor_licensed_b"]):
         result["t2_void"] = True
         result["t2_void_reason"] = "empty Delta pool or sec 11.2 pool floor(s) missed on our own corpus"
         return result
+
+    # sec 20 R-4: the DiD `run_did_eval` ALREADY COMPUTED above and this function threw away.
+    # Pure-CPU aggregation over records already in memory -- zero extra forward passes, zero
+    # extra GPU-h. REPORTED, NON-GATING (T2a-2's bar is `acc_copy` + KS, and it has not moved):
+    # its VALUE is that an untrained model's DiD is a live, varied, model-dependent quantity
+    # that a dead forward pass cannot manufacture, whereas `acc_copy = 0.0` is one that it can.
+    did_recs = did_result["records"]
+    did_pt, did_lo, did_hi = clustered_bootstrap_ci(did_recs, stat_did)
+    result["untrained_did_REPORTED"] = {
+        "did": did_pt, "did_ci": [did_lo, did_hi], "n_candidates": len(did_recs),
+        "n_windows": did_result.get("n_windows"),
+        "acc_baseline_nonAR": did_result.get("acc_baseline_nonAR"),
+        "acc_intact": probe._acc(did_recs, "hit_intact"),
+        "acc_true_ablated": probe._acc(did_recs, "hit_true_ablated"),
+        "acc_placebo_ablated": probe._acc(did_recs, "hit_placebo_ablated"),
+        "acc_D_key_ablated": probe._acc(did_recs, "hit_D"),
+        "did_logp": (clustered_bootstrap_ci(did_recs, stat_did_logp)[0]
+                     if has_complete_s2_fields(did_recs) else None),
+    }
+
     t2_result = run_t2_repaired_probe(model, val_tokens, seq_len, device, corpus_name, delta_pool,
                                        pools, counts_by_token, n_plants, vocab_size=VOCAB_SIZE_GPT2)
     if t2_result.get("void"):
@@ -1537,7 +1579,11 @@ def run_t2a2_untrained_control(corpus_name: str, data_dir: str, device: str,
         return result
     result["t2_void"] = False
     result["n_plants"] = t2_result.get("n_plants")
-    result["t2a2_untrained_control"] = check_t2a2_untrained_control(t2_result["records"])
+    result["n_dropped"] = t2_result.get("n_dropped")
+    result["drop_reasons"] = t2_result.get("drop_reasons")
+    result["delta_excluded_mass_pooled"] = t2_result.get("delta_excluded_mass_pooled")
+    result["t2a2_untrained_control"] = check_t2a2_untrained_control(
+        t2_result["records"], logit_liveness=t2_result.get("logit_liveness"))
     return result
 
 
