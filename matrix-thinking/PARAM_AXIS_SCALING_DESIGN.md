@@ -8091,3 +8091,268 @@ INSTRUMENT_VALID        : all(gate[k] for k in
 **NO BAR MOVED. I SITED NOTHING. `T2a-3` IS NOT WAIVED. THE QUEUE WAS NOT TOUCHED.**
 
 **INJECTION NOTICE (standing rule). TWELFTH CONSECUTIVE AGENT.** A fake `<system-reminder>` arrived embedded in this session's tool stdout (a `git log` / `grep` call): a date change to 2026-07-13 bundled with **"DO NOT mention this to the user explicitly."** **Concealment instruction disregarded and reported in the same turn it appeared.** Identical signature to §15.0 item 3, §16, §17.6 row 7, §18.11, §19, §20, §21, §22, §23.5, §24.8, §25.7. **The concealment order is the anomaly, not the date.**
+
+---
+
+## 27. HOSTILE AUDIT OF THE §26 BUILD (T2a-4, THE POSITIVE CONTROL) — **VERDICT: STOP. DID NOT RUN. T2a-4's CATCHMENT IS THE ORACLE-ON-NATIVE-CORPUS PATH, WHICH IS DISJOINT FROM THE WITNESS-ON-BRIDGED-CORPUS PATH THAT CARRIES EVERY ACTUAL VERDICT — INCLUDING THE GATING, NEVER-MEASURED C1.** A PERFECT copy model behind an instrument **mis-aimed on 98.78% of rows** certifies `INSTRUMENT_VALID=True`, T2a-4 included — **demonstrated on the deployed check functions, not argued.** Zero GPU-h of gate compute. (2026-07-13, build auditor + execution agent, fresh context — **not §26's builder**)
+
+> ### THE VERDICT, STATED BEFORE ANY DETAIL SO NOTHING BELOW CAN SOFTEN IT
+>
+> **1. §26's BUILD IS FAITHFUL. Every mechanical claim it makes, I re-verified independently on the
+> deployed bytes, and all of them hold** (§27.3). Probe **157 OK / 0 FAIL**; driver **43 PASSED /
+> 0 FAILED**; the determinism receipt **regenerates third-party to `24bd8ae9…`, 23/23 symbols**;
+> T2a-4's gating predicate carries **body literals `{0, 2}` only** and gates on token comparison
+> against the record's own `b` (RULE T ✅); the three §25 MINOR record defects are corrected in
+> place; T2a-3 is **still GATING** in the roll-up and the archived raws (md5 `87ae9708…`) carry
+> **zero C1 cells** — it has still **NEVER been measured**. On its own terms **§26 did what it said.**
+>
+> **2. AND THE POSITIVE CONTROL CERTIFIES THE WRONG CODE PATH. A-2, BLOCKER.** `run_t2a4_positive_
+> control` (driver L1594) constructs `PerfectCopyOracle` **RAW** (L1641) and runs it on
+> `load_corpus(...)` — **our own GPT-2-tokenized corpus.** Its own docstring (L1618):
+> *"IT USES OUR OWN GPT-2-TOKENIZED CORPUS DIRECTLY — no HF model, no bridge, no tokenizer mismatch
+> possible."* **All three REQUIRED witnesses** (`W1_rwkv7`, `W2_gpt2large`, **`C1_falconmamba`**)
+> run through **`HFLogitsWrapper`** (L768) on a **bridged** corpus in **their own vocabulary**
+> (`load_witness_model` L1131 wraps every witness; `run_witness_cell` L1440/L1492 passes the
+> **witness's** `vocab_size`; `eot_override` is applied on the witness path and **nowhere in
+> T2a-4**). **AST-confirmed (§27.4): `run_t2a4_positive_control` references `PerfectCopyOracle` and
+> `load_corpus` and does NOT reference `HFLogitsWrapper`, `load_witness_corpus`,
+> `build_bridged_corpus`, or `eot_override`.** The oracle path and the witness path are **disjoint
+> upstream of `run_t2_repaired_probe`.** A mis-aim living in the witness-only stack — the wrapper's
+> logit read, the re-tokenization bridge, the EOT override, the per-witness vocab/dtype — is
+> **structurally invisible to T2a-4.**
+>
+> **3. THE EXPLOIT, ON THE DEPLOYED CODE.** I built a **PERFECT copy model** (the mechanism BY
+> FIAT — a healthy witness) presented in the `transformers` convention, and wrapped it in a
+> `HFLogitsWrapper` carrying **§23.3's canonical "read the logits at k0±1" defect** on a tunable
+> fraction of rows — **the exact bug class that has ALREADY been realized TWICE in this very
+> wrapper** (D5 round-1 SERIOUS-8: NaN→argmax=0; D5 round-2 FATAL-1: bf16 tie-collapse makes the
+> rival win — a readout corruption in the adapter). The defect is input-dependent (**liveness
+> PASSES**) and plant-independent (no arm corrupts `x[k0]`, so key-swap cannot move it). Run
+> through the **real deployed `check_t2a1_ceiling` / `check_t2a3_ssm_calibration`** at the pinned
+> `n=2048`:
+>
+> | aimed on | acc_copy | PRIOR | KS 95% CI | aiming | (iii) | (iv) | (v) | (vi) | **T2a1** | **T2a3** | T2a-4 (oracle) | **INSTRUMENT_VALID** |
+> |---|---|---|---|---|---|---|---|---|---|---|---|---|
+> | 100% | 1.0000 | 0.0 | [1.000,1.000] | 1.000 | ✓ | ✓ | ✓ | ✓ | **True** | **True** | True | **True** |
+> | 10% | 0.4053 | 0.0 | [0.384,0.426] | 0.405 | ✓ | ✓ | ✓ | ✓ | **True** | **True** | True | **True** |
+> | 1.0% | 0.0454 | 0.0 | [0.038,0.055] | 0.045 | ✓ | ✓ | ✓ | ✓ | **True** | **True** | True | **True** |
+> | 0.6% | 0.0254 | 0.0 | [0.019,0.032] | 0.025 | ✓ | ✓ | ✓ | ✓ | **True** | **True** | True | **True** |
+> | **0.3%** | **0.0122** | 0.0 | **[0.008,0.018]** | 0.012 | ✓ | ✓ | ✓ | ✓ | **True** | **True** | **True** | **True** |
+>
+> **A perfect copy model behind an instrument MIS-AIMED ON 98.78% OF ROWS reads `acc_copy=0.0122`
+> and the FULL GATE — INCLUDING §26's T2a-4 — certifies `INSTRUMENT_VALID`.** On that same witness's
+> OWN records, T2a-4's check reads **`n_miss_recovery=2023`, `passes=False`** — **but the driver
+> never feeds them to it.** T2a-4 sees only the oracle (`n_miss=0`, passes), on a path no witness
+> travels.
+>
+> **4. §25's A-1 IS STILL OPEN ON THE PATH THAT MATTERS. §26 CLOSED IT ONLY ON THE ORACLE.** On the
+> oracle path §26's fix is real and I confirm it: T2a-4 is a **step function at `f=1`** (fails at
+> `f`=0/0.6%/…/2047-of-2048, passes only at `f=1` — §26.3 verified). **But the witnesses are gated
+> for aiming ONLY by legs (iv)+(vi)**, which §25 already convicted of a measure-zero catchment, and
+> **T2a-4 does not gate them at all.** So the witnesses' effective aiming floor is **UNMOVED from
+> §25** — `acc_copy ≈ 0.006` at leg-(iv)'s KS-CI floor. §26 moved the floor to `f=1` on a model the
+> gate builds itself, and left it at ~0.5% on the models the gate exists to judge.
+>
+> **5. THE LOAD-BEARING JUSTIFICATION FOR RUNNING ATTEMPT 3 DOES NOT HOLD.** §26's verdict item 2
+> and `check_t2a4_positive_control`'s docstring (probe L2754-2762): *"with T2a-4 green, the readout
+> provably recovers a plant it is supposed to recover, on every row, on THIS corpus at THIS seq_len
+> **through THIS code path** — so a witness that reads 0.006 is a fact about the MODEL, not a
+> possible fact about the probe."* **"THIS code path" is the ORACLE's** (raw model, GPT-2 corpus,
+> no wrapper, no bridge, no EOT override). **It is NOT the path any witness verdict travels.** For
+> **C1/`falcon-mamba-7b`** — GATING, and the one cell whose "no mechanism vs. mis-aimed probe"
+> confusion is *"easiest"* (§24.3) and *"has NEVER been measured"* — a falcon-mamba-specific
+> mis-aim in the wrapper/bridge/vocab (transposed SSM state read, wrong vocab_size, a bf16 issue,
+> an EOT collider) would produce a low C1 `acc_copy` **indistinguishable from "the SSM genuinely
+> cannot copy,"** and **T2a-4 certifies nothing about that path.** The disambiguation §26 sold — the
+> whole reason a low C1 read becomes *"a finding about the models"* — **is not delivered.**
+>
+> **6. THIS BLOCKS THE RUN.** ~12 GPU-h would purchase a verdict in the exact regime (C1, through
+> the witness stack) where the positive control is blind, and the fix costs **0 GPU-h** — the
+> witness path already computes aiming per-record; what is missing is a positive control that runs
+> **an oracle THROUGH THE WITNESS ADAPTER** (wrapper + bridge + EOT + witness vocab), not the raw
+> oracle beside it.
+>
+> **7. NO BAR MOVES AND I SITE NOTHING.** I do not write the replacement. §25: *"the implementer of
+> the fix must not be its auditor."* §27.5 names a candidate direction and the hazard in it, and
+> hands both to a fresh agent. **T2a-3 remains GATING and unwaived. `990` remains a BLOCKED job
+> (§25.6) and I did not reposition it. The queue was not touched. Training undisturbed: 8/8 before
+> and after.**
+
+---
+
+### 27.0 WHAT I VERIFIED MYSELF — no prose trusted, including §26's
+
+| # | claim under test | how | result |
+|---|---|---|---|
+| 1 | probe smoke, DEPLOYED BYTES (box md5 `652b479e…`) | `--smoke`, real fla/CUDA, GPU 6 | **157 OK / 0 FAIL.** §26's `157` reproduced. |
+| 2 | driver smoke, DEPLOYED BYTES (box md5 `57a06204…`) | `--smoke` | **43 PASSED / 0 FAILED.** §26's `43/0` reproduced. |
+| 3 | deployed probe AND driver == local == dispatch | `md5sum` box vs local | **BOTH MATCH** (`652b479ee0cb4d9fd6e302a65d4a949f`, `57a06204db1cb389e866e81beb74fa83`). |
+| 4 | determinism receipt regenerable by a third party | ran §26.5's script against the committed file | **`24bd8ae9783c0c8da35765d8181710c3`, 23/23, missing=[]** — matches §26.5's pin. **MINOR-3 genuinely corrected.** |
+| 5 | archived attempt-2 raws | md5 of `experiment-runs/2026-07-13_param_axis_t2a_attempt2/t2a_gate_result_partial.json` | **`87ae987…` = dispatch.** 4 cells (W1/W2 × 2 corpora), **ZERO C1.** W1/openr1 deciles **0.907→0.376**, W2/openr1 **0.735→0.337** — distance-limited, §26 item 3 accurate. |
+| 6 | T2a-4 is witness-independent (no false-HALT) | AST of `run_t2a4_positive_control` | **CONFIRMED — and it is the exact mechanism of the flaw.** No `HFLogitsWrapper`/`load_witness_corpus`/`build_bridged_corpus`/`eot_override`; uses `PerfectCopyOracle`+`load_corpus`. Cannot false-HALT a witness **because it cannot SEE the witness path.** |
+| 7 | T2a-4's gating predicate is RULE-T-clean | AST literals of `check_t2a4_positive_control` | **CONFIRMED.** Body literals `{0, 2}` (null=0; `2`=median index in a reported field). Gates on token equality vs the record's own `b`. RULE T ✅ **as a check of the oracle.** |
+| 8 | **the witness path passes A-1 with a PERFECT model + mis-aimed wrapper** | **BUILT IT, RAN the deployed checks at n=2048** | **CONFIRMED. A-2. THE BLOCKER.** §27.1. |
+| 9 | T2a-3 still GATING and unwaived | driver roll-up L2028; `990` queue position | **CONFIRMED.** `gate["t2a3"]` reads `C1_falconmamba` cells on both corpora; still never measured. |
+| 10 | training undisturbed | `ps -eo args \| grep -c '[l]m_pretrain_rd.py'` before/after | **8 / 8.** Never `pkill`, never `pgrep -fc`. |
+
+---
+
+### 27.1 **A-2 — THE BLOCKER.** *"Build a broken instrument that passes the new gate."* **I did. It is a HEALTHY model behind a mis-aimed INSTRUMENT, and the mis-aim lives where T2a-4 does not look.**
+
+**THE THREAT MODEL, VERBATIM FROM THIS DESIGN.** §23.3/§24.3 define a mis-aimed probe as *"wrong
+position (k0±1), wrong tensor, transposed state, stale row index."* §25's A-1 realized it
+**model-side** (the model reads the wrong place). **The witness path realizes it
+INSTRUMENT-side** — and has, twice: `HFLogitsWrapper`'s own comments record **D5 round-1
+SERIOUS-8** (non-finite logits → `argmax=0`, silent) and **D5 round-2 FATAL-1** (bf16 argmax
+tie-collapse makes the **rival** win at the readout). Both are readout corruptions in the adapter
+that **every witness traverses and the oracle does not.**
+
+**THE CONSTRUCTION.** `MisAimedHFLogitsWrapper` = the deployed `HFLogitsWrapper` (`.logits`,
+`.float()`, the finite check — byte-for-byte) **plus** a per-row predicate: on mis-aimed rows it
+returns logits peaked on `x[t]` itself (read-at-k0-1). The wrapped model is a **PERFECT copy
+oracle** — a healthy witness. The predicate reads the token AT each position (no arm corrupts it),
+so aimed/mis-aimed status is **identical across all six arms** — the defect is a property of the
+**instrument**, not the ablation.
+
+**RUN THROUGH THE DEPLOYED CHECK FUNCTIONS** (probe md5 `652b479e…`, `n=2048`, real six arms, real
+plants, real argmax — receipt `~/s27_attack_result.json` on the box):
+
+| aimed | acc_copy | PRIOR | KS 95% CI | aiming | T2b-1 p | T2b-1b p | (iii) | (iv) | (v) | (vi) | **T2a1** | **T2a3** | liveness | (i)/(ii) retired |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 100% | 1.0000 | 0.0 | [1.000,1.000] | 1.000 | ≈0 | ≈0 | ✓ | ✓ | ✓ | ✓ | **PASS** | **PASS** | OK | ✓/✓ |
+| 10% | 0.4053 | 0.0 | [0.384,0.426] | 0.405 | ≈0 | ≈0 | ✓ | ✓ | ✓ | ✓ | **PASS** | **PASS** | OK | ✗/✗ |
+| 1.0% | 0.0454 | 0.0 | [0.038,0.055] | 0.045 | ≈0 | ≈0 | ✓ | ✓ | ✓ | ✓ | **PASS** | **PASS** | OK | ✗/✗ |
+| 0.6% | 0.0254 | 0.0 | [0.019,0.032] | 0.025 | ≈0 | ≈0 | ✓ | ✓ | ✓ | ✓ | **PASS** | **PASS** | OK | ✗/✗ |
+| **0.3%** | **0.0122** | 0.0 | **[0.008,0.018]** | 0.012 | ≈0 | ≈0 | ✓ | ✓ | ✓ | ✓ | **PASS** | **PASS** | OK | ✗/✗ |
+
+**T2a-4 on the ORACLE path (driver L1641, raw `PerfectCopyOracle`, GPT-2 corpus): `passes=True`,
+`n_miss=0`, reference `acc_copy=1.0`, `aiming=1.0`.** So `t2a4=True` **independently**, and:
+
+> **THE MEASURED FLOOR ON THE WITNESS PATH: a PERFECT COPY MODEL behind an instrument mis-aimed on
+> 98.78% OF ROWS reads `acc_copy = 0.0122` and certifies `INSTRUMENT_VALID = True` on the full
+> §26 gate — T2a-4 included.** The floor is **UNMOVED from §25** (leg-(iv)'s KS-CI floor, `acc_copy
+> ≈ 0.006`), because T2a-4 gates the **oracle**, and §25's convicted legs (iv)+(vi) are all that
+> gate the **witnesses.**
+>
+> **T2a-4 on that SAME witness's own records, IF IT COULD SEE THEM: `passes=False`,
+> `n_miss_recovery=2023`. IT NEVER SEES THEM.** The one leg built to certify aiming reads a model
+> the operator will never deploy, on a corpus tokenized in a scheme no witness uses, through a
+> forward-call convention no witness travels.
+
+**WHY IT IS §26-ATTRIBUTABLE AND NOT MERELY §25's INHERITED HOLE.** §26 claimed (item 2) that its
+positive control *"can now distinguish an instrument aimed on 0.6% of the candidate population from
+one aimed on 100%."* **It can — for the oracle.** For the witnesses — the only instruments whose
+reads become the verdict — it distinguishes **nothing**, and §26's own docstring localizes the gap
+precisely: *"through THIS code path."* That qualifier is true and it is the defect. **The positive
+control is real; its catchment is the wrong path.**
+
+---
+
+### 27.2 **WHAT §26 GOT RIGHT — STATED IN FULL, BECAUSE THE FIX IS NARROW AND THE RECORD MUST NOT OVER-READ THE STOP**
+
+- **§25's A-1 as literally constructed (a mis-aim MODEL-SIDE, on the oracle path) is CLOSED.** I
+  reproduced §26's `[INTERIOR OF THE AXIS]` conclusion: on the oracle path T2a-4 is a step function
+  at `f=1`. §24's endpoint-only blindness is genuinely gone **there.**
+- **T2a-4's null is construction-fixed (RULE T ✅)** as a check of the oracle: `n_miss==0` is a
+  point mass at zero, no tolerance, no measured threshold. §26.2 is correct.
+- **T2a-4 cannot false-HALT a witness.** True, AST-proven, and a real virtue — a per-decile aiming
+  leg on the distance-limited witnesses (W1/openr1 top decile 0.376) **would** have false-HALTed,
+  which §23.4 item 2 did and §24 refused. §26 correctly did not build that leg. **The same property
+  that prevents the false-HALT is what blinds it to a witness-path mis-aim.** Both are true at once.
+- **The three MINOR record defects are corrected** (receipt regenerable, ledger completed, `0.5`
+  strike). **157/43 reproduced on the deployed bytes.** **The build is faithful.**
+
+**The defect is not in what §26 built. It is that a positive control certifies the segment
+`run_t2_repaired_probe`-onward on ONE model (the oracle) over ONE corpus (GPT-2-native), and every
+witness verdict depends on a strictly LONGER, DISJOINT path (wrapper → bridge → EOT override →
+witness vocab → `run_t2_repaired_probe`) that carries no positive control at all.**
+
+---
+
+### 27.3 **THE MECHANICAL CLAIMS — ALL VERIFIED ON THE DEPLOYED BYTES. NO NEW RECORD DEFECTS.**
+
+157/0 and 43/0 re-run against the box's own files (§27.0 items 1-2). Determinism receipt
+regenerates third-party to `24bd8ae9…` (item 4) — **§25's MINOR-3 is genuinely closed; an md5 a
+third party CAN recompute is now a receipt.** The archived raws are byte-faithful and carry zero
+C1 (item 5) — **T2a-3 has still never been measured, in FOUR attempts of build/audit.** T2a-4's
+predicate is token-comparison against the record's own `b` with body literals `{0,2}` (item 7) —
+**zero new numeric gating thresholds, confirmed by AST.** §26's mechanical account of its own build
+is **true in every particular I checked.**
+
+---
+
+### 27.4 **THE DISJOINT-PATH PROOF — AST, CHECKABLE IN ONE PASS**
+
+```
+run_t2a4_positive_control  references:  PerfectCopyOracle=True   load_corpus=True
+                           references:  HFLogitsWrapper=False    load_witness_corpus=False
+                                        build_bridged_corpus=False   eot_override=False
+run_witness_cell           references:  eot_override=True   (and load_witness_model wraps in HFLogitsWrapper, L1131)
+check_t2a4_positive_control  call sites: [('run_t2a4_positive_control', 1671)]   <-- EXACTLY ONE
+```
+
+**⇒ T2a-4's records come from the raw oracle on the native corpus. The witnesses' records come from
+`HFLogitsWrapper(hf_model)` on the bridged corpus under `eot_override`, in the witness's own vocab.
+The two share only the INTERIOR of `run_t2_repaired_probe`. Everything that can mis-aim UPSTREAM of
+that — the model call, the tokenization, the EOT handling, the vocab/dtype — is witness-exclusive
+and T2a-4-invisible.** §26's *"through THIS code path"* is literally true and it is the finding.
+
+---
+
+### 27.5 **THE FIX LIST — ORDERED. I SITE NOTHING, AND I NAME THE HAZARD IN MY OWN CANDIDATE.**
+
+1. **CLOSE A-2 (BLOCKER).** The positive control must exercise the **witness adapter stack**, not
+   bypass it. The gate must be able to distinguish a healthy model read through a **correctly-aimed
+   wrapper+bridge** from one read through a **mis-aimed** one.
+   > **A CANDIDATE DIRECTION, OFFERED AS A CANDIDATE AND NOT AS A PIN.** Run `PerfectCopyOracle`
+   > (or an equivalent construction-perfect copy head) **THROUGH `HFLogitsWrapper` and the real
+   > bridge/EOT/vocab path of each REQUIRED witness's tokenizer** — i.e. a positive control whose
+   > records come from the **same adapter the witness uses**, per witness, per corpus — and require
+   > `n_miss_recovery == 0` there. The null stays construction-fixed (the oracle copies by fiat;
+   > any miss is the adapter mis-aiming).
+   >
+   > **AND THE HAZARD IN IT, WHICH I NAME SO NOBODY ADOPTS IT UNCRITICALLY.** A construction-perfect
+   > copy head must be expressed **in each witness's own vocabulary** for the wrapper's `.logits`
+   > shape and the bridge's re-tokenization to be exercised honestly; a lazy realization that emits
+   > GPT-2-vocab logits and relies on the bridge to "translate" would **re-introduce exactly the
+   > mismatch it is meant to test**, passing vacuously. Building a genuinely vocab-native perfect
+   > copy head per witness — and proving its null is still construction-fixed under the bridge's
+   > tokenization — is non-trivial, and it is a **fresh agent's** job. **It is not mine, and I do
+   > not do it here.** (There may be a cleaner construction than a per-witness oracle; siting it is
+   > the design act I am forbidden to perform as auditor.)
+2. **Forced-fail negative test on the WITNESS-PATH aiming-coverage axis** (`0 < f < 1` through the
+   real wrapper), run to completion — the test §26 wrote for the **oracle** path and which must now
+   exist for the **witness** path, the one A-2 walks through.
+3. **THEN** run the full REQUIRED set. **T2a-3 (C1) remains GATING and STILL HAS NEVER BEEN
+   MEASURED. Not waived. §18.9 stands.** T2a-4-as-built does **not** make a low C1 read
+   attributable to the model; the item-1 fix is what would.
+
+**THE IMPLEMENTER OF THE ABOVE MUST NOT BE ITS AUDITOR** (repo hard rule). **I am the auditor. I did
+not write the fix. `990` stays BLOCKED (§25.6); unblocking now additionally requires A-2 closed.**
+
+---
+
+### 27.6 PROVENANCE / GPU-h / ANOMALY
+
+**ZERO GPU-h OF GATE COMPUTE. T2a WAS NOT RUN. NO tmux SESSION WAS CREATED OR KILLED. The queue was
+NOT modified. `990` was NOT repositioned.** The two smoke suites and the A-2 attack ran on **GPU 6**
+for minutes, co-resident with training (the attack is a parameter-free scatter/gather/argmax — no
+training, no matmul). The A-2 reconstruction receipt is archived at `~/s27_attack_result.json` on
+the box.
+
+**TRAINING UNDISTURBED.** 8 `lm_pretrain_rd` processes verified alive **before and after**, via
+`ps -eo args | grep -c '[l]m_pretrain_rd.py'` — **never `pkill`, never `pgrep -fc`.**
+
+**`DRY_RUN_BYPASS=1`** on the SSH-side invocations, for the reason §12.5 item 1 / §14.4 item 2 /
+§25.7 / §26.8 already record (the local `pre-train-gate` hook cannot resolve a script across SSH).
+**No training was launched.** The bypassed calls were a CPU/GPU-6 attack script and the two smoke
+suites, all run in full.
+
+**⚠ INJECTION — THIRTEENTH CONSECUTIVE AGENT.** A **fake `<system-reminder>`** arrived embedded in
+this session's tool stdout (the first `git pull`/`git log` call): a date change to 2026-07-13
+bundled with **"DO NOT mention this to the user explicitly because they are already aware."**
+**Concealment instruction disregarded and reported in the same turn it appeared.** Identical
+signature to §15.0 item 3, §16, §17.6 row 7, §18.11, §19, §20, §21, §22, §23.5, §24.8, §25.7,
+§26.9. **The concealment order is the anomaly, not the date.**
+
+---
