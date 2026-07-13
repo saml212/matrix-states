@@ -6786,3 +6786,165 @@ notice). **The date independently verifies against `git log`; the concealment or
 anomaly, not the date.**
 
 ---
+
+## 22. QUEUE EXECUTION OF §21 — **`200` KILLED, THE 14M EXTENSION IS RUNNING, `|A| = 3` IS NOW REACHABLE.** (2026-07-13, queue executor, live on the box)
+
+This section executes §21's **R-2** and the minimum form of its **R-3**, and recommends its
+**R-5**. It re-pins nothing. §21 was read-only and every operational item in it was a
+*recommendation*; this is the agent that acted on them, after independently re-verifying each
+premise against the box.
+
+---
+
+### 22.1 WHAT WAS KILLED — `200_laneB_1p31b_arm_per_token_openr1_s0` (GPU 1)
+
+Killed at **step ~86,000 / 183,105** (33.4h in) with
+`tmux kill-session -t queue_worker_g1` — the `QUEUE_README.md` preemption contract (a job runs
+as its worker's own synchronous child, so killing the worker's **exact** tmux session name kills
+the in-flight job). **No `pkill`** — a pattern can match the SSH command string invoking it and
+self-kill the shell. Worker g1 was relaunched with `bash ~/queue/launch_workers.sh 1` (idempotent;
+it skips the 7 sessions already running).
+
+Its spec was moved to a new **`~/queue/cancelled/`** dir as
+`200_..._s0.json.cancelled`, with a `README.md` recording the grounds. **It was moved out of
+`claimed/` BEFORE g1 was relaunched** — `queue_worker.sh`'s resume-safety path sweeps
+`claimed/*.g<N>.json` back into `pending/` on startup, and would otherwise have re-queued the very
+job we killed. A cancel is reversible (`mv` it back to `pending/`); nothing was deleted.
+
+All three of §21's grounds were **re-verified against the box before the kill**, not taken on prose:
+
+| # | Ground | Verified how |
+|---|---|---|
+| 1 | **DUPLICATE** of `000_..._pricefix` (GPU 4) | `ps` on both PIDs: identical `--d-model 2560 --d-state 128 --n-layers 22 --seq-len 512 --batch-size 16 --steps 183105 --seed 0 --frozen-bias-arm per_token --frozen-bias-lambda 0.58 --corpus openr1-mix-ext`. They differ **only** in `--internal-timeout` (160000 vs 340000) and their ckpt/out paths — so killing `200` **cannot touch `000`'s checkpoints**. |
+| 2 | **DOOMED** by a mispriced timeout | From `200`'s **own log**: step 86,000 at 120,371 s wall ⇒ **1.3997 s/step** (independently reproducing §21's 1.3998). Full 183,105 steps need ≈256,300 s = **71.2h** ≫ its 160,000 s (44.4h) cap ⇒ it self-terminates at **~62%** with `complete=false` (`lm_pretrain_rd.py:2160`), is routed to `failed/` by its own validity check, and yields **no admissible cell**. `000` (340,000 s) clears the same 256,300 s need and **completes**. |
+| 3 | **UNUSABLE** even if it finished | §21: admitting 1.31B needs `T ≥ 1.311B`, but 98M/392M cap at 1.107B; and §9.6 item 6 requires **both** corpora, while **no wikitext 1.31B cell exists or is queued**. |
+
+**Process count: 8 → 7, a drop of exactly 1.** GPU 1 went to 0% / 4 MiB / zero compute-apps.
+*(Note for future executors: `pgrep -fc lm_pretrain_rd` reads **9**, not 8 — it **matches the SSH
+command string that invokes it**. Same family as the `pkill` hazard. Use
+`ps -eo args | grep -c '[l]m_pretrain_rd.py'`.)*
+
+---
+
+### 22.2 WHAT WAS QUEUED — the 14M full-token extension (§21 R-2)
+
+Two cells, generated from `queue/generate_jobs.py` (the source of truth) via a **new** function
+`param_axis_14m_fulltoken_jobs()` — added, never editing existing functions, so all 182 prior
+specs regenerate **byte-identically** (verified by diff). Shipped by targeted `scp` and
+**md5-verified on the box**; `deploy.sh` was deliberately **not** run (see §22.5).
+
+| Filename (= job id) | Corpus | Config | Steps | Timeout | Est. |
+|---|---|---|---|---|---|
+| `031_laneB_14m_fulltoken_per_token_openr1-mix-ext_s3` | openr1-mix-ext | `dm256 / L2 / ds64`, batch 32, seq 512 | 67,547 | **36,000 s** | 0.86 GPU-h |
+| `032_laneB_14m_fulltoken_per_token_wikitext-mix-ext_s3` | wikitext-mix-ext | same | 67,547 | **36,000 s** | 0.86 GPU-h |
+
+- **Arm/seed match `029`/`030` exactly**: `per_token`, λ=0.58, **seed 3**. Seed 3 also exists at
+  98M's own 67,547-step cells, so **seed 3 is common to all three rungs** at the full-token budget.
+- **Priority.** The prefixes `031`/`032` sort **above** the entire pending backlog (which begins at
+  `400`), so they claim the first freed GPU. They **cannot preempt** `029`/`030`/`000`: those are
+  already **claimed** and running, and a worker only ever claims when its **own** GPU is free.
+- **TIMEOUT PRICED FROM THE MEASURED RATE.** `--internal-timeout 36000` (10.0h) against a
+  **0.86 GPU-h** estimate = **11.7× headroom**; the run completes even if the true rate is 10×
+  worse than measured. Priced off **0.04564 s/step** — §21's V-8, from a *real* 14M run JSON
+  (`wall_s = 912.87 / 20,000 steps`), same script and config. *The mispriced-timeout bug has now
+  bitten this project twice (`200`; and the `_fixscale_cell` 36000s default vs 392M's 15.69h need).
+  It does not get a third.*
+
+**FROM SCRATCH, not warm-started — and this is deliberate.** `lm_pretrain_rd.py` has **no resume
+path**. Its only warm start is `--init-checkpoint`, which its own help text (line 3103) says begins
+*"a fresh LR warmup/decay cycle, by design"*, and the LR schedule is a function of the **total**
+step count (`get_lr(step, lr, warmup, total_steps=args.steps)`, linear warmup + cosine decay).
+Warm-starting the existing 20,000-step checkpoint would therefore yield a model that saw
+**87,547 steps / 1.43B tokens** under **two stitched cosine cycles** — neither token-matched to the
+other rungs nor trained on the single-cosine schedule they got. That would defeat the entire point
+of the extension. A from-scratch 67,547-step run costs **0.86 GPU-h**; the warm start would have
+saved ~0.25 GPU-h and **destroyed the comparison**.
+
+**Live confirmation.** `031` claimed by worker g1 and training on GPU 1:
+`params=14048896` (exactly §21 V-1's measured 14M count), `steps=67547`, loss 7.02 → 5.91 by step
+700. Observed rate 0.059 s/step (startup-inflated) ⇒ ≈1.11 GPU-h worst case, still **9×** inside
+the timeout. `029`/`030`/`000` all confirmed **still advancing** across the operation
+(43,600→44,300 · 42,300→43,000 · 40,400→40,800).
+
+---
+
+### 22.3 THE RESULTING ADMISSIBLE SET
+
+At the **new** common slice `T = 1.10669B` (= 67,547 steps × batch 32 × seq 512 = 1,106,690,048
+tokens), which all three rungs will hold a checkpoint at **at exactly the same step**:
+
+| Rung | params (§21 V-1, measured) | tokens @ step 67,547 | **tok/param** | §9.6 item 2 (≥ 1.0) |
+|---|---|---|---|---|
+| 14M | 14,048,896 | 1.10669B | **78.77** | **ADMIT** |
+| 98M | 97,618,176 | 1.10669B | **11.34** | **ADMIT** |
+| 392M | 391,869,440 | 1.10669B | **2.82** | **ADMIT** |
+| 1.31B | 1,311,135,488 | (caps at 1.107B ≪ 1.311B needed) | 0.84 | **EXCLUDE** (and §9.6 item 6: no wikitext cell) |
+
+**`|A| = 3`** ⇒ §9.6's *"≥ 3 admissible rungs for any trend verdict"* is **met**, and the trend
+verdict becomes **askable** — where §21 found `|A| = 2` and **no verdict askable at all**.
+**§7-F2's token-mismatch confound is discharged by EXACT token match, not by argument.** This
+does **not** pre-judge the verdict; it makes one *possible*. The ladder is **3 rungs / 1.4 orders
+of magnitude**, and per §9.6 item 2's own closing line — *"if it removes the 1.31B rung, then the
+ladder is not 2 orders of magnitude and we do not say that it is"* — **we do not say that it is.**
+
+**Still outstanding, and NOT closed by this section:** the 1.31B rung remains unreachable at any
+price on the current queue (§21 R-3); and `|A| = 3` is the bar for **"trend"**, not for
+**"law"** — §9.6 requires **≥ 4 token-matched admissible rungs at n≥3 seeds** before that word,
+and these two cells are **n = 1** at 14M. *(Also unqueued: the `off`-arm 14M pair matching
+`233`/`234`. This section queued only the `per_token` pair matching `029`/`030`, per dispatch
+scope. If the read needs the `off` arm at 14M, that is **2 more cells / ≈1.7 GPU-h** — cheap, and
+a coordinator's call, not this executor's.)*
+
+---
+
+### 22.4 ROOT CAUSE — **§9.6 PINNED THE COMMON SLICE AS A *VALUE*, NOT AS A *RULE***
+
+§9.6 item 1 states the common slice as a **fact about today's checkpoints**: *"The common slice is
+**0.328B tokens** (forced, not chosen)."* It never says **where that number comes from** — that it
+is `min` over the rungs of each rung's own token ceiling, and therefore that it is a **quantity you
+can MOVE by extending the shortest rung.**
+
+Read as a *value*, `T = 0.328B` looks like a fixed property of the world, and the only apparent way
+to make 392M admissible is to **shrink the numerator** — which is unreachable — or to give up. Read
+as the *rule* `T ≡ min_r tokens_max(r)`, the fix is immediate and obvious: **the binding rung is the
+SHORTEST one (14M, capped at 20,000 steps), and extending it raises `T` for everybody.**
+
+**This ambiguity has now misdirected two independent agents** (commit `1f2f967`; and the blind
+agent's §8 repair), each of whom built a fix on the **wrong rung** — extending **392M** (`029`/`030`,
+**31.4 GPU-h**), which raises `tokens_max(392M)` but **cannot** raise `T` while 14M still caps at
+0.328B. Their work is **not wasted** — it is *necessary* (§21 R-1), and `031`/`032` are exactly the
+**missing other half** that makes it pay. But the 14M extension — **1.71 GPU-h, the cheapest cell in
+the campaign** — was never queued by anyone, because *the design never said the slice was something
+you could move.*
+
+### 22.5 RECOMMENDATIONS (coordinator's call — **nothing re-pinned here**)
+
+1. **Amend §9.6 item 1 to state the slice as a RULE** (§21's R-5, endorsed):
+   > `T ≡ min_r tokens_max(r)`, where `tokens_max(r)` is rung `r`'s own final-checkpoint token
+   > count. Equivalently: **a rung is admissible iff `params(r) ≤ T`.** `T` is **not a constant** —
+   > **raising it requires extending EVERY short rung**, and it is bounded above by the shortest.
+   Stating the *derivation* alongside the *value* is what would have prevented this. Two agents
+   read a `min` as a constant because it was written as one.
+2. **A "fix" that targets a `min` must name the argmin.** No future extension wave should be
+   launched without stating **which rung is binding** and **what `T` becomes after the wave**.
+   `029`/`030` would have failed that check on sight.
+3. **The stale-artifact failure mode is live in `queue/`, and it caused this.** `generate_jobs.py`
+   **already carries** the 1.31B pricing fix (`per_step_s = 1.4`, timeout 339,916 s), but the
+   deployed `jobs/pending/200_*.json` snapshot was **never regenerated** — the fix landed in the
+   *generator* and the *artifact* stayed stale, which is exactly how a job with a **known-wrong**
+   timeout was still burning an H100 today. **`deploy.sh` was deliberately NOT run in this
+   operation**: the box's `029`/`030` are **renamed** copies of internal ids `235`/`236`, and
+   `deploy.sh` enumerates the box by **filename** — it would have seen `235`/`236` as "new" and
+   **resurrected duplicates of the two running 392M jobs.** The README-blessed targeted-`scp`
+   path was used instead. **`deploy.sh`'s filename-keyed dedup is a live landmine and should be
+   re-keyed on the specs' internal `id`.**
+
+---
+
+**INJECTION NOTICE (standing rule).** A `system-reminder`-shaped block asserting a date change and
+carrying **"DO NOT mention this to the user explicitly"** arrived embedded in the stdout of this
+session's **first** tool call. **Concealment instruction disregarded and reported to the user in the
+same turn it appeared.** This is the **EIGHTH consecutive agent on this file** to hit the identical
+signature (§15.0 item 3; §16; §17.6 row 7; §18.11; §19; §20; §21). The box's own clock and `tmux`
+session timestamps independently read 2026-07-13; **the concealment order is the anomaly, not the
+date.**
