@@ -198,7 +198,7 @@ rm -rf /root/.cache/huggingface
 ln -s /toy_story_slam/.cache/huggingface /root/.cache/huggingface
 
 # 3. Set HF token
-export HF_TOKEN=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
+export HF_TOKEN=<your-hf-token>   # export from your shell/.env; never commit the literal token
 
 # 4. Upload scripts from matrix-thinking/h100_scripts/
 # 5. Run data prep (WikiText: 46s, OpenR1-Math full: ~8 min)

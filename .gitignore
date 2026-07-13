@@ -115,3 +115,8 @@ NOTES_PRIVATE*
 *.synctex.gz
 matrix-thinking/submissions/**/*.log
 # No file >25MB belongs in git — big payloads live on the SSD archive
+
+# Private working docs that must never be published (kept locally, out of the
+# public repo and out of the deployed site dir)
+pebble-ai-site/researcher-outreach-list.md
+pebble-ai-site/SAM-ACTION-LIST.md
