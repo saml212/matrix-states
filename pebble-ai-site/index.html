@@ -526,7 +526,7 @@ footer a { color: var(--accent); }
             pebble
         </a>
         <nav class="main">
-            <a href="#progression">the arc</a>
+            <a href="#progression">arc</a>
             <a href="#findings">findings</a>
             <a href="#roadmap">active now</a>
             <a href="#dead-ends">dead ends</a>
@@ -548,7 +548,7 @@ footer a { color: var(--accent); }
 <!-- ────── progression ────── -->
 <section id="progression">
     <div class="container">
-        <div class="eyebrow">the arc</div>
+        <div class="eyebrow">arc</div>
         <h2 class="section-title">One representational commitment, four stages.</h2>
         <p class="lede">The program started as three parallel threads — bytes, matrices, and matrix-tracked reasoning — in February 2026. Two of those threads resolved. Byte-level input is on hold (Stage 01, below): a real cost worth paying eventually, never bundled with the matrix question. The bolt-on version of matrix-tracked reasoning was tested and falsified in April, cleanly enough to publish. What survived, and is now the whole program, is narrower and stronger than the original pitch: model state as a matrix, never flattened, trained from scratch rather than bolted onto a vector-pretrained model. Stages 03 and 04 below are where the last four months of work actually happened.</p>
 
@@ -615,7 +615,7 @@ footer a { color: var(--accent); }
             <a class="result" href="findings/ncr-operator-bank.html">
                 <div class="body">
                     <div class="result-date">no. 16 &nbsp;·&nbsp; july 11, 2026 &nbsp;·&nbsp; updated july 12</div>
-                    <h4>The operator bank: architecture proven, exact contender convergence-recovered, far depth still open</h4>
+                    <h4>Operator bank: architecture proven, exact contender convergence-recovered, far depth still open</h4>
                     <p>Extending finding no. 14 from one relation to a bank of three. The exact contender wouldn't train at R=3 at all — flat chance even at 3× the proven single-relation budget — but the bank <em>architecture</em> is proven regardless by a fully-trained baseline (fwm-bank: in-dist recovered@0.9 <span class="mono">0.87-0.89</span>, relation-swap ablation gap <span class="mono">0.621</span>, genuine capability isolation). A targeted diagnosis then recovered convergence: annealing an inter-hop LayerNorm out during training unsticks it where three other fixes fail — in-dist recovery goes <span class="mono">0.0</span> to <span class="mono">1.0/1.0/1.0</span>, now replicated across <span class="mono">9</span> seeds (0/9 dead). Far depth is seed-bimodal: at h*=61 min-over-r recovered@0.9 sorted across the 9 seeds reads <span class="mono">0.000, 0.000, 0.000, 0.004, 0.012, 0.615, 0.811, 0.918, 0.984</span> — only <span class="mono">2/9</span> clear the strict bar. <strong>Update (K-scaling):</strong> a pre-registered 16-cell follow-up applied the same fix to the K axis (K=14/15/16/24, 4 seeds each) — <span class="mono">earlyln</span> does not unlock the K axis wholesale, but moves the trainability wall exactly one rung: K=15 goes from plain-recipe DEAD to <span class="mono">4/4</span> converged and holds far depth (median <span class="mono">0.9929</span> at h*=117), before the wall re-forms at K=16 (<span class="mono">1/4</span>) and K=24 (<span class="mono">0/4</span>, a distinct partial-formation profile). Pooled verdict: TRAINABILITY-STILL-LIMITED. <strong>Update (next-lever wave, 20 cells):</strong> a pre-registered three-story discriminator asked <em>why</em> the wall re-forms. A 4× budget probe at K=16 came back NO-LAW — write residual got worse, not better, at 4× in 3/4 seeds. Retraining at the tight-spare <span class="mono">d=K+1</span> mapping instead of the conventional <span class="mono">d=2K</span> CONFIRMED at both K: <span class="mono">4/4</span> converged on 1× budget alone at both K=16 and K=24, where d=2K needed 4× budget (K=16) or never converged at all (K=24) — and K=16 under tight-spare reached far-depth composition (<span class="mono">0.80-0.99</span> in 2/4 seeds) no d=2K cell ever touched. The K-scaling wall was mostly a dimension-mapping convention <strong>at K≤24</strong>, not an absolute-K or compute ceiling within that range. <strong>Update (K=32 generalization test, 12 cells):</strong> the tight-spare fix does NOT hold past K=24 — every cell dead at every d tried (<span class="mono">d=K+1, 1.25K, 1.5K</span>), including Gate-1 in-distribution convergence itself (0/12 CONVERGED, best cell 0.871 recovered@0.9 against the 0.9 bar). A K-dependent component of the wall re-emerges beyond K=24. <strong>Update (K-axis CLOSED, budget-rescue probe):</strong> a final pre-registered probe asked whether extra budget rescues K=32's tight-spare arm — no: Gate-1 improves directionally (<span class="mono">0/4 → 1/4 → 2/4</span> CONVERGED across 1×/2×/4×) but never reaches the robust bar, and the failure front stays pinned at the trivial rung in all 12 cells on record across every budget tested. The probe's own pre-registered ANOMALY check fired (write residual non-monotonic across budget in 3/4 seeds), pre-empting a clean verdict label — reported as the pre-registration working, not a dodge — but the practical question closes anyway: no budget reaches the robust-convergence-and-far-depth combination that would re-open K=48, so it and the rest of the parked K≥48 backlog stay blocked. <strong>K-AXIS CLOSED AT K=32.</strong> A genuine positive banked alongside the closure: far-depth reliability at K=24 is predictable from the write residual alone (Spearman <span class="mono">ρ≈-0.877/-0.873</span>, n=12) — a free, validated instrument. Read the research note →</p>
                 </div>
                 <span class="meta">convergence replicated 9/9 · far depth seed-bimodal · K-axis CLOSED at K=32 (budget doesn't rescue it) · free write-residual instrument predicts far depth</span>
@@ -624,7 +624,7 @@ footer a { color: var(--accent); }
             <a class="result" href="findings/reasoning-link-instrument-saga.html">
                 <div class="body">
                     <div class="result-date">no. 15 &nbsp;·&nbsp; july 11, 2026</div>
-                    <h4>The null that survives is the one you can trust</h4>
+                    <h4>Null that survives is the one you can trust</h4>
                     <p>A gauntlet-required positive control on a published "80/80 nulls at every scale" readout failed outright — a synthetic K=32 signal recovered 0/256 through the production path, the third independent victim of this codebase's own [K,V]-vs-[V,K] transpose-bug class. The fix reopened the lane: 78/320 readings turned nonzero, up to <span class="mono">0.87</span> recovery at one hop. Two correspondence nulls, pre-registered before running, then reproduced the entire signal at <span class="mono">0/320</span> clears — the strongest cell reads <span class="mono">0.8691</span> real vs <span class="mono">0.8125</span> against a target that is never correct by construction. Mechanism: a collapsed prediction direction (cross-query cosine <span class="mono">0.9996</span>) against a near-collinear value population (mean pairwise cosine <span class="mono">0.9648</span>). Lane re-closes, doubly instrument-validated; the corrected claim is "null-indistinguishable," not "zero." Read the research note →</p>
                 </div>
                 <span class="meta">methodology · lane re-closed</span>
@@ -678,7 +678,7 @@ footer a { color: var(--accent); }
             <a class="result" href="findings/write-geometry-attractor.html">
                 <div class="body">
                     <div class="result-date">no. 09 &nbsp;·&nbsp; july 9, 2026 &nbsp;·&nbsp; updated july 10 (fix-at-scale verdict)</div>
-                    <h4>The write-geometry attractor grows with scale, it is not a qk-norm artifact — and the tested fixes do not survive scale</h4>
+                    <h4>Write-geometry attractor grows with scale, it is not a qk-norm artifact — and the tested fixes do not survive scale</h4>
                     <p>Key-write geometry in DeltaNet-family LMs collapses more with scale, not less: <span class="mono">span_frac</span> 0.248 at 14M → 0.455 at 1.31B. A pre-registered 2×2 exonerates the community-standard qk-l2-norm mitigation (Δ 0.05σ, clean null at n=3); decay gating trends worse without confirming at the 2σ bar. Now updated with the fix-at-scale wave (28 cells, 98M + 392M): <em>no tested frozen-bias construction stabilizes the attractor at scale</em> — the deployed per_token arm stays destabilizing (CI-excludes-zero at 98M on both corpora), and the one construction that worked at 14M decays to ≈zero and sign-flips by 392M. Val-loss neutrality is the half that transfers (8/8 gates). Read the research note →</p>
                 </div>
                 <span class="meta">diagnosis · fix falsified at scale</span>
@@ -696,7 +696,7 @@ footer a { color: var(--accent); }
             <a class="result" href="findings/rank-law.html">
                 <div class="body">
                     <div class="result-date">no. 07 &nbsp;·&nbsp; july 9, 2026</div>
-                    <h4>The rank law: recruited state dimension tracks the group-theoretic minimum, causally</h4>
+                    <h4>Rank law: recruited state dimension tracks the group-theoretic minimum, causally</h4>
                     <p>Across five finite groups with provable minimum representation dimensions <span class="mono">d_min ∈ {2,3,3,4,5}</span>, a fast-weight model's recruited effective rank tracks <span class="mono">d_min</span> (Spearman <span class="mono">ρ = 0.9747</span>, tie-capped maximum); the S4-vs-A5 pair lands on dimension, not solvability; and force-capping rank at <span class="mono">d_min − 1</span> drives basis-invariant recovery to exactly zero in all five groups while <span class="mono">d_min</span> recovers anchor-level performance. Read the research note →</p>
                 </div>
                 <span class="meta">causal · preprint in prep</span>

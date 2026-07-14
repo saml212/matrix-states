@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="The write-geometry attractor in fast-weight LMs worsens monotonically from 14M to 1.31B parameters (span_frac 0.248 to 0.455), is not a qk-norm artifact, and now: resists the tested frozen-bias mitigations at scale. The deployed per_token arm stays destabilizing at 98M (CI-excludes-zero, both corpora) and 392M-wikitext; the 14M global-vector stabilization decays to ~zero and sign-flips by 392M. Val-loss neutrality is the half that transfers (8/8 gates).">
-<meta property="og:title" content="The write-geometry attractor: scale trend, qk-norm exoneration, and a failed fix at scale — pebble">
+<meta property="og:title" content="Write-geometry attractor: scale trend, qk-norm exoneration, and a failed fix at scale — pebble">
 <meta property="og:description" content="Research note: key-write geometry in DeltaNet-family LMs collapses more, not less, with scale — and no tested frozen-bias construction stabilizes it at scale. The fix-at-scale wave (28 cells, 98M + 392M, ~130 GPU-h) came back PARTIAL: the destabilizing 14M sign persists attenuated, the one construction that stabilized at 14M decays to ~zero and loses its sign by 392M, and every arm stays val-loss-neutral.">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://pebbleml.com/findings/write-geometry-attractor.html">
@@ -17,8 +17,8 @@
 {
   "@context": "https://schema.org",
   "@type": "ScholarlyArticle",
-  "headline": "The write-geometry attractor grows with scale, and it is not a qk-norm artifact",
-  "name": "The write-geometry attractor",
+  "headline": "Write-geometry attractor grows with scale, and it is not a qk-norm artifact",
+  "name": "Write-geometry attractor",
   "author": {
     "@type": "Person",
     "name": "Sam Larson",
@@ -35,7 +35,7 @@
   "inLanguage": "en"
 }
 </script>
-<title>The write-geometry attractor: scale trend, qk-norm exoneration, and a failed fix at scale — pebble</title>
+<title>Write-geometry attractor: scale trend, qk-norm exoneration, and a failed fix at scale — pebble</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
@@ -429,7 +429,7 @@ footer a { color: var(--accent); }
 <section class="title-block">
     <div class="container">
         <div class="paper-meta">research note &nbsp;·&nbsp; finding 09 &nbsp;·&nbsp; preprint in preparation &nbsp;·&nbsp; updated with the fix-at-scale verdict 2026-07-10</div>
-        <h1 class="paper-title">The write-geometry attractor grows with scale, it is not a qk-norm artifact — and the tested fixes do not survive scale</h1>
+        <h1 class="paper-title">Write-geometry attractor grows with scale, it is not a qk-norm artifact — and the tested fixes do not survive scale</h1>
         <p class="authors"><span class="author">Sam Larson</span></p>
         <p class="affil">pebble, San Francisco</p>
         <p class="date">July 9, 2026 &nbsp;·&nbsp; updated July 10, 2026 (fix-at-scale wave) &nbsp;·&nbsp; sam@pebbleml.com</p>
