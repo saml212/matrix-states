@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="pebble is a research lab building language models around the environment machines live in: byte-level inputs, matrix-valued tokens, and measurable reasoning.">
-<meta property="og:title" content="pebble — let them eat bytes">
+<meta property="og:title" content="pebble — state as a matrix">
 <meta property="og:description" content="Research lab investigating better-fitting representations for machine cognition: byte-level inputs, matrix-valued tokens, measurable reasoning.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://pebbleml.com">
@@ -30,7 +30,7 @@
   ]
 }
 </script>
-<title>pebble — let them eat bytes</title>
+<title>pebble — state as a matrix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -538,7 +538,7 @@ footer a { color: var(--accent); }
 <!-- ────── hero ────── -->
 <section class="hero">
     <div class="container">
-        <p class="kicker">let them eat bytes<span class="period">.</span></p>
+        <p class="kicker">state as a matrix<span class="period">.</span></p>
         <h1 class="pull">Modern language models work around the medium they compute on — flat vectors for state, and O(<span class="mono">h</span>) sequential steps for anything that composes. I'm building the version that doesn't.</h1>
         <p class="thesis">The program has one representational commitment: model state as a <span class="mono">d × d</span> matrix, never a flat vector, and never flatten it back. A matrix has rank, so "how much has this model actually memorized" is a number you can compute from one forward pass instead of estimating from behavior. It's a fast weight — it can be written to and read from in-context, at inference time, with no gradient step. Four results now hang off that one commitment: a fixed <span class="mono">32,768</span>-byte state holds K=32 recall at <span class="mono">acc ≥ 0.998</span> across an 8× growing context while a matched transformer with an <em>uncapped</em> KV cache reads chance the whole time (<a href="findings/constant-memory-recall.html">no. 11</a>); an in-context-written relation composes exactly to depth 61 (median per-seed failure front 253) via O(log <span class="mono">h</span>) reads — a separate timing probe (reads only, not exactness) clocks those reads <span class="mono">20.9×</span> faster than the best O(<span class="mono">h</span>) baseline at depth 1,021, widening to <span class="mono">~13,000–25,000×</span> at depth 2²⁰ (<a href="findings/native-composition-reads.html">no. 14</a>); across five finite groups with provable minimum representation dimensions, the rank SGD recruits tracks that minimum exactly (the tie-capped maximum), and forcing it one dimension short drives recovery to zero in all five (<a href="findings/rank-law.html">no. 07</a>). None of that would be trustworthy without the fourth thread: three separate times, a result that looked like a capability win turned out to be an instrument bug, and the fix — not the cover-up — is published alongside the number (<a href="findings/reasoning-link-instrument-saga.html">no. 15</a>).</p>
         <p class="status-line">ICML 2026 MI workshop paper published &nbsp;·&nbsp; capability-separation program active &nbsp;·&nbsp; 15 research notes, 3 self-caught instrument bugs, 0 swept under the rug</p>
