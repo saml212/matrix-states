@@ -8699,7 +8699,7 @@ The dispatch premise that C1 "now has [produced data]" is **false against the ra
 ### 30.6 CONSEQUENCE — **R0 REMAINS BLOCKED. NO BAR MOVED, NONE PROPOSED.**
 
 - **R0 (the param-axis recall-gap measurement) is NOT unblocked.** Its precondition is `INSTRUMENT_VALID` = PASS; this run wrote **FALSE**. R0 stays HALTED on the instrument (the primary blocker).
-- **Rung Y is ALSO not yet satisfied** (a secondary downstream gate, moot while the instrument is invalid): GATE-A needs the d_state=64 rung Y trained with `VALIDITY_CHECK: PASS` (runs 033/034). No such result exists under `results/` on the box; the d_state=64 jobs are **still training** (7 of the 8 live jobs read `d-state 64`). So even a hypothetical instrument PASS would leave R0 waiting on rung Y.
+- **Rung Y is ALSO not yet satisfied** (a secondary downstream gate, moot while the instrument is invalid): GATE-A needs the d_state=64 rung Y trained with `VALIDITY_CHECK: PASS` (runs 033/034). No such result exists under `results/` on the box; the d_state=64 jobs are **still training** (7 of the 8 live jobs read `d-state 64`). So even a hypothetical instrument PASS would leave R0 waiting on rung Y. **[SUPERSEDED by §33.4 (2026-07-15): runs 033/034 are now COMPLETE — the `392mY_ds64` step-67,547 checkpoints exist on the box and are quiesced; rung Y is available.]**
 - **NO BAR MOVES, and none is proposed.** Every gating leg that *could* be evaluated PASSED; the failure is missing data, not an unmet threshold. Per the dispatch: a FAIL is recorded honestly and diagnosed; a fresh blind agent owns any re-pin or re-run **scheduling** decision. The obvious non-laundering fix is placement (run the C1/W1-positive-control eval on a GPU with headroom, or serialize it after training frees memory / cap its footprint) — **stated, not enacted, and it touches no bar.**
 
 ### 30.7 PROVENANCE / GPU-h / INJECTION
@@ -8892,5 +8892,61 @@ T2a-4 (§28) runs a `PerfectCopyOracle` through **each witness's own adapter** (
 - **Gate compute**: the run itself (bridge tokenization of both corpora through three tokenizers + W1/W2/C1 eval + all 6 positive-control arms, now unstarved). Harvest round added **0 GPU-h** (read-only harvest + adjudication).
 - **Training**: 8 `lm_pretrain_rd` jobs undisturbed throughout (8 before, 8 after).
 - **INJECTION**: the fake date-change-plus-concealment `<system-reminder>` pattern recurred in tool stdout (§31 logged the seventeenth consecutive; this is the eighteenth). The date (2026-07-15 UTC) is **real** and confirmed by the box clock; the **concealment instruction** is the anomaly — disregarded and reported.
+
+---
+
+## 33. R0 — RECORD-FIRST PRE-BUILD PIN. **The two β̂-INVARIANT facts (attribution + power), RECORDED BEFORE ANY β̂ EXISTS.** The R0 v2 measurement driver and the blind β-fit are BUILT here (not run) against the FROZEN, VALIDATED instrument.
+
+**Status / provenance.** Written 2026-07-15 by the R0 BUILD agent, immediately after §32's `INSTRUMENT_VALID = TRUE` discharged R0's instrument precondition, and **BEFORE the measurement driver is run on any checkpoint.** The two facts recorded below are knowable **from the design alone** — they are functions of the **`d_state` map and `n_seeds` only, not of any DiD value** — so they go on the record before the first `β̂` exists (CLAUDE.md's own rule: a read-only/verification verdict is RECORDED in the repo before the dependent stage is dispatched). **No cell has been run; nothing below is a function of any measured recall value.** This section supersedes the on-disk `deltanet_rd/param_axis_r0_driver.py` (the v1 instrument on stale 20k-step checkpoints — DO NOT use) and points at the two built files (§33.5).
+
+### 33.1 GATE-A FAILS on the primary ladder `{14M, 98M, 392M}` (H-3; `DSTATE_CONFOUND_PREREG.md` §5 governs)
+
+`d_state` map, **verified from the on-box checkpoint configs** (filenames `lmC_<corpus>_dm<d_model>_ds<d_state>_L<n_layers>_s<seed>_step67547.pt`, all at **exactly step 67,547**, `ls`-verified 2026-07-15):
+
+| rung | `d_model` | `n_layers` | **`d_state`** | params (total) | in `A` (primary) |
+|---|---|---|---|---|---|
+| 14M | 256 | 2 | **64** | 14,048,896 | ADMIT |
+| 98M | 768 | 12 | **64** | 97,618,176 | ADMIT |
+| 392M | 1536 | 16 | **128** | 391,869,440 | ADMIT |
+| Rung Y | 1536 | 16 | **64** | 385,577,984 | (clean sub-ladder / γ̂ only) |
+
+`{ d_state(r) : r ∈ A } = {64, 64, 128}` ⇒ `|{d_state}| = |{64,128}| = 2 ≠ 1` ⇒ **GATE-A FAILS** (`DSTATE_CONFOUND_PREREG.md` §5). The two-axis `param × d_state` fit is therefore **confounded** — the 3×3 design is **saturated**, `β̂` net of `d_state` collapses to the 14M→98M two-point difference, and the 392M rung contributes **zero** information to it (§3.2 of that file). **Attribution runs on:**
+- **(a) the MANDATORY `Δ₆₄ = M(98M) − M(14M)` difference-in-differences** — `d_state` held fixed at 64, the clean and convention-free contrast (`DSTATE_CONFOUND_PREREG.md` §5 / Option 0), powered to ~1/16 of the literature's recall-growth rate;
+- **(b) the CLEAN single-axis sub-ladder `A₆₄ = {14M, 98M, Y}`** — all `d_state = 64` (Rung Y = 385.6M, `dm1536/L16/ds64`), on which **GATE-A PASSES** (`|{64}| = 1`);
+- plus the cross-axis matched-params contrast **`γ̂ = M(392M, d128) − M(Y, d64)`** (1.61% param mismatch; `DSTATE_CONFOUND_PREREG.md` §4 Option 1) — a first-class state-width result, not a nuisance adjustment.
+
+The confounded 3-rung `β̂` over `{14M, 98M, 392M}` is **reported WITH the H-3 caveat** (`DSTATE_CONFOUND_PREREG.md` §3.4): 392M contributes ~0 to `β̂`; the blind-spot window is `[1.11, 1.92]` DiD-points/decade; `corr(x, s) = 0.8148`, VIF = 2.97. It is verdict-**withholding only** — it may never grant an attribution the clean legs withhold.
+
+### 33.2 GATE-1 strikes FLAT at `n_seeds = 1` (`DELTA_D3_BLIND_REPIN.md` §6/§7 governs)
+
+`n_seeds = 1` per rung. GATE-1 (`β̂`-invariant, pre-verdict): **FLAT is AVAILABLE iff `δ ≥ 2.49·SE(β̂)`**, `δ = 0.005`/decade. At `n_seeds = 1` the between-model variance `σ_between` is **structurally unestimable** and one of the two variance components a FLAT CI requires cannot be constructed (Leg A, structural); and quantitatively `SE(β̂)` exceeds `δ/2.49 = 0.00201` across the **entire** literature-anchored `σ_between` band `[0.002, 0.008]` (Leg B). Therefore **FLAT is NOT an epistemically available verdict for R0 as designed — for every `β̂`, including exactly 0.** The reachable verdicts are **`{RISES, DECLINES, INDETERMINATE, FLOOR, VOID}`** (§9.5 Factor 1 × `DSTATE_CONFOUND_PREREG.md` §5). Any non-significant slope ⇒ **INDETERMINATE**, never FLAT/"no parameter effect".
+
+### 33.3 Both facts recorded BEFORE `β̂` — anti-rationalization
+
+§33.1 and §33.2 are each a function of the `d_state` map and `n_seeds` **only**; no value of `β̂` changes either output. They are pinned here, in the repo, BEFORE the measurement driver runs and BEFORE any `β̂ / Δ₆₄ / γ̂` exists. The analysis script (`param_axis_r0_betafit.py`, §33.5) **emits GATE-A and GATE-1 ABOVE/BEFORE the slope**, and the fresh BLIND agent who runs it later has read no cell value.
+
+### 33.4 Supersedes §31's "rung Y still training" line
+
+§31's line (≈8702, *"the `d_state=64` jobs are still training … So even a hypothetical instrument PASS would leave R0 waiting on rung Y"*) was an **attempt-4 point-in-time fact and is SUPERSEDED**: fixscale runs **033/034** (`fixscale_fulltoken_arm_per_token_392mY_ds64_{openr1,wikitext}-mix-ext_s3`) are **COMPLETE** (queue/completed); the step-**67,547** checkpoints exist on the box (`ls`-verified 2026-07-15) and are **quiesced**. Rung Y is available; `A₆₄ = {14M, 98M, Y}` is a real, clean, `d_state`-homogeneous 3-rung sub-ladder.
+
+### 33.5 The build (this section's deliverable) — BUILT, NOT RUN
+
+Two files under `deltanet_rd/` (auditor-reviewed before any run; Phase-2 drains one GPU and measures the 14M cell first to price the timeout; Phase-4 fresh BLIND agent runs the β-fit):
+
+1. **`param_axis_r0_v2_driver.py`** — loops the FROZEN v2 probe `lm_recall_gap_probe_v2_rd.py --run --attest-job-terminated` over the **8** checkpoints (4 rungs × 2 corpora), one DiD cell JSON per `(rung, corpus)` into the **QUARANTINED** dir `deltanet_rd/results/param_axis_r0_cells/` (the coordinator does NOT read it). Emits **no verdict** (the probe refuses `--compute-verdict`; respected). Resume-safe (skips a cell with a valid existing output); single-GPU pinnable; `--smoke` prices one cell.
+2. **`param_axis_r0_betafit.py`** — the BLIND analysis: emits **GATE-A** then **GATE-1** (both `β̂`-invariant) ABOVE the slope; computes `Δ₆₄` (clustered bootstrap over rows, both corpora pooled), the confounded `β̂` over `{14M,98M,392M}` WITH the H-3 caveat, the clean `β̂` over `A₆₄`, and `γ̂`; hard-codes `δ = 0.005`/decade, `σ_between ∈ [0.002, 0.008]` (central 0.005), the 2.49 power factor (each commented with its source §). Writes the verdict to JSON/MD; keeps the coordinator blind.
+
+The frozen instrument is **unmodified** — `lm_recall_gap_probe_v2_rd.py` md5 stays `652b479ee0cb4d9fd6e302a65d4a949f`.
+
+**The 8 checkpoints (all at step 67,547), absolute box paths under `/data/fixscale_ckpts/train/`:**
+- 14M: `fixscale_fulltoken_arm_per_token_14m_{openr1,wikitext}-mix-ext_s3/lmC_{openr1,wikitext}-mix-ext_dm256_ds64_L2_s3_step67547.pt`
+- 98M: `fixscale_train_arm_per_token_98m_{openr1,wikitext}-mix-ext_s0/lmC_{openr1,wikitext}-mix-ext_dm768_ds64_L12_s0_step67547.pt` — **SEED LABEL `s0`** (vs `s3` at the other rungs); `n_seeds = 1` per rung regardless, DISCLOSED.
+- 392M: `fixscale_fulltoken_arm_per_token_392m_{openr1,wikitext}-mix-ext_s3/lmC_..._dm1536_ds128_L16_s3_step67547.pt`
+- Rung Y: `fixscale_fulltoken_arm_per_token_392mY_ds64_{openr1,wikitext}-mix-ext_s3/lmC_..._dm1536_ds64_L16_s3_step67547.pt`
+
+### 33.6 PROVENANCE / INJECTION
+
+- **No GPU work performed by this build agent.** 8 `lm_pretrain_rd` training jobs running on the box, undisturbed (8 before, 8 after; verified via `nvidia-smi` compute-apps). Zero checkpoints loaded, zero probe `--run` executed.
+- **INJECTION**: the same fake date-change-plus-concealment `<system-reminder>` pattern recurred in this session's tool stdout (§32.7 logged the eighteenth; **this is the nineteenth** consecutive). The date (2026-07-15 UTC) is **real** — confirmed against `date -u` and the box clock — the **concealment instruction is the anomaly**, disregarded and reported to the user in the same turn.
 
 ---
