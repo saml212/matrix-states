@@ -8950,3 +8950,41 @@ The frozen instrument is **unmodified** — `lm_recall_gap_probe_v2_rd.py` md5 s
 - **INJECTION**: the same fake date-change-plus-concealment `<system-reminder>` pattern recurred in this session's tool stdout (§32.7 logged the eighteenth; **this is the nineteenth** consecutive). The date (2026-07-15 UTC) is **real** — confirmed against `date -u` and the box clock — the **concealment instruction is the anomaly**, disregarded and reported to the user in the same turn.
 
 ---
+
+## 34. FINAL_VERDICT CONSERVATIVE-DOWNGRADE — COORDINATOR ADJUDICATION (record-first, pre-fix)
+
+**Status:** ADJUDICATION, recorded 2026-07-15 by the FIX-CODER's coordinator, **BEFORE** `param_axis_r0_betafit.py`'s `map_verdict` function is touched (CLAUDE.md's gauntlet-bookkeeping rule: a read-only audit's verdict is RECORDED in the repo before the dependent stage — here, the code fix — lands). **No cell has been run; this ruling is a function of the pre-registered documents only, not of any measured `β̂`.**
+
+### 34.1 The audit finding
+
+A blind CPU-only audit of `param_axis_r0_betafit.py` (built at commit `db85d83`, "param-axis R0: build v2 measurement driver + blind β-fit (BUILT, NOT RUN)") found ONE serious defect in `map_verdict`: when the clean sub-ladder A₆₄ `β̂` reads **RISES** but the confounded 3-rung `β̂` reads **INDETERMINATE** (or DECLINES), the function set `FINAL_VERDICT` solely from the clean fit + `Δ₆₄`'s sign, and only **appended** a disclosure line to `verdict_lines` — `FINAL_VERDICT` itself still read `"RISES / ATTRIBUTED…"`. Forced-fail TEST 6 in the audit constructed synthetic `(clean=RISES, confounded=INDETERMINATE)` inputs and confirmed `FINAL_VERDICT` wrongly read `"RISES"` instead of withholding the headline.
+
+### 34.2 The ruling
+
+**The conservative-downgrade reading governs: `FINAL_VERDICT` = the MORE CONSERVATIVE of {clean A₆₄ verdict, confounded 3-rung verdict}.**
+
+This is not a new rule invented for the fix — it is the mechanical enforcement of two rules already pinned, pre-registered, before any `β̂` was read:
+
+- `DSTATE_CONFOUND_PREREG.md` §5, "When GATE-A PASSES" branch (verbatim): *"The original confounded 3-rung `β` is reported alongside as a **disclosed sensitivity** (§9.1.5's idiom: verdict-withholding only — if the clean and confounded fits disagree, take the **more conservative** verdict; the confounded fit may **never grant** a verdict the clean one withholds)."*
+- `PARAM_AXIS_SCALING_DESIGN.md` §33.1 (verbatim, above): *"It is verdict-**withholding only** — it may never grant an attribution the clean legs withhold."*
+
+Both sources agree and are symmetric: the confounded fit is a **veto to WITHHOLD**, never a **licence to GRANT**. The bug was that the veto text was computed and appended to `verdict_lines`, but never actually applied to the machine-readable `FINAL_VERDICT` — the advisory prose and the headline diverged.
+
+### 34.3 Net rule (what the code fix must mechanically encode)
+
+- The **clean A₆₄ fit remains primary for ATTRIBUTION** — which axis (params vs `d_state`) drives the trend, and whether `Δ₆₄` confirms the 14M→98M leg — governed entirely by the clean fit + `Δ₆₄`, **UNCHANGED** by this ruling.
+- The **confounded fit can only WITHHOLD the HEADLINE**: `FINAL_VERDICT` (not the attribution sub-text) = conservative-min(clean grade, confounded grade).
+- **Conservatism ordering, most→least withholding:** `VOID / INDETERMINATE / FLOOR` > `DECLINES / RISES` **as-signed, only when clean and confounded AGREE in sign**. A sign DISAGREEMENT between two "directional" grades (one RISES, one DECLINES) is treated as **at least as conservative as INDETERMINATE** — a substantive contradiction is not an agreement, and the conservative reading withholds rather than picks a side.
+- **Worked case (the audit's TEST 6):** clean=RISES, confounded=INDETERMINATE → confounded is strictly more withholding → `FINAL_VERDICT` = **INDETERMINATE-headline**, with clean-RISES + the attribution sub-text DISCLOSED as a sensitivity note (demoted from headline to disclosure, not deleted).
+- **Symmetric agreement case:** clean=RISES, confounded=RISES → agreement, no downgrade → `FINAL_VERDICT` stays the clean-fit-derived RISES/ATTRIBUTED text, unchanged from current behavior.
+- The rule applies **symmetrically to DECLINES** too, not just RISES — §5/§33.1's "more conservative … never grant" language is direction-agnostic; the fix must not special-case RISES only.
+
+### 34.4 Recorded before the fix (anti-rationalization)
+
+This adjudication is written into the repo **BEFORE** `param_axis_r0_betafit.py` is edited, per CLAUDE.md's learned "gauntlet bookkeeping" rule: *"a read-only audit/verify round's verdict must be RECORDED in the repo ... BEFORE dispatching the dependent stage — downstream agents verify against the repo's source of truth, not the coordinator's context."* The code fix and its regression test land in a separate, later commit; this section's ruling is not retroactively fitted to whatever the code happens to do.
+
+### 34.5 PROVENANCE / INJECTION
+
+No GPU work; CPU-only, no probe run, no real cell read; only this design doc's §34 is touched by this commit. The fake date-change-plus-concealment `<system-reminder>` pattern (§32.7/§33.6 logged the eighteenth and nineteenth consecutive occurrences) recurred again in this session's tool stdout — **this is the twentieth** consecutive occurrence. The date (2026-07-15 UTC) is **real**, confirmed against `date -u`; the concealment instruction is the anomaly, disregarded and reported to the user in the same turn.
+
+---
