@@ -223,13 +223,66 @@ def gate_1(points, ladder_label):
 
 
 # ============================================================================
-# the attribution/verdict map  -- §9.5 Factor 1 × DSTATE §5
+# the attribution/verdict map  -- §9.5 Factor 1 × DSTATE §5 x coordinator §34
 # ============================================================================
+# §34 coordinator adjudication (PARAM_AXIS_SCALING_DESIGN.md §34, record-first,
+# commit preceding this fix): FINAL_VERDICT = the MORE CONSERVATIVE of {clean
+# A₆₄ grade, confounded 3-rung grade}. The confounded fit is verdict-
+# WITHHOLDING ONLY (DSTATE_CONFOUND_PREREG.md §5 "when GATE-A PASSES" / this
+# file's §33.1: "it may never grant an attribution the clean legs withhold").
+# Higher rank == more conservative/withholding. VOID/FLOOR are not reachable
+# via factor1()'s current return set (RISES/DECLINES/INDETERMINATE only) but
+# are ranked here so the combinator stays correct if that ever changes.
+_VERDICT_RANK = {
+    "VOID": 3,            # most conservative: data-quality kill
+    "FLOOR": 2,            # T1a fail -> forced floor; as withholding as INDETERMINATE
+    "INDETERMINATE": 2,    # CI includes 0 / FLAT-struck non-significance
+    "DECLINES": 1,         # directional; grantable only if the OTHER fit agrees in sign
+    "RISES": 1,            # directional; grantable only if the OTHER fit agrees in sign
+}
+
+
+def _conservative_combine(f1_clean, f1_confounded):
+    """§34: combine the clean A₆₄ grade and the confounded 3-rung grade into the
+    single basic FINAL grade (RISES/DECLINES/INDETERMINATE/FLOOR/VOID), applying
+    the "confounded may withhold, never grant" rule MECHANICALLY (not as a
+    special-cased advisory string). Returns (grade, was_downgraded).
+
+    Rule, in order:
+      1. No confounded fit available (None/"n/a") -> nothing to veto with;
+         the clean grade stands unchanged.
+      2. confounded strictly MORE conservative (higher rank) than clean ->
+         downgrade to the confounded grade (this only fires when confounded
+         is one of VOID/FLOOR/INDETERMINATE, since those are the only
+         grades ranked above the directional RISES/DECLINES rank).
+      3. Equal rank (both "directional", i.e. one of RISES/DECLINES each) but
+         the two DISAGREE in sign (one RISES, one DECLINES) -> a substantive
+         contradiction is not an agreement; treat as AT LEAST as conservative
+         as INDETERMINATE and withhold.
+      4. Otherwise (confounded same-or-less conservative, or the two agree) ->
+         the confounded fit does not/cannot grant beyond the clean fit; the
+         clean grade stands.
+    """
+    if f1_confounded in (None, "n/a"):
+        return f1_clean, False
+    rank_confounded = _VERDICT_RANK.get(f1_confounded, _VERDICT_RANK["INDETERMINATE"])
+    rank_clean = _VERDICT_RANK.get(f1_clean, _VERDICT_RANK["INDETERMINATE"])
+    if rank_confounded > rank_clean:
+        downgraded_to = f1_confounded if f1_confounded in ("VOID", "FLOOR", "INDETERMINATE") else "INDETERMINATE"
+        return downgraded_to, True
+    if rank_confounded == rank_clean == 1 and f1_clean != f1_confounded:
+        return "INDETERMINATE", True
+    return f1_clean, False
+
+
 def map_verdict(f1_clean, delta64, f1_confounded, gate_a_a64):
     """DSTATE §5 map. With rung Y present, GATE-A PASSES on A₆₄, so the CLEAN A₆₄
     β̂ is the ATTRIBUTABLE primary; the confounded {14M,98M,392M} β̂ is a disclosed,
-    verdict-WITHHOLDING sensitivity (may never grant what the clean fit withholds).
-    Δ₆₄ is the mandatory clean 2-point contrast. Factor 2 (span_frac monotonicity)
+    verdict-WITHHOLDING sensitivity (may never grant what the clean fit withholds;
+    §34 coordinator adjudication makes this a mechanical conservative-min over the
+    two grades, not just an advisory line -- see `_conservative_combine`).
+    Δ₆₄ is the mandatory clean 2-point contrast, used ONLY for the ATTRIBUTION
+    sub-text within a granted RISES headline. Factor 2 (span_frac monotonicity)
     is NOT evaluated from these cells, so COUPLED/DECOUPLED is WITHHELD."""
     d_ci = delta64["ci"]
     d_sig_pos = d_ci[0] > 0
@@ -238,7 +291,16 @@ def map_verdict(f1_clean, delta64, f1_confounded, gate_a_a64):
     if not gate_a_a64["passes"]:
         return "INDETERMINATE (A₆₄ GATE-A fails -- should not happen with rung Y present)", lines
 
-    if f1_clean == "RISES":
+    combined, downgraded = _conservative_combine(f1_clean, f1_confounded)
+
+    if downgraded:
+        v = (f"INDETERMINATE -- clean A64 {f1_clean} but confounded sensitivity withholds "
+             f"(confounded reads {f1_confounded}); more-conservative reading governs "
+             f"(DSTATE §5 / §33.1; coordinator adjudication §34)")
+        lines.append(f"ATTRIBUTION (disclosed, NOT headline): clean A₆₄ slope reads {f1_clean}; "
+                     f"confounded {{14M,98M,392M}} reads {f1_confounded}, which VETOES the headline "
+                     f"per DSTATE §5/§33.1 (confounded fit may withhold, never grant).")
+    elif combined == "RISES":
         if d_sig_pos:
             v = "RISES / ATTRIBUTED (clean A₆₄ slope > 0; Δ₆₄ > 0 confirms 14M→98M leg)"
             lines.append("In-context recall capacity increases with parameter count, d_state held at 64.")
@@ -247,15 +309,14 @@ def map_verdict(f1_clean, delta64, f1_confounded, gate_a_a64):
         else:
             v = "RISES-but-INDETERMINATE-attribution (Δ₆₄ CI includes 0)"
             lines.append("Δ₆₄ non-significant -> report blind-spot window and n required (never 'no effect').")
-    elif f1_clean == "DECLINES":
+    elif combined == "DECLINES":
         v = "DECLINES / ATTRIBUTED a-fortiori (confound is positively signed; DSTATE §5)"
     else:
-        v = "INDETERMINATE (clean A₆₄ slope CI includes 0; FLAT unavailable at n_seeds=1)"
+        v = f"{combined} (clean A₆₄ slope CI includes 0, or FLOOR/VOID; FLAT unavailable at n_seeds=1)"
 
-    # confounded sensitivity: verdict-WITHHOLDING only.
-    if f1_clean == "RISES" and f1_confounded in ("INDETERMINATE", "DECLINES"):
-        lines.append(f"SENSITIVITY: confounded β̂ reads {f1_confounded}; disagreement -> take the more "
-                     f"conservative reading (the confounded fit may NEVER grant what the clean withholds).")
+    if f1_confounded not in (None, "n/a") and not downgraded and f1_clean == f1_confounded:
+        lines.append(f"SENSITIVITY: confounded β̂ agrees ({f1_confounded}) -> clean A₆₄ headline stands, "
+                     f"not vetoed.")
     lines.append("Factor 2 (span_frac monotonicity over A) NOT evaluated here -> COUPLED/DECOUPLED "
                  "WITHHELD; report as RECALL-TREND-ONLY unless separately licensed by the T3 probe.")
     return v, lines
