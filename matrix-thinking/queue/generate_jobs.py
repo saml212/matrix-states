@@ -1847,6 +1847,148 @@ def param_axis_rung_y_seedext_jobs(start_seq: int = 548) -> list[dict]:
     return jobs
 
 
+def lane_b_seedext_increment3_jobs(start_seq: int = 600) -> list[dict]:
+    """THIRD Lane-B seedext increment -- structural twin of
+    lane_b_seedext_increment2_jobs(), next seeds in sequence. Queue-depth
+    hardening 2026-07-15 (red-team drain-risk mandate): the pending backlog
+    was ~2 days at 8 GPUs; this + rung_y_seedext2 push it past 3 days of
+    outcome-safe work so a drain cannot idle the box between coordinator
+    check-ins. 392M block first (seeds 18-29, box already has 4-17), then 98M
+    block (seeds 17-28, box already has 3-16); {off, per_token} x
+    {openr1-mix-ext, wikitext-mix-ext}. Same _fixscale_cell() helper, same
+    steps, same default 36000s timeout, same per-cell GPU-h as the 400/500
+    seedext blocks -- so a per-flag reconcile against those specs is identical
+    modulo id/seed. Outcome-safe variance backfill only: adds no new config,
+    reopens no recorded verdict, and is valid under ANY param-axis T2a
+    instrument outcome (does not depend on it)."""
+    jobs = []
+    seq = start_seq
+    dm392, ds392, L392 = 1536, 128, 16
+    steps_392 = 20_000
+    for seed in (18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29):
+        for arm in ("off", "per_token"):
+            for corpus in CORPORA:
+                name = f"fixscale_seedext_arm_{arm}_392m_{corpus}_s{seed}"
+                cmd, vcheck, ckpt_dir, out = _fixscale_cell(
+                    name, corpus, dm392, ds392, L392, steps_392, seed, arm)
+                jid = f"{seq:03d}_laneB_392m_seedext_{arm}_{corpus}_s{seed}"
+                jobs.append(dict(
+                    id=jid, lane="B",
+                    hypothesis=(f"Queue-depth harden 2026-07-15: adds replicate seed "
+                                f"{seed} to further tighten the CI on FROZEN_BIAS_LM_DESIGN.md "
+                                f"S13.22's 392M-{corpus} reading (arm={arm}) -- IDENTICAL "
+                                f"cell/protocol/cost basis to the 400/500-series seedext "
+                                f"blocks, next seed in sequence (box already has seeds 4-17). "
+                                f"Outcome-safe variance backfill: does NOT reopen the recorded "
+                                f"verdict and is valid under ANY param-axis T2a instrument "
+                                f"outcome."),
+                    cmd=cmd, gpu_h_estimate=4.671,
+                    output_dir=FIXSCALE_RESULTS_ROOT, validity_check=vcheck,
+                    notes=("identical cost basis to the original seedext block "
+                           "(S13.22 ref_per_step_s=0.836, per_cell_gpuh=4.671). "
+                           "--internal-timeout 36000s (10.0h) = 2.15x the 4.64h measured "
+                           "need at 20,000 steps -- same rail the 400/500-series 392M cells use."),
+                ))
+                seq += 1
+
+    dm98, ds98, L98 = 768, 64, 12
+    steps_98 = 67_547
+    for seed in (17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28):
+        for arm in ("off", "per_token"):
+            for corpus in CORPORA:
+                name = f"fixscale_seedext_arm_{arm}_98m_{corpus}_s{seed}"
+                cmd, vcheck, ckpt_dir, out = _fixscale_cell(
+                    name, corpus, dm98, ds98, L98, steps_98, seed, arm)
+                jid = f"{seq:03d}_laneB_98m_seedext_{arm}_{corpus}_s{seed}"
+                jobs.append(dict(
+                    id=jid, lane="B",
+                    hypothesis=(f"Queue-depth harden 2026-07-15: adds replicate seed "
+                                f"{seed} to further tighten the CI on S13.22's 98M-{corpus} "
+                                f"reading (arm={arm}) -- IDENTICAL cell/protocol/cost basis "
+                                f"to the 400/500-series seedext blocks, next seed in sequence "
+                                f"(box already has seeds 3-16). Outcome-safe variance "
+                                f"backfill: does NOT reopen the recorded verdict and is valid "
+                                f"under ANY param-axis T2a instrument outcome."),
+                    cmd=cmd, gpu_h_estimate=4.478,
+                    output_dir=FIXSCALE_RESULTS_ROOT, validity_check=vcheck,
+                    notes=("identical cost basis to the original seedext block "
+                           "(S13.22 ref_per_step_s=0.236, per_cell_gpuh=4.478). "
+                           "--internal-timeout 36000s (10.0h) = 2.26x the 4.43h measured "
+                           "need at 67,547 steps -- same rail the 400/500-series 98M cells use."),
+                ))
+                seq += 1
+    return jobs
+
+
+def param_axis_rung_y_seedext2_jobs(start_seq: int = 700) -> list[dict]:
+    """SECOND within-rung seed-variance increment for rung Y (ids 033/034),
+    the d_state=64 attribution cell (DSTATE_CONFOUND_PREREG.md Option 1).
+    Structural twin of param_axis_rung_y_seedext_jobs(), next seeds in
+    sequence. Queue-depth hardening 2026-07-15 (red-team drain-risk mandate).
+    Priced and configured EXACTLY as 033/034 and the 548-series: dm=1536,
+    ds=64, L=16, per_token, lambda 0.58, 67,547 steps, batch 32, seq 512,
+    --internal-timeout 86400s. Box already has seed 3 (033/034) and seeds 4-9
+    (548-559); this adds seeds 10-21 (per_token only, 2 corpora -- rung Y has
+    no 'off' arm) for further within-rung variance on the clean d_state=64
+    ladder {14M, 98M, Y}.
+
+    Outcome-safe: the cell config is fixed and matched to 029/030 by
+    construction; more seeds only tighten rung Y's own CI. Does NOT reopen the
+    attribution verdict and does not depend on the param_axis T2a instrument
+    verdict (produces raw training JSONs, one per seed).
+
+    COST/TIMEOUT: MEASURED, identical basis to 033/034 and the 548-series --
+    0.840 s/step measured at d_state=128 on this box (029/030), used as a
+    rigorous UPPER BOUND for d_state=64 (every d_state-dependent term is
+    monotone non-decreasing in d_state; dominant FFN + 50,257-way head
+    unchanged), so 15.76 GPU-h/cell with NO assumed speedup.
+    --internal-timeout 86400s (24.0h) = 1.52x that conservative bound.
+
+    Long single-job runtimes (~16h each) by design -- excellent unattended
+    GPU saturation. Ids 700+ sort below the 400/500/600 backlog but ahead of
+    990; they cannot preempt any running job (queue_worker.sh only claims when
+    its OWN gpu is free and never evicts)."""
+    jobs = []
+    steps_full = 67_547           # IDENTICAL to 033/034/548-series -- token-matched by construction
+    rate_s_per_step = 0.840       # MEASURED ds=128 upper bound; NO speedup assumed
+    est_gpu_h = steps_full * rate_s_per_step / 3600.0     # = 15.76 GPU-h
+    timeout_s = 86400             # 24.0h = 1.52x the conservative upper bound (matches 033/034/548-series)
+    seq = start_seq
+    for seed in (10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21):
+        for corpus in CORPORA:
+            name = f"fixscale_fulltoken_arm_per_token_392mY_ds64_{corpus}_s{seed}"
+            cmd, vcheck, ckpt_dir, out = _fixscale_cell(
+                name, corpus, 1536, 64, 16, steps_full, seed, "per_token",
+                timeout=timeout_s)
+            jid = f"{seq:03d}_laneB_392mY_ds64_per_token_{corpus}_s{seed}"
+            jobs.append(dict(
+                id=jid, lane="B",
+                hypothesis=(
+                    f"Queue-depth harden 2026-07-15: within-rung seed variance for "
+                    f"rung Y (DSTATE_CONFOUND_PREREG.md Option 1, ids 033/034 = seed 3, "
+                    f"548-559 = seeds 4-9). Adds replicate seed {seed} ({corpus}) at the "
+                    f"SAME config as 033/034 (dm=1536, ds=64, L=16, per_token, lambda 0.58, "
+                    f"67,547 steps) to further tighten the d_state=64 rung's own CI on the "
+                    f"clean {{14M, 98M, Y}} ladder. Outcome-safe: config is fixed/matched to "
+                    f"029/030 by construction; does NOT reopen the attribution verdict "
+                    f"and does not depend on the param-axis T2a instrument verdict."),
+                cmd=cmd, gpu_h_estimate=round(est_gpu_h, 2),
+                output_dir=FIXSCALE_RESULTS_ROOT, validity_check=vcheck,
+                notes=(
+                    f"COST: MEASURED 0.840 s/step at d_state=128 (029/030 on this box); "
+                    f"d_state=64 priced at the SAME rate as a rigorous UPPER BOUND (every "
+                    f"d_state-dependent cost term is monotone non-decreasing in d_state "
+                    f"while the dominant FFN 8*d_model^2 and 50,257-way head are unchanged) "
+                    f"-- NOT a speedup assumption. x {steps_full:,} steps = {est_gpu_h:.2f} "
+                    f"GPU-h/cell. --internal-timeout {timeout_s}s (24.0h) = 1.52x that "
+                    f"conservative bound and ~1.8x the likely true need -- identical rail to "
+                    f"033/034 and the 548-series. Config/arm/budget match 033/034 exactly; "
+                    f"only the seed differs. Box already has seeds 3-9; seeds 10-21 are fresh."),
+            ))
+            seq += 1
+    return jobs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outdir", default=os.path.join(HERE, "jobs", "pending"))
@@ -1860,7 +2002,9 @@ def main():
                 + param_axis_14m_fulltoken_jobs()
                 + param_axis_rung_y_dstate64_jobs()
                 + lane_b_seedext_increment2_jobs()
-                + param_axis_rung_y_seedext_jobs())
+                + param_axis_rung_y_seedext_jobs()
+                + lane_b_seedext_increment3_jobs()
+                + param_axis_rung_y_seedext2_jobs())
 
     total_by_lane = {}
     for j in all_jobs:

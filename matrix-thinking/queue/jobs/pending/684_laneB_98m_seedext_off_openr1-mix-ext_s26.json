@@ -1,0 +1,10 @@
+{
+ "id": "684_laneB_98m_seedext_off_openr1-mix-ext_s26",
+ "lane": "B",
+ "hypothesis": "Queue-depth harden 2026-07-15: adds replicate seed 26 to further tighten the CI on S13.22's 98M-openr1-mix-ext reading (arm=off) -- IDENTICAL cell/protocol/cost basis to the 400/500-series seedext blocks, next seed in sequence (box already has seeds 3-16). Outcome-safe variance backfill: does NOT reopen the recorded verdict and is valid under ANY param-axis T2a instrument outcome.",
+ "cmd": "mkdir -p /data/fixscale_ckpts/train/fixscale_seedext_arm_off_98m_openr1-mix-ext_s26 /home/nvidia/chapter2/deltanet_rd/results/fixscale/train && cd /home/nvidia/chapter2/deltanet_rd && /home/nvidia/tdenv/bin/python3 lm_pretrain_rd.py --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data --d-model 768 --d-state 64 --n-layers 12 --seq-len 512 --batch-size 32 --steps 67547 --ckpt-every 3377 --seed 26 --internal-timeout 36000 --frozen-bias-arm off --ckpt-dir /data/fixscale_ckpts/train/fixscale_seedext_arm_off_98m_openr1-mix-ext_s26 --out /home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_seedext_arm_off_98m_openr1-mix-ext_s26.json",
+ "gpu_h_estimate": 4.478,
+ "output_dir": "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_seedext_arm_off_98m_openr1-mix-ext_s26.json')); assert d.get('complete') is True; assert d.get('steps_completed', 0) >= 67547 - 1\"",
+ "notes": "identical cost basis to the original seedext block (S13.22 ref_per_step_s=0.236, per_cell_gpuh=4.478). --internal-timeout 36000s (10.0h) = 2.26x the 4.43h measured need at 67,547 steps -- same rail the 400/500-series 98M cells use."
+}

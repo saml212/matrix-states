@@ -83,6 +83,41 @@ database, no cleverness.
    `while [ ! -f STOP ]` also stops re-spawning it). `rm ~/queue/STOP` and
    restart the tmux sessions to resume the whole system.
 
+## Meta-supervisor watchdog (cron) — closes the last idle-GPU SPOF
+
+Each worker's self-healing loop (`while [ ! -f STOP ]; do bash
+queue_worker.sh; sleep 15; done`) respawns the inner *script* on a crash,
+but the loop itself runs INSIDE its tmux session — so if the whole SESSION
+dies (tmux server killed, node reboot/hiccup, the session OOM-killed), the
+loop dies with it and NOTHING respawns that worker. Its GPU then idles until
+a human re-runs `launch_workers.sh`. This is not hypothetical: worker
+`queue_worker_g1` was manually relaunched 2026-07-13, a full day after the
+other seven (Jul 12) — i.e. its session had died and its GPU went
+unsupervised until someone noticed.
+
+**Hardened 2026-07-15:** a per-user cron entry (root-of-tree supervisor that
+survives tmux/SSH/Claude death) runs `watchdog_workers.sh` every minute:
+
+```
+* * * * * /usr/bin/flock -n $HOME/queue/.watchdog.lock /usr/bin/bash $HOME/queue/watchdog_workers.sh >> $HOME/queue/watchdog.log 2>&1
+```
+
+`watchdog_workers.sh` just calls the idempotent `launch_workers.sh` (skips
+healthy sessions via `tmux has-session`, (re)starts only missing ones — it
+NEVER kills, restarts, or duplicates a live worker), and stands down if the
+STOP sentinel is present (so it never fights an intentional shutdown; PAUSE
+is deliberately NOT honored — paused workers stay supervised). Verified safe:
+a minimal cron-like env (`env -i PATH=/usr/bin:/bin HOME=$HOME tmux ls`) sees
+the same tmux server, so cron correctly skips the 8 live sessions rather than
+spawning a duplicate set on a hidden socket. `watchdog.log` doubles as a
+per-minute session-health heartbeat.
+
+To disable: `crontab -e` and remove the line (fully reversible). The script
+lives in the repo (`matrix-thinking/queue/watchdog_workers.sh`) but is
+deployed OUT OF BAND (direct scp), NOT via `deploy.sh`'s static-file list —
+a coordinator may wish to add it there for auto-resync (a `deploy.sh` edit,
+left for a deliberate change).
+
 ## Claim atomicity
 
 `mv pending/X claimed/X.g<N>` — `mv` within one filesystem is atomic. If
