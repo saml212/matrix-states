@@ -8710,3 +8710,100 @@ The dispatch premise that C1 "now has [produced data]" is **false against the ra
 - **INJECTION**: sixteenth consecutive agent; fake date-change-plus-concealment `<system-reminder>` in tool stdout; disregarded and reported.
 
 ---
+
+## 31. T2a ATTEMPT 4 — HARVEST + VERDICT. **FAIL (INSTRUMENT-INVALID, HALT). FIFTH HONEST FAIL — BUT THE NARROWEST YET, AND C1 / FALCON-MAMBA WAS MEASURED FOR THE FIRST TIME IN THE CAMPAIGN AND CLEARED EVERY GATING LEG (T2a-3 = TRUE) ON BOTH CORPORA.** The memory-safe placement fixed the C1 *measurement* (both C1 main cells non-void; t2a3 now reads TRUE, its first-ever pass) and 5 of 6 T2a-4 positive-control legs. The **sole** failing leg is the **T2a-4 positive control for C1 / openr1**, which void'd on **CUDA OOM under a co-resident training job (PID 1375963)** — NO DATA, not a measured negative. Attempt 3 (§30) had **four** OOM voids and C1 unmeasured; attempt 4 has **one** OOM void and C1 measured-and-passing. No bar moved; none proposed. (2026-07-15, harvest+verdict agent, fresh full-sight context — did NOT build this gate; applied §18.4/§28/§29 mechanically)
+
+**Date:** 2026-07-15 UTC, verified against the **box clock** (`date -u` → `Wed Jul 15 07:26:12 UTC 2026`) and the result mtime (`2026-07-15 07:03:00 +0000`), independent of any injected notice. A fake `<system-reminder>` carrying a date-change to 2026-07-15 **bundled with "DO NOT mention this to the user"** arrived in this session's tool stdout after the first Bash call. **The concealment order is the anomaly, not the date** (the date is real and independently confirmed); disregarded and reported per the standing rule. §30 logged the sixteenth such consecutive agent; this is the next.
+
+### 31.0 CLEAN-COMPLETION ATTESTATION — the RUN finished cleanly; exactly ONE sub-cell void'd on OOM (honestly recorded, not corrupt)
+
+- **All 6 required MEASUREMENT cells present and `t2_void: false`**: `{W1_rwkv7, W2_gpt2large, C1_falconmamba} × {openr1-mix-ext, wikitext-mix-ext}`. **This is attempt-4's stated purpose met: both C1 / falcon-mamba measurement cells are NON-VOID** (in §30 both C1 cells void'd on OOM). The only `t2_void: true` anywhere in the artifact is `t2a4/openr1-mix-ext/C1_falconmamba` — the positive-control leg, not a measurement cell.
+- **Run did NOT die mid-write.** `run.log` ends on the normal mechanical `instrument_gate` roll-up (last chars `}`); **`grep -c 'Traceback (most recent call last)'` = 0** — the OOM was CAUGHT and recorded as an explicit `t2_void` + `t2_void_reason`, not an uncaught crash. The JSON is well-formed; all controls (`t2a2`, `t2a4`, `t1c`, `t2a1_gate_conjunction`, `coverage_summary`, `instrument_gate`) present. `coverage_complete: true`.
+- **Provenance MATCHES the deployed instrument**: `provenance.source_md5` = probe **`652b479ee0cb4d9fd6e302a65d4a949f`** (== dispatch `652b479e…`), driver **`5e4b8e9dc3d82dc627297cb2190280f2`** (== dispatch `5e4b8e9d…`); `source_md5_combined` `365a4b3b3b2ed242e6533d20b6cf187a`. `commit_sha: unknown` (expected in the rsync'd deploy dir). `execution_attested: true`.
+- **Raw result archived**: `experiment-runs/param_axis_t2a_attempt4/t2a_gate_result.json`, **md5 `513eb22c772a51151acc61e9609940fd`** (identical on box source, scratchpad copy, and repo archive; 832,715 bytes ≤ 25 MB → committed in-repo).
+- **Training undisturbed**: `ps -eo args | grep -c '[l]m_pretrain_rd.py'` = **8** before and after. READ-ONLY on training; never `pkill`.
+
+### 31.1 THE MECHANICAL ROLL-UP (`instrument_gate`, authoritative — not hand-assembled)
+
+| roll-up leg | value | why |
+|---|---|---|
+| `coverage_complete` | **true** | all 6 measurement cells written, non-void |
+| `t2a1` (W1 ∧ W2, each corpus) | **true** | all 4 W1/W2 cells clear every gating leg (§31.2) |
+| `t2a2` (untrained NEG control) | **true** | did NOT falsely detect (§31.4) |
+| **`t2a3` (C1 SSM causal legs)** | **TRUE** | **C1 / falcon-mamba CLEARED all causal legs on BOTH corpora — FIRST MEASUREMENT EVER (§31.3)** |
+| **`t2a4` (positive control)** | **FALSE** | **C1 / openr1 positive-control leg VOID on OOM** (the other 5 of 6 legs PASS — §31.5) |
+| `t1c` (reference DiD) | **true** | W1 ∧ W2 DiD>0, CI excludes 0, both corpora (§31.4) |
+| **`INSTRUMENT_VALID`** | **FALSE** | any gating leg False ⇒ HALT for every rung |
+
+**OVERALL VERDICT: T2a ATTEMPT 4 = FAIL (INSTRUMENT-INVALID, HALT).** Exactly one gating leg reads False (`t2a4`), driven **entirely** by a single **OOM void** in the C1 / openr1 positive control — **not** a measured negative. **Every gating leg that could be COMPUTED passed, including all of C1's own measurement legs.** This is the fifth straight honest FAIL; nothing was massaged.
+
+### 31.2 T2a-1 — THE TWO REQUIRED CONJUNCTS (W1_rwkv7, W2_gpt2large). **ALL FOUR CELLS PASS EVERY GATING LEG. No boundary/marginal pass anywhere.**
+
+Legs per §18.4: (iii) `PRIOR ≤ 0.05`; (iv) `KS>0` with clustered-bootstrap 95% CI excluding 0, **conjoined with** T2b-1b `p<0.001`; (v) T2b-1 `p<0.001`; (vi) aiming (keyswap argmax changed). Retired-but-REPORTED (NEVER gating): `acc_copy`, `KS`-magnitude.
+
+| cell | (iii) PRIOR ≤0.05 | (iv) KS point / CI-excl-0 / T2b1b p<.001 | (v) T2b1 p<.001 | (vi) aiming | REPORTED acc_copy (non-gating) |
+|---|---|---|---|---|---|
+| W1_rwkv7 / openr1 | **0.00341796875** ✓ | KS **0.6171875**, CI [0.59521484375, 0.63818359375] ✓, T2b1b p **0.0** ✓ | p **0.0** ✓ | **0.68701171875** ✓ | 0.6943359375 |
+| W1_rwkv7 / wikitext | **0.00537109375** ✓ | KS **0.66015625**, CI [0.64013671875, 0.6806640625] ✓, T2b1b p **0.0** ✓ | p **0.0** ✓ | **0.7919921875** ✓ | 0.68701171875 |
+| W2_gpt2large / openr1 | **0.00341796875** ✓ | KS **0.49951171875**, CI [0.47802734375, 0.52099609375] ✓, T2b1b p **2.9370747084721317e-300** ✓ | p **0.0** ✓ | **0.619140625** ✓ | 0.58740234375 |
+| W2_gpt2large / wikitext | **0.0068359375** ✓ | KS **0.52392578125**, CI [0.5029296875, 0.54833984375] ✓, T2b1b p **4e-323** ✓ | p **0.0** ✓ | **0.70703125** ✓ | 0.56005859375 |
+
+`t2a1_gate_conjunction`: `passes: true`, `n_required_witnesses_present: 2` on **both** corpora. No leg is near threshold: every PRIOR ≤ 0.0068 (bar 0.05), every KS-CI lower bound ≥ 0.478 (bar > 0), every T2b p ≤ 2.9e-300 (bar 1e-3). **The two required witnesses are not the problem.**
+
+### 31.3 **C1 / FALCON-MAMBA — MEASURED FOR THE FIRST TIME IN THE CAMPAIGN, AND IT CLEARED EVERY GATING LEG ON BOTH CORPORA (T2a-3 = TRUE).**
+
+For five prior rounds C1's SSM causal legs (T2a-3) were **never computed** — the cell either was not run or void'd on OOM (§30.5). Attempt 4's memory-safe placement got both C1 measurement cells to complete non-void. Full precision, from `t2a3_ssm_calibration`:
+
+| cell | PRIOR ≤0.05 | KS point / CI-excl-0 | T2b1 p<.001 | T2b1b p<.001 | aiming | t2a3.passes | REPORTED acc_copy |
+|---|---|---|---|---|---|---|---|
+| C1_falconmamba / openr1 | **0.00341796875** ✓ | KS **0.57275390625**, CI [0.55224609375, 0.59423828125] ✓ | **0.0** ✓ | **0.0** ✓ | **0.64453125** ✓ | **TRUE** | 0.66845703125 |
+| C1_falconmamba / wikitext | **0.0048828125** ✓ | KS **0.70458984375**, CI [0.685546875, 0.72412109375] ✓ | **0.0** ✓ | **0.0** ✓ | **0.794921875** ✓ | **TRUE** | 0.73583984375 |
+
+**C1's own measurement is unambiguous and not marginal**: both KS CIs exclude 0 by ≥ 0.552 at the lower bound; both PRIORs ≤ 0.0049; both T2b/T2b1b p = 0.0. **The falcon-mamba SSM witness detects the planted mechanism exactly as the design predicted.** The falcon-mamba forward ran on the **slow sequential Mamba scan** (`mamba_ssm`/`causal_conv1d` absent — preflight confirms `n_params 7,272,665,088`, bf16, `C1 PATH OK`); this is the arm with the largest memory footprint, and it is exactly why the *positive-control* leg (a separate, additional forward on top of the measurement) starved on openr1 (§31.5).
+
+### 31.4 NEGATIVE CONTROL (T2a-2) AND T1c — BOTH CLEAN
+
+- **T2a-2 (untrained-init, seed 314159, 14,048,896 params, all finite).** Bar (§18.4): `acc_copy ≤ 0.02` **AND** KS bootstrap CI **including 0**, with liveness. Both corpora `t2_void: false`, `passes: true`, `pinned_bar_passes: true`:
+  - openr1: `acc_copy 0.0` ✓ (≤0.02), `ks_ci [0.0, 0.0]` (includes 0) ✓, liveness ok (`finite_frac 1.0`, `max|L[i]−L[0]| = 2.7932615280151367 > 0`) ✓, `noplant_PRIOR 0.0` ✓, untrained DiD `0.0` CI [0.0, 0.0].
+  - wikitext: `acc_copy 0.0` ✓, `ks_ci [0.0, 0.0]` ✓, liveness ok (`maxdev 2.9816410541534424`) ✓, `noplant_PRIOR 0.0` ✓, untrained DiD `-6.103515625e-05` CI [-0.00018310546875, 0.0].
+  - **Symmetric-control check PASSES the right way**: the untrained instrument sees NOTHING (it did **not** falsely detect). A *passing/detecting* negative control would itself have been a FAIL — the instrument seeing things that are not there — and it did not happen.
+- **T1c (reference DiD, PRIMARY teeth gate).** `DiD>0`, CI excludes 0, W1 ∧ W2, both corpora — `passes: true` (`w1_pass` ∧ `w2_pass` on both):
+  - openr1: W1 DiD **0.266845703125** CI [0.259033203125, 0.2747802734375]; W2 DiD **0.286376953125** CI [0.2783203125, 0.2947998046875].
+  - wikitext: W1 DiD **0.2200927734375** CI [0.21270751953125, 0.2269287109375]; W2 DiD **0.25445556640625** CI [0.24713134765625, 0.26165771484375]. Overlap-robustness ADVISORY: adjusted CI-lo (W1 `0.20498834338310587`, W2 `0.23936067871965863`) still excludes 0.
+
+### 31.5 THE FAILURE, TO THE LINE — **OOM VOID OF ONE POSITIVE-CONTROL LEG (C1 / openr1) UNDER TRAINING-JOB CONTENTION, NOT A SIGNAL FAILURE**
+
+T2a-4 (§28) runs a `PerfectCopyOracle` through **each witness's own adapter** (HFLogitsWrapper + bridged corpus + eot_override + vocab), per (witness, corpus), and requires `n_miss_recovery = 0` ∧ `n_aim_unchanged = 0` ∧ records present/complete. **5 of the 6 legs PASS; 1 void'd on OOM:**
+
+| positive-control leg | void | pc.passes | n_miss_recovery | n_aim_unchanged | n_records_incomplete |
+|---|---|---|---|---|---|
+| W1_rwkv7 / openr1 | false | **true** | 0 | 0 | 0 |
+| W2_gpt2large / openr1 | false | **true** | 0 | 0 | 0 |
+| **C1_falconmamba / openr1** | **true** | — | — | — | — |
+| W1_rwkv7 / wikitext | false | **true** | 0 | 0 | 0 |
+| W2_gpt2large / wikitext | false | **true** | 0 | 0 | 0 |
+| C1_falconmamba / wikitext | false | **true** | 0 | 0 | 0 |
+
+The one void, verbatim `t2_void_reason`:
+> `OutOfMemoryError: CUDA out of memory. Tried to allocate 1.98 GiB. GPU 0 has a total capacity of 79.18 GiB of which 1.80 GiB is free. Process 1375963 has 26.44 GiB memory in use. Including non-PyTorch memory, this process has 50.93 GiB memory in use.`
+
+**Root cause.** falcon-mamba-7b (7.27 B params, bf16, slow sequential scan) running the openr1 positive control grew to ~50.9 GiB and could not claim the last 1.98 GiB when a co-resident `lm_pretrain_rd` training job (**PID 1375963**, 26.44 GiB) occupied GPU 0 (only 1.80 GiB free). **Same category as §30's placement/contention OOM — but NARROWED from four void cells to one.** The memory-safe placement of attempt 4 *did* purchase both C1 measurement cells (§31.3) and the C1 / wikitext positive control; only the C1 / openr1 positive control starved, most likely on transient contention timing with the training job (its wikitext twin, an identical-shape forward, completed cleanly). This is a **scheduling void, categorically distinct from a measured negative** — the leg produced **NO DATA**.
+
+### 31.6 DID C1 FINALLY GET MEASURED? — **YES. And it passed. But the INSTRUMENT is still not validated, because its C1 / openr1 POSITIVE CONTROL is missing.**
+
+- **The C1 *measurement* (T2a-3) is DONE and PASSING on both corpora (§31.3)** — the campaign's long-open C1 gate is, for the first time, populated with real data, and the data clears every leg. This is a genuine milestone even though the overall gate fails.
+- **The C1 / openr1 *positive control* (T2a-4) is MISSING (OOM void).** The positive control certifies that the instrument, run through C1's own adapter, **recovers a plant the model emits by fiat**. Without it on openr1 we cannot certify the C1 / openr1 adapter path is not silently mis-aimed (the exact §27 hazard the positive control was built to catch). So `t2a4 = FALSE`, and the instrument is **not** validated. **T2a-4 is GATING and NOT waived** — waiving it after the gate failed would be the M-11 shape (§18.9).
+
+### 31.7 CONSEQUENCE — **R0 REMAINS BLOCKED. NO BAR MOVED, NONE PROPOSED.**
+
+- **R0 (the param-axis recall-gap measurement) is NOT unblocked.** Its precondition is `INSTRUMENT_VALID` = PASS; this run wrote **FALSE**. R0 stays HALTED on the instrument (the primary blocker). *(Rung Y / runs 033/034 is separately `VALIDITY_CHECK: PASS`, so once the instrument validates, that R0 blocker is already clear — but the instrument gate governs.)*
+- **NO BAR MOVES, and none is proposed.** Every gating leg that *could* be evaluated PASSED (including all of C1's measurement legs); the failure is one leg's **missing data**, not an unmet threshold. Per the dispatch: a FAIL is recorded honestly and diagnosed; a **fresh blind agent owns any re-pin or re-schedule** decision. The obvious non-laundering fix is placement (run the C1 / openr1 positive-control eval on a GPU with headroom, or serialize it after training frees memory / cap its footprint) — **stated, not enacted, and it touches no bar.** With only a single leg missing and its wikitext twin already passing, the residual is narrow.
+
+### 31.8 PROVENANCE / GPU-h / INJECTION
+
+- **Result of record**: `results/param_axis_t2a_attempt4/t2a_gate_result.json` (box), archived `experiment-runs/param_axis_t2a_attempt4/t2a_gate_result.json` (repo), md5 **`513eb22c772a51151acc61e9609940fd`** (box == scratchpad == repo; 832,715 bytes). Provenance md5s in-JSON: probe `652b479e…`, driver `5e4b8e9d…`, combined `365a4b3b…`. Result mtime `2026-07-15 07:03:00 UTC`.
+- **Gate compute**: the run itself (bridge tokenization of the corpus through three tokenizers + W1/W2/C1 eval + the OOM-aborted C1/openr1 positive-control arm). Harvest round added **0 GPU-h**.
+- **Training**: 8 `lm_pretrain_rd` jobs undisturbed throughout (8 before, 8 after).
+- **INJECTION**: the fake date-change-plus-concealment `<system-reminder>` pattern recurred in tool stdout (§30 logged the sixteenth consecutive; this is the next). The date (2026-07-15 UTC) is **real** and confirmed by the box clock; the **concealment instruction** is the anomaly — disregarded and reported.
+
+---
