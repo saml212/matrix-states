@@ -1,0 +1,305 @@
+{
+  "gate_a_primary": {
+    "ladder": [
+      "14M",
+      "98M",
+      "392M"
+    ],
+    "d_states": {
+      "14M": 64,
+      "98M": 64,
+      "392M": 128
+    },
+    "distinct_d_states": [
+      64,
+      128
+    ],
+    "passes": false,
+    "rule": "|{d_state(r) : r in ladder}| == 1",
+    "label": "primary A={14M,98M,392M}"
+  },
+  "gate_a_A64": {
+    "ladder": [
+      "14M",
+      "98M",
+      "Y"
+    ],
+    "d_states": {
+      "14M": 64,
+      "98M": 64,
+      "Y": 64
+    },
+    "distinct_d_states": [
+      64
+    ],
+    "passes": true,
+    "rule": "|{d_state(r) : r in ladder}| == 1",
+    "label": "clean A\u2086\u2084={14M,98M,Y}"
+  },
+  "gate_1_primary_confounded": {
+    "ladder_label": "confounded {14M,98M,392M}",
+    "delta": 0.005,
+    "power_factor": 2.49,
+    "n_seeds": 1,
+    "SE_by_sigma_between": {
+      "floor_0.002": {
+        "sigma_between": 0.002,
+        "SE_beta": 0.0028161232326913157,
+        "2.49*SE": 0.007012146849401377,
+        "delta_ge_2.49SE": false
+      },
+      "central_0.005": {
+        "sigma_between": 0.005,
+        "SE_beta": 0.005277398170616774,
+        "2.49*SE": 0.013140721444835768,
+        "delta_ge_2.49SE": false
+      },
+      "upper_0.008": {
+        "sigma_between": 0.008,
+        "SE_beta": 0.008052696781845697,
+        "2.49*SE": 0.02005121498679579,
+        "delta_ge_2.49SE": false
+      }
+    },
+    "leg_A_sigma_between_estimable": false,
+    "leg_B_delta_ge_2.49SE_at_upper_band": false,
+    "FLAT_available": false,
+    "note": "FLAT STRUCK: unavailable at n_seeds=1 for every \u03b2\u0302 incl. exactly 0 (DELTA \u00a77). Reachable verdicts: RISES, DECLINES, INDETERMINATE, FLOOR, VOID."
+  },
+  "gate_1_clean_A64": {
+    "ladder_label": "clean A\u2086\u2084 {14M,98M,Y}",
+    "delta": 0.005,
+    "power_factor": 2.49,
+    "n_seeds": 1,
+    "SE_by_sigma_between": {
+      "floor_0.002": {
+        "sigma_between": 0.002,
+        "SE_beta": 0.0027786124524717647,
+        "2.49*SE": 0.006918745006654695,
+        "delta_ge_2.49SE": false
+      },
+      "central_0.005": {
+        "sigma_between": 0.005,
+        "SE_beta": 0.005274840547339727,
+        "2.49*SE": 0.013134352962875922,
+        "delta_ge_2.49SE": false
+      },
+      "upper_0.008": {
+        "sigma_between": 0.008,
+        "SE_beta": 0.00807208525814896,
+        "2.49*SE": 0.020099492292790913,
+        "delta_ge_2.49SE": false
+      }
+    },
+    "leg_A_sigma_between_estimable": false,
+    "leg_B_delta_ge_2.49SE_at_upper_band": false,
+    "FLAT_available": false,
+    "note": "FLAT STRUCK: unavailable at n_seeds=1 for every \u03b2\u0302 incl. exactly 0 (DELTA \u00a77). Reachable verdicts: RISES, DECLINES, INDETERMINATE, FLOOR, VOID."
+  },
+  "rung_stats": {
+    "14M": {
+      "M": 0.112213134765625,
+      "sigma_within": 0.0018989427093448743,
+      "x_log10params": 7.147642197554537,
+      "params": 14048896,
+      "n_rows_total": 4096,
+      "rowcounts_per_corpus": [
+        2048,
+        2048
+      ],
+      "corpora": [
+        "openr1-mix-ext",
+        "wikitext-mix-ext"
+      ],
+      "d_state": 64
+    },
+    "98M": {
+      "M": 0.146575927734375,
+      "sigma_within": 0.0022619331564516093,
+      "x_log10params": 7.989530688584427,
+      "params": 97618176,
+      "n_rows_total": 4096,
+      "rowcounts_per_corpus": [
+        2048,
+        2048
+      ],
+      "corpora": [
+        "openr1-mix-ext",
+        "wikitext-mix-ext"
+      ],
+      "d_state": 64
+    },
+    "392M": {
+      "M": 0.15045166015625,
+      "sigma_within": 0.0023000341532544476,
+      "x_log10params": 8.59314139627508,
+      "params": 391869440,
+      "n_rows_total": 4096,
+      "rowcounts_per_corpus": [
+        2048,
+        2048
+      ],
+      "corpora": [
+        "openr1-mix-ext",
+        "wikitext-mix-ext"
+      ],
+      "d_state": 128
+    },
+    "Y": {
+      "M": 0.126678466796875,
+      "sigma_within": 0.0021508757920605287,
+      "x_log10params": 8.586097234104399,
+      "params": 385564672,
+      "n_rows_total": 4096,
+      "rowcounts_per_corpus": [
+        2048,
+        2048
+      ],
+      "corpora": [
+        "openr1-mix-ext",
+        "wikitext-mix-ext"
+      ],
+      "d_state": 64
+    }
+  },
+  "admissibility": {
+    "14M": {
+      "openr1-mix-ext": {
+        "admissible": true,
+        "reasons": []
+      },
+      "wikitext-mix-ext": {
+        "admissible": true,
+        "reasons": []
+      }
+    },
+    "98M": {
+      "openr1-mix-ext": {
+        "admissible": true,
+        "reasons": []
+      },
+      "wikitext-mix-ext": {
+        "admissible": true,
+        "reasons": []
+      }
+    },
+    "392M": {
+      "openr1-mix-ext": {
+        "admissible": true,
+        "reasons": []
+      },
+      "wikitext-mix-ext": {
+        "admissible": true,
+        "reasons": []
+      }
+    },
+    "Y": {
+      "openr1-mix-ext": {
+        "admissible": true,
+        "reasons": []
+      },
+      "wikitext-mix-ext": {
+        "admissible": true,
+        "reasons": []
+      }
+    }
+  },
+  "rungs_present": [
+    "14M",
+    "98M",
+    "392M",
+    "Y"
+  ],
+  "seed_label_disclosure": {
+    "98M": "s0",
+    "14M": "s3",
+    "392M": "s3",
+    "Y": "s3",
+    "n_seeds": 1
+  },
+  "h3_caveat": {
+    "blind_spot_pts_per_decade": [
+      1.11,
+      1.92
+    ],
+    "VIF": 2.97,
+    "note": "392M contributes ~0 to \u03b2\u0302 net of d_state (saturated 3x3; DSTATE \u00a73.2)."
+  },
+  "constants": {
+    "delta_per_decade": 0.005,
+    "sigma_between_band": [
+      0.002,
+      0.008
+    ],
+    "sigma_between_central": 0.005,
+    "power_factor": 2.49
+  },
+  "delta_64": {
+    "delta": 0.03436279296875,
+    "se": 0.007663049328930957,
+    "ci": [
+      0.019343492153821168,
+      0.04938209378367883
+    ],
+    "sigma_between": 0.005
+  },
+  "gamma_state_width": {
+    "delta": 0.023773193359375,
+    "se": 0.007740569990576205,
+    "ci": [
+      0.008601954838365298,
+      0.038944431880384704
+    ],
+    "sigma_between": 0.005
+  },
+  "beta_confounded_primary": {
+    "beta": 0.027364542959874158,
+    "se": 0.005277398170616774,
+    "ci": [
+      0.017021032531799422,
+      0.037708053387948894
+    ],
+    "S_xx": 1.054196683756376,
+    "xbar": 7.910104760804681,
+    "weights": [
+      -0.7232640502465751,
+      0.07534260826616417,
+      0.647921441980411
+    ],
+    "leverage_w2": [
+      0.5231108863790803,
+      0.0056765086203486685,
+      0.4198021949779751
+    ],
+    "sigma_between": 0.005,
+    "factor1": "RISES"
+  },
+  "beta_clean_A64": {
+    "beta": 0.012083400078768888,
+    "se": 0.005274840547339727,
+    "ci": [
+      0.0017449025002427287,
+      0.022421897657295048
+    ],
+    "S_xx": 1.0446069222459613,
+    "xbar": 7.907756706747787,
+    "weights": [
+      -0.7276560139568706,
+      0.07828206006985017,
+      0.6493739538870205
+    ],
+    "leverage_w2": [
+      0.5294832746476015,
+      0.00612808092877963,
+      0.4216865319868622
+    ],
+    "sigma_between": 0.005,
+    "factor1": "RISES"
+  },
+  "FINAL_VERDICT": "RISES / ATTRIBUTED (clean A\u2086\u2084 slope > 0; \u0394\u2086\u2084 > 0 confirms 14M\u219298M leg)",
+  "verdict_lines": [
+    "In-context recall capacity increases with parameter count, d_state held at 64.",
+    "SENSITIVITY: confounded \u03b2\u0302 agrees (RISES) -> clean A\u2086\u2084 headline stands, not vetoed.",
+    "Factor 2 (span_frac monotonicity over A) NOT evaluated here -> COUPLED/DECOUPLED WITHHELD; report as RECALL-TREND-ONLY unless separately licensed by the T3 probe."
+  ]
+}
