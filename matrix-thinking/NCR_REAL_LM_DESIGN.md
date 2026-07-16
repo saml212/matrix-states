@@ -2943,3 +2943,256 @@ TRAINABILITY question, which Phase 1's own per-task calibration cells
 Everything in this document remains CONDITIONAL on both §9 gates (GATE 1:
 main ortho-write verdict; GATE 2: the re-specified bridge cell) and on a
 fresh, independent ATTACK ROUND 3 before build authorization.
+
+---
+
+## §A3 ROUND 3 — FINAL VERIFICATION (2026-07-16, independent)
+
+Narrow final-gate pass on DRAFT-STAGE-1-REV-2: (1) discharge-table fidelity,
+(2) spot-arithmetic recomputed, (3) the self-flagged cross-task-interference
+spot, (4) carried-forward minors m4/m6/m7, (5) light coherence sweep,
+(6) CLAUDE.md hard-rule pass. Every number below was recomputed, not skimmed;
+every external citation was opened at the cited file/line.
+
+### Verdict: **REVISE** — two narrow, in-place fixes block CLEAR; nothing structural, no arithmetic error, no citation defect.
+
+The design's substance — the two-family conjunction, the length-generalization
+reframe, the M7/M9 shared-head fix, the M8 flat-vs-linear restore, the M10
+chance-floor bands, the two-gate dependency structure, the entire compute
+ledger — is **sound and gate-ready**. All five §R2 discharges and all three
+round-2 partials are substantively present in the revised text. All
+spot-arithmetic reproduces. All load-bearing citations are faithful. The two
+blocking items are localized editorial/gate-wording defects, fixable in one
+Rev-3 pass without touching any experiment, gate threshold, or number.
+
+### FINDINGS
+
+**F3-1 [REVISE] — The F2 stale-language purge is INCOMPLETE; the retired
+structural register survives in §0/§2.1/§2.2/§3.1 and, most prominently, the
+§3.2 SECTION HEADER — contradicting this document's own purge-completeness
+claim.** §1 line 129 asserts: *"Every 'cannot, not merely does not' /
+'structurally barred at tested depths' sentence is purged from this design as
+of this revision (§3.2, §7, §8, §9, below)."* §R2's changelog (line 2898)
+scopes the purge to "§1, §3.2, §7, §8, §9." Both claims are FALSE against the
+actual text. Surviving live-stale sentences (each re-asserts the twice-retired
+F1/F2 structural claim as a current framing, not as a retirement reference):
+- **§3.2 header, line 607** (inside the claimed-purged §3.2): *"Task 2 —
+  Non-solvable-group word-problem chain (PRIMARY for Axis A — **structural
+  failure**, well-posed construction…)"* — the primary-task header still
+  labels Axis A "structural failure."
+- **§2.1 Assessment, lines 325–330:** *"TC⁰ transformers therefore **cannot
+  solve it** unless TC⁰=NC¹… This is a **genuine complexity-theoretic
+  argument, not an empirical-drift claim** — but it ONLY **bites** if… a
+  non-solvable group."* This directly contradicts §1 line 120–122 ("a claim
+  about what the two architectures' LEARNED SOLUTIONS generalize like, not
+  about what either architecture can in-principle compute") and §3.4's demotion
+  of C1–C3 to MOTIVATION-only. The "it ONLY bites" clause re-asserts a finite-L
+  bite that F2 proved does not exist at any tested L.
+- **§2.2, lines 425/433:** *"the Transformer, §4.1, on **structural
+  grounds**"* and *"Task 2's **structural baseline of record** is the
+  Transformer"* — stale rationale for the baseline choice.
+- **§3.1, line 584:** *"a TC⁰ transformer is NOT structurally barred from this
+  task **the way it is from Task 2**"* — asserts Task 2 has a live
+  structural-barred property.
+- **§3.1, line 602:** *"Task 2 carries the **structural (Axis A) claim**"* —
+  calls Axis A structural.
+- **§0 reading list, line 41:** *"for §3's **structural-failure task** below."*
+- Evidence: F2/§A2-ADJUDICATION retired "cannot, not merely does not" as
+  UNEARNABLE at any testable depth; §1/§3.2-body/§7/§3.4 correctly reframe to
+  MECHANISTIC LENGTH-GENERALIZATION. The WIN bands and hypothesis are clean —
+  the defect is that the purge missed §0/§2.1/§2.2/§3.1 and the §3.2 header, so
+  a build agent or reviewer reading those sections in isolation would take Axis
+  A as a live structural-impossibility claim. **Minimal fix:** complete the
+  purge — retitle the §3.2 header ("mechanistic length-generalization" per §1);
+  in §2.1 add the F2 caveat (the TC⁰⊊NC¹ argument is ASYMPTOTIC / MOTIVATION,
+  does NOT bite at any tested finite L) or cross-ref §1/§3.2's reframe; strike
+  "structural grounds"/"structural baseline of record" (§2.2), "the way it is
+  from Task 2" (§3.1 584), "structural (Axis A) claim" (§3.1 602), and
+  "structural-failure task" (§0 line 41); then correct line 129's/§R2's purge
+  scope to reflect the actual sections touched.
+
+**F3-2 [REVISE] — GATE-2's PARTIAL and NULL bands still overlap with no pinned
+margin, and this gate decides whether a PRIMARY axis is DROPPED — an
+ambiguous-at-read-time gate (round-2 m7, carried forward unfixed).** §9.2 /
+§6.2 Phase 0b define **PARTIAL** = "Gate-0 clears, L=20 recovery ∈(0.35,0.9)"
+and **NULL** = "Gate-0 clears, no gain over free-write at L=20" with NO delta
+threshold. A borderline result — e.g. ortho rec@L=20 = 0.60 (∈(0.35,0.9) ⇒
+PARTIAL) with free-write = 0.58 (no meaningful gain ⇒ NULL) — satisfies BOTH
+descriptions. The PARTIAL/NULL boundary is precisely the boundary between
+"proceed with Task 2/Axis A (at a re-anchored floor)" and "DROP Task 2/Axis A
+for Stage 1" (§9.2 branches; §8 item 7's trigger inherits this ambiguity).
+Per the round-3 mandate, a read-time-ambiguous GATING criterion is
+REVISE-level, not a minor — the WIN row already carries an explicit free-write
+clause (≤0.35), so the fix is symmetric and trivial. **Minimal fix:** pin a
+minimum `(ortho − free)` margin (e.g. ≥0.2, mirroring the WIN row) separating
+PARTIAL from NULL in BOTH §9.2 and §6.2 Phase 0b; the design already flags this
+exact gap (lines 1436/1980/2048/2927) but leaves it unfixed.
+
+**F3-3 [MINOR, disclosed — recommend fold] — m4: the axis-dropping GATE-2
+bridge cell and Phase-1 calibration run at n=2 seeds.** §6.2 Phase 0b pins
+`n=2`; §9.2 can DROP Axis A on "median rec@0.9" of 2 seeds (median-of-2 =
+mean-of-2, no tie-break). This contradicts this program's own documented
+trainability-variance (CLAUDE.md Research Direction: "one fresh seed cleared
+the bar — §1.40's surprise") and the n≥3/n=4 norm the main ortho-write wave
+and head-to-head axis-1 used. Disclosed (lines 1396/2044/2923) but unfixed.
+Cheap fix (n=3 ≈ +1.06 GPU-h at 1×). Does not hard-block conditional build but
+SHOULD be raised to n≥3 before the bridge cell runs, since it gates an entire
+primary axis.
+
+**F3-4 [MINOR, disclosed] — m6: §6.4 duplicates the "Main 98M/392M cells… Two
+coupled levers… 1. Raise batch size… 2. Raise seq_len" block near-verbatim**
+(≈lines 1597–1622 and ≈1646–1671). Confirmed present, disclosed (lines
+2047/2926), harmless doc-slop. De-dup so a build agent does not read two
+subtly-divergent copies. Non-blocking.
+
+### CHECK 3 — cross-task interference (the self-flagged spot)
+
+**(i) Exact kill/branch criterion?** PARTIAL. There is an exact per-task-arm
+trigger — Phase-1 Gate-0 (in-distribution recovery ≥0.9 AND val-loss inside
+`k=2·s_ref`), and §8 item 4 KILLS Phase 2 for a task arm that plateaus below
+0.9 — so a task whose learnability collapses under co-training would be caught
+per-arm. But there is **NO dedicated interference criterion** that compares the
+shared-curriculum Phase-2 per-task accuracy against the single-task Phase-1
+calibration with a pinned degradation threshold. Interference that degrades one
+task in the shared Phase-2 run WITHOUT dropping it below the absolute 0.9 bar
+would pass every gate silently. The design discloses this honestly as
+carried-forward open item (5) (lines 2936–2942) and names Phase-1's per-task
+cells as "the first empirical check… not a resolved certainty" — so it is
+gate-adjacent, not pure vibes, but the interference-specific instrument is
+under-specified. Recommend (non-blocking) wiring an explicit
+Phase-1-single-task vs Phase-2-shared per-task degradation threshold.
+
+**(ii) One-axis-rule violation in §5's curriculum?** NO. The M7/M9 fix makes
+the two families share ONE head at ONE shape (architecture fixed), so
+co-training two task families is standard multi-task, not "two unproven
+architectural axes bundled" (CLAUDE.md's rule targets the latter). A clean
+isolating ablation EXISTS structurally: Phase 1 runs SEPARATE per-task
+calibration cells (Task-1 arm, Task-2 arm), single-family, before Phase 2
+co-trains — comparing the two isolates interference. The pieces are present;
+only the explicit comparison-with-threshold (i, above) is unwired.
+
+### CHECK 4 — carried-forward minors
+
+- **m4:** disclosed; recommend fold (F3-3). Non-blocking but touches an
+  axis-dropping decision.
+- **m6:** disclosed; harmless doc-slop (F3-4). Non-blocking.
+- **m7:** disclosed BUT **DOES block (F3-2)** — a band overlap in a gating
+  criterion that decides a primary-axis drop is ambiguous at read time; the
+  round-3 mandate classifies this REVISE-level, not minor. This is the one
+  carried-forward minor that must be pinned before CLEAR.
+
+### SPOT-ARITHMETIC (recomputed — all PASS)
+
+- **(a) Task-2 bands vs chance:** 5-letter answer ⇒ chance 1/5=0.20; fixed-point
+  exclusion (guard 3) ⇒ 1/4=0.25. FAIL ≤0.35 = 0.25 + 0.10 margin. HOLD ≥0.9
+  (≈3.6× chance), DEGRADED (0.35,0.9). Coherent. ✓
+- **(b) ρ⊕I_29:** 4+29 = 33 = d_ncr ✓; ρ_{S₅} orthogonal (4 unit σ) ⊕ I_29 (29
+  unit σ) ⇒ all 33 singular values exactly 1, none 0 ⇒ NS-polar well-posed
+  (orthogonal is a σ→1 fixed point, no structural 0 to strand). ✓
+  CAPABILITY_SEPARATION_DESIGN.md §1.4 VERIFIED to contain the cited
+  realization: line 1012 `d_state(G)=d_min(G)+2`; lines 1037–1038
+  `rho_G_embedded = rho_G ⊕ I_{d_state−d_min(G)}`; line 1088 "ρ_G pinned
+  real-orthogonal, §1.3.1"; line 229 S₅ d_min=4 (4-dim standard rep); line ~899
+  generating set `{t,c,c⁻¹}` size 3. The design's generalization of d_state=6
+  to the shared d_ncr=33 (identity block absorbs any ambient ≥4) is valid and
+  disclosed. ✓
+- **(c) Axis-B dependency counts:** 2·⌈log₂h⌉ vs h — {61→12, 200→16, 1000→20,
+  5000→26, 20000→30} vs h; ratios 5.1/12.5/50/192/667. ✓ Ratio-mask
+  derivation: rollout ≈ h·0.06 ms vs NCR flat 1–3 ms; 10× the NCR floor
+  (10–30 ms) is reached at h ≈ 167–500 — matches the design's stated
+  "≈167 to ≈500." h=61 below (3.7 ms), h=200 borderline (12 ms), h=1000 clears
+  (60 ms ≫ 30 ms). Pinned gating h≥1000 sits above the meaningfulness
+  threshold. ✓ (0.06 ms/step verified from source: 64.4 ms/1021=0.0631,
+  61.3 s/1,048,581=0.0585, NOVEL_ARCH_WATERFALL.md §7f lines 1293–1294.)
+- **(d) KV-cache reversal:** R=3 (design's current value, VERIFIED as S₅'s
+  `{t,c,c⁻¹}`, not R=4 or K=32). state_bytes = 3·33²·4 = 13,068 ✓ = 3× Task-1's
+  4,356 (a genuine reversal of Rev-1's 300 bytes / ~14.5×-smaller). denom
+  2·12·768·4 = 73,728 ✓. Case (i) grid {384…6144}→{22.7,45.3,90.7,181.4,362.8},
+  floor-min 339 ✓; Case (ii) grid {128…2048}→{22.7,45.4,90.7,181.5,363.0},
+  floor-min 113 ✓; Case (ii) = Case (i) at 1/3 the M (13,068=3·4,356) ✓. The
+  round-1 M6 number (cap_length(M=32,R=32)=60.5, from state_bytes=32·33²·4=
+  139,392) is a HISTORICAL R=32 correction; the current table uses R=3 and is
+  internally consistent — the new R supersedes the R=32 row, no contradiction. ✓
+- **(e) Bridge cell re-price:** 80,000/320,000 × 4.24 = 1.06 GPU-h/cell × 2
+  seeds = 2.12 (1×); 2× = 4.24. ✓ (Part B measured 4.24 GPU-h/320K-step cell,
+  NCR_ORTHO_WRITE.md § CEILING AMENDMENT.)
+- **(f) L_test top rung 40 vs ceiling 253:** 40 ≪ 253 ✓. NCR_ORTHO_WRITE.md §3
+  (lines 114–117) VERIFIED: h*=253 (=8K−3) recovers only ~0.14–0.35 (fp
+  accumulation). §4b ladder {5,8,12,16,20,24,32,40} VERIFIED (line 233); Part B
+  R=4 / loop_read / "binexp does not apply" VERIFIED (lines 213/238–239); WIN
+  convention departure-from-normality ≤0.02 VERIFIED (lines 166–167). Task-1's
+  separate ladder {5,12,20,29,40,61} VERIFIED (line 131). The 253 (a Part-A
+  Z^h ceiling) applied to Part-B distinct-generator products is CONSERVATIVE
+  (a product of exactly-orthogonal factors has no eigenvalue amplification),
+  and the design frames it as an upper bound — coherent, not overclaimed. ✓
+- **Param/FLOP cross-checks:** P(33,64)=40·4096+4·33·64+46·64+33=175,265 ✓
+  (NOVEL_ARCH_WATERFALL.md §9.3 formula, line 3066). F(32,33,64)=11,837,696 ✓.
+  Deltas 0.18%/0.045% ✓. Ledger: Phase0a 11.9, Phase1 21.52, Phase2 215.3,
+  Phase3 226.7, bridge 4.24, smoke 2 ⇒ 482 ✓; +120 rollout ⇒ 602 ✓. Rates
+  0.236/0.836 s/step VERIFIED (FROZEN_BIAS_LM_DESIGN.md §13.7). K=15 SCALES
+  "4/4 converged + far-depth HOLD" VERIFIED (NOVEL_ARCH_WATERFALL.md §11.2 line
+  4188, early-LN recipe). All PASS.
+
+### DISCHARGE TABLE (round-2 findings vs Rev-2's actual text)
+
+| Round-2 finding | §R2 claimed disposition | Verified against revised text |
+|---|---|---|
+| **F2 [FATAL]** structural axis has no valid depth regime | reframe Axis A as mechanistic length-generalization; purge every "cannot"/"structurally barred" sentence (§1,§3.2,§7,§8,§9) | **DISCHARGED IN SUBSTANCE** — §1/§3.2-body/§7/§3.4 reframe is real and correct — **but PURGE INCOMPLETE (F3-1):** stale structural framing survives in §0/§2.1/§2.2/§3.1 and the §3.2 header; line-129/§R2 purge-completeness claim is false |
+| **M7 [MAJOR]** rank-deficient zero-pad write | ρ_{S₅}(g)⊕I_{d_ncr−4} full-rank at shared d_ncr; σ-floor=1 stated; NS-polar well-posed; bridge-cell orthogonality bar meaningful | **DISCHARGED** — §2.1/§3.2 rewritten; all σ=1 verified; CAP_SEP §1.4 citation accurate |
+| **M8 [MAJOR]** unsatisfiable R²-log-fit criterion | restore flat-vs-linear/ratio ≥10×; demote R² fit to reported-only; 2·⌈log₂h⌉ vs h primary; pin B=32/7-repeats/median/MAD | **DISCHARGED** — §4.4/§7 rewritten; ratio-mask h≥1000 derivation checks out; protocol pinned |
+| **M9 [MAJOR]** "one model" unresolved head architecture | ONE head, one d_ncr, two write CONTENTS; Task 2 = ZERO incremental params; "one model" stated as architectural fact | **DISCHARGED** — §1/§2.1 rewritten; the interference *trainability* question is correctly left open as item (5), not silently claimed resolved |
+| **M10 [MAJOR]** bands near chance + degenerate ladder | re-derive bands vs 0.25 chance (FAIL≤0.35); reframe L as OOD distance not difficulty gradient | **DISCHARGED** — §3.2/§7 rewritten; chance arithmetic verified; mixing/OOD-distance reframe coherent |
+| **M1 partial** A5/A6 disclosure vs 2nd (§1.4) citation | extend disclosure to cover both §1.3 (generators) and §1.4 (embedding); calibration does not transfer | **DISCHARGED** — §3.2 A5/A6 paragraph covers both citations honestly |
+| **M5 partial** rollout-baseline under-specification | discharged by discharging M8; arch pin/scope/price unchanged & sound | **DISCHARGED** — no residual beyond M8's own fix |
+| **m2 partial** infeasible fp32 reference | re-scope §8 item 2 cross-check to NCR head only, bypass backbone | **DISCHARGED** — §8 item 2 rewritten; also closes round-2's m5 |
+
+**Discharge tally:** 8/8 round-2 dispositions substantively present. F2's
+reframe is real but its *purge-completeness* sub-claim is FALSE (F3-1). Two
+carried-forward items block: m7 (F3-2, gate ambiguity). New/other:
+0 FATAL, 0 arithmetic errors, 0 citation defects; 2 REVISE (F3-1 purge, F3-2
+gate margin), 2 disclosed minors (m4/F3-3, m6/F3-4), 1 non-blocking gap
+(interference instrument).
+
+### PATH TO CLEAR
+
+Fold F3-1 (complete the F2 purge + correct the purge-scope claim) and F3-2
+(pin the GATE-2 PARTIAL/NULL margin); folding F3-3 (n≥3) and F3-4 (de-dup) is
+recommended in the same pass. No re-attack is required for these — they are
+verifiable in-place edits. Once folded, this design is
+**CLEAR-FOR-CONDITIONAL-BUILD**, gated on: (1) GATE 1 = the ortho-write verdict
+(§9.1, ~2026-07-17); (2) GATE 2 = the bridge-cell verdict (§9.2, §6.2 Phase 0b);
+(3) Phase 0/0a smoke + Phase 1 per-task calibration passing Gate-0. Both §9
+gates remain independent and either may resolve NULL/FAIL without killing the
+program.
+
+---
+
+## §A3-ADJUDICATION (coordinator, 2026-07-16 — recorded before dispatching Rev 2.1)
+
+REVISE ACCEPTED. Zero arithmetic/citation defects; 8/8 round-2
+dispositions substantively present; the two blockers are narrow:
+**F3-1** (stale "structural/cannot" framing surviving in §0/§2.1/§2.2/
+§3.1/§3.2 — the purge-completeness claim was false) and **F3-2** (GATE-2
+PARTIAL/NULL band overlap: a borderline bridge result satisfies both
+bands at the boundary that drops a PRIMARY axis).
+
+**Rev 2.1 dispatched (surgical, freeze-scope):**
+(a) F3-1: complete the purge grep-driven (every quoted location + any
+residual match for structural-failure/complexity-barred framing outside
+the motivation paragraph and record sections);
+(b) F3-2: pin the GATE-2 margin — PARTIAL requires (ortho − free) ≥ 0.2
+(mirroring the WIN row per §A3's recommendation) in BOTH §9.2 and §6.2
+Phase 0b; NULL = everything below;
+(c) F3-3 UPGRADED from disclosed-minor to REQUIRED: a gate that can drop
+a primary axis does not run at n=2 — bridge cell n=3 seeds, re-priced
+(~6.4 GPU-h at 1×), ledger updated;
+(d) F3-4: de-dup §6.4;
+(e) the interference comparison WIRED with an exact threshold: Phase-2
+shared-curriculum per-task accuracy ≥ (Phase-1 single-task calibration −
+0.05 absolute) per task, else DIAGNOSE-FIRST branch (no silent pass) —
+closing §A3's carried-forward item (5).
+Per §A3's own ruling both blockers are verifiable in-place edits: after
+Rev 2.1 the COORDINATOR verifies the edits directly (no fourth
+independent round) and freezes the header CLEAR-FOR-CONDITIONAL-BUILD,
+triple-gated (GATE 1 ortho verdict, GATE 2 bridge cell n=3, Phase-0/1
+calibration Gate-0).
