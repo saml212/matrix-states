@@ -1,17 +1,19 @@
 # NCR ORTHO-WRITE K-LADDER — SCALE-UP DESIGN
 
-**DRAFT-STAGE-1-REV-1 (POST-ATTACK-1, PRE-ATTACK-2), CONDITIONAL on the
-ortho-write verdict, dated 2026-07-16 (Rev 1 revision, same day, see
-§R1 REVISION 1 at the end for the changelog).** This document is written
-BLIND to the live run in `experiment-runs/2026-07-16_ncr_ortho_write/` / any
-`results_ortho_write` path — no such path was read while drafting this
-design OR this revision. This is a CONDITIONAL design: it does not authorize
-any GPU spend by itself. It executes ONLY if the running orthogonal-write
+**DRAFT-STAGE-1-REV-2 (POST-ATTACK-2, PRE-ROUND-3), CONDITIONAL on the
+ortho-write verdict, dated 2026-07-16 (Rev 2 revision, same day, see
+§R2 REVISION 2 at the end for the changelog; §R1 REVISION 1 covers the
+prior Rev-1 pass).** This document is written BLIND to the live run in
+`experiment-runs/2026-07-16_ncr_ortho_write/` / any `results_ortho_write`
+path — no such path was read while drafting this design OR either
+revision. This is a CONDITIONAL design: it does not authorize any GPU
+spend by itself. It executes ONLY if the running orthogonal-write
 pre-registration (`NCR_ORTHO_WRITE.md` §4) returns **WIN** or the
 pre-registered **PARTIAL** band for Part A. See §9 for the exact branch.
 Everything costed below is a plan, not a launch. **§1–§9 below are REVISED
-(Rev 1, post-ATTACK ROUND 1, §A1); §A1 and §A1-ADJUDICATION at the end are
-left UNTOUCHED as the historical record.**
+TWICE (Rev 1 post-ATTACK ROUND 1 §A1; Rev 2 post-ATTACK ROUND 2 §A2); §A1,
+§A1-ADJUDICATION, §R1, §A2, and §A2-ADJUDICATION are all left UNTOUCHED as
+the historical record.**
 
 **Reused, unmodified inputs (grounding every number below):**
 - `NCR_ORTHO_WRITE.md` §2 (Newton–Schulz polar write, `NS_ITER_DEFAULT=40`,
@@ -43,17 +45,19 @@ left UNTOUCHED as the historical record.**
 If the Newton–Schulz orthogonal write cracks realistic-depth composition at
 K∈{24,32} (WIN or PARTIAL), the SAME write mechanism — trained fresh at each
 larger K∈{48,64,96,128} under the untested `d=K+1` AND `h(K)=2K`
-extrapolations (§2's rank-ceiling fix, Rev 1) — will keep producing a
-near-orthogonal, well-conditioned entity operator whose recovery at a
-K-relative PHYSICAL depth (`h*=K+8`, held at a fixed low EFFECTIVE
-relational depth by construction — residue 8, plus a second novel probe at
-the coprime residue K−1, §3, A1.5) stays ≥0.9, i.e., the crack is a
-property of the orthogonal-write mechanism's PHYSICAL-APPLICATION fidelity
-and not an artifact special to K≈32; the ladder's job is to find out
-whether that holds flat, decays gracefully, or hits a new cliff. This is a
-SINGLE-ARM (ortho-only) trainability + fidelity claim at K>32 — the
-free-write comparison is measured only up to K=32; it is not re-measured or
-re-gated at larger K (§4, §6, Rev 1 / A1.2).
+extrapolations (§2's h-CAPACITY fix, corrected Rev 2/A2.1 — `h` cannot move
+the rank ceiling past `d`, it only gives the encoder more capacity to try to
+FILL `d`'s cap) — will keep producing a near-orthogonal, well-conditioned
+entity operator whose recovery at a K-relative PHYSICAL depth (`h*=K+8`,
+held at a fixed low EFFECTIVE relational depth by construction — residue 8;
+a second novel probe at the coprime residue K−1, §3/A1.5, is measured and
+reported at every cell but does NOT gate this claim, A2.4/Rev 2) stays
+≥0.9, i.e., the crack is a property of the orthogonal-write mechanism's
+PHYSICAL-APPLICATION fidelity and not an artifact special to K≈32; the
+ladder's job is to find out whether that holds flat, decays gracefully, or
+hits a new cliff. This is a SINGLE-ARM (ortho-only) trainability + fidelity
+claim at K>32 — the free-write comparison is measured only up to K=32; it is
+not re-measured or re-gated at larger K (§4, §6, Rev 1 / A1.2).
 
 ---
 
@@ -114,51 +118,110 @@ unpassable at K=96 (bar 86.4 > ceiling 65) and K=128 (bar 115.2 > ceiling
 real margin, not by luck of a soft-trained encoder happening to nearly-fill
 a hard cap.
 
-**Choice: `h(K)=2K`, the coordinator's steer, adopted without a competing
-alternative — justified against it instead.** `h=2K` is the ratio already
-realized, unmodified, at the LAST VALIDATED rung (K=32: `GRID_SHAPES[32] =
-h=64 = 2·32`, `ncr_earlyln_scale.py:75`) — extending it to
-K∈{48,64,96,128} adds exactly ONE new extrapolation dimension (whether the
-ratio itself holds past K=32), not two. A flatter choice (`h=K`, ceiling
-`K+1`) was considered and rejected: it reproduces the SAME razor-thin-
-forever problem this fix is meant to kill — `bar/ceiling = 0.9K/(K+1) →
-0.9` as K→∞, i.e. the encoder would need to fill ~90% of its hard rank
-ceiling at EVERY K, not just K=64 under the old broken config. A steeper
-choice (`h=8K`, matching the K=8-era ratio noted in §A1-ADJUDICATION) was
-also rejected: it 4×-overshoots the validated K=32 ratio for no evidenced
-reason and multiplies the already-large `40h²` param/FLOP cost by 16×
-relative to `h=2K`, with no corroborating evidence it is *needed* (the
-K=32 ratio already produces a comfortable margin, below).
+**Choice: `h(K)=2K`, the coordinator's steer — RE-JUSTIFIED on
+encoder-CAPACITY grounds (A2.1 fix, Rev 2; the Rev-1 justification below
+this point was WRONG about WHICH constraint `h` fixes, and is retracted).**
+`Z` is `d×d` (`chapter2/model_v4.py:63`), so `rank(Z) ≤ d` UNCONDITIONALLY
+— on top of A1.1's `rank(Z) ≤ h+1` bound, the BINDING ceiling is always
+`min(d, h+1)`. Since `d=K+1` is untouched by the h-fix, `min(K+1, h+1) =
+K+1` for every `h ≥ K`, so **`h=K` and `h=2K` have IDENTICAL rank
+ceilings** — Rev 1's rejection of `h=K` ("reproduces the razor-thin
+problem forever, `h=2K` fixes it") was comparing a ceiling `h` cannot
+move past `d` either way; that comparison is false and is struck. The
+correct reason to prefer `h=2K` is narrower: **`h` itself must not
+BIND.** Under the old fixed `h=64`, `h` WAS the active constraint at
+K≥64 (`h+1=65 < d`, A1.1's actual FATAL). Under `h=K`, `h+1=K+1=d`
+EXACTLY — `h` no longer binds below `d`, but it ties `d` with ZERO
+headroom of its own, offering the encoder no representational slack.
+Under `h=2K`, `h+1=2K+1` sits comfortably above `d=K+1` (roughly 2×) —
+`h` is nowhere near its own constraint, freeing the encoder's spare
+capacity (wider hidden layers, more attention/FFN parameters in
+`BindingEncoder`, per the params table below) to be spent on the ONE
+constraint that actually matters: FILLING `d`'s cap (the real content of
+the relative-headroom risk two paragraphs up, and of the fill table
+below — these are the SAME question, not two). `h=2K` is also the ratio
+already realized, unmodified, at the LAST VALIDATED rung (K=32:
+`GRID_SHAPES[32] = h=64 = 2·32`, `ncr_earlyln_scale.py:75`) — extending it
+to K∈{48,64,96,128} adds exactly ONE new extrapolation dimension (whether
+the ratio itself holds past K=32), not two. A steeper choice (`h=8K`,
+matching the K=8-era ratio noted in §A1-ADJUDICATION) is still rejected,
+for a reason that DOES survive this correction: it buys no additional
+ceiling headroom either (still `min(d,h+1)=d`), while multiplying the
+already-large `40h²` param/FLOP cost 16× relative to `h=2K`, with no
+evidence that extra capacity is *needed* — the tight-spare precedent
+(below) already shows SGD fills the `d`-cap well at a much narrower
+`h`-to-`d` ratio than 8×.
 
-**Margin check (`bar/ceiling = 0.9K / (2K+1)`, want comfortably < 1,
-compared against the now-provably-broken old-config ratios):**
+**Fill table (A2.1 fix, Rev 2 — REPLACES the retracted "new ceiling
+`2K+1`, comfortable ≈0.445–0.448 margin" table. The TRUE binding ceiling
+is `min(d,h+1)=d=K+1` at every rung under `h(K)=2K`, not `2K+1`):**
 
-| K | old ceiling `65` / bar `0.9K` | old bar/ceiling | new ceiling `2K+1` / bar `0.9K` | new bar/ceiling |
-|---|---|---|---|---|
-| 48 | 65 / 43.2 | 0.665 (passable) | 97 / 43.2 | 0.445 |
-| 64 | 65 / 57.6 | 0.886 (razor-thin) | 129 / 57.6 | 0.447 |
-| 96 | 65 / 86.4 | **1.329 (IMPOSSIBLE)** | 193 / 86.4 | 0.448 |
-| 128 | 65 / 115.2 | **1.772 (IMPOSSIBLE)** | 257 / 115.2 | 0.448 |
+| K | binding ceiling `min(d,h+1)=d` | bar `0.9K` | TRUE fill `0.9K/(K+1)` |
+|---|---|---|---|
+| 32 (ref, validated) | 33 | 28.8 | **0.873** |
+| 48 | 49 | 43.2 | **0.882** |
+| 64 | 65 | 57.6 | **0.886** |
+| 96 | 97 | 86.4 | **0.891** |
+| 128 | 129 | 115.2 | **0.893** |
 
-`h(K)=2K` holds the bar/ceiling ratio FLAT at ≈0.445–0.448 across the
-entire ladder — the same comfortable margin K=32 already demonstrates
-implicitly (K=32's own bar/ceiling under `h=64=2·32` is `28.8/65=0.443`,
-matching this table to 3 decimal places). The fix doesn't just clear the
-bar, it makes every rung's rank-ceiling headroom LOOK LIKE K=32's — the
-honest basis for calling this "extending a validated ratio," not
-"inventing a new one."
+This is the SAME regime the pre-Rev-2 text elsewhere called "razor-thin"
+(its own old-`h=64` K=64 row read 0.886, in those words) — honesty
+requires calling K=32's own validated fill (0.873) and every extrapolated
+rung (0.882-0.893) by the same name, not the "comfortable 0.445 margin"
+computed against a `2K+1` ceiling `h` cannot actually deliver past `d`.
+**Gate-0 is still structurally POSSIBLE at every rung** — `K+1 > 0.9K`
+always, so the ceiling strictly exceeds the bar, unlike the pre-Rev-1
+impossibility at K≥96 — but "possible" and "comfortable" are different
+claims, and only the first is true of `2K+1`; the true ceiling `K+1`
+supports neither "impossible" (Rev 0) nor "comfortable" (Rev 1), just
+"tight and precedented" (below).
 
-**Honesty on validation status (required, §A1-ADJUDICATION):** `h(K)=2K`
-at K∈{48,64,96,128} is ITSELF an extrapolation of a ratio validated at
-exactly ONE point (K=32) — nothing has trained an encoder with
-`h=96/128/192/256` and confirmed SGD actually fills anywhere near the
-(now-generous) rank ceiling in practice; the table above proves the
-constraint is no longer STRUCTURALLY blocking, it does NOT prove
-trainability. The Stage-0 calibration cell (§5) inherits this validation
-job in addition to its original three (relative-headroom convergence,
-NS-convergence quality, realized wall-clock) — FOUR risks in one cell now,
-the h(K)-sufficiency risk being the one A1.1 exposed as previously
-invisible to this design entirely.
+**Why `h(K)=2K` is still the right choice — empirical grounding, not just
+structural possibility.** The tight-spare (`d=K+1`) precedent shows SGD
+fills this exact ~0.87–0.89 requirement with real margin. Verified
+directly against the archived per-cell JSONs (not the summary prose) for
+the wave that actually ran `d=K+1` at K=16/24
+(`NCR_NEXT_LEVER_DESIGN.md` §2.1's Probe-A design; executed results in
+`EXPERIMENT_LOG.md`'s 2026-07-12 entry, raw cells at
+`experiment-runs/2026-07-12_ncr_nextlever_wave/dratio/*.json`,
+`deep_probe.A_eff_rank`, mean over each seed's 4 eval examples): K=16
+(`d=17`, bar 14.4) reaches mean `A_eff_rank` 15.9993-15.9996 across all 4
+seeds → fill **0.9411-0.9412**; K=24 (`d=25`, bar 21.6) reaches
+23.924-23.998 across all 4 seeds → fill **0.9570-0.9599**. Both clear the
+~0.87-0.89 requirement this ladder's rungs will face with a real
+~0.05-0.09 fill-fraction margin — not the false 0.445 Rev 1 claimed, but
+positive and precedented. (Round-2's own "~0.93" citation for this
+precedent read a DIFFERENT wave's row — the `d=2K` K=16 budget2x cell at
+`NCR_NEXT_LEVER_DESIGN.md:62`, `AER 15.88`, divided by 17 instead of that
+cell's own `d=32` — the numbers above are pulled from the actual `d=K+1`
+Probe-A cells and are the correct ones to cite.) K=32's own validated
+fill (0.873, table above) is the LOWEST of the five — the ladder's
+extrapolated fills (0.882-0.893) sit slightly ABOVE the one point that's
+actually measured at `d=K+1`, mild positive evidence, not proof, since no
+cell has yet trained `h(K)=2K` jointly with `d=K+1` at K>32 — Stage-0
+(§5) still owns that validation job, reframed below as ONE risk, not two.
+
+**Honesty on validation status (required, §A1-ADJUDICATION; corrected
+A2.1, Rev 2):** `h(K)=2K` at K∈{48,64,96,128} is ITSELF an extrapolation
+of a ratio validated at exactly ONE point (K=32) — nothing has trained an
+encoder with `h=96/128/192/256` and confirmed SGD actually fills the
+`d=K+1` cap to anywhere near the 0.87-0.89 fraction the tight-spare
+precedent achieves at K≤24. The fill table above proves the constraint is
+no longer STRUCTURALLY blocking (Gate-0 is mathematically passable at
+every rung); it does NOT prove trainability, and — per A2.1 — it is not a
+"generous ceiling" question: `h` cannot raise the `d`-cap past `d` itself,
+so the open question is purely whether the encoder, given `h=2K`'s extra
+representational capacity (its actual and only role here), FILLS `d`'s
+cap at these larger `K`/`d` — the SAME question as the relative-headroom
+risk two paragraphs up, not a separate one. Rev 1 counted these as TWO
+risks (relative-headroom convergence AND "h(K)-sufficiency"); Rev 2
+collapses them into ONE, since both manifest identically (a
+rank-deficient write, `orthogonality_error` reading order-unity) and
+neither is separable from the other by Gate-0 alone. The Stage-0
+calibration cell (§5) still inherits this job, now correctly scoped as
+THREE risks (`d`-cap fillability, NS-convergence quality, realized
+wall-clock), not four — the fourth was never distinct, only a mislabeled
+restatement of the first.
 
 **Params/FLOPs — closed form, `h=h(K)=2K` (Rev 1; REPLACES the fixed
 `h=64` that produced A1.1), no new formula invented (same pinned formulas,
@@ -285,7 +348,15 @@ character as the residue-8 primary — but it DOES rule out a residue-8-
 specific numerical artifact (a coincidence tied to `gcd=8` specifically)
 masquerading as a general result: if BOTH the `gcd=8` primary and the
 `gcd=1` coprime probe clear their bars, the result is not an artifact of
-one particular sub-cycle count. Gated into WIN(K), not just reported (§6).
+one particular sub-cycle count. **MANDATORY-REPORTED, NON-GATING (A2.4
+fix, Rev 2 — corrects this bullet's own pre-Rev-2 "gated into WIN(K)"
+close, which turned out to make WIN(K) internally unsatisfiable: `2K-1`
+is deeper than the primary `h*=K+8`, so gating it demands a strictly
+tighter `min|λ|` bar than the one pinned for the primary, one the K=32
+anchor itself does not clear — §6's WIN(K) band has the full
+arithmetic).** Still measured and disclosed at every cell, still able to
+positively rule out a `gcd=8`-specific artifact if it clears, just no
+longer able to veto an otherwise-clean primary-bar WIN if it doesn't.
 
 Per-K realistic ladder: `{5, 12, 20, K-3, K+8, 2K-1, 2K-3}` (the coprime
 probe `2K-1` added, Rev 1). All residues verified ∉{0,1,2,3} for all four K
@@ -410,28 +481,59 @@ is verified below to land under it):**
    because it is the mandatory gate, not a sweep commitment.
 3. Drop Part A at K=96 entirely (worst case 295.46h at n=4; even n=1 is
    73.87h, still exceeding the remaining headroom after Stage-0 + floor).
-4. **Floor, never trimmed:** Part A at K=48 and K=64, n=4 (**125.41h**) +
-   the mandatory Stage-0 calibration cell (**≤24h**, independently
-   bounded by its own abort trigger, §7) = **≤149.41h ≤ 150h cap** —
-   reaches the cap with a THIN but real 0.59h margin. This is the wave's
-   minimum viable, cap-VERIFIED deliverable under the pessimistic
-   (compute-bound) worst case.
+4. **Floor, never trimmed:** Part A at K=48 and K=64, n=4 = **125.41h**,
+   IN-CAP. **125.41h ≤ 150h cap, a real 24.59h margin** (A2.3 fix, Rev 2
+   — REPLACES the pre-Rev-2 "≤149.41h ≤ 150h cap, 0.59h margin" framing,
+   which double-counted Stage-0 INSIDE the cap in this one sentence while
+   the surrounding text, §5, and the §R1 changelog all stated it OUTSIDE
+   — see the single cap-accounting table below, now the ONLY place this
+   number is computed). Stage-0 (**≤24h** single-seed nominal, up to
+   **≤48h** two-seed contingent worst case, §5) is priced and tracked
+   SEPARATELY, out-of-cap, alongside the `d=1.25K` fallback and the
+   per-K rate-probes — never added into the 150h figure anywhere else in
+   this document. This is the wave's minimum viable, cap-VERIFIED
+   deliverable under the pessimistic (compute-bound) worst case.
 
-**Read this honestly.** Under the worst-case pricing model, the 150h cap
-buys almost NOTHING past the two nearest rungs plus the mandatory
-calibration cell — K=96 and K=128 are entirely priced out of the committed
+**THE cap-accounting table (A2.3 fix, Rev 2 — the ONE place this document
+computes cap vs. exposure; every other in-cap/out-of-cap mention in §4/§5
+points here rather than re-deriving its own number):**
+
+| Component | Convention | Worst-case hours |
+|---|---|---|
+| Committed sweep (floor: K48+K64 Part A, n=4) | **IN-CAP** | 125.41 h |
+| Committed-sweep cap | — | ≤150 h |
+| **Committed-sweep margin** | — | **24.59 h** |
+| Stage-0 calibration, completed-run branch (1-2 seeds, §5 Phase 0b) | OUT-OF-CAP | ≤48 h |
+| Stage-0 calibration, ABORTED-ON-COST branch (§5 Phase 0a — a cheaper alternative outcome of the SAME cell, not additive with the row above) | OUT-OF-CAP | ≈0.15-2.2 h |
+| `d=1.25K` diagnostic fallback (CONFIRMED FAIL only, §2/§5, PI-gated) | OUT-OF-CAP | ≈227.6 h |
+| Per-K 500-step rate-probes (CONFIRMED FAIL branch only) | OUT-OF-CAP | ≈0.05 h |
+| **Worst-case out-of-cap exposure** (Stage-0 completed-run branch + fallback + probes; excludes the cheaper ABORTED-ON-COST alternative, see below) | — | **≈275.65 h** |
+| **WORST-CASE PROGRAM TOTAL** (committed cap + out-of-cap exposure) | — | **≈150 + 275.65 ≈ 425.65 h** |
+
+**Read this honestly, both numbers.** (1) The committed-sweep spend is
+**125.41h in-cap, 24.59h margin under the 150h cap** — under the
+worst-case pricing model, that cap buys almost nothing past the two
+nearest rungs; K=96 and K=128 are entirely priced out of the committed
 sweep if the compute-bound assumption holds. This is a much harder cut
 than the pre-fix trim order implied (which incorrectly suggested n=1
-confirmatory cells at K=96/128 were affordable — A1.6 caught this). The
-escape hatch is exactly what §5 already builds in: Stage-0's REALIZED rate
-(not this nominal ceiling) reprices the grid before any commitment past
-the floor, and the project's own established precedent
-(`NOVEL_ARCH_WATERFALL.md` §9.10/§11: measured rates FLAT within noise
-despite up to 2.1× FLOP spread at small K) argues the true cost likely
-lands well under this sticker price — but that argument now has to survive
-a 62× FLOP spread (not 2×), a regime it has never been tested against, so
-it is not something to bank the K=96/K=128 rungs on without Stage-0's
-confirmation.
+confirmatory cells at K=96/128 were affordable — A1.6 caught this). (2)
+The disclosed worst-case PROGRAM total, if every contingent branch fires
+along its most expensive path, is **≈425.65h** — dominated by the
+`d=1.25K` fallback (≈227.6h), itself PI-gated and not authorized by
+default. The ABORTED-ON-COST row is strictly CHEAPER than the
+completed-run row it is compared against (≈2h vs ≤48h); it is listed for
+completeness, not summed into the worst-case total, since the two are
+mutually exclusive outcomes of the SAME Stage-0 cell and the disclosed
+bound must use the more expensive of the two, not both. The escape hatch
+for the committed-sweep number is exactly what §5 already builds in:
+Stage-0's REALIZED rate (not this nominal ceiling) reprices the grid
+before any commitment past the floor, and the project's own established
+precedent (`NOVEL_ARCH_WATERFALL.md` §9.10/§11: measured rates FLAT
+within noise despite up to 2.1× FLOP spread at small K) argues the true
+cost likely lands well under this sticker price — but that argument now
+has to survive a 62× FLOP spread (not 2×), a regime it has never been
+tested against, so it is not something to bank the K=96/K=128 rungs on
+without Stage-0's confirmation.
 
 ---
 
@@ -439,55 +541,106 @@ confirmation.
 
 CLAUDE.md's calibration rule exists for exactly two failure modes this
 ladder is at real risk of: (a) a convergence ceiling — Gate-0 silently
-capping below 0.9 at larger K under an unvalidated `d=K+1` (§2's
-shrinking-relative-headroom risk), and (b) a "bigger model" guess that
-diverges or blows the wall-clock budget before a sweep's compute is
-committed (§4's ≈2,233h sticker-price risk, Rev 1 — bigger than the pre-fix
-875.5h because closing A1.1 makes `F` and `NS` grow together, §2). A THIRD,
-ortho-write-specific risk belongs here too: **NS convergence quality is
-untested past d=33.** `n_iter=40` was calibrated to fully orthogonalize a
-"measured cond#≈8500 at random init" case at the K=24/32 build; condition
-numbers of random d×d matrices grow with d, so `n_iter=40` might not fully
-orthogonalize the K=128/d=129 write — a failure mode invisible to Gate-0
-(training could still converge) but fatal to the far-depth claim (an
-imperfectly orthogonal operator still decays weak modes, just more slowly).
-**A FOURTH risk, new in Rev 1 (A1.1's fix, not yet validated): does
-`h(K)=2K` (§2) actually let SGD fill anywhere near the now-generous rank
-ceiling in practice?** The margin table in §2 proves the constraint is no
-longer STRUCTURALLY blocking; it says nothing about whether a soft-trained
-encoder actually learns a rank-K-ish write at these larger `h`. This is
-exactly what Gate-0 (bullet 2 below) and the orthogonality-quality check
-(bullet 3, now pinned exactly, A1.4) jointly settle — a rank-deficient
-write at K=128 would show BOTH Gate-0 failing AND `orthogonality_error`
-reading order-unity (≈11, the coordinator's confirmed estimate for a
-rank-65-in-129-dim write, §A1-ADJUDICATION), which is how Stage-0 tells
-"h(K) insufficient" apart from "NS needs more iterations" — see bullet 3.
+capping below 0.9 at larger K under an unvalidated `d=K+1`, now correctly
+understood as a `d`-cap FILLABILITY question (A2.1, Rev 2 — `h(K)=2K`
+supplies encoder CAPACITY toward this, not a raised ceiling; §2's fill
+table: 0.882-0.893 fill required at K=48-128, vs 0.873 validated at K=32
+— real, precedented, but thin margin, not the "comfortable" one Rev 1
+claimed), and (b) a "bigger model" guess that diverges or blows the
+wall-clock budget before a sweep's compute is committed (§4's ≈2,233h
+sticker-price risk — bigger than the pre-A1.1-fix 875.5h because closing
+A1.1 makes `F` and `NS` grow together, §2). A THIRD, ortho-write-specific
+risk belongs here too: **NS convergence quality is untested past d=33.**
+`n_iter=40` was calibrated to fully orthogonalize a "measured cond#≈8500
+at random init" case at the K=24/32 build; condition numbers of random
+d×d matrices grow with d, so `n_iter=40` might not fully orthogonalize
+the K=128/d=129 write — a failure mode invisible to Gate-0 (training
+could still converge) but fatal to the far-depth claim (an imperfectly
+orthogonal operator still decays weak modes, just more slowly). **Rev 1
+counted a FOURTH risk ("does h(K)=2K let SGD fill the rank ceiling")
+separately from (a); Rev 2 retracts that split (A2.1 fix):** `h` cannot
+move the ceiling past `d` either way, so "h(K)-capacity-sufficiency" and
+"relative-headroom convergence" are the SAME risk, read off the SAME two
+instruments (Gate-0 + `orthogonality_error`) below — not a
+Gate-0-alone-separable fourth one.
 
-**Stage 0 (mandatory, blocks everything else): ONE calibration cell, K=128
-(the top target config, deliberately the hardest, not the cheapest), Part A
-ortho arm, run to completion (or to its own tighter abort trigger, below)
-BEFORE any other cell in this ladder launches, packed or not.** It answers
-FOUR things at once (Rev 1 adds the fourth):
-1. **Real wall-clock** → computes a realized-vs-predicted ratio against the
-   FLOP-scaled **174.59h estimate (§4, Rev 1 — up from the pre-fix 64.65h)**,
-   which corrects the pricing for K=48/64/96 too (interpolated, not
-   re-derived from scratch — same qualitative regime assumed unless Stage 0
-   says otherwise).
-2. **Gate-0 pass/fail** → catches the §2 relative-headroom convergence-
-   ceiling risk AND (Rev 1) the h(K)-sufficiency risk directly, at the
-   hardest point on the ladder — a Gate-0 failure at K=128 under the NEW
-   `h(K)=2K` config can no longer be blamed on the old fixed-h rank cap
-   (A1.1 is closed by construction), narrowing the diagnosis to genuine
-   relative-headroom / SGD-trainability questions.
-3. **Orthogonality quality at convergence, EXACT tolerance (A1.4 fix, Rev
-   1 — replaces "machine-precision-ish"/"materially non-zero" with a pinned
-   number and a forced-fail test):** measure `orthogonality_error`
-   (`ncr_ortho_write.py:144-151`, the scale-normalized `‖QᵀQ/scale − I‖_F`,
-   `scale` = mean diagonal of `QᵀQ` ≈ mean `σ²`) at the FINAL checkpoint,
-   `.max()` over the eval batch (not `.mean()` — a single badly-
-   orthogonalized item is a real problem for ITS far-depth read even if the
-   batch mean looks fine, mirroring the code's own `t2`/`t4` self-test
-   convention, `ncr_ortho_write.py:717,747`). **Pinned bands (not vibes):**
+**Stage 0 (mandatory, blocks everything else): ONE calibration cell,
+K=128 (the top target config, deliberately the hardest, not the
+cheapest), Part A ortho arm, gated by a TWO-PHASE check — an early cost
+gate, THEN (only if it clears) a full run to convergence or its own
+health-based abort — BEFORE any other cell in this ladder launches,
+packed or not.**
+
+**Phase 0a — early cost gate (A2.2 fix, Rev 2 — makes Stage-0 explicitly
+USE §7's own early-step-rate projection trigger, already pinned there,
+and adds the decision branch §7 never specified for Stage-0 itself).**
+§7 already pins the mechanism generally: after the first 2,000 of
+320,000 steps (<1% of budget), extrapolate total wall-clock linearly
+from the measured per-step rate,
+`projected_total_h = (elapsed_h_at_step_2000 / 2000) × 320000`, and abort
+if it exceeds **24h — Stage-0's own pinned, flat threshold** (distinct
+from the `packed_ceiling`-based trigger sweep cells use, §7). Rev 1
+defined this trigger but described Stage-0's OWN deliverables (Phase 0b
+below) as though a full run to convergence were the only outcome, and
+never stated what happens when the trigger fires FOR STAGE-0
+SPECIFICALLY — the gap A2.2 found: under the compute-bound outcome
+Stage-0 exists to test (nominal 174.59h, §4), a flat "wait 24h" reading
+would burn the entire budget having completed only ~0.6% of training,
+delivering the rate (deliverable 1) and nothing else, with no branch to
+act on it. Evaluating the SAME 24h number as an early PROJECTION at step
+2,000 (not a waiting period) catches this in ≈0.15-1.1h instead of a
+full day, and feeds a real decision branch:
+- **`projected_total_h ≤ 24h`** → proceed to Phase 0b (full run). Itself
+  informative: K=128 is tracking closer to the overhead-bound small-K
+  precedent than the worst-case FLOP-ratio estimate — deliverable 1
+  (realized rate) is already trending favorable.
+- **`projected_total_h > 24h` → ABORTED-ON-COST (NEW, first-class
+  Stage-0 outcome, A2.2 fix).** Stage-0 terminates immediately (having
+  spent ≈0.15-1.1h, not 24h). This IS deliverable 1, answered in the
+  compute-bound direction: K=128 (and, by the §2 ratio table, K=96 too)
+  are confirmed too expensive to calibrate directly, let alone sweep.
+  **Decision:** K=96 and K=128 are declared priced out of the committed
+  sweep (consistent with — and CONFIRMING, not contradicting — §4's own
+  worst-case trim order, which already drops both under the
+  compute-bound assumption). Proceed straight to the floor (K=48 then
+  K=64, §4) via the SAME staged escalation as the PASS branch below,
+  K48-first. **Stage-0's three remaining deliverables (Gate-0 pass/fail,
+  orthogonality-at-convergence, `d`-cap fillability under `h(K)=2K`) are
+  REASSIGNED to the FIRST FLOOR CELL, K=48** — stated explicitly: K=48's
+  own Gate-0 + `orthogonality_error` readout becomes the gate for
+  advancing to K=64 ONLY (the staged-escalation rule already required
+  K=48's real numbers before committing K=64; this branch does not
+  weaken that, it removes K=128 as the source of those numbers). **The
+  ladder's upper half (K=96, K=128) is OUT OF THIS WAVE'S SCOPE under
+  this branch and needs its OWN future calibration gate** (a fresh
+  Stage-0-equivalent, priced and scheduled separately, PI-gated like the
+  `d=1.25K` fallback below) before any future wave revisits them —
+  nothing in a floor-only sweep validates `d`-cap-fillability or
+  NS-convergence at d≥97.
+
+**Phase 0b (full run, reached only if Phase 0a clears) answers THREE
+things (Rev 2: not four — A2.1's retraction folds the old 4th risk into
+the 1st, below):**
+1. **Real wall-clock** → computes a realized-vs-predicted ratio against
+   the FLOP-scaled **174.59h estimate (§4)**, which corrects the pricing
+   for K=48/64/96 too (interpolated, not re-derived from scratch — same
+   qualitative regime assumed unless Stage 0 says otherwise).
+2. **Gate-0 pass/fail = `d`-cap fillability, ONE risk not two (A2.1
+   fix)** → catches whether the encoder, given `h(K)=2K`'s extra
+   capacity, actually fills the razor-thin `d=K+1` cap (0.893 fill
+   required at K=128, §2) — a Gate-0 failure at K=128 can no longer be
+   blamed on the old fixed-h rank cap (A1.1 is closed by construction:
+   the ceiling is structurally clearable), narrowing the diagnosis to
+   genuine SGD-trainability / capacity-fillability questions, which
+   Gate-0 alone cannot further decompose (§2's honesty note).
+3. **Orthogonality quality at convergence, EXACT tolerance (A1.4 fix):**
+   measure `orthogonality_error` (`ncr_ortho_write.py:144-151`, the
+   scale-normalized `‖QᵀQ/scale − I‖_F`, `scale` = mean diagonal of
+   `QᵀQ` ≈ mean `σ²`) at the FINAL checkpoint, `.max()` over the eval
+   batch (not `.mean()` — a single badly-orthogonalized item is a real
+   problem for ITS far-depth read even if the batch mean looks fine,
+   mirroring the code's own `t2`/`t4` self-test convention,
+   `ncr_ortho_write.py:719,747`, A2.7 fix). **Pinned bands (not vibes):**
    - `≤ 1e-2` → HEALTHY, matches the code's own `t2`/`t4` self-test bound
      for "tightly orthogonalized" (the pre-existing, already-audited
      criterion — reused, not invented).
@@ -499,9 +652,10 @@ FOUR things at once (Rev 1 adds the fourth):
      for a rank-deficient write is **≈11**) → CATASTROPHIC / rank-
      deficiency signature, NOT an iteration-count problem — a zero
      singular value is a fixed point of the NS map `x←1.5x−0.5x³` (§A1.1),
-     so raising `n_iter` CANNOT fix this band; it means `h(K)` itself was
-     insufficient (should not occur under `h=2K`'s margin, §2, but Stage-0
-     is exactly the check that confirms it).
+     so raising `n_iter` CANNOT fix this band; it means the encoder
+     failed to fill the `d`-cap at these larger `K`/`d` (should not occur
+     under `h=2K`'s capacity margin, §2, but Stage-0 is exactly the check
+     that confirms it).
    - **ABORT trigger:** `orthogonality_error.max() > 1e-2` at the final
      checkpoint is the exact, frozen abort condition (replaces "materially
      non-zero"). Which remediation applies is read off the band above.
@@ -521,101 +675,138 @@ FOUR things at once (Rev 1 adds the fourth):
      raising `n_iter` inside this same negative test does NOT drive the
      error below `1e-2` (confirming the "NOT an iteration-count problem"
      band is real, not asserted).
-4. **h(K)-sufficiency (Rev 1, the fourth risk above)** → read jointly off
-   bullets 2 and 3: Gate-0 PASS + `orthogonality_error ≤ 1e-2` together
-   confirm `h(K)=2K` is sufficient at the hardest rung; either failing,
-   with the CATASTROPHIC orthogonality band, would flag `h(K)` itself
-   (not relative-headroom or NS-convergence) as the culprit.
 
-**Decision rule after Stage 0:**
+**Decision rule after Phase 0b (full run only — Phase 0a's ABORTED-ON-COST
+branch has its own, separate decision, already stated above):**
 - **PASS** (Gate-0 holds, orthogonality tight, wall-clock finite and
   reported): re-price the full grid using the realized rate (not the FLOP
   ratio), apply §4's trim order against the 150h cap using REAL numbers,
   launch the committed sweep K=48→64→96→128 in that order (nearest-first,
-  not all at once — see next bullet).
+  not all at once — see next bullet). **A single-seed PASS is provisional
+  (A2.6 fix, Rev 2): the same seed-variance precedent that motivates the
+  2nd-seed-on-FAIL rule below implies a single seed can also LUCKILY
+  pass. Treat it as PASS for planning purposes, but K=48's own n=4 Gate-0
+  result — the very next thing that runs, per the staged escalation
+  immediately below — is what actually CONFIRMS it before K=64/96/128 see
+  further commitment. The staged escalation is the containment for a
+  false PASS, not a second calibration seed.**
 - **STAGED escalation, not a flat launch.** Even after PASS, commit K=48
   first (cheapest, closest to the validated K=32 regime), confirm its own
   real rate and Gate-0 result, THEN advance to K=64, etc. — each rung's
   real numbers refine the next rung's price before it is committed. This
   costs a little wall-clock in sequencing but removes the single biggest
   risk in this design (a blind flat commit against a possibly-wrong cost
-  model).
-- **APPARENT FAIL (single seed) → confirm before acting (A1.10 fix, Rev
-  1):** if seed 0's Gate-0 is dead OR `orthogonality_error` is not tight, do
-  NOT immediately declare FAIL and redesign. The project's own seed-
-  variance precedent (`STATE.md` §1.40: "one fresh seed cleared the bar"
-  after prior seeds hadn't) is explicit that single-seed trainability reads
-  can flip. Run ONE additional calibration seed (same K=128 cell, seed 1) —
-  contingent cost, only spent if seed 0 fails, ≤24h more (bounded by the
-  same abort trigger, §7), i.e. worst-case Stage-0 totals ≤48h across both
-  seeds, NOT drawn from the 150h committed-sweep cap (Stage-0 is priced
-  separately, §4 trim-order step 4). **Only declare CONFIRMED FAIL if BOTH
-  seeds fail** (Gate-0 dead or orthogonality not tight in 2/2). If seed 1
-  PASSES where seed 0 failed, treat the cell as a PASS for branching
-  purposes but flag the seed-sensitivity explicitly in the writeup — do not
-  silently discard the failed seed.
+  model), AND (Rev 2) is the same mechanism that catches a false Stage-0
+  PASS or absorbs an ABORTED-ON-COST reassignment — one staging rule
+  serves both roles.
+- **APPARENT FAIL (single seed) → confirm before acting (A1.10 fix):** if
+  seed 0's Gate-0 is dead OR `orthogonality_error` is not tight (and
+  Phase 0a cleared for that seed — an ABORTED-ON-COST seed never reaches
+  a Gate-0 verdict, so it cannot be an APPARENT FAIL either), do NOT
+  immediately declare FAIL and redesign. The project's own seed-variance
+  precedent (`STATE.md` §1.40: "one fresh seed cleared the bar" after
+  prior seeds hadn't) is explicit that single-seed trainability reads can
+  flip. Run ONE additional calibration seed (same K=128 cell, seed 1) —
+  contingent cost, only spent if seed 0 fails AND Phase 0a cleared for it,
+  ≤24h more (bounded by the same Phase-0a-style projection), i.e.
+  worst-case Stage-0 totals ≤48h across both seeds, NOT drawn from the
+  150h committed-sweep cap (out-of-cap, per §4's unified cap table).
+  **Only declare CONFIRMED FAIL if BOTH seeds fail** (Gate-0 dead or
+  orthogonality not tight in 2/2). If seed 1 PASSES where seed 0 failed,
+  treat the cell as a PASS for branching purposes (subject to the same
+  A2.6 provisional-PASS caveat above) but flag the seed-sensitivity
+  explicitly in the writeup — do not silently discard the failed seed.
 - **CONFIRMED FAIL (2/2 seeds)**: STOP. Do not launch K=96/K=128 under
   `d=K+1`. Escalate per §2's pre-registered fallback (retest K=128 once at
-  `d=1.25K`) — now explicitly a DIAGNOSTIC, not a presumed rescue, and
-  PRICED at ≈227.6h single-seed worst case (§2, A1.9) — itself PI-gated,
-  out-of-band from the 150h cap, not a silent in-budget retry — before
-  concluding anything about the ladder's upper end. K=48/K=64 may still be
-  launched independently (they are closer to the validated regime and the
-  calibration failure may be K=128-specific, e.g., the shrinking
-  relative-headroom effect, OR an `h(K)=2K` insufficiency specific to the
-  largest `d`) — but ONLY after their own cheap rate-probe confirms sane
-  per-cell cost (a 500-step probe per K, mirroring
-  `NCR_NEXT_LEVER_DESIGN.md`'s own Phase-0a pattern, ≈0.05 GPU-h aggregate,
-  negligible).
+  `d=1.25K`) — an explicit DIAGNOSTIC, not a presumed rescue, and PRICED
+  at ≈227.6h single-seed worst case (§2, A1.9) — itself PI-gated,
+  out-of-band from the 150h cap (§4's unified cap table), not a silent
+  in-budget retry — before concluding anything about the ladder's upper
+  end. K=48/K=64 may still be launched independently (they are closer to
+  the validated regime and the calibration failure may be K=128-specific,
+  e.g., the shrinking relative-headroom / capacity-fillability effect) —
+  but ONLY after their own cheap rate-probe confirms sane per-cell cost
+  (a 500-step probe per K, mirroring `NCR_NEXT_LEVER_DESIGN.md`'s own
+  Phase-0a pattern, ≈0.05 GPU-h aggregate, negligible).
 - **Part B (disc) at K=128 is explicitly DEFERRED, not committed, pending
-  Stage 0's realized-vs-predicted ratio.** If Stage 0 shows costs tracking
-  close to the FLOP ratio (genuinely compute-bound), Part B at K=128
-  (nominal **264.38h/cell, Rev 1** — up from the pre-fix 97.9h, heaviest
-  single cell type in this design) is very likely out of this wave's budget
-  and should be scoped as a separate, PI-gated follow-on rather than folded
-  in here.
+  Stage 0's realized-vs-predicted ratio (or its ABORTED-ON-COST outcome,
+  which answers the same question conservatively).** If Stage 0 shows
+  costs tracking close to the FLOP ratio (genuinely compute-bound —
+  whether confirmed via full-run PASS/FAIL or via an early
+  ABORTED-ON-COST), Part B at K=128 (nominal **264.38h/cell** — heaviest
+  single cell type in this design) is very likely out of this wave's
+  budget and should be scoped as a separate, PI-gated follow-on rather
+  than folded in here.
 
 ---
 
 ## §6 DRAFT WIN/NULL BANDS PER K + THE RECOVERY-vs-K SCALING-LAW READOUT
 
 **Per-K bands (Rev 1: A1.2 one-arm reframe + A1.3 per-K mechanistic
-thresholds + A1.5 dual-residue gate + A1.7 wording fix).** Gate-0
+thresholds + A1.7 wording fix; Rev 2: A2.4 resolves the A1.3/A1.5
+coprime-gate collision, A2.5 fixes an arithmetic slip).** Gate-0
 precondition unchanged and K-general: `min over h∈{1,2,3} rec@0.9 ≥0.9` AND
-`mean A_eff_rank ≥0.9K` (now measured against the `h(K)=2K`-fixed ceiling,
-§2). The bands below are GENERALIZED from `NCR_ORTHO_WRITE.md` §4 Part A's
-K=32 bands (A1.7: not "mirrored exactly" — the checkpoint set and the
-free-write clause both differ from the frozen K=32 text, spelled out
-below), by K's own re-registered depths from §3:
+`mean A_eff_rank ≥0.9K` (measured against the `min(d,h+1)=d=K+1`-binding
+ceiling, §2/A2.1). The bands below are GENERALIZED from
+`NCR_ORTHO_WRITE.md` §4 Part A's K=32 bands (A1.7: not "mirrored exactly"
+— the checkpoint set and the free-write clause both differ from the
+frozen K=32 text, spelled out below), by K's own re-registered depths
+from §3:
 
-- **WIN(K), NOW A ONE-ARM CLAIM (A1.2 fix):** median rec@0.9 at `h*=K+8`
-  ≥0.9 across Gate-0-passing seeds AND at the coprime probe `h=2K-1` (§3,
-  Rev 1) ≥0.9 — BOTH residue classes must clear, not just the residue-8
-  primary (closes the A1.5 monoculture gap at the GATING level, not just
-  the reporting level). **The free-write comparison is REMOVED as a gating
-  clause.** It is reported as directional context only, explicitly
-  labeled: "free-write is measured DEAD at K≤32 (`NCR_ORTHO_WRITE.md` §4);
-  NOT measured at K>32 in this design; assumed-but-unverified to remain
-  dead by extrapolation." A K>32 WIN is therefore a claim about the ortho
-  arm's OWN trainability + physical-depth-fidelity survival, not a fresh
-  ortho-vs-free separation at that K — the separation claim stays anchored
-  at K≤32 where it is actually measured. **Mechanistic corroboration, NOW
-  PER-K (A1.3 fix, replaces the flat K-independent constants):**
-  departure-from-normality ≤0.02 and cond#≤~2 stay FLAT (properties of the
-  operator itself — preconditions for the eigen-based decay formula below
-  to be a valid predictor at ANY h, not quantities that compound with
-  depth); **`min|λ|/c* ≥ 0.9^(40/h*(K))`, DERIVED from band arithmetic,
-  not asserted:** the K=32 bar (`min|λ|/c*≥0.9` at `h*=40`) implies the
-  weakest mode is allowed to decay to a residual amplitude `floor =
-  0.9^40 ≈ 0.0148` (per `NCR_ORTHO_WRITE.md` §1's own decay formula,
-  `(min|λ|/c*)^h`) — Rev 1 pins THIS residual floor, not the exponent
-  base, as the K-invariant quantity (honoring CLAUDE.md's instrument-
-  relative rule: "*the n_iter-sufficiency frontier MOVES with K/d … never
-  carry an admission profile derived at one K/d to another without
-  re-validating*"), and re-derives the per-K exponent-base bar so the SAME
-  final residual is required at every K:
+- **WIN(K), STILL A ONE-ARM CLAIM (A1.2 fix, unchanged by Rev 2):**
+  median rec@0.9 at `h*=K+8` ≥0.9 across Gate-0-passing seeds. **GATES ON
+  THE PRIMARY ONLY (A2.4 fix, Rev 2 — corrects Rev 1's dual-residue gate,
+  which was internally unsatisfiable, evidence below).** The coprime
+  probe `h=2K-1` (§3, residue `K-1`, A1.5) is **MANDATORY-REPORTED,
+  NON-GATING**: every WIN(K)-eligible cell still measures and discloses
+  rec@0.9 at `2K-1` for every seed, but its outcome does not gate
+  WIN/PARTIAL/NULL — the same "reported, never chased" convention already
+  applied to the synthetic `h_star=8K-3` checkpoint (§3's own disclaimed
+  column). **Why gating was wrong:** `2K-1 > K+8` for all K≥10 — the
+  coprime probe is strictly DEEPER than the primary, not a lateral
+  cross-check — so a gate on it demands a `min|λ|` bar tighter than the
+  one pinned for the primary. An operator that exactly meets the
+  primary's pinned bar (table below) provably FAILS rec@0.9 at `2K-1` at
+  every rung in this ladder (weak-mode residual 3.7e-4–7.9e-4 vs the
+  0.0148 floor, off by 19-40×, reported table below), and the K=32 anchor
+  itself does not clear a `2K-1` gate (in-silico front ≈51.4 < 63 =
+  2·32-1, `NCR_ORTHO_WRITE.md` §5) — so gating WIN(K) on the coprime probe
+  would make the band unsatisfiable even by the cell this ladder is meant
+  to extend (A2.4). Rev 2 takes the coordinator's default
+  (§A2-ADJUDICATION (d)) rather than re-pinning a deeper
+  `floor^(1/(2K-1))` bar and keeping it gating — that alternative remains
+  available but requires showing the K=32 anchor clears it first, which
+  it does not. The coprime probe still does real work as a REPORTED
+  cross-check: if it independently clears rec@0.9 at some rung, that
+  rules out a `gcd=8`-specific numerical artifact at that rung (worth
+  noting positively, per A1.5's original intent); if it does not clear
+  (the mechanistically EXPECTED outcome, per the math above), that is
+  itself reported, not treated as a defect or allowed to veto an
+  otherwise-clean primary result. **The free-write comparison is REMOVED
+  as a gating clause.** It is reported as directional context only,
+  explicitly labeled: "free-write is measured DEAD at K≤32
+  (`NCR_ORTHO_WRITE.md` §4); NOT measured at K>32 in this design;
+  assumed-but-unverified to remain dead by extrapolation." A K>32 WIN is
+  therefore a claim about the ortho arm's OWN trainability +
+  physical-depth-fidelity survival, not a fresh ortho-vs-free separation
+  at that K — the separation claim stays anchored at K≤32 where it is
+  actually measured. **Mechanistic corroboration, NOW PER-K (A1.3 fix,
+  replaces the flat K-independent constants):** departure-from-normality
+  ≤0.02 and cond#≤~2 stay FLAT (properties of the operator itself —
+  preconditions for the eigen-based decay formula below to be a valid
+  predictor at ANY h, not quantities that compound with depth); **`min|λ|/c*
+  ≥ 0.9^(40/h*(K))`, DERIVED from band arithmetic, not asserted, and GATES
+  ONLY the primary `h*(K)` (A2.4, Rev 2):** the K=32 bar (`min|λ|/c*≥0.9`
+  at `h*=40`) implies the weakest mode is allowed to decay to a residual
+  amplitude `floor = 0.9^40 ≈ 0.0148` (per `NCR_ORTHO_WRITE.md` §1's own
+  decay formula, `(min|λ|/c*)^h`) — Rev 1 pins THIS residual floor, not
+  the exponent base, as the K-invariant quantity (honoring CLAUDE.md's
+  instrument-relative rule: "*the n_iter-sufficiency frontier MOVES with
+  K/d … never carry an admission profile derived at one K/d to another
+  without re-validating*"), and re-derives the per-K exponent-base bar so
+  the SAME final residual is required at every K:
 
-  | K | h\*(K) | min\|λ\|/c\* bar | (bar)^h\*(K) check |
+  | K | h\*(K) | min\|λ\|/c\* bar (GATES WIN) | (bar)^h\*(K) check |
   |---|---|---|---|
   | 32 (ref) | 40 | 0.9000 | 0.01478 |
   | 48 | 56 | 0.9275 | 0.01478 |
@@ -626,8 +817,22 @@ below), by K's own re-registered depths from §3:
   The bar TIGHTENS toward 1 as K grows (more physical applications means
   each one must leak less to hold the same final residual) — the correct
   direction (a threshold flat at 0.9 would, per A1.3, leave the weak mode
-  at `0.9^136≈4·10⁻⁷` at K=128, satisfied by operators far too imperfect
+  at `0.9^136 ≈ 5.98·10⁻⁷` (≈6·10⁻⁷) at K=128 — A2.5 fix, Rev 2, corrects
+  Round 1's own `≈4·10⁻⁷`; order-correct, purely illustrative, the
+  vacuity point is unaffected — satisfied by operators far too imperfect
   to plausibly WIN — vacuous corroboration).
+
+  **Coprime probe's implied bar, REPORTED ONLY, NOT GATING (A2.4 fix, Rev
+  2 — what `min|λ|` WOULD need to be to also clear rec@0.9 at `2K-1`,
+  computed the same way, for context in the writeup, never for a
+  pass/fail decision):**
+
+  | K | primary bar (GATES) | `min\|λ\|` needed at coprime `2K-1` (REPORTED ONLY) | residual at `2K-1` if operator only meets the primary bar |
+  |---|---|---|---|
+  | 48 | 0.9275 | 0.9566 | 7.9e-4 (≪0.0148 — expected to fail) |
+  | 64 | 0.9431 | 0.9674 | 5.9e-4 (≪0.0148 — expected to fail) |
+  | 96 | 0.9603 | 0.9782 | 4.4e-4 (≪0.0148 — expected to fail) |
+  | 128 | 0.9695 | 0.9836 | 3.7e-4 (≪0.0148 — expected to fail) |
 - **PARTIAL(K):** median rec@0.9 ≥0.9 at the `K-3`/`2K-3` checkpoints (A1.7:
   this GENERALIZES the frozen K=32 PARTIAL band `{20 OR 29=K-3}` — it drops
   the absolute shallow-20 checkpoint and substitutes the deeper `2K-3`, a
@@ -641,17 +846,24 @@ below), by K's own re-registered depths from §3:
 **The scaling-law readout — three pre-registered shapes, decided before
 data, not after (A1.5 fix: reworded from "compositional depth
 generalization" to what this ladder actually measures):**
-- **(a) FLAT-HOLD:** WIN at all four K. Publishable as "the orthogonal
-  write's realistic PHYSICAL-APPLICATION-FIDELITY ceiling is K-general,
-  across two independent residue classes (`gcd=8` and `gcd=1` with K)" —
-  NOT "compositional depth generalization" (A1.5: every checkpoint's
-  EFFECTIVE relational depth, `h mod K`, stays fixed and low — `8` for the
-  primary, `K-1` for the coprime probe, both shallow in absolute terms at
-  every rung; the ladder measures whether many PHYSICAL applications of a
-  K-relative operator preserve a fixed shallow target across two
-  structurally-distinct residues, not whether deeper RELATIONAL
-  composition generalizes). Still the strongest possible outcome, no
-  evidence of a new wall inside this ladder's range.
+- **(a) FLAT-HOLD:** WIN at all four K (gated on the primary `h*=K+8`
+  alone, A2.4 fix, Rev 2). Publishable as "the orthogonal write's
+  realistic PHYSICAL-APPLICATION-FIDELITY ceiling is K-general" — NOT
+  "compositional depth generalization" (A1.5: every checkpoint's
+  EFFECTIVE relational depth, `h mod K`, stays fixed and low — `8` for
+  the primary; the ladder measures whether many PHYSICAL applications of
+  a K-relative operator preserve a fixed shallow target, not whether
+  deeper RELATIONAL composition generalizes). **The coprime probe
+  (`2K-1`, residue `K-1`) is reported alongside but is NOT expected to
+  also clear (A2.4): its implied `min|λ|` requirement is strictly tighter
+  than the primary's pinned bar at every rung (table above), so a
+  primary-only FLAT-HOLD with a non-clearing coprime probe is the
+  MATH-CONSISTENT expected pattern, not a partial or weaker result — only
+  a SURPRISE clearance of the coprime probe adds the stronger "across two
+  independent residue classes" claim, and that should be reported as a
+  bonus finding if it happens, not assumed going in.** Still the
+  strongest possible primary-only outcome, no evidence of a new wall
+  inside this ladder's range.
 - **(b) GRACEFUL DECAY:** WIN/PARTIAL at K=48/64, degrading toward
   NULL by K=96/128, with `rec@h*(K)` roughly monotonically falling. Report
   the fitted trend (simple monotonic fit against K or log K — four points is
@@ -717,6 +929,11 @@ Rev-1 default `N=1` this equals `ceiling(K)` exactly, so the fix only
 bites once/if a rung is upgraded to `N=2` packing)** for any sweep cell,
 ABORT immediately rather than waiting for the full ceiling to elapse. This
 turns "is this cell healthy" into a decision made in minutes, not days.
+**For the Stage-0 cell specifically, firing the flat-24h leg of this
+trigger is a first-class outcome with its own decision branch
+(ABORTED-ON-COST, §5 Phase 0a, A2.2 fix, Rev 2) — not just a kill
+signal; §5 is the authority on what happens next for Stage-0, this
+section only pins the mechanism.**
 
 **Gate-0 abort (mirrors `NCR_ORTHO_WRITE.md` §4 Part A FAIL clause
 verbatim):** if a K-rung's Gate-0 fails in ≥3/4 seeds, STOP that rung
@@ -828,7 +1045,9 @@ automatically transfer to the moved `K-3` bar):**
   rationale, §6), `min|λ|/c* ≥ 0.9^(40/45) ≈ 0.9106` (§6's per-K formula,
   Rev 1, evaluated at the MOVED bar `h=45` rather than `h=56`). `h=K+8=56`
   is reported as a stretch checkpoint only, not gating (per item (1)
-  above).
+  above); the coprime probe `2K-1=95` is likewise mandatory-reported,
+  non-gating here too (§6/A2.4, Rev 2 — same convention, no PARTIAL-branch
+  exception).
 - **PARTIAL (K=48, PARTIAL-branch):** median rec@0.9 ≥0.9 at one of the
   shallow sanity points `{5,12,20}` but <0.9 at `K-3=45` — cracked
   shallower than even the PARTIAL-branch's own re-registered bar.
@@ -1484,3 +1703,44 @@ not: in-silico front ~51 < 63) — i.e., the default is the only consistent
 choice unless new arithmetic says otherwise;
 (e) minors A2.5–A2.7 folded in. Rev 2 → ROUND 3 (changelog-fidelity +
 spot-arithmetic) before CLEAR-FOR-CONDITIONAL-BUILD.
+
+---
+
+## §R2 REVISION 2 (2026-07-16)
+
+Rev 2, dispatched per §A2-ADJUDICATION's binding disposition. Every A2.x
+finding addressed below with an exact section reference; §A1,
+§A1-ADJUDICATION, §R1, §A2, and §A2-ADJUDICATION themselves are UNCHANGED
+(historical record). This design now carries status
+**DRAFT-STAGE-1-REV-2 (POST-ATTACK-2, PRE-ROUND-3)**.
+
+| Finding | Disposition | Where fixed |
+|---|---|---|
+| **A2.1 (MAJOR)** — Rev-1's margin table used the non-binding `2K+1` ceiling; true binding ceiling is `min(d,h+1)=d=K+1`, true fill ~0.88 not ~0.445 | Retracted the `2K+1`-ceiling narrative and the `h=K` rejection reasoning built on it (both ceilings are IDENTICAL, `K+1`). Replaced with a fill table computed against the TRUE binding cap (`0.9K/(K+1)`: 0.882-0.893 at K=48-128 vs 0.873 validated at K=32 — same razor-thin regime, not "comfortable"). Re-justified `h(K)=2K` on the correct grounds: `h` must not itself bind (`h=K` ties `d` with zero headroom; `h=2K` restores non-binding `h`-headroom at the validated ratio) — an ENCODER-CAPACITY argument, not a ceiling-raising one. Re-verified the tight-spare precedent's ACTUAL measured d-cap fill directly against the archived Probe-A JSONs (`experiment-runs/2026-07-12_ncr_nextlever_wave/dratio/*.json`, `deep_probe.A_eff_rank`): K=16/d=17 → 0.9411-0.9412, K=24/d=25 → 0.9570-0.9599 — both comfortably above the ~0.87-0.89 requirement (round 2's own "~0.93" citation misread a different, `d=2K`, wave row; corrected here). Collapsed the old "4th risk" (h(K)-sufficiency) into risk (a) (relative-headroom/`d`-cap fillability) since both are the SAME question under the corrected ceiling. | §2 (Choice paragraph, new Fill table, new "why h(K)=2K is still right" paragraph, Honesty-on-validation paragraph); §5 (risk list collapsed to THREE, Phase-0b bullet 2 reworded); §6 (Gate-0 precondition line rewords "h(K)=2K-fixed ceiling" → "min(d,h+1)=d=K+1-binding ceiling") |
+| **A2.2 (MAJOR)** — Stage-0's flat 24h abort sat below the cell's own nominal cost (174.59h), so under the compute-bound regime it exists to test, it aborts at ~step 2,000 without producing 3 of 4 deliverables, and no decision branch covered that outcome | Split Stage-0 into Phase 0a (early cost gate) and Phase 0b (full run). Phase 0a explicitly reuses §7's own early-step-rate projection mechanism (2,000/320,000-step extrapolation, pinned 24h threshold) as Stage-0's OWN gating check, evaluated as an early PROJECTION (≈0.15-1.1h wall-clock) rather than a 24-real-hour wait. Added **ABORTED-ON-COST** as a first-class Stage-0 outcome with its own decision branch: realized rate confirms compute-bound ⇒ K=96/K=128 declared priced out of the committed sweep ⇒ proceed straight to the floor (K48-first staged escalation) ⇒ Stage-0's three remaining deliverables (Gate-0, orthogonality, `d`-cap fillability) explicitly REASSIGNED to the first floor cell, K=48, whose numbers then gate K=64 ONLY — the ladder's upper half (K=96/128) is stated OUT OF SCOPE for this wave, needing its own future calibration gate. | §5 (Stage-0 section fully restructured into Phase 0a / Phase 0b); §7 (one cross-reference sentence added, pointing to §5's new decision branch) |
+| **A2.3 (MAJOR)** — cap accounting was self-contradictory: Stage-0 counted INSIDE the 150h cap in one sentence (the "0.59h margin" headline) but OUTSIDE it everywhere else; the contingent 2nd calibration seed silently breached the cap under the "inside" reading; out-of-cap exposure was never summed in one place | Picked ONE convention (Stage-0 + fallback + probes all OUT-OF-CAP, matching 3 of the 4 pre-existing mentions) and built ONE table: committed-sweep spend (125.41h) vs the 150h cap (24.59h margin, replacing the false "0.59h margin"), plus every out-of-cap exposure line (Stage-0 completed-run branch ≤48h, Stage-0 ABORTED-ON-COST branch ≈0.15-2.2h — listed as a cheaper alternative, not summed in, since the two are mutually exclusive outcomes of the same cell — `d=1.25K` fallback ≈227.6h, rate-probes ≈0.05h) summed to a single disclosed worst-case program total ≈425.65h. Deleted every sentence stating the contradicting convention. | §4 (trim-order step 4 rewritten; new unified cap-accounting table inserted; "Read this honestly" paragraph split into the two headline numbers) |
+| **A2.4 (MAJOR)** — the A1.3 per-K mechanistic bar (pinned for `h*=K+8`) and the A1.5 coprime WIN-gate (`rec@0.9` at the DEEPER `2K-1`) mathematically contradict each other; an operator meeting the pinned bar provably fails the coprime gate at every K, and the K=32 anchor itself would not clear a `2K-1` gate — WIN(K) was internally unsatisfiable as written | Took the coordinator's default (§A2-ADJUDICATION (d)): the coprime probe (`h=2K-1`) becomes MANDATORY-REPORTED, NON-GATING (same convention already used for the disclaimed synthetic `h_star=8K-3` checkpoint); WIN(K) gates on the primary `h*=K+8` alone. Added a reported-only table of the coprime probe's implied `min|λ|` bar (0.9566-0.9836 across K=48-128, all stricter than the primary's pinned bar) so the "expected to fail, not a defect" framing is explicit and checkable. Did NOT take the re-pin-and-keep-gating alternative, since the K=32 anchor's own in-silico front (≈51.4) does not clear a `2K-1` gate (63 at K=32) — the disposition's own stated condition for taking that path is unmet. Updated §1's hypothesis, §3's coprime-probe paragraph, §6's FLAT-HOLD readout, and §9's PARTIAL-branch band mapping for consistency. | §1 (hypothesis wording); §3 (coprime-probe paragraph's closing sentence); §6 (WIN(K) band rewritten, reported-only bar table added, FLAT-HOLD reworded); §9 (one added sentence noting the same non-gating convention applies to the PARTIAL branch) |
+| **A2.5 (MINOR)** — `0.9^136 ≈ 4·10⁻⁷` is arithmetically off; true value `5.98·10⁻⁷` | Corrected to `≈5.98·10⁻⁷ (≈6·10⁻⁷)`, recomputed and verified (`0.9**136 = 5.983858...e-07`); the illustrative point (vacuous corroboration at a flat threshold) is order-correct either way and unaffected. | §6 (WIN(K) band, the `(bar)^h*` vacuity aside) |
+| **A2.6 (MINOR)** — A1.10 fixed the false-FAIL direction (2/2 seeds required) but left a false-PASS asymmetry: a single-seed PASS was accepted at face value | Added the symmetric caveat: a single-seed Stage-0 PASS is provisional; K=48's own n=4 Gate-0 result (the next thing that runs under the staged escalation) is what actually confirms it before K=64/96/128 see further commitment — the staged escalation IS the containment, stated explicitly rather than left implicit. | §5 (PASS bullet in the Phase-0b decision rule) |
+| **A2.7 (MINOR)** — self-test citation drift: `ncr_ortho_write.py:717,747` cited, but the actual `<1e-2` asserts are at `:719` (t2) and `:747` (t4) | Verified against the raw file (`grep -n "1e-2"` → lines 719 and 747 exactly) and corrected the citation to `:719,747`. | §5 (Phase-0b bullet 3, orthogonality-quality tolerance paragraph) |
+
+**Numbers that moved as a direct, disclosed consequence of the A2.1/A2.3
+fixes (not independent changes):** the "comfortable ≈0.445-0.448 margin"
+narrative is retracted and replaced by the TRUE fill (0.882-0.893 at
+K=48-128, 0.873 at the validated K=32) — no P/F/NS/memory/pricing NUMBER
+in §2/§4/§7/§8 changed (the `h(K)=2K` substitution itself is unchanged by
+Rev 2; only the INTERPRETATION of which constraint binds, and the
+tight-spare precedent's cited fill figure, 0.941-0.960 replacing "~0.93,"
+changed); the committed-sweep margin under the 150h cap moved from a
+false "0.59h" to the correct **24.59h** (same floor number, 125.41h,
+corrected accounting); a new disclosed **≈425.65h worst-case program
+total** (committed cap + all out-of-cap exposure) did not exist as a
+single number anywhere in Rev 1.
+
+**Not re-litigated in Rev 2 (out of scope for this pass, flagged for
+Attack Round 3 to check for completeness):** the grid-K-selection
+rationale, the underlying `d=K+1` tight-spare convention itself (only its
+fallback pricing was touched, unchanged from Rev 1), the §3 residue
+arithmetic and checkpoint set (unchanged except the one coprime-gating
+sentence, A2.4), and the §8 saturation-packing plan (unaffected by any
+A2.x finding — no packing number changed).
