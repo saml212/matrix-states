@@ -1,8 +1,18 @@
 # NCR REAL-LM DESIGN — the flagship bet: NCR in a real language model at scale
 
-**DRAFT-STAGE-1-REV-2 (POST-ATTACK-2, PRE-ROUND-3). Opened 2026-07-16,
-revised 2026-07-16 (Rev 1) per §A1-ADJUDICATION, revised again 2026-07-16
-(Rev 2) per §A2-ADJUDICATION.** This document is a design draft,
+**REV-2.1 — CLEAR-FOR-CONDITIONAL-BUILD (coordinator freeze 2026-07-16
+after direct verification of the §R2.1 edits, per §A3's no-fourth-round
+ruling; gauntlet: draft → attack 1 [BUILD-BLOCKED, FATAL F1] → Rev 1 →
+attack 2 [BUILD-BLOCKED, FATAL F2] → Rev 2 → round 3 [REVISE, narrow] →
+Rev 2.1 → coordinator verify [purge complete, margin pinned, ledger
+re-summed 483.78≈484]). Execution TRIPLE-GATED per §9: GATE 1 = ortho-write
+verdict WIN/PARTIAL; GATE 2 = bridge cell (n=3, 3.18 GPU-h, pinned ≥0.2
+margin); GATE 3 = Phase-0/1 calibration Gate-0. Opened 2026-07-16, revised
+2026-07-16 (Rev 1) per §A1-ADJUDICATION, revised again 2026-07-16 (Rev 2)
+per §A2-ADJUDICATION, revised a third time 2026-07-16 (Rev 2.1, surgical
+freeze-scope only) per §A3-ADJUDICATION following §A3 ROUND 3's REVISE
+verdict — changelog §R2.1, appended at the end of this document.** This
+document is a design draft,
 produced for adversarial attack. No code is built, no GPU is touched, by
 this document. Every number below is either (a) cited from a measured rate
 elsewhere in this repo, with the exact source named, or (b) flagged
@@ -38,7 +48,7 @@ through the real GPT-2 tokenizer — reused directly for §3/§5);
 matched axis framing, skimmed for §4.3's KV-cache baseline);
 `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` §1 (the S3/S4/S5/A5/A6
 solvable-vs-non-solvable group generator infrastructure, reused directly
-for §3's structural-failure task below).
+for §3's mechanistic-length-generalization task below).
 
 **GROUNDING UPDATE (2026-07-16, coordinator-relayed, both memos
 coordinator-spot-checked — supersedes every `[TO-VERIFY]` tag from this
@@ -127,8 +137,12 @@ hence length-insensitive-capacity, circuit family, the standard reason
 such circuits tend toward position/length-keyed pattern-matching rather
 than unbounded recursion) — **never again as a finite-`L` impossibility
 bar.** Every "cannot, not merely does not" / "structurally barred at
-tested depths" sentence is purged from this design as of this revision
-(§3.2, §7, §8, §9, below). The flagship headline downgrades honestly from
+tested depths" sentence is purged from this design (§3.2, §7, §8, §9,
+below; §R2.1(a) COMPLETES this purge — Rev 2's own claim that the scope
+was already §3.2/§7/§8/§9 was FALSE against the actual text, §A3 F3-1 —
+the residual stale framing in §0, §2.1, §2.2, §3.1, and the §3.2 HEADER
+itself is fixed there too, so the true purge scope is §0, §2.1, §2.2,
+§3.1, §3.2, §7, §8, §9). The flagship headline downgrades honestly from
 "cannot" to "does-not-and-we-show-why-ours-must," disclosed here plainly,
 not softened.
 
@@ -318,15 +332,23 @@ backbone" story, and the one most directly comparable to
 unpriced unknown at LM scale. Kept as the **mandatory param-matched
 baseline architecture** (§4.1) rather than the primary contender, so its
 Phase-0a cost is paid regardless of which option is chosen as primary.
-**Structural-failure grounding for THIS baseline specifically** (the
-Transformer, any depth, any width): log-precision transformers are
-contained in uniform TC⁰ (Merrill & Sabharwal, TACL 2023,
-arXiv:2207.00729); the word problem of any fixed NON-SOLVABLE finite
-group (e.g. S₅, A₅, A₆) is NC¹-complete (Barrington 1989); TC⁰ transformers
-therefore cannot solve it unless TC⁰=NC¹ (Merrill, Petty & Sabharwal,
-ICML 2024, arXiv:2404.08819, making this deduction explicit against S₅).
-This is a genuine complexity-theoretic argument, not an empirical-drift
-claim — but it ONLY bites if the task's relation-composition structure is
+**Complexity-theoretic MOTIVATION for THIS baseline specifically — asymptotic,
+NOT a finite-`L` bar (§R2.1(a) completes the F2 purge here, §A3 F3-1: this
+paragraph previously re-asserted the retired "structurally barred" framing
+that §1's reframe, above, already retires)** (the Transformer, any depth,
+any width): log-precision transformers are contained in uniform TC⁰
+(Merrill & Sabharwal, TACL 2023, arXiv:2207.00729); the word problem of any
+fixed NON-SOLVABLE finite group (e.g. S₅, A₅, A₆) is NC¹-complete
+(Barrington 1989); this is an ALL-`L` ASYMPTOTIC deduction (Merrill, Petty
+& Sabharwal, ICML 2024, arXiv:2404.08819, making it explicit against S₅)
+that does NOT bite at any tested finite `L` — §1's own C4 citation
+constructs an exact bounded-depth Transformer shortcut at every tested
+length, so the Transformer is NOT predicted to fail this task outright.
+This is a genuine complexity-theoretic MOTIVATION, not a finite-`L`
+impossibility claim — it grounds WHY a bounded-depth, length-brittle
+shortcut, not a length-general algorithm, is the object SGD is expected to
+find (§1's mechanism instrument), and it is only RELEVANT (never "biting"
+in the impossibility sense) if the task's relation-composition structure is
 drawn from a non-solvable group (§3.1 below); the program's existing
 single-Hamiltonian-K-CYCLE construction (`task_e.py`, `grammar_rd.py`) is
 a CYCLIC (abelian, solvable) group and does NOT license this citation —
@@ -422,7 +444,8 @@ be projected.
 way (this is where §1 Axis B's O(log h)-vs-O(h) framing meets this
 specific backbone — §R1(f), M5 note: this caveat is scoped to Axis B/
 Task 1 only, per §A1 F1; it says nothing about Task 2, whose baseline is
-the Transformer, §4.1, on structural grounds).** DeltaNet's native
+the Transformer, §4.1, per §2.1's complexity-theoretic MOTIVATION, not a
+structural bar, §R2.1(a)).** DeltaNet's native
 transition is `I − βkkᵀ` (a Householder reflection); the standard sigmoid
 gate restricts `β∈(0,1)`, which per Grazzi et al. (arXiv:2411.12537)
 restricts transition eigenvalues to `[0,1]` and provably BARS
@@ -430,8 +453,8 @@ parity/non-solvable-group state tracking — i.e., under that gate the
 PLAIN-DeltaNet-control arm (§4's implicit baseline, the backbone with no
 NCR head) is ITSELF still TC⁰-limited on any hypothetical non-solvable
 task (same class as diagonal SSMs, same Merrill/Petty/Sabharwal argument),
-though this does not bear on Task 2 (§3.2) since Task 2's structural
-baseline of record is the Transformer, not plain DeltaNet. If the box's
+though this does not bear on Task 2 (§3.2) since Task 2's baseline of
+record is the Transformer, not plain DeltaNet. If the box's
 `fla` kernel or a config flag instead allows `β∈(0,2)` (unlocking negative
 eigenvalues) BY DEFAULT, the plain-DeltaNet-control arm already escapes
 TC⁰ and becomes behaviorally close to §4.4's own dedicated Axis-B
@@ -581,8 +604,10 @@ structural (a load-bearing demotion vs. this document's first draft).**
 The single-Hamiltonian-K-cycle construction generates a CYCLIC group —
 abelian, hence SOLVABLE — and Barrington's NC¹-completeness result applies
 only to NON-SOLVABLE groups; a solvable group's word problem sits inside
-`ACC⁰`/`TC⁰` in principle, so a TC⁰ transformer is NOT structurally barred
-from this task the way it is from Task 2 (§3.2, below). The prediction here
+`ACC⁰`/`TC⁰` in principle, so a TC⁰ transformer has NO complexity-theoretic
+motivation for failing this task at all — unlike Task 2 (§3.2, below),
+whose motivation is asymptotic and non-binding at any tested `L` in any
+case (§1's/§2.1's reframe, §R2.1(a)). The prediction here
 rests instead on the EMPIRICAL composition-error-cascading phenomenon
 (Guu, Miller & Liang, 2015, arXiv:1506.01094, VERIFIED real —
 `research/ncr_separation_grounding.md` reference N5 — composition error
@@ -599,12 +624,13 @@ the baseline." **But accuracy is not this task's primary job in the
 revised design (§R1(a)): Task 1 is where Axis B's O(log h)-vs-Θ(h)
 query-time-cost separation lives (§4.4), because it is the one family
 where a squaring shortcut mathematically exists** (single-operator power,
-cyclic group). Task 2 carries the structural (Axis A) claim on a disjoint
-family where no such shortcut exists (§3.2, below) — companions on
-different axes, neither subordinate to the other.
+cyclic group). Task 2 carries the mechanistic length-generalization
+(Axis A) claim on a disjoint family where no such shortcut exists (§3.2,
+below) — companions on different axes, neither subordinate to the other.
 
 ### 3.2 Task 2 — Non-solvable-group word-problem chain (PRIMARY for
-Axis A — structural failure, well-posed construction, §R1(b) fixes M1)
+Axis A — mechanistic length-generalization, well-posed construction,
+§R1(b) fixes M1)
 
 **M1, as adjudicated: construction rewritten to use the GENERATOR SET, not
 a permutation acting on the K=32 entity pool.** The first draft conflated
@@ -1389,23 +1415,23 @@ question, run BEFORE any Phase-1 GPU-h is spent on Task 2.
 
 **Pricing (PROJECTED from Part B's own measured rate, §6.1 — an EVEN
 TIGHTER transfer than Rev 1's, since Task 2's `d` is no longer smaller
-than Part B's own `d=33` at all — it is IDENTICAL; the only cost lever
-taken is a REDUCED step budget and REDUCED seed count, unchanged from
-Rev 1).** Construction: `R=3` (S₅'s `{t,c,c⁻¹}`, not Part B's R=4),
-`d=d_ncr=33` (SAME as Part B's own `d`, NOT Rev 1's retired `d=5`), `n=2`
-seeds (not Part B's n=4 — flagged as still-open, m4, carried forward to
-round 3; not in this revision's binding scope, §R2), **1× budget = 80,000
+than Part B's own `d=33` at all — it is IDENTICAL).** Construction: `R=3`
+(S₅'s `{t,c,c⁻¹}`, not Part B's R=4), `d=d_ncr=33` (SAME as Part B's own
+`d`, NOT Rev 1's retired `d=5`), **`n=3` seeds** (RAISED from Rev 1/Rev
+2's `n=2`, §R2.1(c) — closes F3-3/m4, UPGRADED from disclosed-minor to
+REQUIRED by §A3-ADJUDICATION: a gate that can DROP an entire primary axis
+on a median statistic does not run at n=2, matching this program's own
+n≥3 seed-variance norm; still one seed short of Part B's own n=4, an
+additional un-costed margin of conservatism), **1× budget = 80,000
 steps** (not Part B's 4× = 320,000 — a bridge/gate cell needs Gate-0 plus
 one modest depth checkpoint, not the full realistic-depth frontier sweep
 Part B itself runs). Cost: `80,000/320,000 × 4.24 GPU-h/cell = 1.06
-GPU-h/cell × 2 seeds = 2.12 GPU-h (1×); 2× contingency ≈ 4.24 GPU-h` —
-**the SAME number as Rev 1's own projection, arithmetically, because Rev
-1 already declined (conservatively) to discount for the smaller `d` it
-was then using; now that `d` is not smaller at all, the identical number
-rests on a strictly tighter, better-justified transfer** (R=3 vs. Part
-B's R=4 is, if anything, an additional un-costed margin of conservatism,
-not priced as savings, per this design's own discipline against
-inventing unmeasured discounts).
+GPU-h/cell (per-seed rate) × 3 seeds = 3.18 GPU-h (1×); 2× contingency ≈
+6.36 GPU-h` — **`+1.06` GPU-h (1×) / `+2.12` GPU-h (2×) over Rev 1/Rev 2's
+own `n=2` projection (`2.12`/`4.24` GPU-h), propagated through the §6.2
+grand total below (§R2.1(c))** (R=3 vs. Part B's R=4 remains, if anything,
+an additional un-costed margin of conservatism, not priced as savings, per
+this design's own discipline against inventing unmeasured discounts).
 
 **Orthogonality tolerance, stated explicitly (M7's fix — this check was
 STRUCTURALLY UNPASSABLE under Rev 1's zero-padded object, §A2 M7's
@@ -1430,11 +1456,17 @@ L∈{1,2,3}) AND **WIN**: ortho S₅-generator-write median rec@0.9 at
 **L=20** (2.5× the new `L_train=8`) ≥0.9 AND free-write (unconstrained)
 baseline ≤0.35 at L=20 (the chance-adjacent FAIL bar, §3.2's M10 fix —
 replaces Rev 1's `<0.5`) AND the orthogonality corroboration bar above
-clears. **PARTIAL**: Gate-0 clears, L=20 recovery ∈(0.35,0.9). **NULL**:
-Gate-0 clears, no gain over free-write at L=20 (m7's PARTIAL/NULL
-boundary-overlap concern, flagged by §A2, is NOT re-litigated by this
-revision — outside the binding scope (a)–(e); carried forward for round
-3 unchanged in substance from Rev 1). **FAIL**: Gate-0 itself fails (the
+clears. **PARTIAL**: Gate-0 clears AND L=20 recovery ∈(0.35,0.9) AND
+(ortho rec@L=20 − free-write rec@L=20) ≥0.2 (the PINNED MARGIN, §R2.1(b),
+mirroring the WIN row's own free-write-gap convention above — closes
+m7/F3-2's band-overlap: the old bands had no delta threshold, so a
+borderline result, e.g. ortho=0.60/free=0.58, satisfied BOTH PARTIAL's
+numeric range and NULL's "no gain" description at once). **NULL**:
+Gate-0 clears AND the WIN and PARTIAL conditions above are NOT both met —
+i.e. L=20 recovery ≤0.35, OR L=20 recovery ∈(0.35,0.9) but the margin
+(ortho − free) <0.2 — the exact band-overlap case is now resolved
+unambiguously (ortho=0.60/free=0.58 ⇒ recovery nominally in-band but
+margin=0.02≪0.2 ⇒ NULL). **FAIL**: Gate-0 itself fails (the
 constraint blocks trainability on this differently-shaped object — though
 M7's fix removes the STRUCTURAL reason this would happen, a genuine
 optimization-difficulty FAIL remains possible and is still scored).
@@ -1500,6 +1532,31 @@ contingency: ≈215.3 GPU-h — the Transformer arm's own placeholder pricing
 is more than half this total, underscoring why Phase 0a is not
 optional.**
 
+**Cross-task interference criterion (NEW, §R2.1(e), wires §A3
+CHECK 3(i)'s carried-forward gap — an EXACT threshold, not a vibes call).**
+Because training is task-suite-shared (above), the shared `d_ncr` head
+sees BOTH Task 1's K-cycle writes and Task 2's `ρ_{S₅}(g)⊕I` writes in one
+curriculum — M7+M9 resolved that this is architecturally ONE valid
+construction, but not whether joint training DEGRADES either task
+relative to training it alone (§R2's own open item (5)). **For EACH task
+family independently: Phase-2's shared-curriculum per-task accuracy
+(the SAME recovery metric Gate-0 already reads, evaluated per-task on the
+co-trained checkpoint) must be ≥ (that task's OWN Phase-1 single-task
+calibration accuracy, §6.2 Phase 1 above − 0.05 absolute).** A breach on
+EITHER task triggers **DIAGNOSE-FIRST**: HOLD Phase 3 for that scale, and
+adjudicate using the single-family ablation arms Phase 1 already ran
+(Task-1-only, Task-2-only calibration cells, §6.2 Phase 1 above — already
+run, NO new GPU-h) — compare the co-trained Phase-2 checkpoint's per-task
+accuracy against the corresponding ISOLATED Phase-1 arm's own accuracy to
+separate genuine cross-task interference (the shared head degrades under
+joint training) from an unrelated per-task regression (e.g. a
+scale-specific optimization issue), before spending any further budget at
+that scale. **No silent pass**: a breach without a filed DIAGNOSE-FIRST
+adjudication blocks Phase 3 authorization for that scale by construction
+(mirrors §8 item 4's existing per-task Gate-0 discipline, extended here to
+a cross-task comparison Gate-0 alone does not make). Full statement and
+consequence restated as its own numbered risk, §8 item 8.
+
 **Phase 3 — main wave, 392M (gated on Phase 2's 98M readout AND the
 ortho-write verdict, §9).** Same arm/seed/corpus/task-suite structure,
 20,000-step reduced budget (327.68M tokens/cell — the same disclosed
@@ -1515,10 +1572,12 @@ cells × (placeholder ceiling) 9.342 GPU-h/cell → 56.05 GPU-h. **Phase 3
 **Grand total (Phases 0–3, 2× contingency, Transformer arm at its
 UN-re-priced placeholder ceiling, Phase 0a NOW including the rollout-
 baseline probe, Phase 1 NOW including Task 2's own calibration, Phase 0b
-bridge cell added): ≈2 + 11.9 + 4.24 + 21.52 + 215.3 + 226.7 ≈ 482 GPU-h**
-(vs. the pre-Rev-1 draft's own excludes-the-rollout-arm total of 462
-GPU-h — the increase is entirely Phase 0a's now-included rollout probe
-(+4.76) and the bridge cell + doubled Phase 1 (+15). This is a Stage-1
+bridge cell added, NOW at `n=3` seeds §R2.1(c)): ≈2 + 11.9 + 6.36 + 21.52
++ 215.3 + 226.7 ≈ 484 GPU-h** (vs. the pre-Rev-1 draft's own
+excludes-the-rollout-arm total of 462 GPU-h — the increase is Phase 0a's
+now-included rollout probe (+4.76), the bridge cell + doubled Phase 1
+(+15), and Rev 2.1's own bridge-cell `n=2→n=3` seed raise (+2.12 at 2×,
+§R2.1(c), ledger delta: 482→484 GPU-h). This is a Stage-1
 DESIGN ceiling, not a committed ask — it is priced deliberately
 conservative (2× contingency stacked on 2× placeholder ceilings)
 specifically so an attack round has a real number to cut, not a vague
@@ -1540,8 +1599,9 @@ the Transformer arm) would add roughly another **NCR-arm-sized slice at
 each phase** — Phase 1: +2.76 GPU-h (1×, Task-1-only, since Axis B is
 Task-1-scoped per §A1 F1 — the rollout baseline is never trained on Task
 2); Phase 2: +27.9 GPU-h (1×); Phase 3: +29.3 GPU-h (1×) ≈ **+60 GPU-h at
-1×, +120 GPU-h at 2× contingency**, revising the grand total to **≈602
-GPU-h at 2× contingency**. This revision is presented as an
+1×, +120 GPU-h at 2× contingency**, revising the grand total to **≈604
+GPU-h at 2× contingency** (484+120, §R2.1(c)'s +2.12 propagated). This
+revision is presented as an
 order-of-magnitude flag for the attack round, not a firm number — an
 attack round should treat §4.4's own full-scale pricing as unresolved and
 require the real Phase-0a measurement (now budgeted above) before ANY
@@ -1593,33 +1653,10 @@ single-digit GB of VRAM — a tiny model's forward/backward pass simply
 does not generate enough parallel work to saturate an H100 regardless of
 how it is scheduled solo. This design explicitly does NOT repeat that
 pattern for either its main training cells or its calibration cells.
-
-**Main training cells (98M/392M, Phases 1–3).** Already far better
-utilized than the toy cells (23.5 GB / 39.0 GB of 80 GB at batch=32,
-seq_len=512 — 29% / 49%, not the ~2% the toy cells drew), but not yet
-saturated. Two coupled levers, both re-measured before launch, neither
-assumed:
-1. **Raise batch size.** Propose a dedicated memory/timing pilot sweeping
-   `batch ∈ {32, 48, 64, 96}` at 98M and `batch ∈ {32, 48, 64}` at 392M,
-   logging `torch.cuda.max_memory_allocated()` + `nvidia-smi` cross-check
-   at each point (the exact instrumentation `FROZEN_BIAS_LM_DESIGN.md`
-   §13.10 gate 3 already built and used) and SM occupancy via
-   `nvidia-smi dmon`. Target ≥80% of 80 GB and ≥80% SM utilization at the
-   chosen operating point; do NOT assume linear VRAM-vs-batch scaling (a
-   real model has a fixed model+optimizer-state floor that does not grow
-   with batch, so the achievable batch increase is likely somewhat more
-   than the naive ~3.4× (98M) / ~1.6× (392M) a linear projection from
-   current headroom would suggest, but this must be MEASURED, not
-   assumed — `CLAUDE.md`'s own "batch=112 fits training but OOMs during
-   eval" lesson is the standing reason eval batch is capped and re-tested
-   independently of train batch, applied here without exception).
-2. **Raise `seq_len`.** Task 3 (§3.3) independently motivates
-   `seq_len∈{1024, 2048}` (long-horizon intervening real text needs the
-   context window to hold it) — this is not solely a saturation
-   convenience; it is a genuine task requirement that HAPPENS to also
-   raise tokens/step (hence FLOPs/step and VRAM) at fixed batch, a
-   welcome coupling, not a coincidence. Re-measure batch×seq_len jointly,
-   not batch alone.
+(§R2.1(d) closes m6/F3-4: the "Main 98M/392M cells… Two coupled levers"
+block that used to appear here a second time, near-verbatim, is de-duped
+— see that single surviving copy below, just before "Main 98M/392M cells
+are NOT packed.")
 
 **Calibration / Phase-0/0b cells (14M / toy-scale smoke and the bridge
 cell) — packing licensed.** These remain genuinely too small to saturate
@@ -1763,7 +1800,8 @@ misread as the retired structural claim.**
 (REVISED, §R1(h) — fixes m1/m2/m3; items 1/5/6 re-scoped to the F1-fixed
 two-family conjunction; item 7 added for the bridge cell, §M2/M3; §R2 —
 items 5/6/7 updated again for the F2 length-generalization reframe and
-the M7/M8/M10 fixes)
+the M7/M8/M10 fixes; §R2.1 — item 8 added, wiring the cross-task
+interference criterion, §A3-ADJUDICATION item (e))
 
 1. **Ortho-write verdict lands NULL or FAIL (§9, revised) before Phase 1
    launches.** KILLS the K=32 configuration outright for Task 1 (and Task
@@ -1878,14 +1916,36 @@ the M7/M8/M10 fixes)
    automatically capped at PARTIAL, contingent only on Axis B). Does not
    kill the program (Axis B's own claim on Task 1 is entirely independent
    of the bridge cell's outcome) but is the single cheapest possible way
-   (§6.2: ≈2.1 GPU-h, 1×) to learn this BEFORE any Phase-1 Task-2 GPU-h —
-   the entire reason this gate exists ahead of the more expensive
+   (§6.2: ≈3.18 GPU-h, 1×, at the `n=3` seeds pinned §R2.1(c)) to learn
+   this BEFORE any Phase-1 Task-2 GPU-h — the entire reason this gate
+   exists ahead of the more expensive
    LM-embedded calibration. **M7's fix removes the STRUCTURAL reason this
    cell was guaranteed to be at least partially uninformative (Rev 1's
    zero-padded object could never pass the orthogonality corroboration
    check regardless of training) — a FAIL verdict now genuinely means
    "this construction doesn't train," not "this construction can't be
    orthogonal by arithmetic."**
+8. **Cross-task interference: Phase-2's shared-curriculum per-task
+   accuracy falls below (that task's OWN Phase-1 single-task calibration
+   accuracy − 0.05 absolute), for EITHER task family (NEW, §R2.1(e),
+   §A3-ADJUDICATION item (e) — closes §A3 CHECK 3(i)'s carried-forward
+   gap: a per-arm Gate-0 floor already existed, but no comparison AGAINST
+   the isolated single-task calibration did, so interference that
+   degraded one task WITHOUT dropping it below the absolute 0.9 Gate-0 bar
+   would previously have passed every gate silently).** Full criterion
+   restated at its point of use, §6.2 Phase 2. Triggers **DIAGNOSE-FIRST**:
+   HOLD Phase 3 for that scale; adjudicate using the single-family
+   ablation arms Phase 1 already provides (§6.2 Phase 1's separate
+   Task-1-only / Task-2-only calibration cells, already run, NO new
+   GPU-h) to determine whether the degradation is genuine cross-task
+   interference (the shared `d_ncr` head, trained on two write CONTENTS,
+   degrades either task relative to training it alone) or an unrelated
+   regression, before any further spend on that task/scale. Does not kill
+   the program — a confirmed-interference finding motivates a future
+   two-disjoint-head ablation (out of this Stage-1 build's scope, named
+   as a Stage-2 follow-on), not an immediate program kill. **No silent
+   pass**: a breach without a filed DIAGNOSE-FIRST adjudication blocks
+   Phase 3 authorization for that scale.
 
 ---
 
@@ -1944,8 +2004,9 @@ below, independently.**
   branch does NOT change Task 2's own construction** (§R1(c)'s direct fix
   of M2: the pre-Rev-1 draft's "R×15-cycle products instead of R×32"
   silently swapped Task 2 onto a CYCLIC — solvable — group, which cannot
-  carry Axis A's structural claim; that swap is retired, not repaired,
-  because it is no longer needed — Task 2 never depended on this K-axis
+  carry Axis A's (mechanistic length-generalization) claim; that swap is
+  retired, not repaired, because it is no longer needed — Task 2 never
+  depended on this K-axis
   to begin with).
 
 ### 9.2 GATE 2 — the bridge cell verdict (NEW, §R1(d); §R2(b) updates the
@@ -1967,7 +2028,8 @@ determines whether Task 2/Axis A proceeds, at what OOD floor, or at all:
   L-train/L-test split `L_train∈{1,…,8}` / `L_test∈{12,16,20,24,32,40}`
   (§3.2) — exactly the configuration priced in §3.2/§6 above. Axis A (§7)
   is fully contestable at WIN.
-- **If BRIDGE CELL PARTIAL** (Gate-0 clears, L=20 recovery ∈(0.35,0.9)):
+- **If BRIDGE CELL PARTIAL** (Gate-0 clears AND L=20 recovery ∈(0.35,0.9)
+  AND (ortho − free-write) ≥0.2, the PINNED MARGIN §6.2 Phase 0b/§R2.1(b)):
   Task 2 proceeds but the OOD claimed floor is re-anchored DOWNWARD to
   whatever depth the bridge cell's own (limited) ladder supports — a
   build agent must extend the bridge cell's own eval readout to at least
@@ -1976,10 +2038,13 @@ determines whether Task 2/Axis A proceeds, at what OOD floor, or at all:
   Axis A is EXPLICITLY marked REDUCED in any results write-up (§R1(c)'s
   direct fix of M2's "preserve both axes or mark the axis REDUCED"
   instruction) — still contestable, at a weaker headline OOD floor.
-- **If BRIDGE CELL NULL or FAIL** (no depth gain over free-write [within
-  the pinned margin, m7, carried forward unfixed this revision], or
-  Gate-0 itself fails on the S₅-generator object): Task 2/Axis A is
-  **DROPPED for Stage 1** — disclosed explicitly, not silently absorbed.
+- **If BRIDGE CELL NULL or FAIL** (Gate-0 clears but the WIN/PARTIAL
+  margin conditions above are NOT both met — L=20 recovery ≤0.35, or
+  recovery ∈(0.35,0.9) but (ortho − free) <0.2 (the pinned margin now
+  makes this boundary unambiguous, §6.2 Phase 0b/§R2.1(b) — closes m7/
+  F3-2's band-overlap), or Gate-0 itself fails on the S₅-generator
+  object): Task 2/Axis A is **DROPPED for Stage 1** — disclosed
+  explicitly, not silently absorbed.
   No Phase 1+ GPU-h is spent on Task 2's own arm (§6.2's Phase 1 Task-2
   subtotal, 5.38 GPU-h at 1×, is NOT spent); §7's overall program verdict
   is capped at PARTIAL regardless of how GATE 1/Axis B reads (§7's
@@ -3196,3 +3261,76 @@ Rev 2.1 the COORDINATOR verifies the edits directly (no fourth
 independent round) and freezes the header CLEAR-FOR-CONDITIONAL-BUILD,
 triple-gated (GATE 1 ortho verdict, GATE 2 bridge cell n=3, Phase-0/1
 calibration Gate-0).
+
+---
+
+## §R2.1 REVISION 2.1 (2026-07-16, freeze-scope) — changelog, every
+§A3-ADJUDICATION binding item (a)–(e) mapped to its exact edit
+
+**Scope discipline (surgical revision, Rev 2.1).** §0–§9 above are
+revised IN PLACE a third time, strictly to the five items
+§A3-ADJUDICATION bound; §A1/§A1-ADJUDICATION/§A2/§A2-ADJUDICATION/§A3/
+§A3-ADJUDICATION are left byte-intact as historical record. No number
+outside the ones this table lists moved.
+
+| §A3-ADJUDICATION item | Finding | Exact fix | Where |
+|---|---|---|---|
+| (a) | **F3-1** — the F2 stale-"structural/cannot" purge was INCOMPLETE: §1 line 129's own purge-completeness claim ("§3.2, §7, §8, §9") was FALSE against the actual text — live-stale framing survived in §0, §2.1 (header + body), §2.2 (×2), §3.1 (×2), and the §3.2 SECTION HEADER itself | Fixed every location §A3 quoted, verbatim: §0's reading-list line ("structural-failure task" → "mechanistic-length-generalization task"); §1 line 129's purge-scope sentence corrected to name the true scope (§0, §2.1, §2.2, §3.1, §3.2, §7, §8, §9); §2.1's Assessment paragraph header ("Structural-failure grounding" → "Complexity-theoretic MOTIVATION… asymptotic, NOT a finite-`L` bar") and body ("TC⁰ transformers therefore cannot solve it… ONLY bites" → explicit ASYMPTOTIC/MOTIVATION framing, cross-referencing §1's reframe, never again "bites" in the impossibility sense); §2.2's two "structural grounds"/"structural baseline of record" phrases struck (→ "per §2.1's complexity-theoretic MOTIVATION, not a structural bar" / "baseline of record"); §3.1 line 584 ("NOT structurally barred… the way it is from Task 2" → "has NO complexity-theoretic motivation… unlike Task 2… asymptotic and non-binding at any tested `L`"); §3.1 line 602 + the §3.2 header ("structural (Axis A) claim" / "PRIMARY for Axis A — structural failure" → "mechanistic length-generalization" throughout). **THEN grep-driven**: a full re-scan of §0–§9 for residual `structural`/`barred`/`cannot`/`complexity-theoretic` matches found 2 additional live-stale instances beyond the 6 quoted locations (neither flagged by §A3's own quote list) — §2.1's paragraph header (part of the same defect as the quoted body text, fixed together) and §9.1's fallback-branch note ("cannot carry Axis A's structural claim" → "cannot carry Axis A's (mechanistic length-generalization) claim"). Every other grep hit was verified to be an ALLOWED survivor: the §1 motivation-only paragraph (explicitly disclaims finite-`L` force), historical/retired-claim references that already say "retired"/"removed"/quote the old framing as false, or architecture-sense "structural" usage (e.g. "structurally-zero singular value," "no dimension structurally excluded," M7's "STRUCTURAL reason" for a rank-deficiency defect) unrelated to Axis A's complexity register. Axis A's label is now uniformly "mechanistic length-generalization" everywhere in §0–§9. | §0 (reading list); §1 (purge-scope sentence, line ~129); §2.1 (Assessment header + body); §2.2 (load-bearing-caveat paragraph, ×2); §3.1 (line ~584, line ~602); §3.2 (section header); §9.1 (K=15-fallback paragraph) |
+| (b) | **F3-2** — GATE-2's PARTIAL and NULL bands overlapped with NO pinned margin (carried-forward m7), and this gate can DROP a PRIMARY axis — a read-time-ambiguous gating criterion, REVISE-level per the round-3 mandate. Worked example: ortho rec@L=20=0.60 (∈(0.35,0.9) ⇒ nominally PARTIAL) with free-write=0.58 (no meaningful gain ⇒ nominally NULL) satisfied BOTH band descriptions at once. | **Pinned margin**: PARTIAL now requires Gate-0 clears AND L=20 recovery ∈(0.35,0.9) AND **(ortho rec@L=20 − free-write rec@L=20) ≥0.2** (mirroring the WIN row's own free-write-gap convention). NULL = Gate-0 clears and neither the WIN nor the (now margin-gated) PARTIAL condition is met — i.e. recovery ≤0.35, OR recovery ∈(0.35,0.9) but the margin is <0.2. The worked example now resolves unambiguously: ortho=0.60/free=0.58 ⇒ margin=0.02≪0.2 ⇒ **NULL**. Applied identically in both places the bands are stated; verified no other section restates the old ambiguous bands (only the Provenance paragraph's historical "m7… still overlap" note remains, left untouched as dated record per the historical-record convention, not a live re-statement of the bands themselves). | §6.2 Phase 0b (Gate paragraph, PARTIAL/NULL sentences); §9.2 (GATE 2's PARTIAL and NULL/FAIL bullets) |
+| (c) | **F3-3** — UPGRADED by §A3-ADJUDICATION from disclosed-minor (m4) to REQUIRED: the bridge cell (GATE 2) runs at `n=2` seeds on a "median rec@0.9" statistic to decide whether to DROP an entire primary axis (Axis A) — median-of-2 has no tie-break, and this program's own documented trainability-variance precedent (CLAUDE.md: "one fresh seed cleared the bar") sets an n≥3 norm this gate violated. | **Bridge cell raised to `n=3` seeds.** Recomputed price: per-seed rate `80,000/320,000 × 4.24 GPU-h/cell = 1.06 GPU-h/cell` (unchanged) `× 3 seeds = 3.18 GPU-h (1×)`; `2× contingency ≈ 6.36 GPU-h` — a delta of **`+1.06` GPU-h (1×) / `+2.12` GPU-h (2×)** over Rev 1/Rev 2's own `n=2` projection (`2.12`/`4.24` GPU-h). **Ledger propagated**: §6.2's Phase-0b line item (4.24→6.36 GPU-h, 2×); §6.2's grand total (≈482→**≈484 GPU-h**, 2×, excluding the rollout baseline: `2 + 11.9 + 6.36 + 21.52 + 215.3 + 226.7 = 483.78 ≈ 484`); the rollout-inclusive total (≈602→**≈604 GPU-h**, 2×: `484 + 120 = 604`); §8 item 7's own cost citation (`≈2.1 GPU-h, 1×` → `≈3.18 GPU-h, 1×`). Phase 1's SEPARATE per-task calibration cells (also `n=2`, a different line item m4 did NOT single out and §A3-ADJUDICATION did NOT include in this item's binding scope) are UNCHANGED — only the bridge cell's own seed count moved. | §6.2 (Phase 0b pricing paragraph; grand-total sentence; rollout-inclusive total sentence); §8 (item 7's cost parenthetical) |
+| (d) | **F3-4** — m6: §6.4 contained a near-verbatim duplicate of the "Main 98M/392M cells… Two coupled levers… 1. Raise batch size… 2. Raise seq_len" block, appearing twice (once before the "Calibration/Phase-0/0b cells" paragraph, once directly before "Main 98M/392M cells are NOT packed"). | De-duped: the FIRST (earlier, less complete) copy is deleted and replaced with a one-line forward-pointer; the SECOND copy is KEPT because it is the one that already carries the more complete cross-reference ("re-measured before launch, specifically, before Phase 0a's unpacked probe, per the sequencing above") and sits immediately before its own natural continuation ("Main 98M/392M cells are NOT packed"). No content lost — the surviving copy is a strict superset of the deleted one. | §6.4 (first "Main training cells" occurrence deleted; second "Main 98M/392M cells" occurrence retained, immediately followed by "…are NOT packed") |
+| (e) | **CHECK 3(i)** — no dedicated cross-task interference criterion existed: Phase-1's per-arm Gate-0 (≥0.9 absolute) could pass while Phase-2's shared-curriculum co-training silently degraded one task's accuracy relative to its own isolated Phase-1 calibration, with no comparison ever made against that isolated baseline — passing every existing gate silently. | **Wired with an exact threshold, in BOTH places**: for EACH task family independently, Phase-2's shared-curriculum per-task accuracy must be **≥ (that task's OWN Phase-1 single-task calibration accuracy − 0.05 absolute)**. A breach on either task triggers **DIAGNOSE-FIRST**: HOLD Phase 3 for that scale, adjudicate using the single-family ablation arms Phase 1 already ran (Task-1-only / Task-2-only calibration cells — already run, NO new GPU-h) to separate genuine cross-task interference from an unrelated regression, before any further spend at that scale. No silent pass: an unadjudicated breach blocks Phase 3 authorization for that scale by construction. | §6.2 (new "Cross-task interference criterion" paragraph, end of the Phase 2 subsection); §8 (new item 8, cross-referencing §6.2) |
+
+**Net effect on the compute ledger (§6.2).** The ONLY ledger-moving fix
+in this pass is (c) — the bridge cell's seed raise. Delta: **+1.06 GPU-h
+(1×) / +2.12 GPU-h (2×)** at the bridge-cell line item, propagating to
+**+2.12 GPU-h** on both grand-total figures: **≈482→≈484 GPU-h** (2×,
+excluding the untrained rollout-baseline arm) and **≈602→≈604 GPU-h**
+(2×, including that same-order-of-magnitude placeholder). Every other
+number in §6 is UNCHANGED — (a), (b), (d), and (e) are wording/threshold/
+de-dup fixes with zero GPU-h impact. §6.3's PRICE-UNKNOWN list is
+untouched (no item retired or introduced).
+
+**Note on §A3-ADJUDICATION's own parenthetical price estimate.** The
+adjudication's dispatch note (c) above estimated the re-price as "~6.4
+GPU-h at 1×" — recomputing exactly (per this agent's mandate to recompute
+every touched number) gives **3.18 GPU-h at 1×** (`1.06 × 3`) and **6.36
+GPU-h at 2×** (`3.18 × 2`); the adjudication's "~6.4" figure matches the
+**2× contingency** number, not 1×. The ledger above uses the recomputed,
+internally-consistent 1×/2× figures (3.18/6.36), not the adjudication's
+loosely-labeled shorthand.
+
+**What remains open, unchanged by this pass (outside §A3-ADJUDICATION's
+binding scope (a)–(e), disclosed rather than silently dropped):** m5
+(§8 item 2's fp32 gradient-cross-check reference, already re-scoped in
+Rev 2 and not reopened by §A3); the length-generalization reframe's own
+OOD-calibration-at-`L_train=8` open question (§R2's item (4)); whether
+the shared-`d_ncr` "one model" construction's TRAINABILITY (as opposed to
+its now-wired interference GATE, item (e) above) holds in practice —
+Phase 1's calibration cells remain the first empirical check of that,
+not a resolved certainty. Everything in this document remains
+CONDITIONAL on both §9 gates (GATE 1: main ortho-write verdict; GATE 2:
+the bridge cell, now at `n=3`) and, per §A3-ADJUDICATION's own closing
+instruction, on the COORDINATOR's direct verification of this table
+against the edits above (no fourth independent attack round required).
+
+---
+
+## §R2.1-ADJUDICATION — COORDINATOR FREEZE (2026-07-16)
+
+Rev 2.1's five fixes verified DIRECTLY by the coordinator (per §A3's
+ruling that the two blockers were verifiable in-place edits needing no
+fourth independent round): (1) purge complete — every residual
+structural/cannot hit in §0–§9 classified as an allowed survivor
+(motivation-only paragraph, retirement-provenance notes, architecture-
+sense usage); (2) GATE-2 margin (ortho − free ≥ 0.2) pinned verbatim in
+§6.2 Phase 0b AND §9.2, worked borderline example lands NULL; (3) bridge
+n=3 re-price verified (1.06 × 3 = 3.18 GPU-h at 1×) and the ledger
+re-summed by the coordinator (2 + 11.9 + 6.36 + 21.52 + 215.3 + 226.7 =
+483.78 ≈ 484); (4) §6.4 de-dup confirmed; (5) interference threshold
+(Phase-2 per-task ≥ Phase-1 calibration − 0.05 absolute, DIAGNOSE-FIRST
+on breach) wired in §6.2 AND §8. Rev 2.1 also corrected the
+§A3-ADJUDICATION's own "~6.4 GPU-h at 1×" shorthand (that was the 2×
+figure) — steer-verification working as required. STATUS:
+CLEAR-FOR-CONDITIONAL-BUILD, triple-gated (header). The gauntlet on this
+design is CLOSED.
