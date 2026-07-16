@@ -601,7 +601,7 @@ Arm-2 baseline pinned at exactly 0.0. Every other converged Arm-3 cell
 in the full grid (S3 4/5, S4 5/5 — full-family, disclosed/corroborating
 not gating —, A5 2/5 seeds) reproduces the same 0-vs-1 contradiction
 §2.31 first flagged on 6 cells, generalizing the tiebreak's ground 3 to
-the whole grid. Net: FALSIFY is the recorded verdict of record, NOT
+the whole grid. Net: INCONCLUSIVE-TRAINABILITY-LIMITED (§2.35; A6 clean positive, S5 4/5 seeds, 1/5 rank-deficient basin) is the recorded verdict of record, NOT
 "beta range makes no detectable difference" (the primary lens's
 face-value reading) — it is two disclosed, orthogonal, non-instrument
 confounds (A6 n_h-sufficiency, S5 seed-1 variance) neither resolved

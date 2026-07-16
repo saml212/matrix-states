@@ -321,3 +321,70 @@ sweep, is not yet claimed anywhere found.
 | N7 | MAGNA (attention-power geometric mixture) | 2009.14332 | — |
 | N8 | Higher-order / MEA Linear Attention | 2510.27258 | 2025 |
 | N9 | MesaNet | 2506.05233 | 2025 |
+
+---
+
+## 2026-07-16 novelty-gate re-sweep (PI-directed re-verification, three sweeps + Opus adjudication)
+
+**Context.** A PI-directed novelty re-verification gate ran three fresh
+sweeps (by-mechanism, by-task, internal-archive) to discharge the GATE-2
+novelty precondition of `matrix-thinking/NCR_REAL_LM_DESIGN.md` before any
+Task-2/Axis-A GPU-h. The adjudication is recorded in that design's §N1; the
+verified citations, anchor corrections, and the one UNVERIFIED flag are
+consolidated here so a future agent does not re-search from zero.
+
+**Headline outcome.** (a) The mechanism-novelty boundary HOLDS — no located
+work combines in-context-written full-rank operators + exact composition +
+query-time O(log h) repeated-squaring reads + orthogonalized writes; MuonSSM
+is closest. (b) The S₅ collapse-vs-hold SEPARATION SHAPE is SCOOPED (an
+established genre since 2022; **Yau 2506.10918 is a near-scoop on the
+identical task**); the claim was accordingly restructured so the headline is
+the exactness-by-construction guarantee + O(log h) access complexity, with
+the S₅ separation demoted to disclosed-genre corroboration. (c) Internal
+archive clear; the one omission (this design did not cite
+`CAPABILITY_SEPARATION_DESIGN.md` §2.35's own S₅ verdict) is reconciled in
+§N1 R3.
+
+**New/updated VERIFIED citations (arXiv IDs + one-line characterizations, per
+the sweep reports):**
+
+| Citation | arXiv | Status | One-line characterization |
+|---|---|---|---|
+| Yau et al., "Sequential-Parallel Duality in Prefix Scannable Models" (Andreas lab) | 2506.10918 | VERIFIED | **NEAR-SCOOP** — S₅ "cups and balls", train len 4–18 / test to 180, T-PSM holds while transformer AND Mamba collapse; empirical/learned hold, NO exactness argument. |
+| Li, Guo, Andreas, "(How) Do Language Models Track State?" | 2503.02854 | VERIFIED | S₃+S₅ in real LMs; "cutoff length" collapse; two LEARNED mechanisms (associative scan + parity-pruned) — the mechanistic-collapse half of our claim, already published. |
+| Lee 2026 | 2606.07254 | VERIFIED-as-real; CHARACTERIZATION AMBIGUOUS | Sweep 1 describes it as a "held-out transition-pair falsifier" eval-methodology paper for exact final-state accuracy; sweep 2 describes the SAME ID as S₃×S₃ state-tracking train len 8 → eval 10⁶. **Reconcile by body refetch before paper-facing use — do not state either description as settled.** |
+| M²RNN | 2603.14360 | VERIFIED | Matrix-valued state (adjacent family), S₃ only, train 128 → 512, ≥99.5% OOD; fixed nonlinear recurrence, not in-context-written operators — active adjacent competition. |
+| MuonSSM (Nguyen et al.), ICML 2026 Oral | 2606.30461 | VERIFIED (full-text) | Closest ortho-write prior art — orthogonalizes RANK-1 KV injections with a SINGLE quintic NS step for STABILITY, not full-rank d×d operators for composition-exactness. **Its "O(log L)" = Blelloch associative-scan TRAINING parallelism, NOT query-time O(log h) reads — pre-empt the conflation.** |
+| Barrington, bounded-width branching programs | — (1986 STOC / 1989 JCSS) | VERIFIED | Classical ORIGIN of exact composition by repeated squaring/doubling; cite as the math's origin — the learned in-context instantiation is the new part. |
+
+**Anchor corrections (landed this sweep):**
+- **FWM (2011.07831):** "fixed hop count" is NOT confirmable from the
+  abstract — soften to "recursive, gradient-trained, APPROXIMATE reads" in
+  all memos/papers.
+- **Log-Linear Attention (2506.04761):** now **PUBLISHED, ICLR 2026** —
+  update the venue in every cite (Part 2 above and the References table list
+  it as ICLR 2026 already; this confirms it).
+- **MuonSSM Blelloch nuance:** its O(log) is associative-scan TRAINING
+  parallelism (Mamba2/DeltaNet chunking family), not a query-time
+  repeated-squaring read — record wherever the "O(log)" name is compared.
+- **Atlas = arXiv:2505.23735** (Titans successor; there is no distinct 2026
+  Atlas paper — do not cite a phantom later ID).
+
+**UNVERIFIED flag (carry until closed):**
+- **RWKV-7 (2503.14456):** the EXPRESSIVITY claim (single layer solves an S₅
+  state-tracking problem; constant layers recognize any regular language) is
+  VERIFIED (Part 1 item 7 above). The **empirical S₅ LENGTH-GENERALIZATION
+  SPECIFICS are UNVERIFIED — the body fetch failed this session.** Do NOT
+  cite RWKV-7 S₅ empirical numbers until a body refetch confirms them.
+
+**Reviewer-bait / cite-and-distinguish (no group-word overlap, VERIFIED-as-real
+per the sweeps):** Anil 2207.04901; Zhou 2402.09371 (addition, fragile);
+RASP-L 2310.16028 (leverage FOR us — S₅ plausibly lacks a short RASP-L
+program); Position Coupling 2405.20671 (a baseline variant, never applied to
+S₅); 2402.09268 + 2509.09001 (O(log k) via transformer LAYERS); Echo
+2605.06997 (approximate power-iterated filter).
+
+**Adjudication verdict:** GATE-2 novelty condition DISCHARGED (see
+`NCR_REAL_LM_DESIGN.md` §N1). The full tiered must-cite list, the exact
+amended flagship claim, the data-pinned L_test extension, and the bridge-cell
+n=3→n=5 seed amendment are recorded there.

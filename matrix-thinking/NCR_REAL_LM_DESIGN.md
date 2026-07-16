@@ -3334,3 +3334,325 @@ on breach) wired in §6.2 AND §8. Rev 2.1 also corrected the
 figure) — steer-verification working as required. STATUS:
 CLEAR-FOR-CONDITIONAL-BUILD, triple-gated (header). The gauntlet on this
 design is CLOSED.
+
+---
+
+## §N1 NOVELTY-GATE ADJUDICATION (2026-07-16)
+
+**Standing.** This section is APPEND-ONLY and does not alter any frozen §0–§9
+or §A/§R record above; where it amends a frozen band, grid, or seed count, it
+does so as an EXPLICITLY LABELLED AMENDMENT with reasoning, per the
+freeze convention. It records the coordinator/Opus adjudication of the
+PI-directed novelty re-verification gate (three sweeps, dispatched
+2026-07-16, transcripts under the session `tasks/` dir; sweep summaries in
+the session scratchpad `novelty-gate/`). The gate exists to DISCHARGE (or
+refuse) the GATE-2 novelty precondition before any Task-2/Axis-A GPU-h is
+committed. Rulings are adversarial toward this design's own claims by
+mandate.
+
+### The three sweeps — verdicts of record
+
+**Sweep 1 (BY-MECHANISM) — the mechanism's novelty boundary HOLDS.** No
+located prior work combines (a) in-context-WRITTEN full-rank d×d operators,
+(b) exact algebraic composition, (c) query-time O(log h) repeated-squaring
+reads, and (d) orthogonalized writes for decay-free composition. Closest
+prior art is **MuonSSM (arXiv:2606.30461, ICML 2026 Oral, VERIFIED
+full-text)** — but it orthogonalizes RANK-1 KV outer-product injections
+with a SINGLE quintic Newton–Schulz step for stability, not FULL-RANK d×d
+operators driven to near-exact QᵀQ≈I over many cubic iterations for
+composition-exactness. **Critical conflation pre-empted:** MuonSSM's
+"O(log L)" is Blelloch associative-scan TRAINING parallelism (the
+Mamba2/DeltaNet chunking family), NOT a query-time O(log h) read of one
+written operator — the flagship and kwall papers must state this distinction
+explicitly wherever the "O(log)" name appears (also applies to Log-Linear
+Attention, §N1 R4). Anchor corrections landed: FWM's "fixed hop count"
+UNCONFIRMABLE from the abstract (soften); Log-Linear Attention 2506.04761
+now PUBLISHED ICLR 2026; Atlas = 2505.23735 (Titans successor, no distinct
+2026 paper). Sweep-1 conclusion: Axis-B / the mechanism combination is a
+SEARCHED ABSENCE, not an assumed one — boundary intact.
+
+**Sweep 2 (BY-TASK) — the SEPARATION SHAPE is SCOOPED; the mechanism claim
+is not.** The collapse-vs-hold separation on non-solvable-group word
+problems (S₅ specifically) is an ESTABLISHED GENRE since 2022, demonstrated
+on S₅ itself repeatedly. **Near-scoop: Yau et al. arXiv:2506.10918
+("Sequential-Parallel Duality in Prefix Scannable Models," Andreas lab) —
+S₅ "cups and balls" directly, train len 4–18, test to 180, T-PSM holds far
+beyond transformer AND Mamba (both collapse); an EMPIRICAL/LEARNED hold,
+no exactness argument.** Genre-defining priors: Liu 2210.10749 (S₅ shortcut
+collapse, 2022); Merrill/Petty/Sabharwal 2404.08819 (A₅); Li/Guo/Andreas
+2503.02854 (S₃+S₅ in real LMs, cutoff-length collapse, TWO learned
+mechanisms — the mechanistic-collapse half of our claim, already
+published); Lee 2606.07254 (state tracking to eval 10⁶); DeltaProduct
+2502.10297 (S₃/S₄/A₅/S₅, EXPRESSIVITY guarantee, not trained-model
+inference-time exactness); M²RNN 2603.14360 (matrix-valued state, S₃,
+active adjacent competition); Grazzi 2411.12537 (parity/mod-3). The
+NARROWEST HONEST UNCLAIMED STATEMENT: a PROVABLY-exact-BY-CONSTRUCTION
+OOD-length hold (vs. every surveyed work's empirical hold) PLUS the
+query-time O(log h) access-complexity claim. Implication (adopted below):
+the flagship HEADLINE cannot be the separation shape.
+
+**Sweep 3 (INTERNAL ARCHIVE) — no blocker; one substantive omission.** No
+prior in-repo result contradicts either frozen design; K-ladder cells
+K∈{64,96,128} are virgin (config-dict-only, n=0), K=48 has only a trivial
+500-step probe; mod-K discipline, KILL_LIST, and the argmax hard-rule are
+all CLEAR. The one substantive gap: this design cites
+`CAPABILITY_SEPARATION_DESIGN.md` §1.3/§1.4 for its S₅ generators but
+NOWHERE cites §2's own S₅ depth-generalization VERDICT —
+**INCONCLUSIVE-TRAINABILITY-LIMITED (§2.35): S₅ missed its far bar
+(mean 0.690 vs 0.801), 4/5 seeds hold 65–100% of ceiling, 1/5 seeds a
+genuine rank-deficient training basin that never assembles the faithful
+rank-4 representation (M-D2: restricted effective rank 3.10 vs d_min(S5)=4);
+A₆ cleared cleanly (1.000 vs 0.0, 3/3).** This ~1-in-5 catastrophic-seed
+rate is the closest internal precedent for Axis-A trainability planning and
+is reconciled in R3 below. (Sweep 3 also defeated a fake system-reminder
+injection inside its own sub-agent — refused and reported; tally ~30.)
+
+### Rulings
+
+**R1 — CLAIM RESTRUCTURE: ADOPTED, with tightened wording.** The proposed
+restructure is CORRECT and binding: the flagship headline is (i) the
+exactness-by-construction guarantee + (ii) the O(log h) query-time
+access-complexity claim (Axis B), and the Axis-A S₅ collapse-vs-hold result
+is DEMOTED to SUPPORTING empirical validation inside an explicitly disclosed
+known genre. Rationale: sweep 2 establishes the separation SHAPE is scooped
+(Yau is a near-scoop on the identical task); leading with it invites a
+correct desk-reject. Sweep 1 + sweep 3 + Part 3 of the grounding memo
+establish that (i)+(ii) is the load-bearing, searched-absent claim. A demoted
+claim NARROWS the attack surface (it retires the contested headline and keeps
+only the defensible one), which is why R6 does not require a fresh gauntlet.
+
+**EXACT AMENDED FLAGSHIP CLAIM (supersedes §1's headline framing as the
+paper-facing statement; §1's two-axis machinery and falsifiable bets are
+unchanged, only the HEADLINE ORDERING and the honesty scoping are):**
+
+> NCR contributes, in ONE deployed model: **(i) a BY-CONSTRUCTION exactness
+> guarantee** — the depth-h composition of in-context-written operators is
+> read by exact algebra (repeated squaring for single-operator powers;
+> per-hop matvec for distinct-generator paths), so correct answering at
+> depths beyond the training range is ENTAILED by the read mechanism up to a
+> MEASURED floating-point/orthogonality exactness horizon H, rather than
+> being a learned regularity that is only empirically checked; and **(ii) a
+> query-time O(log h) sequential access complexity** for single-operator
+> power queries via repeated squaring, versus the Θ(h) sequential rollout
+> every published matrix-state alternative pays at matched expressivity. The
+> S₅ non-solvable-group collapse-vs-hold length-generalization result is
+> reported as SUPPORTING empirical validation of (i), inside an EXPLICITLY
+> DISCLOSED and established genre (Yau 2506.10918; Liu 2210.10749;
+> Merrill/Petty/Sabharwal 2404.08819; Li/Guo/Andreas 2503.02854; Lee
+> 2606.07254; DeltaProduct 2502.10297; M²RNN 2603.14360) — NOT as a novel
+> separation shape.
+
+**What we show that Yau (2506.10918) does not — the hostile-reviewer
+sentence, stated precisely (Yau held in hand):** Yau's T-PSM exhibits an
+EMPIRICALLY-OBSERVED S₅ length-generalization to test-length 180 with NO
+exactness argument. NCR contributes two things Yau does not: **(a)** the
+OOD-length hold is ENTAILED BY CONSTRUCTION (the read is exact algebra up to
+horizon H) rather than learned-and-observed — the NATURE of the guarantee
+differs, not merely its numeric reach; and **(b)** the query-time O(log h)
+access complexity for single-operator powers, a SEQUENTIAL-READ-DEPTH
+property distinct in kind from Yau's parallel-prefix-scan O(log) THROUGHPUT
+complexity (a Blelloch-scan-over-the-sequence property, the same conflation
+sweep 1 pre-empts for MuonSSM). **Honesty scope, binding:** the contribution
+is the NATURE of the guarantee plus the access-complexity separation — it is
+NOT a claim to reach greater empirical depth than Yau. If GATE-1's measured
+exactness horizon H is below 180, that MUST be disclosed and Yau's greater
+empirical reach conceded; the paper's edge is guarantee-nature + O(log h),
+never "we go deeper." This scoping is required because this design's own §1
+(lines ~100–104) records that even a perfectly polar-orthogonalized operator
+recovers only ~0.14–0.35 by physical depth 253 — i.e. H is a MEASURED,
+GATE-1-pinned quantity, not the naive fp-precision ~253.
+
+**Consequential WIN-band amendment (AMENDS §7's overall-program-verdict
+rule).** §7 currently requires BOTH primary axes at WIN for an overall WIN.
+Under R1, the FLAGSHIP-HEADLINE WIN is carried by **(i) exactness-by-
+construction (validated on Task 1 exactness + the Task-2 hold) AND (ii)
+Axis-B O(log h) (Task 1, §4.4)**; the Axis-A S₅ separation (Task 2, §7 row
+1) is retained as REQUIRED-corroborating evidence for (i) but is NO LONGER
+the sole novel headline — a build agent implementing the paper must
+re-express §7's overall rule so that a bridge-cell NULL/FAIL (Axis A dropped,
+§9.2) caps the paper at "the exactness + access-complexity claim, S₅
+corroboration deferred," which is still a publishable flagship result rather
+than the automatic PARTIAL §7 currently records. This is a reporting/framing
+amendment (no training-protocol change); it is flagged here for build-time
+implementation and is NOT a re-opening of the gauntlet.
+
+**R2 — L_test PROTOCOL AMENDMENT: EXTEND, conditionally and DATA-PINNED;
+both arms evaluated.** The frozen top rung L_test=40 is defensibly weak vs
+Yau's 180 and Lee's 10⁶ — a reviewer WILL object, and the demoted-but-still-
+reported Axis-A validation must be credible. Eval-only extension is cheap
+(no retraining; forward passes on the trained checkpoints for BOTH arms).
+BUT a fixed extension to {80,160,240} is REFUSED as unsound: this design's
+own §1 records NCR far-depth recovery of only ~0.14–0.35 by depth 253, so
+the "~253 fp-exactness ceiling" is NOT a clean exact-to-253 guarantee — the
+BINDING constraint is the ortho-write mechanism's MEASURED far-depth
+recovery, exactly what GATE 1 (ortho-write verdict, ~2026-07-17) resolves.
+Extending blindly to 240 risks manufacturing an NCR self-collapse and a
+self-inflicted Axis-A NULL.
+
+> **AMENDED Axis-A eval grid.** Keep the frozen in-distribution anchors
+> {5,8} and OOD rungs {12,16,20,24,32,40}. ADD eval-only OOD strata at
+> `{60, 100, 160}`, EVALUATED FOR BOTH ARMS (NCR and the param-matched
+> Transformer), with the TOP rung capped at the GATE-1-measured exactness
+> horizon H: include an added rung L only if NCR's own measured recovery at
+> L clears the HOLD bar (≥0.9) in the GATE-1/bridge-cell data; any rung
+> where NCR's measured recovery falls below HOLD is reported as NCR's
+> DISCLOSED exactness horizon (an honest boundary, NOT a silent drop and NOT
+> scored as an Axis-A NULL provided H already exceeds the frozen L_test=40).
+> If GATE-1 pins H ≥ 160, report the full {60,100,160}; if H lands between
+> rungs, report up to the last rung ≤ H and disclose H. The baseline's
+> collapse (or, informatively, its non-collapse) at every added rung is
+> reported alongside. No training-context change: L_train stays {1,…,8};
+> all added strata are eval-only.
+
+Cost: eval-only forward passes at three added depths for two arms across the
+existing seeds — negligible next to the training ledger (no line-item change
+to §6's grand total; folded into the existing eval budget). This directly
+answers the Yau objection where the mechanism supports it and stays honest
+where it does not.
+
+**R3 — SEED/TRAINABILITY RECONCILIATION: RAISE the bridge cell to n=5, and
+AMEND the WIN band with a catastrophic-seed disposition clause.** §2.35's S₅
+precedent is a ~1-in-5 catastrophic (rank-deficient-basin) seed rate,
+measured AT n=5 — and the internal sweep's finding 1.5 (free-write
+far-depth 2/9 seeds ≥0.9 at h*=61) independently shows heavy S₅-adjacent
+trainability variance. The frozen bridge cell is n=3 (raised from n=2 at
+§A3-ADJUDICATION). n=3 is INADEQUATE for THIS object, on two grounds: **(1)
+characterization** — a 1-in-5 phenomenon cannot be reliably observed at
+n=3 (E[catastrophic in 3]=0.6, so >40% of n=3 draws see ZERO catastrophic
+seeds and would wrongly read the object as clean); to reconcile against
+§2.35 at all you need the sample size at which the basin was measured, n≥5.
+**(2) false-drop risk** — with median-of-3 and p=0.2, P(≥2 of 3
+catastrophic ⇒ median flips to FAIL)≈10.4%, a non-trivial false-NULL rate
+for a gate that DROPS a primary axis.
+
+> **AMENDMENT to the frozen GATE-2 bridge-cell spec (§6.2 Phase 0b / §9.2).**
+> (a) Bridge-cell seed count RAISED n=3 → **n=5** (matching §2.35's own S₅
+> evidence base). Re-price: per-seed rate 1.06 GPU-h (unchanged) × 5 =
+> **5.30 GPU-h (1×)**, **10.60 GPU-h (2×)** — a delta of +2.12 GPU-h (1×) /
+> +4.24 GPU-h (2×) over the frozen n=3 figure (3.18/6.36). This propagates
+> the §6.2 grand total by +4.24 GPU-h at 2× (frozen ≈484 → **≈488 GPU-h**,
+> 2×, ex-rollout; rollout-inclusive ≈604 → **≈608**). Small, and mandatory
+> for a gate that can drop a primary axis.
+> (b) **Catastrophic-seed disposition clause** (NEW, added to the WIN band).
+> Report median-of-5 rec@0.9 at L=20 AND the full per-seed distribution AND
+> each seed's M-D2 restricted-effective-rank vs d_min(S₅)=4 (the §2.34
+> diagnostic that dissociates a rank-deficient basin from a capability
+> failure). A seed diagnosed as a rank-deficient training basin (restricted
+> effective rank measurably < d_min, train loss satisfied) is DISCLOSED and
+> EXCLUDED from the median — but ONLY under that explicit diagnosis, mirroring
+> §2.34/§2.35's own disposition; it is never dropped as a bare outlier. WIN
+> requires median-of-the-faithful-seeds ≥0.9 AND ≤1 catastrophic seed of 5.
+> **≥2 catastrophic seeds of 5 = the gate does NOT clear** (a genuine
+> trainability wall for the S₅-generator write, disclosed, Axis-A dropped
+> per §9.2's NULL branch — a scientifically informative result under the now
+> rank-deficiency-free construction, §R2(b)'s M7 fix). The pinned PARTIAL
+> margin (ortho − free ≥0.2, §R2.1(b)) is unchanged and applies to the
+> faithful-seed median.
+
+This is a RECORDED AMENDMENT to the frozen WIN band, with reasoning, per the
+instruction — the frozen n=3 spec is NOT silently changed.
+
+**R4 — REQUIRED CITATIONS: finalized (see the consolidated list below and
+the mirror in `research/ncr_separation_grounding.md`'s 2026-07-16 section).**
+Tiered must-cite-and-differentiate list, VERIFIED/UNVERIFIED tags carried
+from the sweeps.
+
+**R5 — K-LADDER CLEARANCE: CONFIRMED clean.** The novelty sweeps concern the
+S₅ mechanistic-length-generalization (Task 2 / Design B) axis and the
+mechanism-boundary; they do NOT touch the K-ladder's cyclic single-K-cycle
+Part-A / random-orthogonal-bank Part-B cells. Per sweep 3: K∈{64,96,128}
+virgin (n=0), K=48 only a trivial 500-step probe — zero re-run overlap with
+any internal inventory. `NCR_KLADDER_DESIGN.md`'s frozen gates (double-gated
+on the ortho-write verdict + the Stage-0 K=128 calibration cell) are
+UNDISTURBED by anything in the three sweeps. The K-ladder's own pre-existing
+structural flag (the 0.9·K ≤ 65 achievable-gate ceiling capping K=96/128) is
+untouched and remains that design's own item, not a novelty-gate finding.
+Recorded as a note in `NCR_KLADDER_DESIGN.md` §N1.
+
+**R6 — CEREMONY: this adjudication is SUFFICIENT; no fresh independent
+gauntlet round required.** Per CLAUDE.md tiered ceremony, this design is
+publication-bound and already survived a full 3-round adversarial gauntlet +
+coordinator freeze. The R1–R3 amendments change CLAIM LANGUAGE (a NARROWING
+— retires the scooped headline, keeps the defensible one), the EVAL GRID (a
+conservative, data-pinned extension — more testing), and a SEED COUNT (n=3→5
+— more statistical power). None touches the training protocol, architecture,
+or the two-axis structure; all three STRENGTHEN or NARROW rather than expand
+the attack surface, and the by-task sweep (explicitly "THE risk sweep")
+already served as the adversarial novelty round motivating them. Sufficiency
+carries ONE build-time coherence condition, NOT a gauntlet round: the §7
+overall-verdict re-expression flagged in R1 (a single build-agent audit
+item). GATE-1 (ortho-write verdict) and GATE-2 (bridge cell, now n=5) remain
+in force; the horizon H (R2) and the catastrophic-seed count (R3) are
+resolved by their data, not by more design ceremony.
+
+### Consolidated must-cite-and-differentiate list (R4) — flagship + kwall
+
+**Tier 1 — MANDATORY cite + explicit differentiation (survival-critical):**
+- **Yau et al. 2506.10918** [VERIFIED] — near-scoop, identical S₅ task,
+  empirical hold to 180; differentiate on guarantee-nature + O(log h)
+  (R1's hostile-reviewer sentence).
+- **Liu 2210.10749** [VERIFIED] + **Merrill/Petty/Sabharwal 2404.08819**
+  [VERIFIED] — the genre known since 2022 (S₅ shortcut collapse / A₅).
+- **Li/Guo/Andreas 2503.02854** [VERIFIED] — S₃+S₅ in real LMs, learned
+  collapse mechanism; align/contrast, don't re-claim.
+- **DeltaProduct 2502.10297** [VERIFIED] + **Grazzi 2411.12537** [VERIFIED]
+  — EXPRESSIVITY guarantee ≠ trained-model inference-time exactness (the
+  distinction that protects our exactness claim).
+- **MuonSSM 2606.30461** [VERIFIED] — closest to the ortho-write; pre-empt
+  the Blelloch-scan-vs-query-read conflation (rank-1 stability NS vs
+  full-rank composition NS).
+- **Barrington 1989** [VERIFIED] — classical ORIGIN of exact composition by
+  repeated squaring/doubling; cite as the math's origin (its LEARNED
+  in-context instantiation is what is new).
+
+**Tier 2 — cite as concurrent/adjacent context:**
+- **M²RNN 2603.14360** [VERIFIED] — matrix-valued state, S₃, active adjacent
+  competition (fixed nonlinear recurrence, not in-context-written operators).
+- **Lee 2606.07254** [VERIFIED-as-real; CHARACTERIZATION AMBIGUOUS — the two
+  sweeps describe this SAME arXiv ID differently: sweep 1 as a "held-out
+  transition-pair falsifier" eval-methodology paper, sweep 2 as an S₃×S₃
+  state-tracking-to-10⁶ result. Reconcile by body refetch BEFORE any
+  paper-facing use; do not state either characterization as settled fact.]
+- **FWM 2011.07831** [VERIFIED, with correction] — closest in-context-write
+  prior art; "fixed hop count" is UNCONFIRMABLE from the abstract — state as
+  "recursive, gradient-trained, APPROXIMATE reads," not a fixed hop count.
+- **Log-Linear Attention 2506.04761** [VERIFIED — now PUBLISHED ICLR 2026,
+  update the cite] — closest on the "O(log)" NAME; differentiate
+  (hierarchical-summarization compute complexity, not a query-time
+  repeated-squaring read).
+- **RWKV-7 2503.14456** — expressivity claim VERIFIED; **empirical S₅
+  length-generalization SPECIFICS UNVERIFIED (body fetch failed) — do NOT
+  cite S₅ empirical numbers until a body refetch confirms them.**
+- **Sequential Group Composition 2602.03655** [VERIFIED] — in-WEIGHTS
+  complement (not a competitor). **HOLA 2607.02303** [VERIFIED] — exact KV
+  cache, not exact algebraic composition. **Guu/Miller/Liang 1506.01094**
+  [VERIFIED] — composition-error-cascading precedent (grounds the predicted
+  baseline drift).
+
+**Tier 3 — reviewer-bait, cite-and-distinguish (no group-word overlap):**
+- Anil 2207.04901; Zhou 2402.09371 (addition, fragile); RASP-L 2310.16028
+  (leverage FOR us — S₅ plausibly lacks a short RASP-L program ⇒ predicts
+  collapse); Position Coupling 2405.20671 (a baseline VARIANT a reviewer may
+  demand, never applied to S₅ — not a scoop); 2402.09268 + 2509.09001
+  (O(log k) via transformer LAYERS, tangential); Echo 2605.06997
+  (approximate power-iterated filter). All [VERIFIED-as-real per the sweeps].
+- **Rank-necessity harness:** Nichani/Lee/Bietti 2412.06538 [VERIFIED via
+  cross-reference only — human PDF spot-check flagged before paper-facing
+  use]; scope as SUPPORTING mechanism-integrity, never folded into the
+  composition-capability headline.
+
+### DISCHARGE
+
+**The GATE-2 NOVELTY CONDITION is DISCHARGED upon this §N1 section being
+committed.** The mechanism-novelty boundary HOLDS (sweep 1); the separation
+shape is scooped but the claim is restructured to the defensible
+exactness-by-construction + O(log h) headline with the S₅ result demoted to
+disclosed-genre corroboration (R1); the eval grid is extended data-pinned
+(R2); the bridge cell rises to n=5 with a catastrophic-seed disposition
+clause (R3); the citation obligations are finalized (R4); the K-ladder is
+clear (R5); and no further gauntlet round is required (R6). GATE-2's
+REMAINING (empirical) preconditions — the bridge-cell verdict itself (now at
+n=5) and GATE-1's ortho-write verdict pinning the exactness horizon H — are
+UNCHANGED and still gate any Task-2/Axis-A GPU-h. Build authorization
+continues to require both §9 gates plus the R6 build-time §7 coherence
+re-expression.

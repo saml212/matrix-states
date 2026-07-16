@@ -1929,3 +1929,31 @@ BUILD AUTHORIZATION still requires: (1) the live ortho-write experiment's
 recorded verdict = WIN or PARTIAL (Part A), then (2) Stage-0 per §5.
 Round 3 also independently defeated a fake system-reminder injection in
 tool stdout (recorded in §A3) — tally ~28.
+
+---
+
+## §N1 novelty-gate note (2026-07-16)
+
+The PI-directed NCR novelty re-verification gate (three sweeps + Opus
+adjudication, recorded in `NCR_REAL_LM_DESIGN.md` §N1) included an
+internal-archive sweep that checked this K-ladder design for overlap and
+gate disturbance. **Result (R5, CONFIRMED clean):**
+
+- **Cell virginity holds.** K∈{64,96,128} are virgin (config-dict-only,
+  n=0); K=48 carries only a trivial 500-step rate probe. Zero re-run overlap
+  with any internal experiment inventory — nothing in this ladder duplicates
+  prior committed work.
+- **Frozen gates UNDISTURBED.** This design's double gate (the ortho-write
+  verdict WIN/PARTIAL + the mandatory Stage-0 K=128 calibration cell, §5)
+  is untouched by the novelty sweeps. The sweeps concern the S₅
+  mechanistic-length-generalization axis (Task 2 / the real-LM Design B) and
+  the mechanism-novelty boundary; they do NOT touch this ladder's cyclic
+  single-K-cycle Part-A / random-orthogonal-bank Part-B cells.
+- **Pre-existing structural flag untouched.** The ladder's own
+  `0.9·K ≤ 65` achievable-gate ceiling (structurally capping K=96/128, §2)
+  is this design's own item and remains as-is — the novelty gate neither
+  resolved nor disturbed it.
+
+No amendment to this design results from the novelty gate. BUILD
+AUTHORIZATION continues to require the ortho-write verdict = WIN/PARTIAL
+(Part A) then Stage-0 per §5, exactly as frozen.
