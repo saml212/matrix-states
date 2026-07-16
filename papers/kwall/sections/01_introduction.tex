@@ -1,0 +1,68 @@
+\section{Introduction}
+\label{sec:intro}
+
+A fast-weight state written from context is a $d\times d$ matrix that can,
+in principle, be composed algebraically at read time instead of being
+rolled out sequentially. Recent work already establishes that
+matrix-valued recurrent state can escape the $\mathrm{TC}^0$ ceiling that
+bounds transformers and diagonal state-space models: negative-eigenvalue
+linear RNNs and RWKV-7's generalized delta rule both provably solve
+NC$^1$-hard state-tracking problems (the $S_5$ word problem), each via an
+$O(h)$ sequential recurrent rollout over $h$ tokens.
+\citep{grazzi2025unlocking,peng2025rwkv7}
+% evidence: research/ncr_separation_grounding.md Part 3(b), items 5+7
+So ``a matrix-valued state can state-track'' is not new, and we do not
+lead with it. What we test is a narrower, algorithmic claim: given an
+already-written matrix of relation operators, can a reader recover a
+depth-$h$ composition in $O(\log h)$ sequential matrix multiplications via
+repeated squaring, independent of how long the write took -- and does
+that reader stay \emph{exact} at depths where every sequential alternative
+has already drifted into noise?
+
+Native Composition Reads (NCR) is such a reader. A fast-weight state
+$Z \in \mathbb{R}^{d\times d}$ is written in-context from relation tokens
+over $K$ entities forming a single Hamiltonian cycle; the model reads
+$o = \mathrm{read}(Z^h, q)$, computing $Z^h$ by binary exponentiation. A
+literature sweep run for this paper (Part 2 of
+\texttt{research/ncr\_separation\_grounding.md}) found no published work
+combining in-context-written operators, exact (not approximate)
+composition, and an $O(\log h)$ query-time read; the closest neighbors --
+Fast Weight Memory's recursive, approximate, fixed-depth reads
+\citep{schlag2021fwm}, Log-Linear Attention's hierarchical-summarization
+compute complexity, and HOLA's exact-but-verbatim key-value cache -- each
+share one axis with NCR and lack another.
+% evidence: research/ncr_separation_grounding.md Part 2
+
+We report two results, in the honest order they occurred. First, NCR
+survives a fully-taught adversarial construction: at $K{=}8$, holding
+in-context-written operators exact through $h^\ast{=}61$ (median recovery
+$1.0$) while the strongest $O(h)$ baseline has already fallen to $0.158$
+(Section~\ref{sec:win}). Second, scaling the identical mechanism up the
+entity-count axis $K$ hits a wall: every tested cell at $K{=}32$ --
+sixteen dimension/budget combinations plus eight further budget-rescue
+cells, twenty-four in total -- fails to reach robust convergence, and
+far-depth recovery reads exactly zero in every one
+(Section~\ref{sec:wall}). Rather than report the wall as a ceiling, we
+diagnose it: the training objective is spectrum-blind by construction
+(a shallow-depth cosine loss constrains direction only), the trained
+write drifts non-normal and ill-conditioned, and a post-hoc orthogonal
+projection of the same learned operator -- with no retraining -- already
+recovers most of the lost depth (Section~\ref{sec:diagnosis}). We
+pre-register the fix experiment's verdict bands and report its status as
+pending (Section~\ref{sec:pending}).
+
+\textbf{Contributions.} (1) A capability separation at $K{=}8$ under a
+readout and task construction closed against the two standard escape
+routes for this claim shape -- argmax-decoded capacity inflation and
+modular collapse of held-out depth on a single cycle -- both discussed in
+Section~\ref{sec:background}. (2) An honestly reported trainability wall
+at $K{=}32$, replicated across three separate probes (a dimension-ratio
+grid, a mechanism analysis, and a budget-rescue dissociation probe) that
+jointly close the entity-count axis under a pre-registered stopping rule.
+(3) A measured, not asserted, mechanism for the wall: spectral
+non-normality induced by a loss that never sees conditioning. (4) A
+methods contribution, the single-Hamiltonian-cycle-plus-residue-guard
+construction that keeps a depth-generalization claim from silently
+collapsing modulo the cycle length. (5) A pre-registered, verdict-ready
+report of the fix in flight, so a null is reported as a finding about
+spectrum-blind objectives, not hidden.

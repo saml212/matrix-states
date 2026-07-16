@@ -1,0 +1,64 @@
+\section{Scope, Limitations, and What We Do Not Claim}
+\label{sec:discussion}
+
+\textbf{Scale.} Every model in this paper is under 200K parameters
+(170,896--185,000 across the tested $K$'s); this is a toy-scale
+mechanistic study of one architecture's training objective, not a
+scaling-law paper. No result here transfers to larger models, other
+tokenizations, or the operator-count ($R$) axis without a fresh check --
+the trainability fix and its replication are single-relation ($R{=}1$)
+or $R{=}3$ only, never both, and no benchmark comparison against
+published length/depth-generalization baselines is offered.
+% evidence: NOVEL_ARCH_WATERFALL.md S9.3/S11.4a Coverage
+
+\textbf{We do not claim the K-wall is solved.} $K{=}32$ is a closed
+failure at every dimension and budget tested under the training recipe
+used through Section~\ref{sec:wall} -- twenty-four independently
+re-verified cells, far-depth recovery exactly $0.0000$ in every one.
+The diagnosis (Section~\ref{sec:diagnosis}) explains \emph{why} a
+post-hoc orthogonal projection recovers depth on an already-trained
+operator; it does not, by itself, establish that training the constraint
+directly will converge or generalize past $K{=}24$ -- that is exactly
+what Section~\ref{sec:pending}'s pending run tests, and we report the
+odds we assigned before running it, not after.
+
+\textbf{We do not claim a new state-tracking expressivity result.}
+Section~\ref{sec:related} names two published results
+\citep{grazzi2025unlocking,peng2025rwkv7} that already show matrix-valued
+recurrent state can escape the transformer expressivity ceiling. NCR's
+contribution is a query-time access-complexity claim, $O(\log h)$ against
+every published alternative's $O(h)$ sequential rollout, with exactness
+as its empirical companion -- not a claim that matrix state can do
+something no architecture has been shown to do.
+
+\textbf{We do not claim the orthogonality-constrained write is
+unclaimed territory.} Section~\ref{sec:diagnosis} discloses MuonSSM
+\citep{nguyen2026muonssm} as closely related, recently published, and
+independently motivated prior art on orthogonalizing fast-weight content
+rather than the recurrent transition matrix; our differentiation (full-rank
+vs.\ rank-1, near-exact vs.\ single-step, compositional-depth-motivated vs.\
+general-stability-motivated) is stated plainly, not implied by omission.
+
+\textbf{We do not claim the mechanism is the only cause of the wall.}
+Leakage-shape analysis (Section~\ref{sec:wall}) is scoped to $K \in
+\{16, 24\}$ only and does not explain why $K{=}32$ fails at
+\emph{every} tested dimension, including the tight-spare convention that
+still works at $K \leq 24$; an absolute-$K$ factor beyond the
+spare-fraction story is left open. The training-budget ANOMALY (write
+residual non-monotonic across budget, observed independently at $K{=}16$
+and $K{=}32$) has no loss-curve signature under the one check performed
+and is reported as an open, twice-observed phenomenon, not resolved.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.5/S11.6
+
+\textbf{Falsification, restated.} The bound half of this paper's claim --
+that the $K{=}32$ wall is not rescued by dimension convention or training
+budget alone under the recipe tested -- would be voided by any single
+untested lever (a fourth budget multiple, a different anneal schedule, a
+different loss) reaching CONVERGED-ROBUST with median far-depth recovery
+at $h^\ast \geq 0.9$; none of the twenty-four cells tested against the
+levers we did try did so. The mechanism half would be voided by the
+pending fix (Section~\ref{sec:pending}) landing NULL with a clean
+mechanistic signature (departure-from-normality and condition number
+already near their healthy targets) -- that specific combination would
+mean the diagnosis is wrong, not merely incomplete, and we would report
+it as such.

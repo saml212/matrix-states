@@ -1,0 +1,77 @@
+\section{Related Work}
+\label{sec:related}
+
+This section draws only on entries marked VERIFIED in two literature
+memos compiled for this paper
+(\texttt{research/ncr\_separation\_grounding.md},
+\texttt{research/ortho\_write\_grounding.md}, both dated 2026-07-16, live
+web-search verification against arXiv/OpenReview, cross-checked against
+this program's own independent prior sweep in
+\texttt{NOVEL\_ARCH\_WATERFALL.md} \S1--\S5).
+
+\textbf{Composition mechanism.} \citet{schlag2021fwm}'s Fast Weight
+Memory is the single closest prior art on in-context-written,
+composable fast weights: differentiable per-step writes into an
+associative fast-weight matrix for compositional inference. Its reads are
+recursive, LayerNorm-normalized, and fixed at a small hop count ($N_r{=}3$
+in the original paper) -- approximate, not exact, and not a matrix-power
+read; it is also the FWM-read baseline this paper's own Axis-A comparison
+beats (Section~\ref{sec:win}). Log-Linear Attention
+(\href{https://arxiv.org/abs/2506.04761}{arXiv:2506.04761}, ICLR 2026)
+achieves logarithmic \emph{compute} complexity via a hierarchical,
+Fenwick-tree-like summarization of the hidden state -- a training/inference
+cost property of the write's structure, not a query-time repeated-squaring
+read of one already-written operator matrix, and it targets standard
+retrieval benchmarks rather than relational composition. HOLA
+(\href{https://arxiv.org/abs/2607.02303}{arXiv:2607.02303}) augments a
+decayed linear-attention state with a bounded, exact key--value cache of
+high-surprise tokens, read via sharpened softmax attention: ``exact''
+there means verbatim storage, not algebraic composition of operators.
+\citet{marchetti2026sequential} study how a network's \emph{weights} come
+to represent a finite group's irreducible representations across a
+sequence, proving perfect in-weights learning needs hidden width
+exponential in sequence length -- the in-weights complement to NCR's
+in-context setting, not a competitor.
+% evidence: research/ncr_separation_grounding.md Part 2
+
+\textbf{State-tracking expressivity, correctly not our headline.}
+\citet{grazzi2025unlocking} prove that restricting a linear RNN's
+transition eigenvalues to $[0,1]$ (the Mamba/DeltaNet default) forecloses
+parity and other non-solvable-group state tracking, and that extending the
+eigenvalue range fixes it; \citet{peng2025rwkv7}'s RWKV-7 achieves
+NC$^1$-hard state tracking with a non-diagonal, input-dependent transition.
+Both already establish that matrix-valued recurrent state can escape the
+$\mathrm{TC}^0$ ceiling transformers face \citep{merrill2023parallelism} --
+via an $O(h)$ sequential rollout. NCR's claim is orthogonal: given an
+already-written state, an $O(\log h)$ query-time read, with exactness as
+its necessary empirical companion. We do not claim a new expressivity
+result and would be incorrect to.
+% evidence: research/ncr_separation_grounding.md Part 3
+
+\textbf{Rank and readout.} The exact-continuous-recovery discipline of
+Section~\ref{sec:background} follows \citet{nichani2025understanding}'s
+rank-$m$-to-$\approx md$-associations argmax-capacity construction
+\textbf{[NEEDS-FINAL-SPOT-CHECK, see Section~\ref{sec:background}]}.
+% evidence: research/ncr_separation_grounding.md item 8
+
+\textbf{Orthogonal parametrizations.} A line of unitary/orthogonal RNN
+work \citep{arjovsky2016unitary,helfrich2018orthogonal} constrains the
+recurrent transition matrix's eigenvalues to the unit circle; the Muon
+optimizer (Jordan et al., 2024, code/blog release, no formal preprint;
+validated at trillion-parameter scale by the Kimi K2 technical report,
+\citealp{kimiteam2025k2}) orthogonalizes optimizer momentum updates via a
+quintic Newton--Schulz iteration. Closest and most load-bearing to
+disclose: \citet{nguyen2026muonssm}'s MuonSSM applies a single-iteration
+Newton--Schulz projection to rank-1 fast-weight input injections for
+general long-horizon SSM stability -- the differentiation from our
+full-rank, 40-iteration, compositional-depth-motivated fix is given in
+Section~\ref{sec:diagnosis}. The $(1.5,-0.5)$ cubic Newton--Schulz
+coefficients we use trace to \citet{bjorck1971iterative}, not to Muon's
+quintic form; the spectral pre-scaling step follows
+\citet{higham1986computing}.
+% evidence: research/ortho_write_grounding.md S1-S3
+
+\textbf{This program's own, unrelated, older K-wall} (Task E
+matrix-permutation composition, \emph{not} NCR) was rescued by training
+budget alone; the distinction from this paper's K-wall, which budget alone
+does not rescue, is disclosed in Section~\ref{sec:background}.

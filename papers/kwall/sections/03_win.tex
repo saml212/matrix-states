@@ -1,0 +1,55 @@
+\section{The $K{=}8$ Result: Depth-Robust Exact Composition}
+\label{sec:win}
+
+At $K{=}8$, $d{=}16$, NCR is compared against two $O(h)$ sequential
+baselines given the identical input-supplied depth signal $h$: a
+param-matched looped/iterated-vector map (LoopedVec) and a fast-weight
+recursive-read baseline (FWM-read, the closest architectural neighbor to
+NCR on the write side). A third, disclosed weak control (C\_MLP,
+one-hot($h$)) never enters a decision. % evidence: NOVEL_ARCH_WATERFALL.md S3.3/S7e
+
+\textbf{Axis A (separation): WIN.} At the pre-registered separation depth
+$h^\ast{=}61$ (residue $5 \bmod 8$), NCR's median
+$\mathrm{recovered\_frac@0.9}$ is $1.0$ (per-seed $1.0/1.0/1.0/0.995/1.0$,
+$5/5$ seeds clearing the pre-registered $\geq 3/5$ bar) with uniform HOLD
+across all four novel residue strata and zero strata band-drop. The best
+baseline is FAIL: FWM-read reads $0.158$ and LoopedVec reads $0.0$ at
+$h^\ast$. Per-seed NCR failure fronts are $125/253/253/125/253$ (median
+$253$), inside the pre-registered $[87,442]$ band, with zero post-front
+revivals and zero reducer signatures (the mod-$K$-shortcut check of
+Section~\ref{sec:background} came back clean).
+% evidence: NOVEL_ARCH_WATERFALL.md S7e
+A second pre-registered comparison (P2) confirms both $O(h)$ baselines
+have already fallen below median $0.5$ recovery by the last ladder point
+before $h^\ast$ ($h{=}29$): LoopedVec reads $0.0$; FWM-read reads
+$0.4885$, narrowly under the bar, with its own decay front
+$0.919{\to}0.546{\to}0.489{\to}0.158{\to}0.002$ at $h{=}5,21,29,61,125$.
+% evidence: NOVEL_ARCH_WATERFALL.md S7e
+
+\textbf{Axis B (cost): WIN.} Binary exponentiation is $20.9\times$ faster
+than the best $O(h)$ arm at $h{=}1021$ (bar $\geq 10\times$); every $O(h)$
+arm fits linear-in-$h$ at $R^2 \geq 0.998$ while binary exponentiation
+stays flat at $1$--$3$ ms from $h{=}61$ to $h{=}2^{20}{+}5$
+(kernel-launch-bound), a measured gap of $13{,}000$--$25{,}000\times$ at
+the deepest point. Axis B is claimable as capability because Axis A
+clears at least TIE. % evidence: NOVEL_ARCH_WATERFALL.md S7e
+
+\textbf{Axis C (spectral predictability, instrument methodology): TIE.}
+The exact per-seed decay curve, computed from the dumped restricted
+operator by literal matrix powers with no fitting and locked before any
+far-depth eval, tracks measured cosine within $0.05$ through $h \leq 125$
+in $4/5$ seeds; beyond each seed's own failure front the locked
+prediction under-tracks compounding leakage, exactly the disclosed
+division of labor between the trust rule and the exact curve.
+% evidence: NOVEL_ARCH_WATERFALL.md S7e
+
+\textbf{Replication at $K{=}12$.} An independent $K{=}12$ cell (same
+architecture, same gates, $h^\ast{=}57$) scores SEP-PARTIAL (NCR one band
+better than the best baseline, not the full HOLD-vs-FAIL separation seen
+at $K{=}8$), so the cross-$K$ label of record is WIN-PARTIAL, the
+pre-registered publishable-with-caveat outcome; the $K{=}8$ WIN itself is
+frozen and does not change. % evidence: NOVEL_ARCH_WATERFALL.md S7g
+
+The $K{=}8$/$K{=}12$ result establishes that NCR's mechanism -- exact
+composition at $O(\log h)$ read cost -- works as designed at small $K$.
+The next section asks whether it scales.

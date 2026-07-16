@@ -1,0 +1,68 @@
+\section{Setup}
+\label{sec:background}
+
+\textbf{NCR in one paragraph.} A fast-weight state $Z \in
+\mathbb{R}^{d\times d}$ is written in-context from relation tokens; $K$ is
+the number of entities forming the single cyclic group the model must
+learn to compose over in a cell, and $h$ is composition depth (number of
+relation applications). The model reads $o = \mathrm{read}(Z^h, q)$,
+computed exactly via $O(\log h)$ repeated squaring, never an
+attention-weighted approximation. Recovery is scored by
+$\mathrm{recovered\_frac@0.9}$, the fraction of queries whose read cosine
+to the true target exceeds $0.9$; decoding is continuous throughout, never
+argmax over a candidate set, because a rank-$m$ memory under argmax
+decoding can store $\approx md$ associations regardless of whether the
+state truly holds $K$ independent entities
+\citep{nichani2025understanding}. \textbf{[NEEDS-FINAL-SPOT-CHECK: the
+specific rank-$m$-to-$md$ remark is cross-confirmed against this repo's
+own prior verification pass but was not independently re-derived from the
+primary text this session --
+\texttt{research/ncr\_separation\_grounding.md} item 8.]}
+% evidence: research/ncr_separation_grounding.md item 8; NOVEL_ARCH_WATERFALL.md M1
+$A_{\mathrm{eff\_rank}}$ is the effective rank of the learned entity-cycle
+operator restricted to the entity subspace (bar: $\geq 0.9K$); $\delta$ is
+the write-quality residual (the maximum per-mode phase residual measured
+at calibration).
+
+\textbf{The mod-$K$ collapse trap and the single-cycle construction
+(methods contribution).} On a single $K$-cycle the reachable set of any
+start entity has size $K$, and the correct answer at hop $h$ depends only
+on $h \bmod K$ -- so a naive ``held-out depth'' claim collapses to shallow,
+in-distribution hops for any $h$, however large, once $h \bmod K$ is small.
+This is the same trap the \texttt{CLAUDE.md} hard rule names for general
+permutations, generalized here to a single cycle: an adversarial attack
+round on this program's own design flagged it as fatal to a naive
+depth-generalization headline. % evidence: NOVEL_ARCH_WATERFALL.md S2 F2
+The fix, and the paper's headline claim, is re-scoped accordingly:
+\emph{depth-robust exactness}, not reachable-set growth. Every reported
+depth carries its $(h, h \bmod K)$ pair; a fixed-residue geometric ladder
+(all $h \equiv 5 \pmod 8$ at $K{=}8$) isolates pure composition count at
+constant effective hop, and a full residue sweep at one depth
+($h \in \{57,\dots,64\}$ at $K{=}8$) verifies that no arm has learned to
+shortcut the task via modular arithmetic on $h$ instead of genuine
+composition -- a reducer would be residue-exact at every depth uniformly,
+with no decay front, and is scored as a baseline win if it occurs (it did
+not). % evidence: NOVEL_ARCH_WATERFALL.md S3.2/S3.2a
+
+\textbf{Naming-collision disclaimer.} An unrelated, older ``K-wall'' exists
+elsewhere in this program's record: a \emph{training-budget} wall in a
+different task and architecture (Task E matrix-permutation composition,
+not NCR), rescued by more steps alone (e.g.\ $K{=}12$: $0/5 \to 3/3$
+converged seeds between 40K and 80K steps).
+% evidence: NOVEL_ARCH_WATERFALL.md S11 (K0 background), Task E precedent
+The K-wall this paper reports is a different phenomenon in a different
+architecture: at $K{=}32$, more training budget alone does not rescue it
+(Section~\ref{sec:wall}), and the cause is a property of the training
+objective, not merely of optimization time.
+
+\textbf{Gates (pre-registered once, reused verbatim throughout).} GATE 1
+(convergence), per $K$ over 4 seeds: in-distribution ($h{=}1,2,3$, min)
+$\mathrm{recovered\_frac@0.9} \geq 0.9$ AND mean $A_{\mathrm{eff\_rank}}
+\geq 0.9K$ $\to$ CONVERGED; in-dist $\in [0.5,0.9) \to$ PARTIAL; $< 0.5
+\to$ DEAD. Per-$K$: CONVERGED-ROBUST ($\geq 3/4$ CONVERGED) /
+CONVERGED-PARTIAL (1--2/4) / TRAINABILITY-DEAD (0/4). GATE 2 (far-depth),
+scored only on CONVERGED cells: $\mathrm{recovered\_frac@0.9}$ at the
+cell's own $h^\ast = 8K{-}3$, banded HOLD ($\geq 0.9$) / DEGRADED
+($0.5$--$0.9$) / FAIL ($\leq 0.5$). Full definitions and the K=32 stopping
+rule are reproduced in Appendix~\ref{app:gates}.
+% evidence: NOVEL_ARCH_WATERFALL.md S11

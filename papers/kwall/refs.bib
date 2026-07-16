@@ -1,0 +1,125 @@
+% refs.bib -- papers/kwall
+% Every entry sourced from the two literature-grounding memos compiled for
+% this paper (research/ncr_separation_grounding.md,
+% research/ortho_write_grounding.md, both 2026-07-16, live web-search
+% verification against arXiv/OpenReview/publisher pages), OR reused
+% verbatim from an already arXiv-API-verified entry elsewhere in this repo
+% (papers/reasoning-null-moss/refs.bib, verified 2026-07-10) where the same
+% paper recurs. No given/first name is included unless the source document
+% itself states it -- several entries are SURNAME-ONLY because the grounding
+% memos name authors by surname alone; adding invented first/middle names
+% would violate the house "never invent reference details" rule even where
+% the true names are plausible from general knowledge. Two entries with no
+% author list at all in the grounding memo (Log-Linear Attention, HOLA) are
+% cited via inline arXiv URL in the prose instead of a bibtex entry.
+
+@article{schlag2021fwm,
+  title   = {Learning Associative Inference Using Fast Weight Memory},
+  author  = {Schlag and Munkhdalai and Schmidhuber},
+  journal = {arXiv preprint arXiv:2011.07831},
+  year    = {2021},
+  note    = {ICLR 2021. Surname-only per research/ncr\_separation\_grounding.md item 6 (given names not stated there)}
+}
+
+@article{grazzi2025unlocking,
+  title   = {Unlocking State-Tracking in Linear RNNs Through Negative Eigenvalues},
+  author  = {Grazzi, Riccardo and Siems, Julien and Zela, Arber and Franke, J{\"o}rg K. H. and Hutter, Frank and Pontil, Massimiliano},
+  journal = {arXiv preprint arXiv:2411.12537},
+  year    = {2024},
+  note    = {ICLR 2025. Author field reused verbatim from papers/reasoning-null-moss/refs.bib (arXiv-API-verified 2026-07-10), same paper}
+}
+
+@article{peng2025rwkv7,
+  title   = {RWKV-7 ``Goose'' with Expressive Dynamic State Evolution},
+  author  = {Peng, Bo and others},
+  journal = {arXiv preprint arXiv:2503.14456},
+  year    = {2025},
+  note    = {18 authors per research/ncr\_separation\_grounding.md item 7; only the lead author's given name is stated there}
+}
+
+@article{nichani2025understanding,
+  title   = {Understanding Factual Recall in Transformers via Associative Memories},
+  author  = {Nichani, Eshaan and Lee, Jason D. and Bietti, Alberto},
+  journal = {arXiv preprint arXiv:2412.06538},
+  year    = {2024},
+  note    = {ICLR 2025 spotlight. Author field reused verbatim from papers/reasoning-null-moss/refs.bib (arXiv-API-verified 2026-07-10). The specific rank-$m$/argmax-capacity remark cited from this paper is flagged NEEDS-FINAL-SPOT-CHECK in research/ncr\_separation\_grounding.md item 8}
+}
+
+@article{merrill2023parallelism,
+  title   = {The Parallelism Tradeoff: Limitations of Log-Precision Transformers},
+  author  = {Merrill, William and Sabharwal, Ashish},
+  journal = {Transactions of the Association for Computational Linguistics},
+  volume  = {11},
+  pages   = {531--545},
+  year    = {2023},
+  note    = {arXiv:2207.00729}
+}
+
+@article{marchetti2026sequential,
+  title   = {Sequential Group Composition},
+  author  = {Marchetti and Kunin and Myers and Acosta and Miolane},
+  journal = {arXiv preprint arXiv:2602.03655},
+  year    = {2026},
+  note    = {Surname-only per research/ncr\_separation\_grounding.md item N4 (given names not stated there)}
+}
+
+@article{arjovsky2016unitary,
+  title   = {Unitary Evolution Recurrent Neural Networks},
+  author  = {Arjovsky and Shah and Bengio},
+  journal = {arXiv preprint arXiv:1511.06464},
+  year    = {2016},
+  note    = {ICML 2016, PMLR v48, pp. 1120--1128. Surname-only per research/ortho\_write\_grounding.md S1 (given names not stated there)}
+}
+
+@article{helfrich2018orthogonal,
+  title   = {Orthogonal Recurrent Neural Networks with Scaled Cayley Transform},
+  author  = {Helfrich and Willmott and Ye},
+  journal = {arXiv preprint arXiv:1707.09520},
+  year    = {2018},
+  note    = {ICML 2018, pp. 1969--1978. Surname-only per research/ortho\_write\_grounding.md S1 (given names not stated there)}
+}
+
+@article{nguyen2026muonssm,
+  title   = {MuonSSM: Orthogonalizing State Space Models for Sequence Modeling},
+  author  = {Nguyen and Vo and Vo and Nguyen and Pham},
+  journal = {arXiv preprint arXiv:2606.30461},
+  year    = {2026},
+  note    = {ICML 2026 Oral, PMLR 306. Surname-only, order as listed in research/ortho\_write\_grounding.md S4 (given names not stated there; two Nguyens, two Vos, disambiguation not available from the source)}
+}
+
+@misc{kimiteam2025k2,
+  title        = {Kimi K2: Open Agentic Intelligence},
+  author       = {{Kimi Team}},
+  howpublished = {arXiv preprint arXiv:2507.20534},
+  year         = {2025}
+}
+
+@article{bjorck1971iterative,
+  title   = {An Iterative Algorithm for Computing the Best Estimate of an Orthogonal Matrix},
+  author  = {Bj{\"o}rck and Bowie},
+  journal = {SIAM Journal on Numerical Analysis},
+  volume  = {8},
+  number  = {2},
+  pages   = {358--364},
+  year    = {1971},
+  note    = {Surname-only per research/ortho\_write\_grounding.md S3 (given names not stated there)}
+}
+
+@article{higham1986computing,
+  title   = {Computing the Polar Decomposition---with Applications},
+  author  = {Higham},
+  journal = {SIAM Journal on Scientific and Statistical Computing},
+  volume  = {7},
+  number  = {4},
+  pages   = {1160--1174},
+  year    = {1986},
+  note    = {Surname-only per research/ortho\_write\_grounding.md S3 (given name not stated there)}
+}
+
+@book{trefethen2005spectra,
+  title     = {Spectra and Pseudospectra: The Behavior of Nonnormal Matrices and Operators},
+  author    = {Trefethen and Embree},
+  publisher = {Princeton University Press},
+  year      = {2005},
+  note      = {Surname-only per research/ortho\_write\_grounding.md S5 (given names not stated there)}
+}

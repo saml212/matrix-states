@@ -1,0 +1,65 @@
+\section{The Fix Experiment: Pending}
+\label{sec:pending}
+
+The diagnosis in Section~\ref{sec:diagnosis} is a post-hoc counterfactual
+on an already-trained, free-write operator -- it does not establish that a
+model can learn to write an orthogonal operator directly. A GPU wave
+training the Newton--Schulz-constrained write end-to-end at $K \in
+\{24, 32\}$, $d{=}K{+}1$, 4 seeds, $4\times$ budget, plus a
+structured-operator discriminator (composing paths of \emph{distinct}
+random-orthogonal operators, removing every periodicity handle so
+depth cannot collapse modulo a cycle length) was pre-registered before
+any tunable code existed and, as of this draft, is a live run whose
+results this paper does not read.
+% evidence: NCR_ORTHO_WRITE.md S2/S4b/S8
+
+\begin{quote}
+\textbf{[PENDING --- ortho-write verdict, lands \textasciitilde
+2026-07-17]}
+\end{quote}
+
+The bands below were fixed before any result existed and are reported here
+so this paper is verdict-ready either way; a NULL is a finding about
+spectrum-blind objectives, not a result to hide.
+% evidence: NCR_ORTHO_WRITE.md S6 (record-before-read discipline)
+
+\textbf{Part A (primary, $K{=}32$, realistic re-registered $h^\ast{=}40$
+-- $13\times$ the training depth, chosen because the diagnosis's polar
+frontier at $4\times$ budget already reaches $h\approx 51$).}
+\textbf{WIN}: ortho-write median $\mathrm{recovered\_frac@0.9}$ at
+$h^\ast{=}40 \geq 0.9$ across converged seeds, AND the pinned free-write
+baseline reads $< 0.5$ at $h{=}40$ (already established: the free-write
+arm is DEAD at every depth $\geq 29$, Section~\ref{sec:wall}); the
+mechanistic signature must corroborate (departure-from-normality
+$\leq 0.02$, condition number $\lesssim 2$, $\min|\lambda|/c^\ast \geq
+0.9$). \textbf{PARTIAL}: median $\geq 0.9$ at $h \in \{20, 29\}$ but $<0.9$
+at $h{=}40$ -- a genuine $\geq 3\times$ extension of the free-write
+frontier ($\approx 6$), short of the full target. \textbf{NULL}: median
+$< 0.9$ at every depth $\geq 12$ while the write still trains (Gate-0
+passes) -- the constraint trains but buys no far-depth gain; the mechanism
+would be wrong or incomplete. \textbf{FAIL}: Gate-0 DEAD in $\geq 3/4$
+seeds -- the constraint is too rigid to train through.
+% evidence: NCR_ORTHO_WRITE.md S3/S4
+
+\textbf{Part B (structured-operator discriminator, $K{=}32$, $R{=}4$
+distinct operators, $L^\ast{=}32$ path compositions, mod-$K$-trap-safe by
+construction: distinct operators per hop, no consecutive repeats,
+fixed-point exclusion).} Identical WIN/PARTIAL/NULL/FAIL bands with path
+length $L$ in place of $h$. Prediction, stated before the run: a product
+of $L$ orthogonal matrices is exactly orthogonal for every $L$, so this
+discriminator should show the sharpest possible separation if the
+mechanism is real, with no residual eigenphase question the way a single
+cycle's periodicity leaves open.
+% evidence: NCR_ORTHO_WRITE.md S4/S4b
+
+\textbf{Pre-registered odds (for an honest assessment, not a
+prediction dressed as a result).} $\approx 70$--$75\%$ Part A reaches WIN
+or high PARTIAL, on the basis that the mechanism is measured (not
+hypothesized) and the in-silico polar preview already achieves comparable
+depth extension without retraining; residual risk is the constraint
+blocking Gate-0 convergence, or trained orthogonality not being tight
+enough over $40$ physical applications. $\approx 80\%$ Part B reaches WIN,
+higher than Part A because exact orthogonality of a product carries no
+residual-phase caveat. $\approx 20$--$25\%$ the original synthetic
+$h{=}253$ target is recovered -- explicitly not the target, reported only
+if it happens. % evidence: NCR_ORTHO_WRITE.md S7

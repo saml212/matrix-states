@@ -1,0 +1,125 @@
+\documentclass{article} % COLM 2026 template (official kit, tag 2026) -- same
+% vendored kit as papers/reasoning-null-moss/ and papers/measurement-ws/
+% (this program's other MOSS-class honest-negative-with-mechanism papers).
+\usepackage[submission]{colm2026_conference}
+
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{lineno}
+
+\definecolor{darkblue}{rgb}{0, 0, 0.5}
+\hypersetup{colorlinks=true, citecolor=darkblue, linkcolor=darkblue, urlcolor=darkblue}
+
+\title{The K-Axis Closes at 32 -- And Why: Diagnosing a Spectrum-Blind
+Write Objective in a Fast-Weight Composition Reader}
+
+% Anonymized for double-blind review (MOSS @ COLM 2026); the submission
+% option suppresses this block regardless.
+\author{Anonymous authors}
+
+\begin{document}
+
+\ifcolmsubmission
+\linenumbers
+\fi
+
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_win}
+\input{sections/04_wall}
+\input{sections/05_diagnosis}
+\input{sections/06_pending}
+\input{sections/07_related}
+\input{sections/08_discussion}
+
+\bibliography{refs}
+\bibliographystyle{colm2026_conference}
+
+\appendix
+
+\section{Registered Gates and Bands, Reproduced}
+\label{app:gates}
+
+This appendix reproduces, in compact form, the pre-registered gates and
+verdict maps the main text relies on. Each was fixed in the program's
+design registry (\texttt{matrix-thinking/NOVEL\_ARCH\_WATERFALL.md},
+\texttt{matrix-thinking/NCR\_ORTHO\_WRITE.md}) before the corresponding
+data existed.
+
+\textbf{Axis-A separation bands (\S\ref{sec:win}).} Per arm, a numeric
+band at the separation depth $h^\ast$ on median $\mathrm{recovered\_frac@0.9}$
+across seeds: HOLD $\geq 0.9$; DEGRADED $\in (0.5, 0.9)$; FAIL $\leq 0.5$.
+The baseline axis is the best-performing comparison-of-record arm. A
+per-arm-pair cell (NCR band, best-baseline band) maps to WIN / SEP-PARTIAL
+/ TIE / LOSE per a $3\times3$ table; two per-$K$ labels combine via a
+second table (WIN+WIN$\to$WIN; WIN+SEP-PARTIAL or WIN+TIE$\to$WIN-PARTIAL;
+any pair containing LOSE$\to$LOSE).
+% evidence: NOVEL_ARCH_WATERFALL.md S3.2a
+Axis B (sequential cost) is claimable only if Axis A $\geq$ TIE, and is a
+WIN at $\geq 10\times$ wall-clock advantage at the deepest cost-probe
+point. Axis C (spectral predictability) is a WIN if the locked prediction
+tracks measured cosine within 0.05 through $h \leq 509$ for $\geq 3/5$
+seeds.
+% evidence: NOVEL_ARCH_WATERFALL.md S3.2/S3.2a
+
+\textbf{\S11 Gate 1/Gate 2 (\S\ref{sec:wall}).} GATE 1 (convergence), per
+$K$ over 4 seeds: in-distribution ($h{=}1,2,3$, min) $\mathrm{recovered\_frac@0.9}
+\geq 0.9$ AND mean $A_{\mathrm{eff\_rank}} \geq 0.9K$
+$\to$ CONVERGED; in-dist $\in [0.5,0.9) \to$ PARTIAL; in-dist $< 0.5
+\to$ DEAD. Per-$K$: CONVERGED-ROBUST ($\geq 3/4$ CONVERGED) /
+CONVERGED-PARTIAL (1--2/4) / TRAINABILITY-DEAD (0/4). GATE 2 (far-depth),
+scored only on CONVERGED cells: $\mathrm{recovered\_frac@0.9}$ at the
+cell's own $h^\ast = 8K{-}3$, banded HOLD ($\geq 0.9$) / DEGRADED
+($0.5$--$0.9$) / FAIL ($\leq 0.5$).
+% evidence: NOVEL_ARCH_WATERFALL.md S11
+The K=32 $d(K)$-grid stopping rule: REOPENS/CONVERGES-ONLY both require
+CONVERGED-ROBUST at some $d \in \{K{+}1, 1.25K, 1.5K\}$; if none clears
+it, the K-axis is CLOSED-AT-THIS-K and the next rung is BLOCKED.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.5
+The budget-rescue ANOMALY check fires if $\delta$ is non-monotonic across
+the $1\times{\to}2\times{\to}4\times$ trajectory in $\geq 3/4$ seeds (or
+either of two other named triggers); a fired ANOMALY pre-empts the
+mechanical verdict map and reports the trajectory numbers-only.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.6
+
+\textbf{Ortho-write WIN/PARTIAL/NULL/FAIL (\S\ref{sec:pending}).} Gate-0
+precondition (both arms): in-dist $\mathrm{recovered\_frac@0.9} \geq 0.9$
+and mean $A_{\mathrm{eff\_rank}} \geq 0.9K$; a cell failing Gate-0 is DEAD
+and unscored on far depth. Part A (primary, $K{=}32$, realistic $h^\ast=40$):
+WIN requires ortho-write median $\mathrm{recovered\_frac@0.9}$ at
+$h^\ast{=}40 \geq 0.9$ across converged seeds AND the pinned free-write
+baseline $< 0.5$ at $h{=}40$, with the mechanistic signature corroborating
+(departure-from-normality $\leq 0.02$, condition number $\lesssim 2$,
+$\min|\lambda|/c^\ast \geq 0.9$); PARTIAL requires median
+$\mathrm{recovered\_frac@0.9} \geq 0.9$ at $h \in \{20, 29\}$ but $< 0.9$
+at $h{=}40$; NULL is median $< 0.9$ at every depth $\geq 12$ while Gate-0
+still passes; FAIL is Gate-0 DEAD in $\geq 3/4$ seeds. Part B (structured-
+operator discriminator) uses the identical bands with path length $L$ in
+place of $h$ and $L^\ast{=}32$.
+% evidence: NCR_ORTHO_WRITE.md S4
+
+\section{Reproducibility}
+\label{app:repro}
+
+Every number in this paper is transcribed from the program's design
+registry (\texttt{matrix-thinking/NOVEL\_ARCH\_WATERFALL.md},
+\texttt{matrix-thinking/NCR\_ORTHO\_WRITE.md}), never from memory or
+re-derivation, with the source section marked in a LaTeX comment beside
+each claim in the source of this paper. Diagnosis scripts
+(\texttt{k32\_spectral\_diag.py}, \texttt{k32\_counterfactual.py},
+\texttt{k32\_nonnormal\_frontier.py}) are archived at
+\texttt{experiment-runs/2026-07-16\_ncr\_ortho\_write/diagnosis/}. The
+ortho-write fix experiment (\S\ref{sec:pending}) was, as of this draft, a
+live pre-registered but not-yet-read GPU wave; this paper does not read
+its results path and reports the pre-registered bands only, as pending.
+
+\end{document}

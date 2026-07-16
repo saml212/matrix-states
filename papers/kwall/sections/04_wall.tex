@@ -1,0 +1,92 @@
+\section{The $K{=}32$ Trainability Wall}
+\label{sec:wall}
+
+\textbf{Origin.} On the plain training recipe, a single-seed scaling probe
+found a sharp trainability cliff between $K{=}14$ (CONVERGED: in-dist
+$1.000$, $A_{\mathrm{eff\_rank}} \approx 14.0$, $\delta{=}0.0072$,
+shadow-certified against fp64 at $\approx 5\times10^{-8}$) and $K{=}15/16$
+(DEAD: never trained, loss flat, rank collapsed to $\approx 1$) -- a
+discrete collapse, not gradual degradation.
+% evidence: NOVEL_ARCH_WATERFALL.md S9.10
+A parameter-free inter-hop LayerNorm blend, annealed $1{\to}0$ over the
+first half of training and never present at eval (\texttt{earlyln}),
+independently recovered trainability on a related sub-task at $R{=}3$
+and was tested next as a general fix for the $K$-axis.
+% evidence: NOVEL_ARCH_WATERFALL.md S8.9
+
+\textbf{The $K$-scaling ladder (\texttt{earlyln}, $d{=}2K$ convention,
+4 seeds/$K$, 1$\times$ budget).} $K{=}14$ (continuity check) and $K{=}15$
+both SCALE: $4/4$ CONVERGED with Gate-2 median recovery at $h^\ast$ of
+$0.9737$ and $0.9929$ respectively (HOLD). The wall re-forms one rung
+later: $K{=}16$ is CONVERGED-PARTIAL ($1/4$) and $K{=}24$ is
+TRAINABILITY-DEAD ($0/4$); the pooled worst-of verdict over
+$K\in\{15,16,24\}$ is TRAINABILITY-STILL-LIMITED --
+\texttt{earlyln} moves the wall exactly one rung, from
+$K{=}14/15$ to $K{=}16$, and improves write quality at every rung it
+converges (K=14's residual drops from $\delta{=}0.0072$ to
+$0.0020$--$0.0042$). % evidence: NOVEL_ARCH_WATERFALL.md S11.2
+
+\textbf{The state-dimension convention.} Switching the ambient dimension
+from the field-default $d{=}2K$ to a tight-spare $d{=}K{+}1$ at fixed
+$1\times$ budget moves Gate-1 convergence from $1/4$ to $4/4$ CONVERGED at
+both $K{=}16$ and $K{=}24$, and at $K{=}16$ buys genuine far-depth
+recovery ($2/4$ seeds clear the $0.9$ HOLD band at $h^\ast{=}125$, reading
+$0.9471$ and $0.9877$) where no $d{=}2K$ cell in this program ever produced
+non-zero far-depth recovery at any tested budget/anneal combination.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.4
+The measured mechanism: normalized leakage into the ambient/cross-term
+subspace is $7.1\times$ larger at $d{=}2K$ than $d{=}K{+}1$ at $K{=}16$
+($1.797$ vs.\ $0.254$) and $14.1\times$ larger at $K{=}24$ ($3.023$ vs.\
+$0.215$); the qualitative shape differs too -- at $d{=}K{+}1$, $93$--$98\%$
+of the small leak sits harmlessly in the single spare dimension, while at
+$d{=}2K$ the much larger leak migrates into the cross-terms that touch the
+$K$-dimensional entity subspace the readout depends on (the $D$-share
+flip, $0.929 \to 0.270$ at $K{=}24$, the single most mechanistically
+informative number in this analysis).
+% evidence: NOVEL_ARCH_WATERFALL.md S11.4a
+This is the same class of pathology -- write-side leakage corrupting a
+readout-relevant subspace -- diagnosed at higher resolution in
+Section~\ref{sec:diagnosis}, though the two analyses were run on
+different $K$'s and are compatible rather than identical: leakage-shape
+explains \emph{relative} differences among $d$-ratios at a fixed $K \leq
+24$; it was explicitly scoped not to explain whether \emph{any} $d$ at a
+given $K$ trains at all. % evidence: NOVEL_ARCH_WATERFALL.md S11.5
+
+\textbf{$K{=}32$ closes the ladder.} A full $d(K)$ grid at $K{=}32$
+($d \in \{33, 40, 48, 64\}$, i.e.\ $K{+}1$, $1.25K$, $1.5K$, $2K$, 4 seeds
+each, $1\times$ budget) fails to reach even a single fully-CONVERGED cell
+at any $d$: $d{=}33$ lands $0/4$ CONVERGED, $3/4$ PARTIAL, $1/4$ DEAD (the
+qualitatively ``least dead'' arm); $d{=}40/48/64$ are all $4/4$ DEAD with
+in-dist recovery $\approx 0.0000$--$0.0008$ in every seed. Front is pinned
+at the trivial $K{-}3{=}29$ rung in literally all 16 cells, and $\mathrm{rec@}h^\ast$
+reads $0.0000$ in every one. Per the pre-registered staging rule (REOPENS
+requires CONVERGED-ROBUST at some tested $d$), $K{=}32$ is
+CLOSED-AT-THIS-K and $K{=}48$ is BLOCKED.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.5
+A dedicated budget-rescue probe on the best-performing arm ($d{=}33$)
+tests whether more compute alone reopens it: Gate-1 CONVERGED count rises
+$0/4 \to 1/4 \to 2/4$ across $1\times/2\times/4\times$ budget (320K steps
+at $4\times$) -- monotonically improving, but plateauing short of the
+$3/4$ CONVERGED-ROBUST bar at every budget tested -- while front stays
+pinned at $29$ in all 12 cells across all three budgets and
+$\mathrm{rec@}h^\ast$ reads $0.0000$ in every one.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.6
+The pre-registered ANOMALY check (write-quality residual $\delta$
+non-monotonic across the budget trajectory in $\geq 3/4$ seeds) fires --
+the same trigger, and the same $3/4$-seed count, observed once before at
+$K{=}16$'s own $4\times$ probe -- pre-empting the mechanical verdict map;
+no clean law is assigned to the budget trajectory. This does not change
+the outcome that matters: the sole unblocking condition (CONVERGED-ROBUST
+at some budget \emph{and} median front $\geq h^\ast$) is independently
+excluded by the raw numbers regardless of the anomaly, so $K{=}48$ stays
+BLOCKED and \textbf{this closes the $K$-axis book at $K{=}32$} under the
+pre-registered stopping rule.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.6
+
+What the closed book does and does not establish: closed, whether more
+budget alone rescues $K{=}32$ (no, at any of three budgets tested);
+established, that the tight-spare convention's advantage over wider $d$,
+confirmed at $K\leq 24$, does not generalize past $K{=}24$ -- an
+absolute-$K$ factor beyond the ambient/entity spare-fraction is back in
+play, and its identity was left open by this record.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.5

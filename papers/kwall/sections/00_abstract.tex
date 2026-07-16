@@ -1,0 +1,34 @@
+\begin{abstract}
+Native Composition Reads (NCR) writes relation operators into a $d\times d$
+fast-weight state from context and reads a depth-$h$ composition via
+$O(\log h)$ repeated squaring instead of an $O(h)$ sequential rollout --
+the load-bearing claim is query-time access complexity, not a new
+state-tracking expressivity result (matrix-valued recurrent state already
+provably escapes $\mathrm{TC}^0$ elsewhere in the published record). At
+$K{=}8$ entities, NCR holds exact recovery to the pre-registered separation
+depth $h^\ast{=}61$ (median $1.0$) while the strongest $O(h)$ baseline has
+already decayed to $0.158$, a full band separation on every claim-eligible
+residue. % evidence: NOVEL_ARCH_WATERFALL.md S7e
+Scaling the same recipe to $K{=}32$ closes: sixteen dimension/budget cells
+and eight further budget-rescue cells all fail to reach robust
+convergence, and far-depth recovery reads exactly $0.0000$ in every one.
+% evidence: NOVEL_ARCH_WATERFALL.md S11.5/S11.6
+We diagnose the wall rather than accept it as fundamental: the write is
+trained with a cosine loss at $h\le 3$ that constrains only direction, not
+conditioning, so gradient descent has no pressure to keep the written
+operator normal. The trained $K{=}32$ operator is measurably non-normal
+(departure-from-normality $0.055$--$0.063$) and ill-conditioned (condition
+number $321$--$2952$ across the tested $d$-arms, against $\approx 1$ for a
+healthy $K{=}14$ operator), and the weakest eigenmode is annihilated by
+$h\approx 6$. % evidence: NCR_ORTHO_WRITE.md S1
+Projecting the already-trained operator to its nearest orthogonal matrix,
+with no retraining, extends the surviving depth from $h\approx 6$ to
+$h\approx 27$--$51$ and lifts mid-depth recovery from near-zero to
+$0.73$--$0.98$, showing the wall is a synthetic property of the objective,
+not the architecture's capacity (effective rank already sits at $\approx K$
+in every dead cell). % evidence: NCR_ORTHO_WRITE.md S5
+We pre-register WIN/PARTIAL/NULL/FAIL bands for a live experiment training
+that constraint directly and report it as pending. Every model in this
+paper is under 200K parameters; this is a toy-scale mechanistic study, and
+we make no scaling claim beyond the diagnosis itself.
+\end{abstract}

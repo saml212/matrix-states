@@ -1,0 +1,105 @@
+\section{Diagnosis: A Spectrum-Blind Write Objective}
+\label{sec:diagnosis}
+
+\textbf{Hypothesis.} The write is trained with a cosine loss at $h \leq 3$.
+Cosine at shallow depth constrains only the \emph{direction} of $Zq, Z^2q,
+Z^3q$ -- it is invariant to the operator's conditioning and to its
+departure from normality. Gradient descent therefore has no pressure to
+make the written entity operator $A$ normal, let alone orthogonal.
+% evidence: NCR_ORTHO_WRITE.md S1
+
+\textbf{Measured, on the archived $K{=}32/d{=}33$ checkpoints (the
+tight-spare arm of Section~\ref{sec:wall}).} The trained entity operator
+is non-normal (Henrici departure-from-normality $0.055$--$0.063$) and
+ill-conditioned ($\sigma_{\max}/\sigma_{\min} \approx 320$--$550$; the
+weakest entity eigenmode has $|\lambda|/c^\ast$ as low as $0.12$--$0.28$).
+Under $h$-fold application the weakest eigenmode decays geometrically as
+$(|\lambda|_{\min}/c^\ast)^h$, reaching $\approx 0$ by $h \approx 6$ -- the
+far-depth read annihilates it, and cosine to the true target collapses.
+Effective rank sits at $30.2$--$31.2$ ($\approx K$) in every cell measured:
+the $K$ modes are all present, just spectrally mis-shaped. This is a
+write-\emph{conditioning} failure, not a capacity failure.
+% evidence: NCR_ORTHO_WRITE.md S1/S5
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+group (per-seed mean) & dep.-norm. & cond\# & front as-is@.9 & front polar@.9 & polar rec@20 & polar rec@40 \\
+\midrule
+$K{=}14@d{=}16$ (healthy) & 0.005 & 1.0 & 179.6 & 109.0 & 1.000 & 0.999 \\
+$K{=}16@d{=}32$ ($2K$, dead) & 0.129 & 3.6 & 3.4 & 36.6 & 0.976 & 0.919 \\
+$K{=}24@d{=}48$ ($2K$, dead) & 0.261 & 2951.5 & 0.0 & 0.2 & 0.157 & 0.049 \\
+$K{=}32@d{=}33$ ($2\times$) & 0.063 & 395.3 & 4.6 & 26.9 & -- & -- \\
+$K{=}32@d{=}33$ ($4\times$) & 0.055 & 320.8 & 5.9 & \textbf{51.4} & -- & -- \\
+\bottomrule
+\end{tabular}
+\caption{In-silico polar-projection counterfactual, reproduced verbatim
+from the diagnosis (no retraining -- the same trained $Z$, projected to
+its nearest orthogonal matrix). ``front@.9'' is the deepest physical $h$
+holding cosine $\geq 0.9$. $K{=}24@d{=}48$ (the $2K$ convention) is a
+cautionary contrast: condition number $\approx 2951$ is severe enough that
+even post-hoc polar projection barely helps -- this is not the $d{=}K{+}1$
+regime the fix experiment runs.}
+% evidence: NCR_ORTHO_WRITE.md S5
+\label{tab:diagnosis}
+\end{table}
+
+Per-seed at $K{=}32@d{=}33$, $4\times$ budget: as-is $\mathrm{rec@}h^\ast(253)$
+is $0.056$--$0.076$; the same operator's polar projection reaches
+$\mathrm{rec@}h{=}20$ of $0.823$--$0.979$ and $\mathrm{rec@}h{=}40$ of
+$0.728$--$0.942$, with no retraining. Spectral diagnosis on the same
+cells: $c^\ast$ $0.75$--$2.49$, $\min|\lambda|/c^\ast$ $0.125$--$0.284$
+(the annihilated weak mode), phase-residual-max $0.19$--$0.57$.
+% evidence: NCR_ORTHO_WRITE.md S5
+Table~\ref{tab:diagnosis} also shows the effect is not uniform: at the
+already-healthy $K{=}14$ operator, polar projection slightly
+\emph{shortens} the surviving front ($179.6 \to 109.0$) -- there is
+little non-normality to fix, and the projection is not free. The fix is
+a rescue for degraded operators, not a universal improvement.
+
+\textbf{The fix.} Constrain the write's entity operator to be orthogonal
+by construction, via a differentiable Newton--Schulz polar iteration
+$Q = Z(Z^\top Z)^{-1/2}$ computed without an explicit SVD: a spectral-norm
+pre-scale (detached power iteration) followed by the classical cubic
+update $X \leftarrow 1.5X - 0.5X(X^\top X)$, run to near-convergence
+(40 iterations). The $(1.5, -0.5)$ coefficients are the original
+Newton--Schulz orthogonalization iteration of \citet{bjorck1971iterative};
+the spectral pre-scaling step follows the scaled-Newton polar-decomposition
+theory of \citet{higham1986computing}.
+% evidence: NCR_ORTHO_WRITE.md S2; research/ortho_write_grounding.md S3
+Condition number, rather than spectral radius alone, is the correct
+diagnostic here because eigenvalues describe only asymptotic behavior and
+miss the transient growth non-normal operators exhibit under finite-power
+application \citep{trefethen2005spectra}.
+% evidence: research/ortho_write_grounding.md S5
+
+\textbf{Relation to prior orthogonality-constrained recurrent work.} A
+line of unitary/orthogonal RNN parametrizations
+\citep{arjovsky2016unitary,helfrich2018orthogonal} constrains eigenvalues
+to the unit circle for exactly the reason we invoke -- repeated
+application neither explodes nor vanishes the signal -- but targets the
+\emph{recurrent transition matrix} applied every timestep to the hidden
+state, not an in-context-written operator later read by matrix power.
+Closer, and load-bearing to disclose: \textbf{MuonSSM}
+\citep{nguyen2026muonssm}, an ICML 2026 Oral posted roughly two weeks
+before this diagnosis, explicitly conditions ``the geometry of memory
+updates rather than the recurrent transition matrix'' in the DeltaNet
+family -- the same write-vs-transition distinction this section relies on
+-- via a single-iteration Newton--Schulz transform (Muon's quintic
+coefficients) applied to \emph{rank-1} key--value input injections, aimed
+at general long-horizon gradient/memory stability. Our fix differs on
+three material axes: it targets \emph{full-rank} $d\times d$ write
+operators (a rank-1 matrix cannot satisfy $Q^\top Q = I$ for $d>1$, so
+MuonSSM's projection is a magnitude normalization of one singular value,
+not a genuine rotation); it runs the classical cubic iteration to
+near-machine-precision convergence rather than one lightweight quintic
+step, because exact composability under repeated powers -- not merely
+reduced spectral collapse -- is the load-bearing property here; and it is
+diagnosed and motivated by compositional-depth read failure specifically,
+a setting MuonSSM does not test.
+% evidence: research/ortho_write_grounding.md S4
+We do not present orthogonalizing a fast-weight write as unprecedented;
+we present a distinct target and motivation within an active, recently
+occupied research direction.
