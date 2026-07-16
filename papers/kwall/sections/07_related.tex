@@ -37,8 +37,9 @@ in-context setting, not a competitor.
 \textbf{State-tracking expressivity, correctly not our headline.}
 \citet{grazzi2025unlocking} prove that restricting a linear RNN's
 transition eigenvalues to $[0,1]$ (the Mamba/DeltaNet default) forecloses
-parity and other non-solvable-group state tracking, and that extending the
-eigenvalue range fixes it; \citet{peng2025rwkv7}'s RWKV-7 achieves
+parity and other group state-tracking tasks (parity itself being the
+solvable $\mathbb{Z}_2$ case), and that extending the eigenvalue range
+fixes it; \citet{peng2025rwkv7}'s RWKV-7 achieves
 NC$^1$-hard state tracking with a non-diagonal, input-dependent transition.
 Both already establish that matrix-valued recurrent state can escape the
 $\mathrm{TC}^0$ ceiling transformers face \citep{merrill2023parallelism} --
