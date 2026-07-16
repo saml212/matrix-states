@@ -2033,3 +2033,431 @@ wall-clock/stability behavior at LM batch sizes is entirely unmeasured
 run. Everything in this document remains CONDITIONAL on both §9 gates
 (GATE 1: main ortho-write verdict; GATE 2: the bridge cell) and on a
 fresh, independent ATTACK ROUND 2 before build authorization.
+
+---
+
+## §A2 ATTACK ROUND 2 (2026-07-16, post-Rev-1, independent)
+
+Second adversarial pass against DRAFT-STAGE-1-REV-1. Mandate: (1) verify
+each §R1 discharge against the ACTUAL revised text, (2) find NEW defects
+Rev 1 missed or introduced. Every finding is recomputed or line-cited
+against a source. Rev-1 changed the failure surface substantially, and the
+M1 decoupling fix (K₂=5, S₅-on-5-points) introduced a cluster of new
+well-posedness defects that did not exist in the pre-Rev-1 draft. **Verdict
+at the end. Lead finding (F2) is the adjudication of the single-point-vs-
+full-word-problem question the coordinator flagged.**
+
+### F2 [FATAL] — Axis A has NO depth regime that is simultaneously (structurally hard for the Transformer) AND (exact for NCR): at the tested L≤40 the Transformer is NOT structurally barred (the design's OWN citation C4 constructs a ~6-layer exact solver), and the regime where the TC⁰⊊NC¹ barrier bites (L≫2^{n_layers}≈4096) is far above both the tested ladder and NCR's own fp-exactness ceiling (~253). This is the direct structural analog of round-1 F1, one level deeper, and it is the answer to check 2(c).
+
+**On 2(c) first (single-point vs full word).** The design's answer function
+is `w(x)` — the image of ONE query letter under the composite `w =
+g_{o_L}∘…∘g_{o_1}` (§3.2 line 546: "applying the composed … operators to
+the query point's ℝ⁴ image and reading off which of the 5 canonical points
+it lands nearest"). Is single-point tracking still NC¹-hard, or a TC⁰
+shortcut? **It is the hard version, in the worst case:** Barrington's own
+read-out distinguishes the two output permutations (identity vs a fixed
+5-cycle ρ) by a SINGLE point's image (does `w(1)=1` or `w(1)=2`), so
+`{(w,x,y): w(x)=y}` over adversarial S₅ words is NC¹-hard. So the design is
+on the RIGHT side of the "track one point in TC⁰" trap the coordinator
+worried about — the query form does NOT admit a single-point TC⁰ shortcut
+**in the asymptotic worst case**. **But that is exactly what makes F2
+fatal, not what saves it:** the hardness is a WORST-CASE, ASYMPTOTIC-in-L
+statement (it bites only for adversarially-constructed words whose length
+grows without bound), and the design tests neither adversarial words nor
+growing L.
+
+**Worked regime arithmetic (the gap Rev 1 never closed).**
+- The barrier the design invokes (§3.2 lines 570–576): "the word problem of
+  any fixed non-solvable finite group is NC¹-complete … therefore **NO
+  log-precision transformer of ANY depth or width** can compute this task's
+  answer function unless TC⁰=NC¹." This is true for the **family** (all word
+  lengths L→∞). It gives **no** prediction of failure at any FIXED L. For
+  fixed bounded L over a fixed finite group, `w(x)` is a constant-size
+  computation — trivially in AC⁰⊆TC⁰.
+- The design's OWN corroborating citation **C4 = Liu et al. (2210.10749)**,
+  which §3.2 (lines 623–634) demotes to "secondary/corroborating," has as
+  its **headline theorem** (grounding memo item 3, VERIFIED): a transformer
+  of depth **O(log T)** exactly simulates ANY semiautomaton on length-T
+  inputs — including the S₅ word-problem automaton. For non-solvable groups
+  the depth needed is Θ(log L); ~⌈log₂ L⌉ layers SUFFICE.
+- Task 2 eval ladder: `L∈{5,8,12,16,20,24,32,40}`, `L*=32` (§3.2 line 593).
+  `⌈log₂ 40⌉ = 6`. The baseline Transformer (§4.1) is depth-matched to the
+  DeltaNet backbone: **n_layers = 12 (98M) / 16 (392M)**. `2^12 = 4096`.
+  **Every tested L (≤40) is ≪ 4096**, i.e. every tested L sits deep inside
+  the regime where Liu et al. CONSTRUCTIVELY exhibit an exact transformer
+  solver with layers to spare (6 needed, 12–16 available).
+- Therefore the pre-registered Axis-A WIN condition — "the param-matched
+  Transformer **FAILs (≤0.5)** at the same depth" (§7 Axis A row) — is not
+  merely uncertain; it is **predicted-against by the design's own C4**. The
+  design frames Transformer-success as a surprising negative "even though
+  the complexity argument is theoretically airtight" (§8 item 5), when it is
+  in fact the LITERATURE-PREDICTED outcome at L≤40.
+
+**Why "just go deeper on L" cannot rescue it (the F1-analog impossibility).**
+To make the Transformer structurally fail you need L past its log-depth-
+shortcut capacity, i.e. `L ≳ 2^{n_layers} ≈ 4096`. But NCR's own exactness
+does not survive there: `NCR_ORTHO_WRITE.md` §3 (lines 114–119) records that
+even a *perfectly* polar-orthogonalized operator recovers only ~0.14–0.35
+by h≈253 ("fp accumulation + residual write-imperfection"), and the design's
+registered NCR far-depth target is `h*/L*≈40–61`, not thousands. So:
+- **L≤40 (tested):** Transformer not structurally barred (C4) → Axis-A WIN
+  unreachable.
+- **L≫4096 (barrier bites):** NCR no longer exact (ORTHO_WRITE §3) → NCR
+  loses too.
+There is **no L at which the Transformer is structurally barred AND NCR is
+exact** — structurally identical to round-1 F1 (which showed no query family
+carries both structural-hardness and O(log h)). F1's two-family split moved
+the contradiction; it did not remove it.
+
+**The internal contradiction this exposes.** §3.2 asserts the failure is "a
+genuine complexity-theoretic argument, not an empirical-drift claim" (lines
+230/579), yet the ONLY basis on which the Transformer could fail at L≤40 is
+the C4 *brittleness* result the design itself leans on ("even a
+successfully-trained Transformer shortcut … tends not to generalize
+robustly," line 631–634) — which is an **empirical OOD-generalization**
+failure, the SAME mechanism §3.1 attributes to Task 1 and the SAME register
+(Guu/composition-drift) F1's fix demoted Task 1 to. So at the tested scale
+Axis A collapses into "another empirical composition-generalization result,"
+NOT the structural separation §1/§7 sell — and the two-family distinction
+F1's fix was built to preserve partially dissolves.
+
+**Minimal fix (build-blocking).** One of: (a) STRIKE the structural
+"cannot, not merely does not" framing for Task 2 at the tested L and re-cast
+Axis A honestly as an **empirical held-out-depth generalization** claim
+(distinct from Task 1 only in using a non-solvable group's fast-mixing walk,
+not in complexity class), demoting C1–C3 to motivation and promoting C4 to
+the actual predicted mechanism; OR (b) redesign Axis A to make L (or the
+group size / adversarial word structure) GROW into the barrier regime AND
+prove NCR stays exact there (which ORTHO_WRITE §3 currently says it does
+not) — i.e. re-open the exactness-ceiling question before claiming a
+structural win; OR (c) drop the structural-failure headline entirely and
+run Task 2 only as a corroborating exact-composition demo. Until Axis A is
+re-cast, §1's flagship "one model delivers a STRUCTURAL separation" and §7's
+Axis-A WIN row cannot be earned by any run at L≤40.
+
+### M7 [MAJOR] — Task 2's write realization (`d_ncr,2 = d_min+1 = 5`, "zero-padded/masked to its d_min block") is RANK-DEFICIENT and therefore cannot be orthogonalized by the NS-polar machinery the whole fix depends on; it also diverges from the CAPABILITY_SEPARATION infra it claims to reuse "verbatim."
+
+**Defective quotes.** §2.1 line 164: "the smaller task's write **zero-
+padded/masked to its own d_min block**." §3.2 line 526: "`d_ncr,2 =
+d_min(S₅)+1 = 5` (the **+1 tight-spare margin, mirroring Task 1's K+1
+convention**)." §6.2 Phase 0b line 1094: "orthogonally-conditioned `4×4`
+(**padded to 5×5**) operators."
+
+**Worked mechanism.** NS-polar (`NCR_ORTHO_WRITE.md` §2, cubic Björck–Bowie
+`(1.5,−0.5)`, confirmed `research/ortho_write_grounding.md` §4) acts on each
+singular value as `σ ← 1.5σ − 0.5σ³`. Fixed points: **σ=0 → 0** (`1.5·0 −
+0.5·0 = 0`) and σ→1. The pre-scale `X₀ = Z/σ̂` divides by the LARGEST
+singular value, so a zero singular value STAYS zero. A `4×4` operator
+zero-padded into `5×5` has rank 4 → one singular value is exactly 0 → after
+NS it is still 0 → `Q` has singular values `(1,1,1,1,0)` → **`‖QᵀQ − I‖_F =
+1`, i.e. NOT orthogonal.** The Gate-0 target check "`‖QᵀQ − I‖_F` small"
+(ORTHO_WRITE §2 step 3) **structurally cannot pass** for a zero-padded
+write. This is not a training risk — it is arithmetic, independent of
+optimization.
+
+**The "reused verbatim" overclaim (a fresh instance of the exact M1
+pattern).** `CAPABILITY_SEPARATION_DESIGN.md` does NOT use `d_min+1` with
+zero-pad. It uses **`d_state(G) = d_min(G) + 2`** (line 1012) realized as
+**`ρ_G(g) ⊕ I_{d_state − d_min(G)}`** (line 1038, "block-diagonal, identity
+on the ambient dims"). A rotation ⊕ identity is **full-rank orthogonal**
+(both blocks orthogonal), so NS-polar works on it. The design silently
+changed `d_min+2` (full-rank ρ⊕I) to `d_min+1` (rank-deficient zero-pad),
+so "reused verbatim from `CAPABILITY_SEPARATION_DESIGN.md` §1.3's real,
+calibrated group infrastructure — no new matrices built" (§3.2 lines
+513–516) is inaccurate on the one property (full-rank orthogonalizability)
+that matters for this document's mechanism. **This directly breaks GATE 2
+(the bridge cell), which trains exactly this object** — the bridge cell may
+FAIL for this mechanical reason and be mis-read as a scientific NULL/FAIL on
+S₅-write trainability.
+
+**Minimal fix.** Adopt CAPABILITY_SEPARATION's actual realization: write
+`ρ_G(g) ⊕ I` at `d = d_min+2 = 6` (full-rank orthogonal), or the natural
+`5×5` permutation rep (full-rank orthogonal, reducible = trivial⊕standard),
+and DROP the "+1 tight-spare / zero-pad" language — the K-cycle "+1 spare"
+convention does not transplant to a `d_min`-dim group rep. State the exact
+`d` and realization in §3.2/§6.2; do not defer to build time.
+
+### M8 [MAJOR] — §4.4's replacement Axis-B WIN criterion (the M5 "fix") is UNSATISFIABLE on the design's OWN measured binexp timing signature, and is under-specified as a pre-registered gate.
+
+**Defective quote (§4.4 lines 894–909, and §7 Axis B row (ii)).** "WIN
+requires, for NCR's own series, `Model_log`'s `R² ≥ 0.90` AND `Model_log`'s
+`R²` exceeds `Model_lin`'s `R²` by `≥0.05`."
+
+**Evidence it cannot be met.** `NOVEL_ARCH_WATERFALL.md` §7f (line 1402–1404,
+this program's OWN prior measurement of the SAME `binexp_read`): "bin-exp
+**flat at ~1-3 ms from h=61 to h=2^20+5** (kernel-launch-bound … at 2^20+5
+the measured gap is ≈13,000-25,000×: 2.6 ms vs 34-64 s)." The design's own
+FLOP estimate agrees (§2.1: one h=40 read ≈ `8.6×10⁵` FLOPs ≈ 86 ns compute
+— utterly kernel-launch-bound). **A FLAT series (constant + timing jitter)
+regressed on `log₂ h` yields `b≈0` and `R²≈0`** — the model explains ~none
+of the variance because the variance IS noise. So `Model_log R² ≥ 0.90`
+FAILS, and it does not beat `Model_lin` (both ≈0) by ≥0.05. **By the
+design's own prior data, the NCR side of the WIN gate is unreachable**, so
+Axis B auto-caps at PARTIAL by construction — the exact failure M5's fix was
+supposed to remove, re-introduced in a subtler form.
+
+**Why M5's premise was half-wrong.** M5 argued the `≥10×` bar was
+"transplanted from a depth (h≈10³–10⁶) the design never reaches." But timing
+is accuracy-independent (§4.4 item 2 concedes this), so measuring the FLAT-
+vs-LINEAR ratio at large h is legitimate REGARDLESS of the accuracy ladder —
+which is exactly what §7f did (bin-exp flat vs O(h) arms linear at R²≥0.998,
+ratio 20.9× at h=1021, ≈13,000–25,000× at h=2²⁰). The right discriminator
+for a FLAT vs LINEAR pair is the ratio (or a flat-vs-linear form test), NOT
+a log-fit. M5's fix demoted the correct, already-validated ratio criterion
+BELOW a log-fit gate the data cannot pass.
+
+**Under-specification (independent of the above).** The criterion never
+pins: number of timing repeats per `h`, single-query vs batched timing, what
+statistic is regressed (mean? median?), or the noise model. Without these,
+`R²` is undefined, so the gate is not actually pre-registerable — matching
+this document's own carried-forward open item (2).
+
+**Minimal fix.** Restore the flat-vs-linear discriminator: NCR series
+"flat" (slope not distinguishable from 0, or `Model_lin` slope `d` with a CI
+including 0) vs rollout series linear (`Model_lin R²≥0.99`, slope CI excludes
+0), plus the `≥10×`/reported-ratio at the largest feasible `h`. Keep the
+hardware-independent `⌈log₂h⌉`-vs-`h` dependency-chain assertion as PRIMARY
+(it is sound). Pin repeats/batching/statistic/noise model explicitly.
+
+### M9 [MAJOR] — the flagship "ONE deployed model delivers BOTH properties" rests on the §2.1-unresolved single-head-two-shapes question, and BOTH mechanically-viable options undercut the headline.
+
+**Defective quote.** §1 lines 118–120: "**ONE deployed model, trained once
+per scale on a shared curriculum, delivers BOTH properties**." §2.1 lines
+163–168 then concedes the head must EITHER "run two differently-shaped NCR
+head instances (one per task family, disjoint parameters)" OR be "a single
+encoder padded to the larger shape with the smaller task's write zero-
+padded/masked to its own d_min block — **not resolved here, a build-time
+decision**." §6.2 Phase 2 (line 1160): "Training is task-suite-shared (a
+single run trains … Task 1 AND Task 2 episodes together)."
+
+**Why it is load-bearing, not a detail.** The novelty memo
+(`research/ncr_separation_grounding.md` Part 3) makes the "one model, both
+axes" the flagship's whole distinction. But:
+- **Single padded head** (the only literal "one model" reading): to serve
+  Task 1's `d=33` and Task 2's `d≤6` writes in one head, the head is sized
+  `d=33` and Task 2's operator occupies a ≤6×6 block → rank ≤6 in 33 dims →
+  NS-polar leaves ≥27 singular values at 0 → catastrophically non-orthogonal
+  (M7 at extreme). Mechanically the WORSE option.
+- **Two disjoint heads:** mechanically fine, but then Axis A and Axis B are
+  produced by two DIFFERENT modules bolted to a shared backbone — "one model
+  delivers both" becomes "one backbone hosts two task-specific heads," a
+  materially weaker headline, and the val-loss/interference story between
+  the two heads is unmeasured.
+Either way the §1 headline as written is not established, and the choice —
+deferred to "build time" — determines whether the flagship claim is even
+true. This is a NEW defect: it is a direct consequence of M1's decoupling
+(K=32/d=33 vs K₂=5/d=5), which did not exist pre-Rev-1.
+
+**Minimal fix.** Resolve the head architecture in the design, not at build
+time; if two disjoint heads, rewrite §1's headline to "one backbone, two
+task-specific NCR heads" and add a head-interference control to §7; if one
+padded head, confront M7/M9's rank collapse head-on with the ρ⊕I full-rank
+realization at a COMMON `d`.
+
+### M10 [MAJOR] — at K₂=5 Task 2's held-out-DEPTH ladder is distributionally degenerate (fast mixing) and its accuracy scale is compressed near chance (5-way answers), so the pre-registered ladder does not probe graded depth and the HOLD/FAIL bands sit close to chance.
+
+**Evidence.** The composite is a random walk on the Cayley graph of S₅
+(order 120) over `{t,c,c⁻¹}`. This walk MIXES in O(1) steps — after ~4–5
+hops the composite `w` is ≈uniform over S₅. Consequences for the eval
+ladder `L∈{5,8,12,…,40}` (§3.2 line 593):
+- Every ladder rung `L≥~5` presents the SAME distribution (≈uniform `w`).
+  There is **no graded depth-difficulty** — L=5 and L=40 are statistically
+  identical tasks. Reporting a "depth ladder" implies a difficulty gradient
+  that does not exist; held-out-depth generalization from `L∈{1,2,3}` is a
+  single unmixed→mixed jump at L≈4, not a ladder.
+- The answer is one of **5 letters**; for ≈uniform `w`, `w(x)` is ≈uniform
+  over the orbit → **chance ≈ 0.20**. Fixed-point exclusion (guard 3)
+  removes the ≈20% with `w(x)=x`, leaving chance ≈ 0.25 over 4 letters. The
+  pre-registered `HOLD(≥0.9)/DEGRADED(0.5,0.9)/FAIL(≤0.5)` bands therefore
+  sit only ~2× above chance; a Transformer at 0.5 is well above chance, so a
+  "0.9 vs 0.5" HOLD-vs-FAIL split is not the clean categorical separation
+  the structural framing implies.
+
+This is the concrete form of this document's own open item (3) ("whether
+S₅-on-5-points supports BOTH held-out axes cleanly at such a small K₂ is
+asserted by analogy … not independently verified") — and the answer, on
+inspection, is that the DEPTH axis is degenerate at K₂=5, not merely
+unverified.
+
+**Minimal fix.** Either move to a larger group whose walk mixes slowly
+enough to make a real depth ladder (but that re-opens the never-run
+`d_min`/ortho-write calibration at that group), or drop the "depth ladder"
+framing for Task 2 and report a single mixed-regime accuracy with an
+explicit chance baseline and a many-way (not 5-way) readout. Reconcile with
+F2's re-cast.
+
+### m4 [MINOR] — GATE-2 (bridge cell) and Phase-1 calibration run at n=2, a "median over 2 seeds," to gate/drop an entire primary axis — contradicting this repo's own documented trainability-variance.
+
+§6.2 Phase 0b pins `n=2` seeds and §9.2 gates all of Axis A on "median
+rec@0.9" of 2 seeds. Median-of-2 = mean-of-2 (no tie-break, no outvote), and
+STATE.md's own Task-2 lesson (`CLAUDE.md` Research Direction: "one fresh seed
+cleared the bar — §1.40's surprise") is precisely that trainability is
+seed-variable here. The main ortho-write wave uses n=4; a HARD gate that can
+DROP the flagship structural axis on n=2 is under-powered. Raise the
+axis-dropping gate to n≥3 (ideally 4).
+
+### m5 [MINOR] — §8 item 2 / m2's pinned gradient cross-check names an INFEASIBLE reference ("the ENTIRE model in fp32"); fla's production kernel rejects fp32.
+
+§8 item 2 (m2's fix) pins "a gradient cross-check (this cast pipeline vs. a
+small-scale reference run with the **ENTIRE model in fp32**) at `<1×10⁻²`."
+But `DELTANET_REALDATA_DESIGN.md` §4.3 (line 650, VERIFIED) records that
+`fla.ops.delta_rule.chunk_delta_rule` "**rejects float32 inputs outright**"
+— the production backbone CANNOT run in fp32. The reference must instead be
+the naive fp32 recurrence (accepting the 10–20% naive-vs-chunked Jacobian
+gap that same section documents) or be scoped to the NCR head only. m2's
+threshold is pinned against an unrunnable reference — so m2 is only
+partially discharged.
+
+### m6 [MINOR] — §6.4 contains a duplicated paragraph (doc-slop from the M4 revision).
+
+The entire "Main 98M/392M cells … Two coupled levers, both re-measured …
+1. Raise batch size … 2. Raise seq_len …" block appears TWICE, near-verbatim
+(once ≈lines 1272–1295, again ≈lines 1319–1344). Harmless but should be
+de-duplicated so a build agent does not read two subtly-divergent copies.
+
+### m7 [MINOR] — GATE-2's NULL and PARTIAL bands overlap.
+
+§9.2 defines PARTIAL as "L=8 recovery ∈(0.5,0.9)" and NULL as "no gain over
+free-write at L=8" with NO delta threshold. If ortho=0.60 and free=0.55,
+both descriptions apply. Pin a minimum (ortho − free) margin (e.g. ≥0.2) to
+separate PARTIAL from NULL, mirroring the WIN row's explicit `<0.5` free-
+write clause.
+
+### Positive verifications (fair-witness record — these Rev-1 fixes hold)
+
+- **F1 fix (two-family split):** genuinely present — §1 is a real
+  conjunction, §2.1 splits `binexp_read`/`loop_read` as distinct functions,
+  §4.4 is scoped to Task 1, §7 removes the old single-family WIN path. No
+  residual Task-2 speed claim found anywhere (§1/§3.2/§4.3/§7 all state
+  Θ(L)). F1's *specific* defect is discharged (F2 is a deeper, distinct
+  defect the split did not reach).
+- **M6 arithmetic:** independently recomputed — `cap_length` denom `2·12·768·4
+  = 73,728` ✓; Case (i) grid `{384,…,6144}` → `{22.7,45.3,90.7,181.4,362.8}`
+  ✓ all clear the 20-tok floor; Case (ii) `state_bytes = 3·25·4 = 300`,
+  grid `{5120,…,81920}` → `{20.8,…,333.3}` ✓; `966 = M=512` ✓. Clean.
+- **M4 token re-pricing:** re-derived — 98M `16,384/0.236 = 69,424 tok/s` ✓;
+  NCR `69,424/1.05 = 66,118` ✓; Phase-1 `327.68M/(66,118·3600) = 1.377` ✓;
+  grand total `2+11.9+4.24+21.52+215.3+226.7 = 482` ✓. Reproduces pre-Rev-1
+  numbers as claimed; no number moved silently.
+- **M5 architecture pin:** the extended-β DeltaNet choice is well-grounded —
+  `DELTANET_REALDATA_DESIGN.md` §4.3 (lines 685–687) confirms the custom
+  block calling `chunk_delta_rule` with externally-computed masked β (stock
+  `DeltaNet` computes β via `b_proj`, no mask hook) IS the right patch point.
+- **CAP_SEP citations:** S₅ d_min=4 / 4-dim standard rep (line 229) ✓;
+  generators `{t,c,c⁻¹}`, size 3 (line 900) ✓; A5/A6 Rev-6 hard-stop →
+  Rev-7 H-ENC diagnosis/lift, S₅ budget 8K steps (lines 88–104) — disclosed
+  accurately ✓. `{t=(12), c=(12345)}` generate S₅ (5 prime; p-cycle + any
+  transposition generate S_p) — group theory sound.
+- **No PRICE-UNKNOWN commit:** Phase 2/3 Transformer arm placeholder is
+  explicitly re-priced by Phase 0a before launch; no committed spend depends
+  on an un-retired PRICE-UNKNOWN.
+
+### DISCHARGE TABLE (round-1 findings vs Rev-1's actual text)
+
+| Round-1 finding | §R1 claim | Verified disposition |
+|---|---|---|
+| **F1 [FATAL]** two-properties-one-family | rewrite as two-family conjunction, scope Axis B to Task 1 | **DISCHARGED** — split is real; but exposed **F2** (structural axis has no valid depth regime at all) which the split does not reach |
+| **M1 [MAJOR]** Task 2 not well-posed | S₅ generator set as rotation-rep ops, K₂=5 decoupled, A5/A6 disclosed | **PARTIALLY** — entity-pool conflation fixed & history honest, but introduced **M7** (rank-deficient d_min+1 zero-pad, `d_state` diverges from CAP_SEP's d_min+2 ρ⊕I; "reused verbatim" still overclaims) and **M10** (degenerate depth ladder at K₂=5) |
+| **M2 [MAJOR]** K≤15 fallback drops non-solvable | two independent gates; GATE-1 NULL/FAIL no longer touches Task 2; R×15-cycle swap retired | **DISCHARGED** — silent-drop path removed; §9.1 NULL/FAIL branch explicitly leaves Task 2 untouched |
+| **M3 [MAJOR]** ortho gate on wrong object | Phase-0b bridge cell (S₅ writes) gates Task 2 | **DISCHARGED (structure)** — bridge cell + GATE 2 added; but the gate's own object inherits **M7** (may fail mechanically, not scientifically) |
+| **M4 [MAJOR]** ledger prices two machines / packed probe | tokens invariant; Phase-0a packed vs unpacked; pilot-before-probe | **DISCHARGED** — arithmetic reproduces; only doc-dup **m6** remains |
+| **M5 [MAJOR]** Axis-B baseline unchosen/unpriced, ≥10× bar transplanted | pin extended-β DeltaNet, price via Phase-0a, replace bar with log-fit | **PARTIALLY** — arch/scope/price fixed & well-grounded, but the replacement criterion is **M8** (unsatisfiable on the design's own flat timing + under-specified) |
+| **M6 [MAJOR]** cap_length arithmetic wrong | fix arithmetic, re-derive two floor-clearing M-grids | **DISCHARGED** — recomputed clean |
+| **m1 [MINOR]** no concrete casting design | fp32-upcast/internal/bf16-downcast pipeline named | **DISCHARGED** |
+| **m2 [MINOR]** "cleanly" has no threshold | pin `<1×10⁻²` cross-check | **PARTIALLY** — threshold pinned, but the "entire model in fp32" reference is infeasible (**m5**; fla rejects fp32) |
+| **m3 [MINOR]** unguarded 5–20% band | two-tier `>5%` re-price / `>8%` kill | **DISCHARGED** |
+
+**Discharge tally:** DISCHARGED 6/10 (F1, M2, M4, M6, m1, m3); PARTIALLY
+4/10 (M1, M5, m2 — plus M3 structurally-discharged-but-object-broken);
+NOT-DISCHARGED 0/10. New defects: **1 FATAL (F2)**, **4 MAJOR (M7, M8, M9,
+M10)**, **4 MINOR (m4, m5, m6, m7)**.
+
+### Verdict
+
+**BUILD-BLOCKED.**
+
+F2 is FATAL: the flagship structural axis (Axis A) has no depth regime in
+which the Transformer is structurally barred AND NCR is exact — at the
+tested L≤40 the design's own citation C4 predicts the Transformer SUCCEEDS,
+and the barrier's regime (L≫4096) is above NCR's fp-exactness ceiling
+(~253). This is round-1 F1 one level deeper; the two-family split relocated
+the impossibility rather than removing it. Compounding: M7 (the S₅ write as
+specified is rank-deficient and cannot be orthogonalized — mechanically
+breaking GATE 2), M8 (the Axis-B WIN criterion is unsatisfiable on the
+design's own flat timing data — Axis B auto-caps at PARTIAL), M9 (the "one
+model delivers both" headline is unresolved and undercut by both viable head
+architectures), and M10 (K₂=5 makes the Task-2 depth ladder degenerate and
+the accuracy bands sit near chance). Rev 1 correctly discharged the round-1
+FATAL's stated form and 5 of 6 MAJORs on arithmetic/structure, but the M1
+decoupling that fixed round-1's well-posedness introduced a new cluster of
+construction defects that must be resolved before any GPU-h — including the
+≈2.1 GPU-h bridge cell, which as specified (M7) tests an object NS-polar
+cannot orthogonalize.
+
+**Required before ATTACK ROUND 3 / conditional build:** (a) re-cast Axis A
+per F2 (honest empirical claim, or a barrier-regime redesign that also
+proves NCR exactness there); (b) fix the S₅ write to a full-rank realization
+(ρ⊕I at a common d), M7; (c) restore a flat-vs-linear/ratio Axis-B
+discriminator and fully specify the timing protocol, M8; (d) resolve the
+head architecture and re-word or control the "one model" headline, M9; (e)
+address the K₂=5 ladder degeneracy, M10; (f) fold m4–m7. Everything remains
+CONDITIONAL on both §9 gates AND this round's re-revision.
+
+---
+
+## §A2-ADJUDICATION (coordinator, 2026-07-16 — recorded before dispatching Rev 2)
+
+**F2 ACCEPTED as FATAL — coordinator-verified against the cited sources'
+own numbers** (log₂40≈5.3 ⇒ a ~6-layer exact S₅ shortcut exists at every
+tested L per C4's constructive result; the barrier regime L≫2^12 exceeds
+the ~253 fp-exactness ceiling in NCR_ORTHO_WRITE.md §3): "cannot, not
+merely does not" is UNEARNABLE at any testable depth. The structural axis
+as a finite-L impossibility claim is DEAD — permanently, not fixably.
+**M7 verified by arithmetic** (a zero-padded dimension has singular value
+0; NS-polar fixes 0; ‖QᵀQ−I‖=1 ≥ any tolerance). **M8 verified against
+§7f's own measured flat 1–3ms binexp series** (a flat series fits neither
+log nor linear; the R² criterion is unpassable). **M9/M10 accepted** on
+the attacker's worked arguments (M10 chance floor: 5-point answer ⇒
+0.20–0.25; HOLD/FAIL bands must be re-derived vs chance).
+
+**Strategic disposition (the honest landing spot, consistent with the
+PI's capability-first directive, which explicitly covers separations
+"functionally or AS OBSERVED/TESTED"):** Axis A is REFRAMED from
+structural-impossibility to MECHANISTIC LENGTH-GENERALIZATION separation —
+train both arms on words ≤L_train, evaluate at L_test ≫ L_train (inside
+NCR's exactness ceiling); the pre-registered prediction: baselines learn
+shortcut solutions (which provably EXIST at all tested L — C4) that
+empirically FAIL out-of-distribution length (C4's own brittleness finding
++ the published S₅ length-generalization empirics), while NCR's exact
+composition length-generalizes BY CONSTRUCTION, with the mechanism
+(shortcut vs algorithm) instrumented, not just the accuracy gap. The
+TC⁰/NC¹ chain (C1–C3) is cited as MOTIVATION for why shortcut solutions
+are the expected learned object — never as a finite-L impossibility bar.
+The flagship headline downgrades honestly from "cannot" to
+"does-not-and-we-show-why-ours-must" — surfaced to the PI at next
+check-in, not buried.
+
+**Rev 2 binding requirements:**
+(a) F2: rewrite §1 Axis A + §3.2 + §7 Task-2 bands per the reframe above;
+WIN = NCR HOLDs at L_test where the baseline FAILs, PLUS the
+length-generalization curve characterizes the baseline failure as
+shortcut-brittleness (in-distribution success + OOD-length collapse);
+purge every "structurally barred at tested depths" implication;
+(b) M7+M9 JOINTLY: ONE head at d=33 serving both families; Task-2
+generator writes = ρ⊕I_{d−4} FULL-RANK orthogonal embeddings (the ρ⊕I
+realization CAPABILITY_SEPARATION actually built — cite it correctly);
+NS-polar is then well-posed; bridge cell re-specified on this object;
+"one model, both properties" preserved architecturally and stated;
+(c) M8: Axis-B criteria = sequential-dependency-call count (exact:
+2·log₂h vs h) as PRIMARY hardware-independent metric + wall-clock ratio
+≥10× at the largest tested depth as the corroborating measured metric
+(restore round-1 M5's correct shape); the R² log-fit demoted to
+reported-not-gating diagnostic; specify repeats/batching/noise;
+(d) M10: re-derive Task-2 bands against the 0.20–0.25 chance floor
+(FAIL band must sit at-or-below chance+margin, or the answer function
+extended to multi-point queries to push chance down — Rev 2 chooses with
+justification) and address depth-ladder informativeness (error-compounding
+curve expectation, or a larger-n Sₙ option priced);
+(e) partials from round 2's discharge table (M1, M5, m2) closed in the
+same pass. Rev 2 → ROUND 3 before any build authorization. Everything
+remains CONDITIONAL on the ortho-write verdict.
