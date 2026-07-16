@@ -1,16 +1,20 @@
 # NCR REAL-LM DESIGN — the flagship bet: NCR in a real language model at scale
 
-**DRAFT-STAGE-1 (PRE-ATTACK — NOT BUILD-AUTHORIZED). Opened 2026-07-16.**
-This document is a design draft, produced for adversarial attack. No code is
-built, no GPU is touched, by this document. Every number below is either
-(a) cited from a measured rate elsewhere in this repo, with the exact source
-named, or (b) flagged `PRICE-UNKNOWN` / `PROJECTED — Phase 0a confirms`.
-Citations to external literature were originally placeholder-tagged
-`[TO-VERIFY]`; the grounding memos landed during this drafting session (see
-"GROUNDING UPDATE" immediately below) and every citation in this revision
-is now either VERIFIED (source named, §3.4's table) or explicitly flagged
-as still needing a human spot-check — no `[TO-VERIFY]` tags remain in this
-document's claim language.
+**DRAFT-STAGE-1-REV-1 (POST-ATTACK-1, PRE-ATTACK-2). Opened 2026-07-16,
+revised 2026-07-16 per §A1-ADJUDICATION.** This document is a design draft,
+produced for adversarial attack. No code is built, no GPU is touched, by
+this document. Every number below is either (a) cited from a measured rate
+elsewhere in this repo, with the exact source named, or (b) flagged
+`PRICE-UNKNOWN` / `PROJECTED — Phase 0a confirms`. Citations to external
+literature were originally placeholder-tagged `[TO-VERIFY]`; the grounding
+memos landed during the first drafting session (see "GROUNDING UPDATE"
+immediately below) and every citation is either VERIFIED (source named,
+§3.4's table) or explicitly flagged as still needing a human spot-check —
+no `[TO-VERIFY]` tags remain in this document's claim language. **§1-§9
+below are REVISED IN PLACE against ATTACK ROUND 1's BUILD-BLOCKED verdict
+(§A1, §A1-ADJUDICATION, left untouched below as historical record); every
+finding is mapped to its exact fix in the new §R1 REVISION 1 changelog at
+the end of this document.**
 
 **Reading list this design builds on** (context, not repeated): `CLAUDE.md`
 (hard rules + 7-point pre-experiment checklist); `matrix-thinking/
@@ -58,36 +62,82 @@ appears below (§2.2, §9).
 
 ---
 
-## §1 HYPOTHESIS
+## §1 HYPOTHESIS (REVISED, §R1(a) — fixes ATTACK ROUND 1's FATAL F1)
 
-**A DeltaNet-backbone real language model augmented with an NCR (in-context-
-written, orthogonally-conditioned d×d operator; O(log h) matrix-power
-composition read) fast-weight head, trained at 98M–392M params on a
-synthetic-to-real curriculum, will answer depth-h non-solvable-group
-relational-composition queries embedded in text EXACTLY at query-time
-sequential cost O(log h) via repeated squaring, at depths where (a) a
-param-and-data-matched Transformer baseline fails for a citable
-STRUCTURAL/complexity-theoretic reason (log-precision transformers ⊆
-TC⁰, Merrill & Sabharwal arXiv:2207.00729; TC⁰ cannot solve NC¹-complete
-non-solvable-group word problems unless TC⁰=NC¹, Merrill/Petty/Sabharwal
-arXiv:2404.08819 applying Barrington 1989's S₅ hardness result), and (b) a
-param-matched SEQUENTIAL-ROLLOUT matrix-state baseline (DeltaProduct/
-RWKV-7-class, which — per Grazzi et al. arXiv:2411.12537 and Peng et al.
-arXiv:2503.14456 — CAN in principle reach the correct answer) requires
-Θ(h) sequential state-update steps to reach the same depth, a measurably
-different query-time access complexity, not a different reachable
-answer set.**
+**§A1's F1 finding, adopted, not disputed:** non-solvable-group STRUCTURAL
+hardness and O(log h) repeated-squaring composition are mutually exclusive
+ON THE SAME QUERY FAMILY. A read via `binexp_read` computes `Z^h` for ONE
+written operator; `{Z^h : h∈ℤ}` is cyclic, hence abelian, hence SOLVABLE —
+Barrington's NC¹-completeness result (the entire structural-failure
+citation, C1–C3) does not apply to it. Conversely, a non-solvable-group
+word (a product of DISTINCT generators, no two of which commute in
+general) is not a power of any single matrix, so repeated squaring cannot
+compute it — the read costs Θ(L) matvecs, exactly the sequential-rollout
+baseline's own cost. **This design's own binding sources already say so**
+(`NOVEL_ARCH_WATERFALL.md` M4: "the relation chain … has NO squaring
+shortcut … loses log-depth"; that document's B-CHAIN finding: a
+query-controlled, growing chain length "loses log-depth"; `NCR_ORTHO_WRITE.
+md` §4b: "`binexp` does not apply (the composite is not a power of one
+matrix)", read = `loop_read`, O(L)). The flagship hypothesis below is
+rewritten as an EXPLICIT CONJUNCTION of two results, each earned on the
+query family it actually separates from, with the incompatibility
+disclosed as a feature of the claim's construction, not hidden.
+
+**Axis A — structural (Task 2, §3.2, read at O(L), NO complexity claim).**
+On non-solvable-group word chains — a path of `L` DISTINCT written
+generator-operators composed by exact matrix multiplication, one matvec
+per hop (`o = loop_read(bank, path, q)`, cost Θ(L), stated plainly, not
+disguised as sub-linear) — the NCR-augmented LM answers EXACTLY at path
+lengths where the param-and-data-matched Transformer baseline fails for a
+citable STRUCTURAL/complexity-theoretic reason: log-precision transformers
+are contained in uniform TC⁰ (Merrill & Sabharwal, arXiv:2207.00729); the
+word problem of any fixed non-solvable finite group is NC¹-complete
+(Barrington 1989); therefore no log-precision transformer of any depth or
+width computes this task's answer function unless TC⁰=NC¹ (Merrill, Petty
+& Sabharwal, arXiv:2404.08819, making the deduction explicit against S₅).
+This is a "cannot, not merely does not" prediction. NCR's own advantage
+here is EXACTNESS (linear-algebraic composition never drifts), not speed —
+its read is the same asymptotic order, Θ(L), as the sequential-rollout
+baseline's.
+
+**Axis B — complexity (Task-1-family single-operator power queries, §3.1,
+read at O(log h), NO hardness claim).** On queries requiring repeated
+application of ONE written operator — `Z^h` for a single Hamiltonian
+K-cycle, a CYCLIC hence SOLVABLE group, carrying no TC⁰/NC¹ argument — the
+SAME deployed model answers EXACTLY at query-time sequential cost O(log h)
+via `binexp_read`'s repeated squaring, where every published matrix-state
+alternative (DeltaProduct/RWKV-7-class — which, per Grazzi et al.
+arXiv:2411.12537 and Peng et al. arXiv:2503.14456, CAN in principle reach
+the correct answer) pays Θ(h) sequential state-update steps for the same
+depth. This is an algorithmic/circuit-depth separation at MATCHED
+expressivity and MATCHED accuracy, not an accuracy separation, and not a
+hardness claim — the Transformer is not predicted to fail this task's
+underlying group-word problem (§3.1's own citation is empirical
+composition-drift, not structural).
+
+**The flagship claim: ONE deployed model, trained once per scale on a
+shared curriculum, delivers BOTH properties — each measured against the
+baseline class it actually separates from, on the disclosed query family
+that property is earnable on.** No single query family can carry both
+properties simultaneously (§A1's F1 group-theory result, adopted above) —
+this is a structural feature of the claim's own construction, disclosed
+here plainly, not a gap papered over: a non-solvable word has no squaring
+shortcut by definition, and a single operator's powers can never be
+non-solvable. The two-family design is therefore not a workaround but the
+only way to state a claim that is simultaneously true and non-vacuous.
 
 **What this hypothesis explicitly does NOT claim** (the correction this
-document's grounding update, above, forced): that matrix-valued
-fast-weight state can state-track where vectors/Transformers categorically
-cannot — that is already published (Grazzi et al., DeltaProduct, RWKV-7)
-and any framing implying otherwise is retired from this design. The claim
-is narrower and sharper: EXACT composition, readable at O(log h)
-query-time sequential depth, is unclaimed anywhere in the searched
-literature (`research/ncr_separation_grounding.md` Part 2) — this is one
-falsifiable, one-sentence bet, and everything below either supports
-running it or is a pre-registered way it could fail.
+document's grounding update, above, forced, unchanged by this revision):
+that matrix-valued fast-weight state can state-track where
+vectors/Transformers categorically cannot — that is already published
+(Grazzi et al., DeltaProduct, RWKV-7) and any framing implying otherwise is
+retired from this design. Axis A's claim is narrower: EXACT composition
+where the Transformer is structurally barred (TC⁰⊊NC¹). Axis B's claim is
+narrower still: O(log h) query-time depth, unclaimed anywhere in the
+searched literature (`research/ncr_separation_grounding.md` Part 2)
+against baselines that are expressivity-capable but not depth-efficient.
+Two falsifiable bets, not one, and §7 (revised) scores them independently
+before combining them into an overall verdict.
 
 ---
 
@@ -103,21 +153,49 @@ trunk, reused verbatim from `matrix-thinking/ncr/`) consumes the
 Transformer's own token embeddings at designated bind-clause spans (see §3)
 and emits a `d_ncr × d_ncr` operator per relation, passed through the
 Newton–Schulz orthogonal-write projection (`NCR_ORTHO_WRITE.md` §2) if the
-ortho-write gate (§9) licenses it.
+ortho-write gate (§9, revised) licenses it. **`d_ncr` is now PER-TASK, not
+one global constant (§R1(b) fix, M1)**: Task 1/Task 3's abelian
+construction uses `d_ncr = K+1 ∈ {16, 33}` (the standing tight-spare
+convention, gated on §9's K-axis branch); Task 2's non-solvable-group
+construction uses `d_ncr,2 = d_min(G)+1` (4+1=5 for S₅ primary, §3.2) — a
+much smaller matrix, decoupled from the K-axis entirely. A build either
+runs two differently-shaped NCR head instances (one per task family,
+disjoint parameters) or a single encoder padded to the larger shape with
+the smaller task's write zero-padded/masked to its own `d_min` block —
+**not resolved here, a build-time decision; both are architecturally
+straightforward given the encoder is already per-relation, not shared
+weight across d-shapes** — flagged so a build agent does not silently
+assume one `d_ncr` for the whole model.
 
-**Where reads happen.** At query positions, a read head computes
-`o = binexp_read(Z, q, h)` (scale-managed binary exponentiation, O(log h))
-and injects `o` into the residual stream at that position (e.g. added to the
+**Where reads happen.** At query positions, a read head computes the
+task-appropriate read: Task 1/Task 3 (abelian, single-operator) use
+`o = binexp_read(Z, q, h)` (scale-managed binary exponentiation, O(log h),
+Axis B's own mechanism); Task 2 (non-solvable, distinct-generator path) use
+`o = loop_read(bank, path, q)` (sequential per-hop matvec with per-step
+renorm, O(L), Axis A's own mechanism, `NCR_ORTHO_WRITE.md` §4b's construction
+transplanted) — **the two reads are NOT the same function and must not be
+conflated (§A1 F1's binding correction)**. Either read injects its output
+`o` into the residual stream at the query position (e.g. added to the
 Transformer's own hidden state before the final LM head, or consumed by a
 small MLP that produces logits directly for the query token — build-time
 decision, not resolved here).
 
-**Param-count delta.** NCR head at the standing K=32/d_ncr=33/h_ncr=64
-convention: `P(d,h) = 40h² + 4dh + 46h + d` (verified exact formula,
-`NOVEL_ARCH_WATERFALL.md` §9.3) = 40·4096 + 4·33·64 + 46·64 + 33 =
-163,840 + 8,448 + 2,944 + 33 = **175,265 params** (matches
-`NCR_ORTHO_WRITE.md` §6's independently-stated "~175K"). At a 98M/392M
-Transformer backbone this is **+0.18% / +0.045%** — negligible.
+**Param-count delta.** Task 1/3 NCR head at the standing
+K=32/d_ncr=33/h_ncr=64 convention: `P(d,h) = 40h² + 4dh + 46h + d`
+(verified exact formula, `NOVEL_ARCH_WATERFALL.md` §9.3) = 40·4096 +
+4·33·64 + 46·64 + 33 = 163,840 + 8,448 + 2,944 + 33 = **175,265 params**
+(matches `NCR_ORTHO_WRITE.md` §6's independently-stated "~175K"). At a
+98M/392M Transformer backbone this is **+0.18% / +0.045%** — negligible.
+**Task 2's own NCR head, same formula at `d=d_ncr,2=5, h=64`** (§3.2,
+holding `h_ncr=64` fixed as a default, not yet Phase-0-verified for the
+much smaller task): `40·4096 + 4·5·64 + 46·64 + 5 = 163,840 + 1,280 +
+2,944 + 5 = 168,069 params` — **barely smaller than the K=32 head**,
+because the `40h_ncr²` encoder-width term dominates and is unaffected by
+`d` shrinking. This is a load-bearing point for §6's pricing (M3/M4
+below): shrinking the written-operator dimension does NOT proportionally
+shrink cost, so the bridge cell (§6.2) must not be priced as "cheap
+because `d` is small" — it is priced from measured toy rates instead,
+scaled only by the (genuinely reducible) step/seed budget.
 
 **FLOPs delta.** NCR encoder forward FLOPs (leading terms, verified formula):
 `F(K,d,h) = 76Kh² + 4dh² + 12K²h + 4Kdh + 4d²h`. At K=32, d=33, h=64:
@@ -242,23 +320,33 @@ projected — versus Option A, where BOTH the backbone and the delta would
 be projected.
 
 **Load-bearing caveat, must be checked at build time, not assumed either
-way (this is where §1's O(log h)-vs-O(h) framing meets this specific
-backbone).** DeltaNet's native transition is `I − βkkᵀ` (a Householder
-reflection); the standard sigmoid gate restricts `β∈(0,1)`, which per
-Grazzi et al. (arXiv:2411.12537) restricts transition eigenvalues to
-`[0,1]` and provably BARS parity/non-solvable-group state tracking —
-i.e., under that gate the backbone is ITSELF still TC⁰-limited (same
-class as diagonal SSMs, same Merrill/Petty/Sabharwal argument, §3.1),
-which would make it a valid THIRD structural-failure baseline, not an
-O(h)-capable one. If the box's fla kernel or a config flag instead allows
-`β∈(0,2)` (unlocking negative eigenvalues), the backbone escapes TC⁰ and
-must be treated as the O(h)-sequential-rollout baseline (§4.4) — the two
-readings lead to different baseline framings and must not be assumed;
-**verify `deltanet_core.py`'s actual `β` range at Phase 0 (§6.2)** before
-any claim language is finalized. Either reading is fine for this design's
-own contender (NCR's read-time complexity claim does not depend on which
-regime the backbone sits in), but it changes what the DELTANET BACKBONE
-ITSELF is allowed to be called in the results write-up.
+way (this is where §1 Axis B's O(log h)-vs-O(h) framing meets this
+specific backbone — §R1(f), M5 note: this caveat is scoped to Axis B/
+Task 1 only, per §A1 F1; it says nothing about Task 2, whose baseline is
+the Transformer, §4.1, on structural grounds).** DeltaNet's native
+transition is `I − βkkᵀ` (a Householder reflection); the standard sigmoid
+gate restricts `β∈(0,1)`, which per Grazzi et al. (arXiv:2411.12537)
+restricts transition eigenvalues to `[0,1]` and provably BARS
+parity/non-solvable-group state tracking — i.e., under that gate the
+PLAIN-DeltaNet-control arm (§4's implicit baseline, the backbone with no
+NCR head) is ITSELF still TC⁰-limited on any hypothetical non-solvable
+task (same class as diagonal SSMs, same Merrill/Petty/Sabharwal argument),
+though this does not bear on Task 2 (§3.2) since Task 2's structural
+baseline of record is the Transformer, not plain DeltaNet. If the box's
+`fla` kernel or a config flag instead allows `β∈(0,2)` (unlocking negative
+eigenvalues) BY DEFAULT, the plain-DeltaNet-control arm already escapes
+TC⁰ and becomes behaviorally close to §4.4's own dedicated Axis-B
+sequential-rollout baseline — in which case §4.4's extended-β arm (§R1(f)
+pins it to exactly this mechanism) may be the SAME architecture as the
+plain-DeltaNet control, and the two arms should be checked for redundancy
+at Phase 0 rather than built twice. **Verify `deltanet_core.py`'s actual
+`β` range (and, per §4.4's pin below, whether the custom block's `b_proj`
+gate is the right patch point to extend it) at Phase 0 (§6.2)** before any
+claim language is finalized. Either reading is fine for NCR's own
+contender (Axis B's read-time complexity claim does not depend on which
+regime the backbone sits in), but it changes what the plain-DeltaNet
+CONTROL arm is allowed to be called in the results write-up, and whether
+§4.4 needs a genuinely separate build.
 
 ### 2.3 Option C — Pure fast-weight LM with NCR reads only (NOT recommended this wave)
 
@@ -329,27 +417,35 @@ waterfall item only.**
 
 ---
 
-## §3 TASK SUITE
+## §3 TASK SUITE (REVISED, §R1 — F1/M1/M2/M3 fixes; the two axes now sit on
+TWO DISCLOSED, DISJOINT query families, per §1's rewritten conjunction)
 
-**Two-pronged design, per the grounding update (above).** Axis (i) —
-**structural failure**: the Transformer baseline must fail for a citable
-complexity-theoretic reason, which REQUIRES the composed relations to form
-a NON-SOLVABLE group (Task 2, §3.2 — the primary, flagship task); the
-existing single-cycle construction (Task 1, §3.1, abelian/solvable) is kept
-as a secondary, complementary EXACTNESS measurement whose baseline-failure
-citation is empirical (composition drift), not structural, and must not be
-oversold as the structural claim. Axis (ii) — **query-time access
-complexity**: measured against a param-matched SEQUENTIAL-ROLLOUT
-matrix-state baseline (§4.4, DeltaProduct/RWKV-7-class) that CAN in
-principle reach the correct answer (per Grazzi et al./Peng et al., already
-published) but requires Θ(h) sequential steps to do so — NCR's claim here
-is O(log h) query-time depth via repeated squaring against that baseline's
-O(h), a wall-clock/circuit-depth separation, not an accuracy separation.
-Every task below is instrumented with the mod-K-collapse guards `CLAUDE.md`
-mandates.
+**Two-family design, per §1's F1-fixed conjunction (§A1 confirmed: the two
+properties cannot coexist on one family).** Axis A — **structural**: Task 2
+(§3.2, PRIMARY for this axis) composes a PATH of DISTINCT generator
+operators drawn from a non-solvable group; the Transformer baseline fails
+for a citable complexity-theoretic reason (TC⁰⊊NC¹); NCR's own read here is
+Θ(L) — exact, not fast — via `loop_read`, stated plainly, never called
+O(log L). Axis B — **complexity**: Task 1 (§3.1, PRIMARY for this axis, no
+longer "secondary" — it now carries the ENTIRE O(log h) claim) composes
+repeated powers of ONE operator (a cyclic, solvable group — no TC⁰/NC¹
+citation applies, and none is claimed); measured against a param-matched
+SEQUENTIAL-ROLLOUT matrix-state baseline (§4.4, an extended-eigenvalue-
+DeltaNet pin, §R1(f)) that CAN in principle reach the correct answer (per
+Grazzi et al./Peng et al., already published) but requires Θ(h) sequential
+steps — NCR's claim is O(log h) query-time depth via `binexp_read`'s
+repeated squaring against that baseline's Θ(h), a wall-clock/dependency-
+chain-length separation, not an accuracy separation. **Task 2 is no longer
+labeled "SECONDARY" and Task 1 is no longer labeled the "pure exactness
+companion"** — both are now PRIMARY, each for the axis it actually earns
+(§7, revised, scores them independently). Task 3 (§3.3) remains secondary/
+corroborating on a third, orthogonal axis (memory bytes, not sequential
+depth). Every task below is instrumented with the mod-K-collapse guards
+`CLAUDE.md` mandates.
 
 ### 3.1 Task 1 — Depth-robust relational composition embedded in text
-(SECONDARY — pure exactness measurement, abelian/solvable construction)
+(PRIMARY for Axis B — complexity/O(log h), abelian/solvable construction,
+no hardness claim)
 
 **Construction.** Direct real-LM scale-up of `grammar_rd.py`'s bind-clause
 grammar (`<buf...> KEY <rel> VALUE .` clauses, real GPT-2-tokenizable
@@ -391,42 +487,100 @@ baseline recovered_frac@0.9 falls below 0.5 by h=29 (K=8) / h=45 (K=12) —
 re-derive fresh h-dependent bars for K∈{15,32} at calibration, do not
 import those numbers directly). NCR's read is EXACT at every depth here
 too (binary exponentiation of an orthogonal operator), so this task still
-demonstrates a real KIND difference (bounded numerical drift vs. exact
-linear algebra) — but the correct claim register is "empirically more
-robust," not "structurally impossible for the baseline." Task 2 carries
-the structural claim; this task is its exactness-mechanism companion.
+demonstrates a real KIND difference on accuracy (bounded numerical drift
+vs. exact linear algebra) — the correct claim register for THAT
+comparison is "empirically more robust," not "structurally impossible for
+the baseline." **But accuracy is not this task's primary job in the
+revised design (§R1(a)): Task 1 is where Axis B's O(log h)-vs-Θ(h)
+query-time-cost separation lives (§4.4), because it is the one family
+where a squaring shortcut mathematically exists** (single-operator power,
+cyclic group). Task 2 carries the structural (Axis A) claim on a disjoint
+family where no such shortcut exists (§3.2, below) — companions on
+different axes, neither subordinate to the other.
 
-### 3.2 Task 2 — Non-solvable-group word-problem chain (PRIMARY —
-structural-failure task, mod-K-trap-proof by construction)
+### 3.2 Task 2 — Non-solvable-group word-problem chain (PRIMARY for
+Axis A — structural failure, well-posed construction, §R1(b) fixes M1)
 
-**Construction, merged from two prior drafts of this task (a
-non-solvable-group relational task and `NCR_ORTHO_WRITE.md` §4b's
-structured-operator discriminator turn out to be the SAME construction
-once the operator bank's generators are drawn from a non-solvable finite
-group instead of arbitrary random-orthogonal matrices — one task, not
-two).** Reuse `CAPABILITY_SEPARATION_DESIGN.md` §1's existing group
-generator infrastructure (S₃/S₄/S₅/A₅/A₆, solvable-vs-non-solvable pairs
-already built and calibrated in this repo) to draw R DISTINCT generator
-matrices from a NON-SOLVABLE group (S₅, order 120, or A₅/A₆) acting on the
-K-entity pool, each rendered as its OWN bind-clause relation verb
-(`grammar_rd.py`'s existing rel-A/rel-B pools, extended to R pools). A
-query specifies a PATH of generator indices `(o_1,...,o_L)`; the target is
-the exact group-word product `g_{o_L}∘...∘g_{o_1}` applied to the query
-entity, computed by exact integer/permutation composition (no floating
-point in the ground truth). Depth = path length L.
+**M1, as adjudicated: construction rewritten to use the GENERATOR SET, not
+a permutation acting on the K=32 entity pool.** The first draft conflated
+two incompatible objects (`CAPABILITY_SEPARATION_DESIGN.md`'s continuous
+`ℝ^{d_min}` rotation-representation infra vs. a discrete permutation on 32
+named entities that infra was never built for — §A1 M1's evidence: S₅ has
+no transitive action on 32 points, `32 ∤ 120`). The fix, below, pins one
+concrete, well-posed object and decouples Task 2 from Task 1/3's K-axis
+entirely.
 
-**Why this is the structural, not empirical, failure claim.** The word
-problem of any fixed non-solvable finite group is NC¹-complete
-(Barrington, JCSS 1989, VERIFIED — `research/ncr_separation_grounding.md`
-item 2); log-precision transformers are contained in uniform TC⁰ (Merrill
-& Sabharwal, TACL 2023, arXiv:2207.00729, VERIFIED); therefore NO
-log-precision transformer of ANY depth or width can compute this task's
-answer function unless TC⁰=NC¹ — a conjectured-false complexity-class
-separation, not a training/data artifact (Merrill, Petty & Sabharwal, ICML
-2024, arXiv:2404.08819, VERIFIED, makes exactly this deduction against
-S₅). **This is a genuine "cannot, not merely does not" prediction** — the
-strongest available structural-failure citation for this document's §1
-hypothesis, and the reason this task, not Task 1, is the flagship.
+**Group and generators (VERIFIED, reused verbatim from
+`CAPABILITY_SEPARATION_DESIGN.md` §1.3's real, calibrated group
+infrastructure — no new matrices built).** Primary group: **S₅** (order
+120, non-solvable, `d_min=4`, realized as the 4-dimensional standard
+representation on the zero-sum hyperplane of ℝ⁵ — `CAPABILITY_SEPARATION_
+DESIGN.md` line 229). Its verified symmetric generating set is
+`{t, c, c⁻¹}` (that document's own line 897): **`t`** = a transposition
+(self-inverse) and **`c`** = a 5-cycle (order 5) — **exactly the 2
+generators (`t`, `c`) the adjudication names**, `c⁻¹` included for the
+symmetric closure (size 3) that licenses "walk either direction" paths.
+Each generator is written as its OWN `4×4` rotation-rep operator (not a
+`33×33` or `K×K` matrix) — `d_ncr,2 = d_min(S₅)+1 = 5` (the `+1` tight-
+spare margin, mirroring Task 1's `K+1` convention, an ASSUMPTION flagged
+for the bridge cell, §9, to confirm or revise).
+
+**The natural action — and where K=5 for Task 2 comes from.** S₅'s
+*defining* action is the permutation action on its own **5 letters**; the
+4-dim standard rep is exactly that action restricted to the zero-sum
+hyperplane (the images of the 5 standard basis vectors, projected, are 5
+canonical points in ℝ⁴, and permuting coordinates in ℝ⁵ restricts to
+composing the rotation matrices in ℝ⁴). **Task 2's entity pool is
+therefore K₂ = 5** — the 5 letters S₅ naturally acts on — filled per
+episode by 5 DISTINCT names drawn from `grammar_rd.py`'s 213-name pool
+(the held-out-entity split, §5.3, applies exactly as before: a disjoint
+train/eval NAME-set split, e.g. 170/43, reassigned onto the same 5
+abstract roles per episode — the same mechanism Task 1 already uses,
+just filling 5 roles instead of `K`). **This is a genuinely different,
+much smaller K than Task 1/3's `K∈{15,32}` — the two are DECOUPLED, not
+shared, per the adjudication's explicit instruction.** A query specifies a
+PATH of generator indices `(o_1,…,o_L)` from the size-3 symmetric set; the
+GROUND TRUTH is the exact permutation composite `g_{o_L}∘…∘g_{o_1}`
+applied to the query letter, computed by exact integer index arithmetic —
+no floating point anywhere in the target. The MODEL's own answer is
+decoded by applying the composed (orthogonally-conditioned) `4×4`
+operators to the query point's `ℝ⁴` image and reading off which of the 5
+canonical points it lands nearest (cosine similarity over exactly 5
+candidates — a legitimate discrete decode here because Task 2 tests
+COMPOSITION EXACTNESS, not a rank-K necessity bound; the `CLAUDE.md`
+argmax-defeats-rank-proofs rule governs a different, unrelated concern and
+does not apply to this readout).
+
+**R (operator/generator count) reconciliation — the other half of M1's
+fix.** Task 2's written-operator count is **R = 3** (`{t, c, c⁻¹}`, the
+verified generating set size) — **NOT R=4** (the arbitrary
+random-orthogonal convention `NCR_ORTHO_WRITE.md` §4b's discriminator cell
+used for its own calibration purpose) and **NOT K=32** (the entity-pool
+conflation §A1 M1 caught). **What K and R now mean, per task, stated
+explicitly (the adjudication's own instruction):**
+
+| Task | K (entity pool) | R (written operators) | Group / structure |
+|---|---|---|---|
+| Task 1 (§3.1) | `K∈{15,32}`, gated by §9's main ortho-write branch | 1 (single operator, `Z^h`) | Cyclic (solvable) |
+| Task 2 (§3.2) | **K₂=5, FIXED, decoupled from Task 1's K** | **R=3** (`t, c, c⁻¹`) | S₅ (non-solvable) |
+| Task 3 (§3.3) | Task 1's `K` (abelian default) OR K₂=5 (if it reuses Task 2's construction, build-time choice, unchanged) | Whichever it inherits | Build-time choice, disclosed either way |
+
+**Why this is the structural, not empirical, failure claim (unchanged by
+this revision).** The word problem of any fixed non-solvable finite group
+is NC¹-complete (Barrington, JCSS 1989, VERIFIED — `research/
+ncr_separation_grounding.md` item 2); log-precision transformers are
+contained in uniform TC⁰ (Merrill & Sabharwal, TACL 2023, arXiv:2207.00729,
+VERIFIED); therefore NO log-precision transformer of ANY depth or width
+can compute this task's answer function unless TC⁰=NC¹ — a
+conjectured-false complexity-class separation, not a training/data
+artifact (Merrill, Petty & Sabharwal, ICML 2024, arXiv:2404.08819,
+VERIFIED, makes exactly this deduction against S₅). **This is a genuine
+"cannot, not merely does not" prediction** — the strongest available
+structural-failure citation in this design, and the reason Task 2 is
+Axis A's PRIMARY task. **NCR's own read here costs Θ(L)** (`loop_read`,
+§2.1, revised) — the structural claim is about the Transformer's
+CATEGORICAL inability, not about NCR being fast; see §1's revised
+hypothesis for why these do not conflate.
 
 **Mod-K-trap-proof by construction (three guards, `NCR_ORTHO_WRITE.md`
 §4b's convention, transplanted verbatim, now doing double duty as BOTH the
@@ -436,10 +590,34 @@ group elements, not a power of one matrix, so there is no single cycle
 length to reduce modulo; (2) no consecutive repeats; (3) fixed-point
 exclusion (query/path pairs whose composite fixes the start are excluded).
 
-**h-grid.** Train L∈{1,2,3}; eval L∈{5,8,12,16,20,24,32,40} (the
-`NCR_ORTHO_WRITE.md` §4b ladder, R=4 primary, generators drawn from S₅ or
-A₅/A₆ per the non-solvable requirement above — this is the one build-time
-change from that document's own R=4-random-orthogonal convention).
+**L-grid.** Train L∈{1,2,3}; eval L∈{5,8,12,16,20,24,32,40} (the
+`NCR_ORTHO_WRITE.md` §4b ladder, reused for its DEPTH values only — R is
+now 3, generators are S₅'s `{t,c,c⁻¹}`, not R=4 random-orthogonal
+matrices; this is the corrected build-time change from that document's own
+convention, replacing the pre-Rev-1 draft's incorrect "R=4 primary"
+claim).
+
+**A5/A6 hard-stop history — disclosed accurately (§R1(b), the other half
+of M1's fix).** `CAPABILITY_SEPARATION_DESIGN.md`'s Rev 6 (§1.28) recorded
+A5/A6 as HARD-STOPPED (a second consecutive convergence-budget miss on
+THAT document's own restricted-rank-RECOVERY task — an SVD-probe readout
+over a continuous state, a different loss landscape and readout than Task
+2's discrete word-composition-and-next-token task); Rev 7 (§1.30–1.31)
+subsequently diagnosed the mechanism (H-ENC: an `L=1` query-independent-
+attention degeneracy specific to single-generator words, not a general
+training pathology) and LIFTED the hard-stop, re-pinning per-group step
+budgets (S₅'s own budget: 8,000 steps) that all 5 groups now clear.
+**What transfers to Task 2 and what does not:** the GENERATOR MATRICES
+(S₅'s verified 4-dim standard rep, the `{t,c,c⁻¹}` set, its closure/order
+checks) are real, exact, and reused verbatim — this much genuinely "is
+already built." The CALIBRATION (the step budgets and Gate-1 bars above)
+was earned on a DIFFERENT task (continuous rank recovery, not discrete
+composition-and-next-token) and does **not** transfer by fiat — the
+pre-Rev-1 draft's "already built and calibrated" was an overclaim on
+exactly this point (§A1 M1's finding). Task 2 needs its OWN Gate-0
+calibration on its OWN construction; the bridge cell (§9, revised, §R1(d)
+fixes M3) is the mechanism that earns it, gating Task 2's Phase 1 launch
+independently of the main K-axis ortho-write verdict.
 
 **Corroborating, secondary citation (not the primary mechanism, per
 `research/ncr_separation_grounding.md` item 3's own nuance).** Liu et al.
@@ -470,22 +648,30 @@ protocol's "constant-memory minds" property — not yet demonstrated outside
 the isolated synthetic harness, which is exactly this task's contribution.
 
 **Horizons.** Intervening real-text span ∈ {0, T_bind, 2×T_bind, 4×T_bind,
-8×T_bind} tokens (T_bind = K×clause_len, K=32 primary → 224 tokens,
-horizons up to 1,792 tokens of real intervening text — inside a single
-seq_len=512–1024 training/eval window at the smaller horizons, requiring
-seq_len≥2048 at the largest; see §6.4's saturation plan, which proposes
-exactly this seq_len increase for an independent reason).
+8×T_bind} tokens (T_bind = K×clause_len; if Task 3 inherits Task 1's
+abelian construction, K=32 primary → 224 tokens, horizons up to 1,792
+tokens of real intervening text; if it inherits Task 2's construction,
+K₂=5 → T_bind is far shorter, and the horizon grid should be re-derived
+in T_bind multiples at build time rather than importing Task 1's absolute
+token counts — **§R1(b) note, flagged, not resolved here**: the K-value
+in this paragraph is now build-time-conditional per §3.2's K/R table,
+not a single global K) — inside a single seq_len=512–1024 training/eval
+window at the smaller horizons, requiring seq_len≥2048 at the largest;
+see §6.4's saturation plan, which proposes exactly this seq_len increase
+for an independent reason.
 
-**Relation to Axis (ii) (query-time complexity, §4.4).** Task 3's relation
+**Relation to Axis A/Axis B (§R1(a) renaming — was "Axis (ii)", now
+disambiguated per the two-family conjunction, §1).** Task 3's relation
 composition should use the SAME non-solvable-group construction as Task 2
 where feasible (build-time decision — a build agent may descope Task 3 to
-the abelian construction if the non-solvable-group encoder does not fit
-the long-horizon harness cleanly; disclosed either way, not assumed). The
-"constant-memory minds" property is orthogonal to the structural-vs-
-sequential-rollout distinction — it is about MEMORY BYTES held constant
-under a growing real-text span, not about sequential-step count, so it is
-reported as its own axis (§7) regardless of which group construction
-underlies it.
+Task 1's abelian construction if the non-solvable-group encoder does not
+fit the long-horizon harness cleanly; disclosed either way, not assumed —
+and per §3.2's K/R table, this choice also decides which K/T_bind Task 3
+inherits, above). The "constant-memory minds" property is orthogonal to
+the Axis-A/Axis-B distinction — it is about MEMORY BYTES held constant
+under a growing real-text span, not about sequential-step count or
+structural hardness, so it is reported as its own third, secondary axis
+(§7, revised) regardless of which group construction underlies it.
 
 ### 3.4 Citations — verified (2026-07-16, `research/
 ncr_separation_grounding.md` + `research/ortho_write_grounding.md`,
@@ -497,9 +683,9 @@ coordinator-spot-checked; supersedes every prior `[TO-VERIFY]` tag)
 | C2 | Barrington, bounded-width branching programs / NC¹ | — (JCSS 38(1), 1989) | Non-solvable-group word problem is NC¹-complete — the other half of Task 2's argument |
 | C3 | Merrill, Petty & Sabharwal, "The Illusion of State in State-Space Models" | 2404.08819 | Makes the TC⁰-vs-NC¹ deduction explicit against S₅; also applies to diagonal SSMs (relevant to any SSM baseline variant) |
 | C4 | Liu, Ash, Goel, Krishnamurthy, Zhang, "Transformers Learn Shortcuts to Automata" | 2210.10749 | SECONDARY/corroborating only (§3.2) — shortcuts can replicate automata (headline) but are brittle OOD (secondary finding); do not conflate the two halves |
-| C5a | Grazzi, Siems, Zela, Franke, Hutter, Pontil, "Unlocking State-Tracking in Linear RNNs Through Negative Eigenvalues" | 2411.12537 | Grounds §4.4's sequential-rollout baseline (CAN state-track via O(h) rollout) and §2.2's DeltaNet-β-range caveat |
-| C5b | Siems, Carstensen, Zela, Hutter, Pontil, Grazzi, "DeltaProduct" | 2502.10297 | Sequential-rollout baseline candidate architecture (§4.4) |
-| C6 | Peng et al., "RWKV-7 'Goose'" | 2503.14456 | Sequential-rollout baseline candidate architecture (§4.4); confirms O(h) sequential state-update is the published mechanism, not O(log h) query-time reads |
+| C5a | Grazzi, Siems, Zela, Franke, Hutter, Pontil, "Unlocking State-Tracking in Linear RNNs Through Negative Eigenvalues" | 2411.12537 | **PINNED (§R1(f), M5)** as §4.4's sequential-rollout baseline ARCHITECTURE — extended-eigenvalue DeltaNet (`β∈(0,2)`), scoped to Axis B/Task 1 only (§1, §A1 F1) — and grounds §2.2's DeltaNet-β-range caveat |
+| C5b | Siems, Carstensen, Zela, Hutter, Pontil, Grazzi, "DeltaProduct" | 2502.10297 | Alternative sequential-rollout candidate, NOT pinned (§4.4 justifies choosing C5a's extended-β DeltaNet instead, cost grounds) |
+| C6 | Peng et al., "RWKV-7 'Goose'" | 2503.14456 | Alternative sequential-rollout candidate, NOT pinned (§4.4); confirms O(h) sequential state-update is the published mechanism, not O(log h) query-time reads |
 | C7 | Schlag, Munkhdalai & Schmidhuber, "Learning Associative Inference Using Fast Weight Memory" (FWM) | 2011.07831 | Closest prior art on in-context fast-weight writes for compositional inference (approximate, recursive reads, not matrix powers) |
 | C8 | Guu, Miller & Liang, compositional path queries | 1506.01094 | SECONDARY empirical citation for Task 1 only (§3.1) — composition error-cascading, not a structural argument |
 | C9 | "Log-Linear Attention" | 2506.04761 | Closest-named neighbor on "O(log ·)" — differentiated in §2.3 |
@@ -563,89 +749,172 @@ about whether the SAME separation holds once the state must also support
 ordinary next-token language modeling (a genuinely different regime, not
 covered by the existing verdict).
 
-### 4.3 KV-cache-memory-matched variant
+### 4.3 KV-cache-memory-matched variant (REVISED, §R1(g) — fixes M6, and
+recomputed a second time following M1's Task-2 dimension fix)
 
 Reuses `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.4.2's methodology (inference-only,
 no new training — the trained §4.1 Transformer's own checkpoint, KV cache
 hard-capped at `M ×` the contender's total inference-memory bytes, fp32
-accounting, swept over a geometric `M` grid) with ONE re-derivation this
+accounting, swept over a geometric `M` grid) with the re-derivation this
 design's own arithmetic makes necessary: **the pre-registered M∈{1,2,4,8,
 16,32} grid from the synthetic-task harness does not transfer to LM
 scale and must be re-derived, not inherited.**
 
 `cap_length(M) = M × state_bytes / (2 × n_layers × d_model × bytes_per_elt)`.
-NCR's single-relation state (K=32, d_ncr=33, fp32): `33² × 4 = 4,356
-bytes`. At the 98M backbone (`n_layers=12, d_model=768, fp32`):
-`cap_length(M=1) = 4,356 / (2·12·768·4) = 4,356 / 73,728 ≈ 0.059 tokens`
-— **below 1 token**, three orders of magnitude below the
-`≈13–20`-token minimum-viable floor (query + one bind clause,
-`HEAD_TO_HEAD_DEMO_DESIGN.md`'s own floor convention). Solving for the
-`M` that clears a 20-token floor: `M ≈ 20 × 73,728 / 4,356 ≈ 339`. **The
-synthetic-task grid's endpoint (M=32) is roughly 10× too small at real
-98M-backbone scale** — one full 12-layer, 768-wide Transformer's per-token
-KV cache already dwarfs NCR's entire single-relation state.
+At the 98M backbone (`n_layers=12, d_model=768, fp32`): denominator
+`= 2·12·768·4 = 73,728`.
 
-**Re-derived design.** Two variants, both pre-registered, neither
-optional: (i) a wider `M` grid, geometric, `M ∈ {32, 64, 128, 256, 512}`
-(clears the floor at every point, `cap_length(512) ≈ 512×4356/73728 ≈
-30.2` tokens); (ii) the same grid applied to the STRUCTURED-BANK state
-(Task 2, R=4–32 relations, total bytes `R × 4,356`) — at R=32,
-`state_bytes ≈ 139,392`, putting the contender's own total inference
-memory into a regime where `M=32` already clears `cap_length ≈ 966`
-tokens, a genuinely "moderate long-context" comparison point. **This
-finding — that NCR's single-relation state is dramatically smaller than
-even one Transformer layer's per-token cache at LM scale — is itself
-disclosed as a design fact, not spun**: it means axis 2 (§7) is either the
-program's most dramatic result (if Task 3's horizon requirement is real)
-or a mismatched comparison (if the capped Transformer can trivially win by
-holding the entire relevant span in its cache at any affordable `M`) —
-the pre-registered bands in §7 score both readings explicitly.
+**Case (i) — Task 1's single-relation state (K=32, d_ncr=33, fp32):**
+`state_bytes = 33² × 4 = 4,356`. `cap_length(M=1) = 4,356/73,728 ≈ 0.059
+tokens` — below 1 token, far under the `≈13–20`-token minimum-viable
+floor (query + one bind clause, `HEAD_TO_HEAD_DEMO_DESIGN.md`'s own floor
+convention). Floor-clearing minimum: `M ≈ 20×73,728/4,356 ≈ 339`. **§A1
+M6, CONFIRMED and extended: the pre-Rev-1 draft's own proposed grid
+`M∈{32,64,128,256,512}` does NOT clear the 20-token floor at every point
+either** — recomputing each point: `cap_length(32)=32×4356/73728≈1.89`,
+`(64)≈3.78`, `(128)≈7.56`, `(256)≈15.12`, `(512)≈30.24` tokens — only the
+grid's OWN top end (M=512) clears 20 tokens; M=32 is nowhere near it
+(1.89, not the erroneously-quoted 966, which was §A1's finding for a
+different R/d entirely, below). **Re-derived grid, anchored above the
+actual floor-clearing minimum (339):** `M ∈ {384, 768, 1536, 3072, 6144}`
+→ `cap_length ≈ {22.7, 45.3, 90.7, 181.4, 362.8}` tokens — clears the
+floor at every point, geometric (2×) spacing preserved. (If §9's K-axis
+branch falls back to K=15/d=16, `state_bytes=1,024`, floor-clearing
+minimum `M≈1,440` — a build agent must re-derive this sub-grid fresh
+under that branch, not reuse the K=32 numbers; flagged, not computed
+here since it is conditional on an unresolved §9 branch.)
 
-### 4.4 Sequential-rollout matrix-state baseline (MANDATORY, added per the
-grounding update — NOT optional, distinguishes NCR on complexity, not
-expressivity)
+**Case (ii) — Task 2's structured-bank state, RECOMPUTED under §3.2's own
+M1 fix (R=3, d_ncr,2=5 — NOT the pre-Rev-1 draft's R=4–32 at d=33, which
+was itself an instance of the K/R conflation §A1 M1 caught).**
+`state_bytes = R × d² × 4 = 3 × 25 × 4 = 300` bytes — **even smaller than
+Task 1's single-relation state**, not larger (the pre-Rev-1 draft's
+`R×4,356` formula silently assumed Task 2 shared Task 1's `d=33`, which
+M1's fix retires). `cap_length(M=1) = 300/73,728 ≈ 0.00407` tokens.
+Floor-clearing minimum: `M ≈ 20×73,728/300 ≈ 4,916`. Re-derived grid:
+`M ∈ {5120, 10240, 20480, 40960, 81920}` → `cap_length ≈ {20.8, 41.7,
+83.3, 166.6, 333.3}` tokens — clears the floor throughout, and lands in
+the SAME couple-hundred-token ballpark as Case (i)'s top end at its own
+top end, a coherence check between the two re-derived grids.
+
+**The finding, restated and sharpened by the M1 fix, not softened.**
+NCR's total inference-memory footprint is now shown to be smaller — by a
+FURTHER order of magnitude on Task 2 — than the pre-Rev-1 draft's own
+already-dramatic finding: an affordable Transformer KV cache (`M` in the
+low thousands) already dwarfs Task 2's entire written-operator bank. This
+is disclosed as a design fact, not spun: it means Task 3 (§7, revised) is
+either the program's most dramatic memory-asymmetry result (if a real
+long-horizon requirement is demonstrated) or a mismatched comparison (if
+the capped Transformer can trivially win by holding the entire relevant
+span in cache at any affordable `M`) — the pre-registered bands in §7
+score both readings explicitly, unchanged in structure by this
+recomputation, only in the numbers feeding it.
+
+### 4.4 Sequential-rollout matrix-state baseline (MANDATORY; REVISED,
+§R1(f) — fixes M5: architecture PINNED, ≥10× bar REPLACED, scope
+NARROWED to Axis B/Task 1 only per §A1 F1)
 
 **Why this baseline is mandatory, not a nice-to-have.** Without it, §1's
-hypothesis reduces to "a matrix-valued fast-weight model beats a
+Axis B hypothesis reduces to "a matrix-valued fast-weight model beats a
 Transformer/flat-vector baseline at state tracking" — which, per the
 grounding update, is **already published** (Grazzi et al., DeltaProduct,
 RWKV-7, C5a/C5b/C6, §3.4) and would be a correctly-rejected claim if it
 were this design's headline. This baseline exists specifically so the
 program measures the axis that IS still open: query-time access
 complexity at MATCHED expressivity, not accuracy at matched params.
+**Scope, per §A1 F1's binding correction: this baseline is compared
+against NCR on Task 1's family ONLY (§3.1, single-operator power
+queries)** — Task 2 has no O(log L) read to compare against (§1, §2.1,
+Axis A's read is Θ(L) via `loop_read`, the same order as this baseline),
+so this baseline's own complexity comparison does not apply to Task 2.
 
-**Construction.** A param-matched DeltaNet-family backbone configured to
-escape TC⁰ by the SAME published mechanism as the baseline literature —
-either (a) an extended-β-range DeltaNet (`β∈(0,2)`, unlocking negative
-transition eigenvalues per Grazzi et al. arXiv:2411.12537), or (b) a
-literal RWKV-7-style generalized-delta-rule layer (arXiv:2503.14456) —
-a build-time choice, not resolved here, gated on which is cheaper to
-attach to this repo's existing `fla`-based training path (§6.3's own
-PRICE-UNKNOWN discipline applies: neither variant has a measured LM-scale
-rate in this repo yet; both need their own Phase-0a line item). Trained on
-the IDENTICAL curriculum and task supervision as the NCR-augmented model
-(same bind-clause/word-problem episodes, §3), with NO separate NCR
-read/write head — the backbone's OWN native recurrence is the only
-state-tracking mechanism, exactly as in the published architectures.
+**Architecture, PINNED (was: "a build-time choice, not resolved here" —
+the M5 finding this fixes): extended-eigenvalue DeltaNet (Grazzi et al.,
+arXiv:2411.12537), NOT RWKV-7.** Justification: this repo's `fla`-based
+DeltaNet training path already calls the delta-rule kernel through a
+CUSTOM block, not the stock `fla.layers` module, specifically because the
+stock layer computes `β` internally via its own `b_proj` and exposes no
+mask hook (`DELTANET_REALDATA_DESIGN.md` §4.3/F15-LM, VERIFIED — this
+repo's own prior finding). That custom block is therefore ALREADY the
+right patch point: extending `β`'s range from the standard sigmoid's
+`(0,1)` to `(0,2)` (per Grazzi et al.'s own construction, unlocking
+negative transition eigenvalues) is a SCOPED change to one gate
+computation inside code this repo already owns and has kernel-verified at
+LM sequence lengths (`T≥512`, bf16, Tier-0/Tier-1 gradcheck PASS,
+`DELTANET_REALDATA_DESIGN.md` §4.3/§4.4) — it reuses the SAME measured
+chunked-kernel path §6.1 already prices, differing only in the gate's
+output range. A literal RWKV-7-style layer would instead require an
+entirely new kernel with ZERO measured rate anywhere in this repo and its
+own from-scratch Tier-0/Tier-1 verification chain — strictly more
+PRICE-UNKNOWN surface for no argued scientific advantage (both C5a and C6
+are equally valid per the published literature; this design picks the
+cheaper-to-verify one). **This is a cost-grounded engineering choice, not
+a scientific claim about which mechanism is superior — flagged for attack
+scrutiny like every other pinned choice in this document.** Trained on
+Task 1's IDENTICAL curriculum and task supervision (§3.1), with NO
+separate NCR read/write head — the backbone's own extended-β recurrence is
+the only state-tracking mechanism, exactly as in the published
+architecture. **Phase-0a (§6.2) prices this arm's actual per-step rate
+before any further commitment** — the extended-`β` gate is a small
+compute change (one scalar's range) but its wall-clock effect on the
+chunked kernel's numerics/stability is unmeasured and must not be assumed
+equal to the standard-gate rate.
 
-**What is measured (accuracy is NOT the primary readout here).** At
-matched depth `h`/`L`, this baseline is PREDICTED to reach comparable
-in-distribution accuracy to NCR (both are expressivity-capable of the
-task, per the published results above) — the primary readout is instead
-**query-time sequential-dependency-chain length required to answer a
-depth-h query**: for the rollout baseline this is Θ(h) (the recurrent
-state must be updated h times, in sequence, to reach depth h, regardless
-of how cheaply each step runs); for NCR it is Θ(log h) (binary
-exponentiation, `NOVEL_ARCH_WATERFALL.md` §3's own Axis B convention,
-reused directly). **This is the SAME wall-clock/wall-time methodology
-`NOVEL_ARCH_WATERFALL.md` §3.2's Axis B already pre-registered
-(≥10×-faster-at-large-h bar) — transplanted here as the LM-scale version
-of that measurement, not a new instrument.** If accuracy diverges instead
-of converging (the rollout baseline fails to match NCR's accuracy even at
-matched depth), that is ALSO reported — it would mean this repo's own
-DeltaNet-family implementation does not actually reach the published
-expressivity ceiling at this scale, a genuinely different and also
-publishable finding (an implementation/scale gap, not a theory gap).
+**What is measured — REPLACING the transplanted ≥10× bar (M5's core
+finding: that bar was earned at `h≈10³–10⁶` in an isolated toy loop,
+`NOVEL_ARCH_WATERFALL.md` §3.2, not at this design's own claimable
+regime).** Two readouts, one architectural (primary, hardware-independent,
+not a measurement) and one wall-clock (secondary, the empirical
+confirmation):
+
+1. **Dependency-chain length (PRIMARY, provable by construction, not
+   fit).** NCR's read on Task 1 executes exactly `⌈log₂ h⌉` sequential
+   matrix operations (`binexp_read`'s own instrumented step counter); the
+   rollout baseline's read executes exactly `h` sequential state updates
+   (one recurrent step per depth unit, by the architecture's own
+   definition — Grazzi et al.'s construction has no shortcut around this).
+   This is an exact integer count per query, asserted once via a build-time
+   instrumentation check (tag every op on the critical read path with a
+   monotonic counter, assert the counter total matches the formula) — a
+   PASS/FAIL build gate, not a statistical claim, and the primary evidence
+   because it is hardware-independent (does not depend on kernel-launch
+   overhead, GPU generation, or batching).
+2. **Wall-clock (SECONDARY, empirical confirmation, fit not asserted).**
+   Measured at an EXTENDED depth ladder reaching well beyond Task 1's
+   accuracy-claimable ladder (`{5,…,61}`, §3.1) — timing is
+   accuracy-independent (§A1 M5's own observation, adopted), so this
+   ladder may probe far deeper purely to separate the two growth curves,
+   mirroring `NOVEL_ARCH_WATERFALL.md` §3.2's own precedent of measuring
+   Axis B out to `h=2^20+5` while the accuracy ladder stopped at 125.
+   **Ladder: `h ∈ {61, 200, 1000, 5000, 20000}`** (PROJECTED, subject to
+   Phase-0a feasibility — if the rollout baseline's per-step cost makes
+   `h=20000` impractically slow in wall-clock, the largest FEASIBLE point
+   measured is used instead; the fit below does not require this exact
+   ladder, only enough spread in `log h` to separate the two functional
+   forms). At each `h`, fit two nested OLS models per arm: `Model_log:
+   t = a + b·log₂(h)`; `Model_lin: t = c + d·h`. **Pinned statistical
+   criterion (a deliberate relaxation of `NOVEL_ARCH_WATERFALL.md` §7f's
+   own `R²≥0.998` toy-scale precedent, justified below):** WIN requires,
+   for NCR's own series, `Model_log`'s `R² ≥ 0.90` AND `Model_log`'s `R²`
+   exceeds `Model_lin`'s `R²` by `≥0.05`; for the rollout baseline's own
+   series, the SAME two conditions with `Model_lin`/`Model_log` swapped.
+   **Justification for relaxing `0.998` to `0.90`:** the toy-scale
+   precedent measured a 175K-param model in a closed-form isolated loop
+   with no I/O or kernel-scheduling variance; this design's rollout
+   baseline is a full 98M/392M LM's recurrent-state update measured at LM
+   batch sizes, a genuinely noisier wall-clock environment — `0.90` is
+   still a demanding bar for 5 points and is itself an assumption flagged
+   for attack-round scrutiny, not silently inherited. The `≥10×`-at-
+   largest-`h` ratio is still REPORTED (disclosed, not hidden) but is no
+   longer the WIN gate.
+
+If accuracy diverges instead of converging on Task 1 (the rollout baseline
+fails to match NCR's in-distribution accuracy even at matched depth), that
+is ALSO reported — it would mean this repo's own DeltaNet-family
+implementation does not actually reach the published expressivity ceiling
+at this scale, a genuinely different and also publishable finding (an
+implementation/scale gap, not a theory gap), independent of the
+dependency-chain/wall-clock readouts above.
 
 ---
 
@@ -703,7 +972,12 @@ own existing C17 (held-out entities)/C19 (held-out templates) controls:
    build-time-verified disjoint) ensures the model cannot memorize a fixed
    entity→operator mapping — every eval episode uses entity names the
    model's write pathway has never bound at training time, only the
-   GENERAL binding/composition mechanism.
+   GENERAL binding/composition mechanism. **Task 2 (§3.2, revised) reuses
+   the SAME 170/43 split but samples only K₂=5 DISTINCT names per episode**
+   (filling S₅'s 5 abstract roles) — the split discipline is identical, the
+   per-episode pool size is not; a build agent must not conflate Task 2's
+   small per-episode `K₂=5` with the underlying 170/43 name-pool split,
+   which stays shared across all three tasks.
 
 Both axes are combined multiplicatively in the eval manifest (held-out
 depth × held-out entities), matching this program's own standing
@@ -725,69 +999,177 @@ guessed.**
 | DeltaNet 392M (`d_model=1536, n_layers=16, d_state=128`), batch=32, seq_len=512, ext-mix corpora | **0.836 s/step**, 21.38 GPU-h/91,552-step cell (or 4.671 GPU-h/20,000-step reduced cell) | **39.0 GB / 80 GB (49%)** | `FROZEN_BIAS_LM_DESIGN.md` §13.7 — realized over 6 completed cells (128.3 GPU-h total), twice-cross-checked against an independent pre-registered estimate |
 | Anchor-blend (per-token, per-position insertion) wall-clock overhead at 14M | **≤1.2% measured** (899–914s band across 20 cells, all arms) | n/a | `FROZEN_BIAS_LM_DESIGN.md` §13.4/VERDICT — the nearest measured analog to "small sequential op inserted at select token positions," used ONLY as a directional precedent for the NCR-overhead prediction (§2.2), never as NCR's own rate |
 | NCR toy-scale training (K≤32, d_ncr=33, h_ncr=64, ~175–185K params), synthetic Task-E harness | 0.95–2.03 GPU-h per 160K–320K-step cell | "kilobytes-to-low-megabytes per example" (`NOVEL_ARCH_WATERFALL.md` §9.3); **NOT co-resident-optimized in prior runs — the rejected pattern this design's §6.4 corrects** | `NOVEL_ARCH_WATERFALL.md` §11.6 Tables 1–2; `NCR_ORTHO_WRITE.md` §6 |
+| NCR ortho-write toy-scale, Part A single-relation (K=32/d=33), 4× budget (320K steps) | **≈2.8 GPU-h/cell measured** | memory-trivial (co-resident-safe) | `NCR_ORTHO_WRITE.md` § CEILING AMENDMENT (v2 re-launch), measured completion time |
+| NCR ortho-write toy-scale, Part B structured-bank (R=4/d=33 random-orthogonal, distinct-operator path composition), 4× budget (320K steps) | **≈4.24 GPU-h/cell measured** | memory-trivial (co-resident-safe) | `NCR_ORTHO_WRITE.md` § CEILING AMENDMENT — the nearest measured analog to Task 2's own distinct-generator-path construction (§3.2); used to price the bridge cell, §6.2 |
 
-### 6.2 Phased GPU-h ledger
+**Tokens/sec, derived (§R1(e), M4's fix — the invariant §6.2 now holds
+fixed is TOKENS, not steps).** At `batch=32, seq_len=512` (16,384
+tokens/step): 98M → `16,384/0.236 ≈ 69,424 tokens/sec`; 392M →
+`16,384/0.836 ≈ 19,598 tokens/sec`. With the §2.2 ≤5% NCR-overhead
+assumption applied to the NCR arm only: 98M-NCR → `≈66,118 tokens/sec`;
+392M-NCR → `≈18,665 tokens/sec`. **These are today's measured rates AT
+TODAY's operating point (batch=32/seq=512) — §6.2 below states every
+phase's cost as `GPU-h = token_budget / (tokens_per_sec × 3600)` so that
+if §6.4's saturation pilot lands on a DIFFERENT (batch, seq) operating
+point, the fix is mechanical: hold each phase's own token budget fixed,
+recompute `steps = tokens/(batch×seq_len)`, and substitute a FRESH
+Phase-0a-unpacked rate measured at that new operating point — never
+extrapolate GPU-h from the batch=32/seq=512 numbers below once the
+operating point changes.**
+
+### 6.2 Phased GPU-h ledger (REVISED, §R1(d)/(e) — fixes M3/M4: bridge
+cell added as its own gated phase; every phase re-expressed as a fixed
+TOKEN budget, GPU-h derived from §6.1's tokens/sec)
 
 **Phase 0 — smoke (both backbones, all 5 arms: NCR-augmented DeltaNet,
 flat-vector ablation, plain DeltaNet control, plain Transformer control,
 §4.4's sequential-rollout matrix-state baseline), 14M scale.**
 Forward/backward/grad-flow-through-bf16-kernel-boundary check (per
 `DELTANET_REALDATA_DESIGN.md` §4.3/§4.4's three-tier verification chain,
-reused; the sequential-rollout arm additionally needs its own β-range or
-generalized-delta-rule wiring verified against the same boundary). Cost
-anchor: that design's own 14M wall-time band, 0.6–2.2 GPU-h per COMPLETE
+reused; the sequential-rollout arm additionally needs its own extended-β
+wiring verified against the same boundary, §4.4's pin). This smoke also
+exercises Task 2's distinct read/write path (`loop_read`, S₅ generators,
+§3.2) at 14M toy scale, within the same estimate — no separate line item,
+the existing ceiling is generous enough to cover it (below). Cost anchor:
+that design's own 14M wall-time band, 0.6–2.2 GPU-h per COMPLETE
 400M-token run — smoke needs far less than a complete run. **Estimate: ≤3
 GPU-h total** (bounded above by roughly one and a half full 14M runs'
-own measured band, generously, to cover the fifth arm).
+own measured band, generously, to cover the fifth arm and Task 2's path).
+Packing (§6.4) is licensed for Phase 0 ONLY — see §6.4's revised scope.
 
-**Phase 0a — rate probe, ~2,000 steps/cell, ALL candidate configs
-(NCR-augmented DeltaNet at 98M/392M; Transformer baseline at 98M/392M;
-§4.4's sequential-rollout baseline at 98M/392M — this is the pilot that
-RETIRES Option A's AND §4.4's PRICE-UNKNOWN flags, §6.3).**
-DeltaNet-family cells priced from §6.1's measured per-step rate, scaled to
-2,000 steps: 98M = 2,000×0.236s = 472s = **0.131 GPU-h/arm**; 392M =
-2,000×0.836s = 1,672s = **0.464 GPU-h/arm**. Two DeltaNet-family arms
-(NCR-augmented + flat-vector ablation) at both scales: `2×(0.131+0.464) =
-1.19 GPU-h`. Transformer-family arm: rate UNKNOWN, priced at 2× the
-DeltaNet rate as a placeholder UPPER BOUND ONLY (Transformers are not
-known to be slower than DeltaNet at this scale — this is a deliberately
-conservative ceiling, not a prediction) for BUDGETING purposes only —
-**this placeholder must not be read anywhere else in this document as a
-measured or predicted number**: `2×(0.262+0.928) = 2.38 GPU-h`. **Phase
-0a total, 2× contingency: ≈(1.19+2.38)×2 ≈ 7.14 GPU-h.** No rung proceeds
-past 0a without ITS OWN measured rate (`NOVEL_ARCH_WATERFALL.md` §9.4's
-own discipline, reused verbatim) — the numbers above are a budgeting
-ceiling, not a committed schedule.
+**Phase 0a — rate probe, TWO measurements per candidate config, NOT ONE
+(§R1(e), M4's other fix: packed ≠ unpacked, and only one of them prices
+Phases 1–3).**
+1. **Packed** (4–8 concurrent processes/GPU, §6.4): a throughput-oriented
+   smoke used ONLY to size Phase 0/0a's own scheduling — NEVER used to
+   price a Phase 1–3 training cell (M4's finding: a contended measurement
+   is not the rate an uncontended, saturating-batch training cell will
+   realize).
+2. **Unpacked, AT the operating point Phases 1–3 will actually use** —
+   which requires §6.4's batch/seq saturation pilot to have already
+   chosen that operating point. **Sequencing, made explicit (was implicit
+   and wrong before this fix): §6.4's saturation pilot runs BEFORE this
+   unpacked probe, not after or in parallel.** Today's only measured
+   unpacked rate is at `batch=32, seq_len=512` (§6.1) — the numbers below
+   use it as the CURRENT operating point; if §6.4 lands on a different
+   (batch, seq), this entire Phase 0a-unpacked step, and every GPU-h
+   number in Phases 1–3 below, must be re-measured and recomputed via
+   `steps = tokens/(batch×seq_len)` at the NEW rate (§6.1's closing note)
+   — not extrapolated.
+
+~2,000 steps/cell, ALL candidate configs (NCR-augmented DeltaNet at
+98M/392M; Transformer baseline at 98M/392M; §4.4's extended-β
+sequential-rollout baseline at 98M/392M — this is the pilot that RETIRES
+Option A's AND §4.4's PRICE-UNKNOWN flags, §6.3). DeltaNet-family cells
+priced from §6.1's measured per-step rate, scaled to 2,000 steps: 98M =
+2,000×0.236s = 472s = **0.131 GPU-h/arm**; 392M = 2,000×0.836s = 1,672s =
+**0.464 GPU-h/arm**. Two DeltaNet-family arms (NCR-augmented +
+flat-vector ablation) at both scales: `2×(0.131+0.464) = 1.19 GPU-h`.
+Transformer-family arm: rate UNKNOWN, priced at 2× the DeltaNet rate as a
+placeholder UPPER BOUND ONLY (Transformers are not known to be slower
+than DeltaNet at this scale — this is a deliberately conservative
+ceiling, not a prediction) for BUDGETING purposes only — **this
+placeholder must not be read anywhere else in this document as a measured
+or predicted number**: `2×(0.262+0.928) = 2.38 GPU-h`. Extended-β
+rollout-baseline arm: same 2× placeholder convention (§4.4's own
+PRICE-UNKNOWN, §6.3 item 3a) — `2.38 GPU-h`, ALSO a ceiling, not a
+prediction. **Phase 0a total, 2× contingency:
+≈(1.19+2.38+2.38)×2 ≈ 11.9 GPU-h** (revised up from the pre-Rev-1 draft's
+7.14 GPU-h, which omitted the rollout-baseline arm's own probe — an
+instance of the same load-bearing gap the pre-Rev-1 draft separately
+flagged and is now folded in directly rather than carried as a footnote).
+No rung proceeds past 0a without ITS OWN measured rate
+(`NOVEL_ARCH_WATERFALL.md` §9.4's own discipline, reused verbatim) — the
+numbers above are a budgeting ceiling, not a committed schedule.
+
+**Phase 0b — BRIDGE CELL (NEW, §R1(d), fixes M3): NS-polar orthogonal
+write trained on S₅-GENERATOR writes, gating Task 2's Phase 1 arm
+specifically.** Why this is needed, restated: the main ortho-write wave
+(`NCR_ORTHO_WRITE.md`, blind-run in flight) validates cyclic K-cycle
+writes (Part A) and RANDOM-ORTHOGONAL bank writes (Part B, R=4
+independent Hamiltonian K-cycles) — **NEITHER cell ever writes a
+non-solvable-group generator** (§A1 M3's finding). A WIN on that verdict
+says nothing about whether the model can LEARN to write S₅'s `{t,c,c⁻¹}`
+generators (§3.2) as orthogonally-conditioned `4×4` (padded to `5×5`)
+operators and compose them at depth — this bridge cell is the SEPARATE,
+dedicated gate for exactly that question, run BEFORE any Phase-1 GPU-h is
+spent on Task 2.
+
+**Pricing (PROJECTED from Part B's own measured rate, §6.1 — NOT
+discounted for the smaller `d`/`R`, per §2.1's own finding that `d`
+shrinking barely moves cost because the `40h_ncr²` encoder term
+dominates; the ONLY genuine cost lever taken here is a REDUCED step
+budget and REDUCED seed count, both flagged as this design's own
+choice).** Construction: `R=3` (S₅'s `{t,c,c⁻¹}`, not Part B's R=4),
+`d=5` (not `d=33`), `n=2` seeds (not Part B's n=4), **1× budget = 80,000
+steps** (not Part B's 4× = 320,000 — a bridge/gate cell needs Gate-0 plus
+one modest depth checkpoint, not the full realistic-depth frontier sweep
+Part B itself runs). Cost: `80,000/320,000 × 4.24 GPU-h/cell = 1.06
+GPU-h/cell × 2 seeds = 2.12 GPU-h (1×); 2× contingency ≈ 4.24 GPU-h`.
+
+**Gate (mirrors `NCR_ORTHO_WRITE.md` §4 Part B's own band structure, at
+reduced scope — Gate-0 plus ONE depth checkpoint, not the full L-ladder):**
+Gate-0 (median rec@0.9 ≥0.9 at L∈{1,2,3}) AND **WIN**: ortho
+S₅-generator-write median rec@0.9 at **L=8** (≈2.7× training depth) ≥0.9
+AND free-write (unconstrained) baseline <0.5 at L=8. **PARTIAL**: Gate-0
+clears, L=8 recovery ∈(0.5,0.9). **NULL**: Gate-0 clears, no gain over
+free-write at L=8. **FAIL**: Gate-0 itself fails (the constraint blocks
+trainability on this differently-shaped object). Consequence for Task 2 —
+see §9, revised (§R1(c), M2's fix): WIN/PARTIAL license Phase 1's Task-2
+arm (PARTIAL re-anchors `L*` downward, mirroring the main verdict's own
+PARTIAL branch); NULL/FAIL DROP Task 2's structural axis for Stage 1,
+disclosed explicitly, collapsing the overall program verdict's ceiling to
+PARTIAL (§7, revised) regardless of how Axis B reads.
 
 **Phase 1 — calibration (MANDATORY per CLAUDE.md's own standing rule: "a
-calibration run before a big sweep is mandatory, not optional").** 98M
-only, reduced 20,000-step budget (this program's own validated
+calibration run before a big sweep is mandatory, not optional"). NOW TWO
+TASK ARMS, not one (§R1(d), the other half of M3's fix — Task 2 is
+co-equal PRIMARY, §1, and needs its own calibration, gated by the bridge
+cell above, not folded silently into Task 1's).** 98M only, reduced
+20,000-step budget (327.68M tokens/cell — this program's own validated
 convention, `FROZEN_BIAS_LM_DESIGN.md` §13.7's citation of the mechanism-
 wave's "FULL 20,000-step branch" as already-shown non-degenerate at 14M —
 extended here to 98M as a Stage-1 calibration length, not assumed
-transferable without re-checking Gate-0 convergence at this scale). 2
-arms (NCR-augmented DeltaNet, flat-vector ablation) × n=2 seeds × Task 1
-only = 4 cells. Rate: assume ≤5% NCR overhead (§2.2's prediction) on the
-NCR arm (0.236×1.05=0.248 s/step), plain rate on the ablation arm.
-NCR arm: 2 cells × 20,000×0.248s = 4,960s = 1.378 GPU-h/cell → 2.756
-GPU-h. Ablation arm: 2 cells × 20,000×0.236s=4,720s=1.311 GPU-h/cell →
-2.622 GPU-h. **Phase 1 total, 1×: 5.38 GPU-h; 2× contingency: 10.76
-GPU-h.** Gate-0 precondition (`NCR_ORTHO_WRITE.md` §4's convention,
-reused): in-distribution recovery ≥0.9 AND val-loss inside the standing
-`k=2·s_ref` gate (`FROZEN_BIAS_LM_DESIGN.md` §13.4) — a cell failing
-Gate-0 blocks Phase 2 (§8).
+transferable without re-checking Gate-0 convergence at this scale).
 
-**Phase 2 — main wave, 98M (gated on Phase 1 passing Gate-0).** Full
-67,547-step budget. Arms: NCR-augmented DeltaNet (priced at the
-NCR-overhead-adjusted rate), flat-vector ablation, plain-Transformer
-baseline (rate PENDING Phase 0a, priced here at Phase 0a's own 2×
-placeholder ceiling — re-price before launch). n=3 seeds × 2 corpora
-(openr1-mix, wikitext-mix) × 2 tasks-worth of eval (training is
-task-suite-shared; eval-only passes are near-zero cost per
-`FROZEN_BIAS_LM_DESIGN.md` §13.7's own eval-only line-item convention,
-~0.02–0.05 GPU-h/pass class). NCR arm: 6 cells × 67,547×0.248s=16,752s=
-4.653 GPU-h/cell → 27.92 GPU-h. Ablation arm: 6 cells × 4.428 GPU-h/cell
-(measured plain-DeltaNet rate) → 26.57 GPU-h. Transformer arm: 6 cells ×
+*Task 1 arm (unchanged from the pre-Rev-1 draft):* 2 arms (NCR-augmented
+DeltaNet, flat-vector ablation) × n=2 seeds = 4 cells. Rate: `327.68M
+tokens / (66,118 tok/s × 3600) = 1.377 GPU-h/cell` (NCR, ≤5% overhead
+assumption) and `327.68M/(69,424×3600) = 1.311 GPU-h/cell` (ablation) —
+both match the pre-Rev-1 draft's own numbers exactly (§6.1's tokens
+reframing changes nothing at today's operating point, only the invariant
+being held fixed). NCR arm: 2×1.377=2.756 GPU-h. Ablation arm:
+2×1.311=2.622 GPU-h. Task-1 subtotal, 1×: 5.38 GPU-h.
+
+*Task 2 arm (NEW, §R1(d)), GATED on the bridge cell (§9, revised):* SAME
+2 arms × n=2 seeds = 4 cells, SAME 327.68M-token budget, SAME rate (the
+backbone dominates cost, not the NCR head's own `d`, per §2.1's finding —
+Task 2's cells cost the SAME per-cell rate as Task 1's). Task-2 subtotal,
+1×: 5.38 GPU-h (identical arithmetic).
+
+**Phase 1 total, 1×: 10.76 GPU-h (was 5.38 GPU-h pre-Rev-1 — the doubling
+is Task 2's own calibration, not a pricing error); 2× contingency: 21.52
+GPU-h.** Gate-0 precondition (`NCR_ORTHO_WRITE.md` §4's convention,
+reused, applied per task arm): in-distribution recovery ≥0.9 AND val-loss
+inside the standing `k=2·s_ref` gate (`FROZEN_BIAS_LM_DESIGN.md` §13.4) —
+a cell failing Gate-0 blocks that TASK's Phase 2 arm specifically (§8),
+not necessarily the other task's.
+
+**Phase 2 — main wave, 98M (gated on Phase 1 passing Gate-0, per task
+arm).** Full 67,547-step budget (1.108B tokens/cell). Arms:
+NCR-augmented DeltaNet (priced at the NCR-overhead-adjusted rate),
+flat-vector ablation, plain-Transformer baseline (rate PENDING Phase 0a,
+priced here at Phase 0a's own 2× placeholder ceiling — re-price before
+launch). Training is task-suite-shared (a single run trains on the full
+curriculum, §5.2, covering Task 1 AND Task 2 episodes together — this
+does NOT double per-cell cost, only Phase 1's SEPARATE per-task
+calibration cells above are doubled); eval-only passes are near-zero cost
+per `FROZEN_BIAS_LM_DESIGN.md` §13.7's own eval-only line-item convention
+(~0.02–0.05 GPU-h/pass class) and now cover Task 2's own L-ladder eval at
+the same near-zero marginal cost. n=3 seeds × 2 corpora (openr1-mix,
+wikitext-mix). NCR arm: 6 cells × `1.108B/(66,118×3600)=4.654 GPU-h/cell`
+→ 27.92 GPU-h. Ablation arm: 6 cells × 4.428 GPU-h/cell (measured
+plain-DeltaNet rate) → 26.57 GPU-h. Transformer arm: 6 cells ×
 (placeholder ceiling) 8.86 GPU-h/cell (2× the DeltaNet rate, PENDING
 re-price) → 53.16 GPU-h. **Phase 2 (98M) total, 1×: ≈107.7 GPU-h; 2×
 contingency: ≈215.3 GPU-h — the Transformer arm's own placeholder pricing
@@ -795,47 +1177,52 @@ is more than half this total, underscoring why Phase 0a is not
 optional.**
 
 **Phase 3 — main wave, 392M (gated on Phase 2's 98M readout AND the
-ortho-write verdict, §9).** Same arm/seed/corpus structure, 20,000-step
-reduced budget (the same disclosed deviation `FROZEN_BIAS_LM_DESIGN.md`
-§13.7 already made for 392M — matching Track C's full 91,552-step budget
-at n=3/n=3 would cost `18×21.38=384.8` GPU-h at 1× alone, an order of
+ortho-write verdict, §9).** Same arm/seed/corpus/task-suite structure,
+20,000-step reduced budget (327.68M tokens/cell — the same disclosed
+non-token-matched-to-Phase-2 deviation `FROZEN_BIAS_LM_DESIGN.md` §13.7
+already made for 392M — matching Track C's full 91,552-step budget at
+n=3/n=3 would cost `18×21.38=384.8` GPU-h at 1× alone, an order of
 magnitude beyond this design's own affordable scope). NCR arm: 6 cells ×
-20,000×0.878s (0.836×1.05)=17,560s=4.878 GPU-h/cell → 29.27 GPU-h.
-Ablation arm: 6 cells × 4.671 GPU-h/cell (measured) → 28.03 GPU-h.
-Transformer arm: 6 cells × (placeholder ceiling) 9.342 GPU-h/cell → 56.05
-GPU-h. **Phase 3 (392M) total, 1×: ≈113.3 GPU-h; 2× contingency: ≈226.7
-GPU-h.**
+`327.68M/(18,665×3600)=4.877 GPU-h/cell` → 29.27 GPU-h. Ablation arm: 6
+cells × 4.671 GPU-h/cell (measured) → 28.03 GPU-h. Transformer arm: 6
+cells × (placeholder ceiling) 9.342 GPU-h/cell → 56.05 GPU-h. **Phase 3
+(392M) total, 1×: ≈113.3 GPU-h; 2× contingency: ≈226.7 GPU-h.**
 
 **Grand total (Phases 0–3, 2× contingency, Transformer arm at its
-UN-re-priced placeholder ceiling): ≈2 + 7.14 + 10.76 + 215.3 + 226.7 ≈
-462 GPU-h.** This is a Stage-1 DESIGN ceiling, not a committed ask — it is
-priced deliberately conservative (2× contingency stacked on a 2×
-Transformer-arm placeholder) specifically so an attack round has a real
-number to cut, not a vague "TBD." At the box's own ≈192 GPU-h/day
-operative rate, this is ≈2.4 days of full-box supply if run
-back-to-back-exclusive; in practice it competes with the ortho-write wave
-(~77 GPU-h), fix-at-scale (300 GPU-h cap), and capability-separation
-Stage 2 for the shared budget — a coordinator-level sequencing decision,
-not resolved by this document.
+UN-re-priced placeholder ceiling, Phase 0a NOW including the rollout-
+baseline probe, Phase 1 NOW including Task 2's own calibration, Phase 0b
+bridge cell added): ≈2 + 11.9 + 4.24 + 21.52 + 215.3 + 226.7 ≈ 482 GPU-h**
+(vs. the pre-Rev-1 draft's own excludes-the-rollout-arm total of 462
+GPU-h — the increase is entirely Phase 0a's now-included rollout probe
+(+4.76) and the bridge cell + doubled Phase 1 (+15). This is a Stage-1
+DESIGN ceiling, not a committed ask — it is priced deliberately
+conservative (2× contingency stacked on 2× placeholder ceilings)
+specifically so an attack round has a real number to cut, not a vague
+"TBD." At the box's own ≈192 GPU-h/day operative rate, this is ≈2.5 days
+of full-box supply if run back-to-back-exclusive; in practice it competes
+with the ortho-write wave (~77 GPU-h), fix-at-scale (300 GPU-h cap), and
+capability-separation Stage 2 for the shared budget — a coordinator-level
+sequencing decision, not resolved by this document.
 
-**This total EXCLUDES §4.4's sequential-rollout matrix-state baseline
-(added after the grounding update reframed Axis B as a primary claim, not
-a stretch goal) — a load-bearing gap, disclosed, not silently absorbed.**
-That arm needs its own Phase-0a rate probe (its architecture, β-range-
-extended DeltaNet or RWKV-7-style, is not the plain DeltaNet backbone
-§6.1 has measured) and its own training cells at every Phase 1–3 rung,
-structurally the same shape as the NCR arm's own line items above. A
-same-order-of-magnitude placeholder (mirroring the NCR arm's own 2× the
-plain-DeltaNet-rate ceiling used for the Transformer arm, §6.2) would add
-roughly another **NCR-arm-sized slice at each phase** — Phase 1: +2.76
-GPU-h (1×); Phase 2: +27.9 GPU-h (1×); Phase 3: +29.3 GPU-h (1×) ≈ **+60
-GPU-h at 1×, +120 GPU-h at 2× contingency**, revising the grand total to
-**≈580 GPU-h at 2× contingency**. This revision is presented as an
+**This total STILL EXCLUDES §4.4's sequential-rollout matrix-state
+baseline's own Phase 1–3 TRAINING cells (its Phase-0a RATE PROBE is now
+included above, but its full-scale training cells are not) — a
+load-bearing gap, disclosed, not silently absorbed.** That arm needs
+training cells at every Phase 1–3 rung, structurally the same shape as
+the NCR arm's own line items above, once Phase 0a's dedicated probe
+retires its PRICE-UNKNOWN flag. A same-order-of-magnitude placeholder
+(mirroring the NCR arm's own 2× the plain-DeltaNet-rate ceiling used for
+the Transformer arm) would add roughly another **NCR-arm-sized slice at
+each phase** — Phase 1: +2.76 GPU-h (1×, Task-1-only, since Axis B is
+Task-1-scoped per §A1 F1 — the rollout baseline is never trained on Task
+2); Phase 2: +27.9 GPU-h (1×); Phase 3: +29.3 GPU-h (1×) ≈ **+60 GPU-h at
+1×, +120 GPU-h at 2× contingency**, revising the grand total to **≈602
+GPU-h at 2× contingency**. This revision is presented as an
 order-of-magnitude flag for the attack round, not a firm number — an
-attack round should treat §4.4's own pricing as unresolved and require a
-real Phase-0a measurement before ANY Phase-1+ commitment, exactly as
-items 1–2 below already require for the Transformer and NCR-overhead
-arms.
+attack round should treat §4.4's own full-scale pricing as unresolved and
+require the real Phase-0a measurement (now budgeted above) before ANY
+Phase-1+ commitment for this arm specifically, exactly as items 1–2 below
+already require for the Transformer and NCR-overhead arms.
 
 ### 6.3 PRICE-UNKNOWN list (explicit, per the task's own instruction — never guessed)
 
@@ -863,6 +1250,12 @@ arms.
    LM-scale batched call; the toy-scale ortho-write wave's own measured
    per-cell rates, §6.1's last row, are the nearest analog but at a
    drastically smaller batch/model, not a safe direct transfer).
+5. **The bridge cell's own rate (§6.2 Phase 0b, §R1(d)).** Priced as a
+   PROJECTION from `NCR_ORTHO_WRITE.md` Part B's measured rate (§6.1),
+   scaled by step/seed budget only — the `R=3/d=5` construction itself has
+   never run, so its ACTUAL per-step cost (and whether it trains at all)
+   is unmeasured until the cell itself executes. Retired by the bridge
+   cell's own completion, which is also its own gate readout (§6.2).
 
 ### 6.4 SATURATION plan (PI directive, 2026-07-16 — sizing so each H100 runs at high SM utilization)
 
@@ -901,24 +1294,71 @@ assumed:
    welcome coupling, not a coincidence. Re-measure batch×seq_len jointly,
    not batch alone.
 
-**Calibration / Phase-0/0a cells (14M smoke, NCR-head-only rate probes).**
-These remain genuinely too small to saturate a GPU via batch/seq scaling
-alone without changing the task itself (the 14M backbone + 175K NCR head
-is still a small model). **Packing plan: run 4–8 concurrent processes per
-GPU** for Phase 0/0a only (mirrors `H100_SETUP.md`'s and
-`DELTANET_REALDATA_DESIGN.md` §3's own standing "pack multiple tiny runs
-per GPU" pattern, and is licensed by `NCR_ORTHO_WRITE.md` §6's own
-"memory-trivial, co-resident-safe" finding for exactly this param range).
-**Main 98M/392M cells (Phases 1–3) are NOT packed** — at a saturating
-batch/seq_len (lever 1/2 above), a single 98M or 392M process is
-projected to already occupy 70–90% of one GPU's VRAM, making co-residency
-infeasible at the saturating operating point; packing and big-batch
-saturation are mutually exclusive levers at this scale and this design
-picks big-batch for the cells large enough to support it.
+**Calibration / Phase-0/0b cells (14M / toy-scale smoke and the bridge
+cell) — packing licensed.** These remain genuinely too small to saturate
+a GPU via batch/seq scaling alone without changing the task itself (the
+14M backbone + 175K NCR head, or the bridge cell's own toy-scale S₅-
+generator write, is still a small model). **Packing plan: run 4–8
+concurrent processes per GPU** for Phase 0 (smoke) and Phase 0b (the
+bridge cell) — mirrors `H100_SETUP.md`'s and `DELTANET_REALDATA_DESIGN.md`
+§3's own standing "pack multiple tiny runs per GPU" pattern, and is
+licensed by `NCR_ORTHO_WRITE.md` §6's own "memory-trivial, co-resident-
+safe" finding for exactly this param range.
+
+**Phase 0a's rate probe — packing explicitly NOT licensed for the
+UNPACKED measurement (§R1(e), M4's fix — this is the exact conflict the
+attack round caught).** Phase 0a's whole job is to hand Phases 1–3 a
+clean per-arm rate at the operating point they will actually run at; a
+contended, packed measurement systematically UNDER-states that rate. Per
+§6.2's revised Phase 0a: the PACKED measurement (this section's packing
+plan, reused) is for Phase-0/0b's OWN scheduling only; the UNPACKED
+measurement — one process per GPU, at the operating point THIS section's
+saturation pilot (below) selects — is the one that prices Phase 1–3, and
+must run after that pilot, not before it and not packed.
+
+**Main 98M/392M cells (Phases 1–3).** Already far better utilized than
+the toy cells (23.5 GB / 39.0 GB of 80 GB at batch=32, seq_len=512 — 29%
+/ 49%, not the ~2% the toy cells drew), but not yet saturated. Two
+coupled levers, both re-measured before launch (specifically, before
+Phase 0a's unpacked probe, per the sequencing above), neither assumed:
+1. **Raise batch size.** Propose a dedicated memory/timing pilot sweeping
+   `batch ∈ {32, 48, 64, 96}` at 98M and `batch ∈ {32, 48, 64}` at 392M,
+   logging `torch.cuda.max_memory_allocated()` + `nvidia-smi` cross-check
+   at each point (the exact instrumentation `FROZEN_BIAS_LM_DESIGN.md`
+   §13.10 gate 3 already built and used) and SM occupancy via
+   `nvidia-smi dmon`. Target ≥80% of 80 GB and ≥80% SM utilization at the
+   chosen operating point; do NOT assume linear VRAM-vs-batch scaling (a
+   real model has a fixed model+optimizer-state floor that does not grow
+   with batch, so the achievable batch increase is likely somewhat more
+   than the naive ~3.4× (98M) / ~1.6× (392M) a linear projection from
+   current headroom would suggest, but this must be MEASURED, not
+   assumed — `CLAUDE.md`'s own "batch=112 fits training but OOMs during
+   eval" lesson is the standing reason eval batch is capped and re-tested
+   independently of train batch, applied here without exception).
+2. **Raise `seq_len`.** Task 3 (§3.3) independently motivates
+   `seq_len∈{1024, 2048}` (long-horizon intervening real text needs the
+   context window to hold it) — this is not solely a saturation
+   convenience; it is a genuine task requirement that HAPPENS to also
+   raise tokens/step (hence FLOPs/step and VRAM) at fixed batch, a
+   welcome coupling, not a coincidence. Re-measure batch×seq_len jointly,
+   not batch alone.
+
+**Main 98M/392M cells are NOT packed** — at a saturating batch/seq_len
+(lever 1/2 above), a single 98M or 392M process is projected to already
+occupy 70–90% of one GPU's VRAM, making co-residency infeasible at the
+saturating operating point; packing and big-batch saturation are mutually
+exclusive levers at this scale and this design picks big-batch for the
+cells large enough to support it. **If this saturation pilot picks a
+(batch, seq) other than (32, 512), §6.1/§6.2's own re-pricing obligation
+fires** — every GPU-h number in Phases 1–3 above is provisional on
+`(32, 512)` remaining the operating point.
 
 ---
 
 ## §7 SUCCESS CRITERIA — draft pre-registerable WIN/PARTIAL/NULL bands
+(REVISED, §R1(a) — the table and overall-verdict rule are rewritten
+around the F1-fixed two-family conjunction, §1; M2's bridge-cell REDUCED
+consequence and M5's replaced Axis-B criterion are folded in)
 
 Reuses the `recovered_frac@0.9` bar and the HOLD(≥0.9)/DEGRADED((0.5,0.9))/
 FAIL(≤0.5) band convention (`NOVEL_ARCH_WATERFALL.md` §3.2a) throughout,
@@ -928,62 +1368,96 @@ recovery ≥0.9 at train-support depth AND val-loss inside the standing
 `k=2·s_ref` gate — a cell failing Gate-0 is DEAD and is not scored on any
 axis below.**
 
-**Framing correction (binding, per the grounding update, above): the two
-PRIMARY axes are Task 2 (structural failure) and Axis B (query-time
-complexity) — these two together are the load-bearing flagship claim.
-Task 1 and Task 3 are SECONDARY/corroborating axes, reported alongside,
-never sufficient alone for the overall program WIN.**
+**Framing correction (§R1(a), replaces the pre-Rev-1 draft's unsatisfiable
+framing): the two PRIMARY axes are Axis A = Task 2 (structural failure,
+read at Θ(L), no speed claim) and Axis B = Task 1 (query-time complexity,
+O(log h) vs. Θ(h), no hardness claim) — DISJOINT query families, per §1's
+conjunction and §A1 F1's group-theory result. Task 3 is a SECONDARY/
+corroborating axis on a third, orthogonal property (memory bytes), never
+sufficient alone for the overall program WIN.**
 
 | Axis | WIN | PARTIAL | NULL |
 |---|---|---|---|
-| **Task 2 (PRIMARY — non-solvable-group structural failure, §3.2)** | NCR HOLDs (≥0.9) at `L*=32` (or the re-derived depth, §9) on BOTH held-out-entity and held-out-depth strata, AND the param-matched Transformer FAILs (≤0.5) at the same depth (the TC⁰/NC¹ structural prediction, C1–C3) — this is the flagship structural-failure result | NCR HOLDs/DEGRADEDs strictly better-banded than the Transformer, but not the full HOLD-vs-FAIL gap | NCR bands at or below the Transformer's band at `L*` — the structural prediction did not manifest empirically, reported as a genuine negative (§8 item 5) |
-| **Axis B (PRIMARY — query-time complexity vs. §4.4's sequential-rollout baseline)** | Both NCR and the rollout baseline reach comparable in-distribution accuracy (within the standing ±15% band) at matched depth AND measured query-time wall-clock/dependency-chain length is ≥10× shorter for NCR at the largest tested depth (mirrors `NOVEL_ARCH_WATERFALL.md` §3.2's own Axis-B bar, transplanted) — the O(log h)-vs-O(h) separation, cleanly isolated from any accuracy confound | Scaling separation present but <10×, or accuracy diverges between the two arms in a way that confounds a clean complexity-only reading (reported, not hidden) | NCR is not measurably sub-linear in wall-clock vs. depth — flags a broken implementation, triggers diagnose-first, per the same document's own convention for a non-log-depth NCR result |
-| **Task 1 (secondary — abelian/solvable exactness, empirical, §3.1)** | NCR HOLDs (≥0.9) at the re-registered `h*` on both held-out strata, AND the param-matched Transformer AND flat-vector ablation both FAIL (≤0.5) — an empirical-robustness result, NOT structural | Graded, mirrors `NOVEL_ARCH_WATERFALL.md` §3.2a's SEP-PARTIAL cell | NCR bands at or below either baseline |
-| **Task 3 (secondary — "constant-memory minds," §3.3)** | NCR holds acc≥0.9 at the largest tested horizon (8×T_bind) AND the KV-cache-capped Transformer (re-derived `M` grid, §4.3) FAILs at that horizon — reproduces the M* "capping never rescues" finding (`STATE.md` §1.41) in a real-text setting | NCR holds where the capped Transformer fails, but the UNCAPPED Transformer also holds — NCR matches, not beats, an unconstrained baseline at fixed memory (itself a genuine, disclosed data point) | NCR itself fails past some horizon shorter than 8×T_bind |
+| **Axis A = Task 2 (PRIMARY — non-solvable-group structural failure, §3.2, read at Θ(L))** | NCR HOLDs (≥0.9) at `L*=32` (or the re-derived depth, §9's REVISED bridge-cell branch) on BOTH held-out-entity and held-out-depth strata, AND the param-matched Transformer FAILs (≤0.5) at the same depth (the TC⁰/NC¹ structural prediction, C1–C3) — the flagship structural-failure result. **Gated precondition (§9, revised, M2/M3): only reachable if the bridge cell (§6.2 Phase 0b) reads WIN or PARTIAL** — a NULL/FAIL bridge cell drops this axis to NULL by construction, disclosed, not silently absorbed (§9) | NCR HOLDs/DEGRADEDs strictly better-banded than the Transformer, but not the full HOLD-vs-FAIL gap; OR the bridge cell read PARTIAL and `L*` was re-anchored downward per §9, with the shallower depth otherwise meeting the WIN bar | NCR bands at or below the Transformer's band at `L*` (the structural prediction did not manifest empirically, a genuine negative, §8 item 5) **OR the bridge cell reads NULL/FAIL (§9) — Task 2 is DROPPED for Stage 1, and this axis is NULL by construction regardless of any LM-scale data** |
+| **Axis B = Task 1 (PRIMARY — query-time complexity vs. §4.4's pinned extended-β-DeltaNet rollout baseline, O(log h) vs. Θ(h), no hardness claim)** | (i) The dependency-chain-length fact holds by construction (`⌈log₂h⌉` for NCR vs. `h` for the rollout, §4.4's build-time instrumentation assertion — a PASS/FAIL gate, always checked first) AND (ii) the §4.4 fitted-growth criterion clears: `Model_log` `R²≥0.90` and beats `Model_lin` by `≥0.05` `R²` on NCR's own wall-clock series, AND the mirror-image holds for the rollout baseline's series AND (iii) in-distribution accuracy is within the standing ±15% band between the two arms at matched depth (an accuracy SANITY check, not the primary readout — §4.4) | The dependency-chain fact holds (i) but the wall-clock fit (ii) is inconclusive (e.g. one arm's fit clears its own `R²` bar but the margin over the wrong-family fit is <0.05) — reported as a real but statistically softer separation, not hidden | (i) itself fails (a build defect — NCR's read is not actually `O(log h)` as implemented) OR NCR's own wall-clock is not measurably sub-linear in `h` at all — flags a broken implementation, triggers diagnose-first, per `NOVEL_ARCH_WATERFALL.md`'s own convention for this failure shape |
+| **Task 3 (secondary — "constant-memory minds," §3.3)** | NCR holds acc≥0.9 at the largest tested horizon (8×T_bind) AND the KV-cache-capped Transformer (re-derived `M` grid, §4.3, revised) FAILs at that horizon — reproduces the M* "capping never rescues" finding (`STATE.md` §1.41) in a real-text setting | NCR holds where the capped Transformer fails, but the UNCAPPED Transformer also holds — NCR matches, not beats, an unconstrained baseline at fixed memory (itself a genuine, disclosed data point) | NCR itself fails past some horizon shorter than 8×T_bind |
 | **Val-loss gate (all tasks, mandatory)** | Every arm's val loss stays inside `arm_off`'s own `mean + 2·s_ref` band (`FROZEN_BIAS_LM_DESIGN.md` §7.2 convention) | n/a — pass/fail gate, not graded | A cell whose NCR head measurably HURTS ordinary language modeling is reported plainly, not excused, even if a primary axis above WINs |
 
-**Overall program verdict (cross-task rule, exhaustive, re-anchored to the
-two-pronged flagship claim).** **WIN** requires BOTH primary axes at
-WIN — Task 2 (structural failure) AND Axis B (query-time complexity) —
-AND the val-loss gate passing everywhere; Task 1/Task 3 are reported
-alongside as corroborating/secondary claims, never substitutable for
-either primary axis (this is the direct correction of this document's
-first-draft framing, which allowed Task 1 OR Task 2 alone to carry the
-headline — no longer licensed once Task 1's citation was demoted to
-empirical-only, above). **PARTIAL** = exactly one primary axis WINs
-(structural-failure without the complexity separation, or vice versa) —
-still publishable, reported as "one leg of the two-pronged claim landed,"
-not spun as the full flagship result. **NULL** = neither primary axis
-clears WIN or PARTIAL, or Gate-0 fails in ≥50% of cells (a trainability
-failure at LM scale, distinct from and reported separately from a
-capability failure).
+**Overall program verdict (cross-task rule, exhaustive, re-anchored to
+the F1-fixed two-family conjunction, §1).** **WIN** requires BOTH primary
+axes at WIN — Axis A/Task 2 (structural failure) AND Axis B/Task 1
+(query-time complexity) — AND the val-loss gate passing everywhere; Task
+3 is reported alongside as a corroborating/secondary claim, never
+substitutable for either primary axis. **PARTIAL** = exactly one primary
+axis WINs (structural-failure without the complexity separation, or vice
+versa) — still publishable, reported as "one leg of the two-family claim
+landed, on the family it is earnable on," not spun as the full flagship
+result; **this is also the automatic ceiling if the bridge cell (§9)
+reads NULL/FAIL, since Axis A is then NULL by construction and only Axis
+B remains contestable.** **NULL** = neither primary axis clears WIN or
+PARTIAL, or Gate-0 fails in ≥50% of cells (a trainability failure at LM
+scale, distinct from and reported separately from a capability failure).
+**Removed from this revision (§R1(a)): the pre-Rev-1 draft's own framing
+implicitly allowed a version of "WIN" where Task 2 supplied BOTH the
+structural failure AND the O(log h) speed claim on the same family — §A1
+F1 proved this unsatisfiable; no band above can be cleared that way, by
+construction (Task 2's own read cost is Θ(L), stated in its own WIN cell,
+never O(log L)).**
 
 ---
 
 ## §8 RISKS & KILL CRITERIA — what a week-1 result kills before week 4
+(REVISED, §R1(h) — fixes m1/m2/m3; items 1/5/6 re-scoped to the F1-fixed
+two-family conjunction; item 7 added for the bridge cell, §M2/M3)
 
-1. **Ortho-write verdict lands NULL or FAIL (§9) before Phase 1 launches.**
-   KILLS the K=32 configuration outright for both Task 1 and Task 2;
-   Stage-1 re-scopes to K≤15 (the pre-ortho-write "SCALES" ceiling,
-   `NOVEL_ARCH_WATERFALL.md` §11.2) before ANY GPU-h beyond Phase 0 is
-   spent. Does not kill the program — changes its headline numbers (§9).
-2. **Phase 0 smoke shows the NCR head's gradient does not flow cleanly
-   through the DeltaNet backbone's bf16 kernel boundary** (a real risk:
-   `DELTANET_REALDATA_DESIGN.md` §4.3 already found `fla`'s production
-   kernel categorically rejects fp32 — if the NCR head's own fp32-shadow
-   read instrument, `NOVEL_ARCH_WATERFALL.md` §3.1, cannot be reconciled
-   with a bf16-only backbone boundary, this blocks Option B specifically).
-   KILLS Option B, forces a re-evaluation of Option A (now bearing its
-   own full PRICE-UNKNOWN backbone cost) before any further spend.
-3. **Phase 0a measures NCR-head wall-clock overhead >20%** (vs. the ≤5%
-   predicted, §2.2). Does not kill the hypothesis, but KILLS the current
-   compute pricing (§6.2) outright — every Phase 2/3 number above assumes
-   ≤5%; a 4×+ miss on this single assumption invalidates the whole
-   ledger and requires a full re-price before Phase 1 proceeds.
+1. **Ortho-write verdict lands NULL or FAIL (§9, revised) before Phase 1
+   launches.** KILLS the K=32 configuration outright for Task 1 (and Task
+   3 if it inherits Task 1's abelian construction); Stage-1 re-scopes to
+   K≤15 (the pre-ortho-write "SCALES" ceiling, `NOVEL_ARCH_WATERFALL.md`
+   §11.2) before ANY GPU-h beyond Phase 0 is spent on Axis B. **Does NOT
+   touch Task 2/Axis A** (§R1(b)/(c), M1/M2's fix decoupled Task 2 from
+   this K-axis entirely — Task 2's own viability is governed by the
+   SEPARATE bridge-cell gate, item 7 below). Does not kill the program —
+   changes Axis B's headline numbers (§9).
+2. **Phase 0 smoke shows the NCR head's gradient does not flow through
+   the DeltaNet backbone's bf16 kernel boundary within an EXACT tolerance
+   (§R1(h), m1/m2 fix — was "cleanly," now pinned).** Concrete smoke item
+   (m1's fix): the NCR head casts backbone hidden states to fp32 at its
+   own input boundary (`.float()`, a standard differentiable upcast),
+   runs its full write/read pipeline in fp32, casts its output back to
+   bf16 before injection into the residual stream. Pass criterion (m2's
+   fix, reusing `DELTANET_REALDATA_DESIGN.md` §4.4's own Tier-1
+   convention verbatim): a gradient cross-check (this cast pipeline vs. a
+   small-scale reference run with the ENTIRE model in fp32) at a
+   bf16-appropriate relative tolerance **`<1×10⁻²`**, both forward outputs
+   and parameter/hidden-state gradients after `.backward()`. Run ONCE at
+   Phase 0 (14M scale), before any further spend, logged PASS/FAIL
+   explicitly — not a vibes call. **On FAIL: KILLS Option B, forces a
+   re-evaluation of Option A** (now bearing its own full PRICE-UNKNOWN
+   backbone cost) before any further spend.
+3. **Phase 0a measures NCR-head wall-clock overhead outside a TWO-TIER,
+   GAP-CLOSED band (§R1(h), m3's fix — was an unguarded 5–20% zone with
+   no defined consequence).** **>5% (the §2.2 pricing assumption): MANDATORY
+   RE-PRICE** — every Phase 2/3 number in §6.2 assumes ≤5%; ANY measured
+   overhead above that invalidates the ledger's point estimates and
+   forces a re-price pass through §6.2's token-based formulas with the
+   measured rate substituted, before Phase 1 launches (a book-keeping
+   trigger, not a stop). **>8% (tightened from the pre-Rev-1 draft's 20%,
+   a 2.5× reduction, justified): KILLS the pricing AND the Option-B cost
+   argument.** Justification for 8%, not 5% (identical) and not 20%
+   (the old, too-loose bound): 8% is still ≈6.7× the ONE directly measured
+   analog in this repo (`FROZEN_BIAS_LM_DESIGN.md`'s ≤1.2%-measured
+   per-position insertion overhead, §6.1) — a generous but non-vacuous
+   margin — while 20% left a 4×-of-the-analog gap with NO defined
+   consequence in between, exactly the m3 finding. Every point in
+   `(5%, 8%]` now triggers RE-PRICE (defined); every point `>8%` triggers
+   KILL (defined) — no unguarded zone remains.
 4. **Phase 1 calibration plateaus below Gate-0's 0.9 in-distribution bar**
-   at 98M (the CLAUDE.md-mandated calibration-run purpose: "catches
-   convergence ceilings... before you commit a sweep's compute to it").
-   KILLS Phase 2 at the current config; does not kill the program —
+   at 98M, on EITHER task arm (§6.2, revised — Task 1 and Task 2 now each
+   have their own Phase-1 calibration cells) — the CLAUDE.md-mandated
+   calibration-run purpose: "catches convergence ceilings... before you
+   commit a sweep's compute to it." KILLS Phase 2 for THAT task arm
+   specifically; does not kill the program or the other task's arm —
    triggers a diagnosis round (budget/architecture-attachment-point
    re-check) before any re-attempt, exactly the K32-wall precedent's own
    discipline (`NOVEL_ARCH_WATERFALL.md` §11.6's ANOMALY-check handling).
@@ -995,94 +1469,176 @@ capability failure).
    construction didn't allow, or Task 2's actual instance sizes could sit
    inside a regime where the TC⁰/NC¹ gap is not yet empirically visible
    at this model scale). This is the single most informative possible
-   negative result for the PRIMARY structural axis. Reported plainly
-   (`CLAUDE.md`: "negative results are data. Don't spin.") — does not kill
-   the program (Axis B's complexity claim, item 6 below, is independent
-   of this one), but caps the paper's structural-failure claim at
-   "theoretically predicted, not empirically observed at this scale," a
-   materially weaker headline than §1's hypothesis, and would redirect
-   Stage-2 effort toward understanding WHY (larger K, larger group,
-   different embedding) before any further scale-up.
-6. **Axis B (§4.4) shows no wall-clock/dependency-chain separation** — the
-   sequential-rollout baseline's measured query-time cost does not scale
-   like O(h) relative to NCR's O(log h) (e.g. both are dominated by a
-   fixed per-call overhead at the tested depths, or the rollout baseline's
-   own implementation is unexpectedly parallel-friendly at this scale).
-   Per `NOVEL_ARCH_WATERFALL.md` §3.2's own convention for this exact
-   failure shape, this is flagged as an IMPLEMENTATION defect and
-   triggers diagnose-first, not an immediate capability conclusion — but
-   if diagnosis confirms the measurement is sound, it kills the SECOND
-   primary axis and, combined with item 5, would collapse the overall
-   verdict to NULL (§7) regardless of how Task 1/Task 3 read.
+   negative result for Axis A. Reported plainly (`CLAUDE.md`: "negative
+   results are data. Don't spin.") — does not kill the program (Axis B's
+   complexity claim, item 6 below, is on a disjoint query family and
+   independent of this one, §A1 F1), but caps the paper's structural-
+   failure claim at "theoretically predicted, not empirically observed at
+   this scale," a materially weaker headline than §1's Axis A hypothesis,
+   and would redirect Stage-2 effort toward understanding WHY (larger K₂,
+   larger group, different embedding) before any further scale-up.
+6. **Axis B (§4.4) shows no wall-clock/dependency-chain separation on
+   Task 1** — the dependency-chain-length build assertion itself fails
+   (a genuine implementation defect: NCR's read is not actually
+   `O(log h)` as built), or the fitted-growth criterion (§4.4/§7) does
+   not clear on either arm's own series (e.g. both are dominated by a
+   fixed per-call overhead at the tested depths, or the rollout
+   baseline's own implementation is unexpectedly parallel-friendly at
+   this scale). Per `NOVEL_ARCH_WATERFALL.md` §3.2's own convention for
+   this exact failure shape, this is flagged as an IMPLEMENTATION defect
+   and triggers diagnose-first, not an immediate capability conclusion —
+   but if diagnosis confirms the measurement is sound, it kills Axis B
+   and, combined with item 5, would collapse the overall verdict to NULL
+   (§7) regardless of how Task 3 reads.
+7. **The bridge cell (§6.2 Phase 0b, §9, revised) reads NULL or FAIL
+   (NEW item, §R1(h) — the M2/M3 fix's own risk consequence, made
+   explicit here rather than left implicit in §6/§9 alone).** DROPS Task
+   2/Axis A for Stage 1 — the structural claim is not earned at any LM
+   scale this wave, disclosed, not silently absorbed (§7's overall
+   verdict is automatically capped at PARTIAL, contingent only on Axis
+   B). Does not kill the program (Axis B's own claim on Task 1 is
+   entirely independent of the bridge cell's outcome) but is the single
+   cheapest possible way (§6.2: ≈2.1 GPU-h, 1×) to learn this BEFORE any
+   Phase-1 Task-2 GPU-h — the entire reason this gate exists ahead of the
+   more expensive LM-embedded calibration.
 
 ---
 
-## §9 DEPENDENCIES — gated on the ortho-write verdict (~2026-07-17)
+## §9 DEPENDENCIES — TWO INDEPENDENT gates, not one (REVISED, §R1(c)/(d) —
+fixes M2/M3: Task 2/Axis A is DECOUPLED from the main K-axis verdict and
+gated separately by its own bridge cell)
 
-This entire document's K-axis choice, and therefore its Task 1/Task 2
-headline depths, is downstream of `NCR_ORTHO_WRITE.md`'s pending verdict
-on the Newton–Schulz orthogonal write (**closest prior art: MuonSSM,
-arXiv:2606.30461 — see §2.2/§3.4 C12 for the full differentiation; that
-paper's own ICML-2026-Oral result is independent evidence that
-Newton–Schulz-orthogonalizing a fast-weight write is a live, reviewer-
-legible mechanism, not exotic machinery**). **No Phase 1+ GPU-h is
-authorized until that verdict lands and this section's branch is
-resolved.**
+**§A1 M1's fix (§3.2) decoupled Task 2's construction (K₂=5, S₅'s own
+generators) from Task 1/3's K-axis (`K∈{15,32}`) entirely — so the single
+branch structure below no longer governs both tasks, and pretending it
+does was exactly M2's/M3's finding (a WIN on cyclic/random-orthogonal
+writes at K=32 does not license a never-tested S₅-generator write, and a
+K=15 fallback specifying "15-cycle products" silently drops the
+non-solvable structure Task 2 exists for).** Two INDEPENDENT gates now
+govern this document's two primary axes:
+
+### 9.1 GATE 1 — main ortho-write verdict (governs Axis B/Task 1, and Task
+3 IF it inherits Task 1's abelian construction)
+
+Downstream of `NCR_ORTHO_WRITE.md`'s pending verdict on the Newton–Schulz
+orthogonal write (**closest prior art: MuonSSM, arXiv:2606.30461 — see
+§2.2/§3.4 C12 for the full differentiation; that paper's own
+ICML-2026-Oral result is independent evidence that Newton–Schulz-
+orthogonalizing a fast-weight write is a live, reviewer-legible
+mechanism, not exotic machinery**). **No Phase 1+ GPU-h is authorized for
+Task 1/Axis B until that verdict lands and this branch is resolved — but
+this gate does NOT block Task 2/Axis A, which is governed by GATE 2,
+below, independently.**
 
 - **If ORTHO-WRITE WIN** (`NCR_ORTHO_WRITE.md` §4 Part A: ortho-write
-  median rec@0.9 at h*=40 ≥0.9, free-write baseline <0.5 at h=40; Part B:
-  ortho-bank median rec@0.9 at L*=32 ≥0.9): Stage-1 build proceeds with
-  **K=32, d_ncr=33** as the PRIMARY NCR configuration for BOTH Task 1
-  (h*=40, secondary/empirical axis) and Task 2 (L*=32, PRIMARY/structural
-  axis — the non-solvable-group generators, §3.2, must be re-verified to
-  still satisfy the K=32 Hamiltonian-structure requirements the ortho-write
-  wave calibrated against; S₅ has order 120 > K=32, so the entity pool and
-  the group action must be reconciled at build time, not assumed
-  compatible), using the Newton–Schulz orthogonal write throughout —
-  exactly the configuration priced in §2/§6 above.
-- **If ORTHO-WRITE PARTIAL** (cracks at h∈{20,29} but not 40, or L∈{12,20}
-  but not 32): Stage-1 re-registers `h*`/`L*` DOWNWARD to match the
-  cleared depth (e.g. h*=29, L*=20) — the same K=32/d_ncr=33 config stays,
-  only the claimed depth shrinks; §6's GPU-h pricing is essentially
-  unchanged (the same training budget, a shallower eval ladder point
-  claimed as the headline); §7's WIN bands are re-anchored to the new
-  `h*`/`L*` before Phase 1 launches, not after seeing Phase-1 data.
+  median rec@0.9 at h*=40 ≥0.9, free-write baseline <0.5 at h=40): Stage-1
+  build proceeds with **K=32, d_ncr=33** as Task 1's PRIMARY NCR
+  configuration (h*=40, Axis B's own carrier task), using the
+  Newton–Schulz orthogonal write throughout — exactly the configuration
+  priced in §2/§6 above.
+- **If ORTHO-WRITE PARTIAL** (cracks at h∈{20,29} but not 40): Stage-1
+  re-registers `h*` DOWNWARD to match the cleared depth (e.g. h*=29) — the
+  same K=32/d_ncr=33 config stays, only the claimed depth shrinks; §6's
+  GPU-h pricing is essentially unchanged; §7's Axis-B WIN band is
+  re-anchored to the new `h*` before Phase 1 launches, not after seeing
+  Phase-1 data.
 - **If ORTHO-WRITE NULL or FAIL** (no far-depth gain, or Gate-0 breaks):
-  Stage-1 does NOT use K=32 at all. Falls back to **K=15, d≈16** (the
+  Stage-1 does NOT use K=32 for Task 1. Falls back to **K=15, d≈16** (the
   pre-ortho-write free-write "SCALES" regime — 4/4 converged + far-depth
-  HOLD, `NOVEL_ARCH_WATERFALL.md` §11.2) as the NCR configuration. This
-  changes Task 2's structured-bank design (R×15-cycle products instead of
-  R×32) and lowers Task 1's headline `h*` to whatever K=15's own
-  free-write frontier supports (re-derive from that config's own archived
-  z-dumps before pinning a number — not assumed here). If the failure
-  mode is specifically FAIL (trainability breaks under the orthogonality
-  constraint), this ALSO flags that Phase 0's smoke (§6.2) must include
-  an explicit Gate-0 check at the LM-embedded K=15/32 configuration
-  BEFORE any Phase-1 spend — the write-conditioning problem the
-  ortho-write wave diagnosed at the isolated Task-E harness is not
-  guaranteed to manifest identically once bind clauses are embedded in a
-  real-LM training signal (a new confound this document does not resolve
-  and must not assume away).
+  HOLD, `NOVEL_ARCH_WATERFALL.md` §11.2). This lowers Task 1's headline
+  `h*` to whatever K=15's own free-write frontier supports (re-derive from
+  that config's own archived z-dumps before pinning a number — not
+  assumed here). If the failure mode is specifically FAIL (trainability
+  breaks under the orthogonality constraint), this ALSO flags that Phase
+  0's smoke (§6.2) must include an explicit Gate-0 check at the
+  LM-embedded K=15 configuration BEFORE any Phase-1 spend — the
+  write-conditioning problem the ortho-write wave diagnosed at the
+  isolated Task-E harness is not guaranteed to manifest identically once
+  bind clauses are embedded in a real-LM training signal (a new confound
+  this document does not resolve and must not assume away). **This
+  branch does NOT change Task 2's own construction** (§R1(c)'s direct fix
+  of M2: the pre-Rev-1 draft's "R×15-cycle products instead of R×32"
+  silently swapped Task 2 onto a CYCLIC — solvable — group, which cannot
+  carry Axis A's structural claim; that swap is retired, not repaired,
+  because it is no longer needed — Task 2 never depended on this K-axis
+  to begin with).
+
+### 9.2 GATE 2 — the bridge cell verdict (NEW, §R1(d) — governs Axis A/
+Task 2 exclusively; independent of GATE 1)
+
+`NCR_ORTHO_WRITE.md`'s existing blind run (GATE 1, above) trains cyclic
+K-cycle writes (Part A) and RANDOM-ORTHOGONAL bank writes (Part B, R=4
+independent K-cycles) — **never an S₅-generator write** (§A1 M3's
+finding). The bridge cell (§6.2 Phase 0b) is the dedicated, independent
+gate for exactly that untested object, and its own verdict — NOT GATE
+1's — determines whether Task 2/Axis A proceeds, at what depth, or at
+all:
+
+- **If BRIDGE CELL WIN** (median rec@0.9 at L=8 ≥0.9, free-write baseline
+  <0.5 at L=8, §6.2): Task 2's Phase 1 arm (§6.2) proceeds with
+  **K₂=5, d_ncr,2=5, R=3** (S₅'s `{t,c,c⁻¹}`) at the full eval ladder
+  `L∈{5,…,40}`, `L*=32` — exactly the configuration priced in §3.2/§6
+  above. Axis A (§7) is fully contestable at WIN.
+- **If BRIDGE CELL PARTIAL** (Gate-0 clears, L=8 recovery ∈(0.5,0.9)):
+  Task 2 proceeds but `L*` is re-anchored DOWNWARD to whatever depth the
+  bridge cell's own (limited) ladder supports — a build agent must
+  extend the bridge cell's own eval readout to at least one lower
+  checkpoint (e.g. L=5) before pinning a number, not assumed here; §7's
+  Axis-A WIN band is re-anchored accordingly, and Axis A is EXPLICITLY
+  marked REDUCED in any results write-up (§R1(c)'s direct fix of M2's
+  "preserve both axes or mark the structural axis REDUCED" instruction)
+  — still contestable, at a weaker headline depth.
+- **If BRIDGE CELL NULL or FAIL** (no depth gain over free-write, or
+  Gate-0 itself fails on the S₅-generator object): Task 2/Axis A is
+  **DROPPED for Stage 1** — disclosed explicitly, not silently absorbed.
+  No Phase 1+ GPU-h is spent on Task 2's own arm (§6.2's Phase 1 Task-2
+  subtotal, 5.38 GPU-h at 1×, is NOT spent); §7's overall program verdict
+  is capped at PARTIAL regardless of how GATE 1/Axis B reads (§7's
+  overall-verdict rule, revised). If NULL (trains, no depth gain): flags
+  a genuine "does the write-conditioning fix generalize beyond cyclic/
+  random-orthogonal objects" open question for a future waterfall pass,
+  not assumed resolved either way. If FAIL (does not train at all):
+  flags that S₅'s specific generator structure (a transposition +
+  5-cycle, order-5 rotation) may need its own parametrization variant
+  (§2 of `NCR_ORTHO_WRITE.md`'s own Cayley/matrix-exponential fallbacks,
+  named there for exactly this kind of failure) before any retry — not
+  more budget on the same parametrization.
+
+**Both gates are independent and may resolve differently** (e.g. GATE 1
+WIN + GATE 2 FAIL is a fully coherent outcome under this design: Task 1/
+Axis B proceeds at K=32 while Task 2/Axis A is dropped) — this is the
+direct structural consequence of M1's decoupling fix, and a build agent
+must not assume the two verdicts move together.
 
 ---
 
-**Provenance.** This document supersedes nothing; it is a NEW Stage-1
-design, not a revision of any existing registry. `research/
-ncr_separation_grounding.md` and `research/ortho_write_grounding.md`
-landed 2026-07-16 (coordinator-spot-checked) and are incorporated
-throughout (§1, §2.2, §2.3, §3.1–§3.4, §4.4, §7, §9) — every citation in
-this revision is VERIFIED or explicitly flagged, no `[TO-VERIFY]` tags
-remain. Two items still need attention before any paper-facing claim
-language is finalized: (a) `research/ncr_separation_grounding.md` item 8
-(Nichani/Lee/Bietti rank-1-argmax capacity) is verified only via
-cross-reference to a prior in-repo fetch, not this round's own tool
-fetch — flagged for one human spot-check of the PDF directly; (b) the
-S₅-order-120-vs-K reconciliation flagged in §9's WIN branch is a genuine
-open build-time design question, not yet resolved. This document is
-gated for build authorization on: (1) the ortho-write verdict (§9), (2)
-an independent attack round on this document itself (which should target
-the two-pronged §7 framing, the §9 S₅/K reconciliation, and §4.4's
-entirely-unpriced cost, first).
+**Provenance.** This document was a NEW Stage-1 design (opened
+2026-07-16), attacked once (§A1, BUILD-BLOCKED, §A1-ADJUDICATION), and is
+now REV-1 (§R1, this revision) — §1–§9 revised in place per the
+adjudication's binding items (a)–(h); §A1/§A1-ADJUDICATION left untouched
+as historical record, below. `research/ncr_separation_grounding.md` and
+`research/ortho_write_grounding.md` landed 2026-07-16 (coordinator-spot-
+checked) and remain incorporated throughout (§1, §2.2, §2.3, §3.1–§3.4,
+§4.4, §7, §9) — every citation is VERIFIED or explicitly flagged, no
+`[TO-VERIFY]` tags remain. **One item from the pre-Rev-1 draft is now
+RESOLVED, not merely flagged:** the S₅-order-120-vs-K reconciliation
+(item (b) of the pre-Rev-1 provenance note) is fixed by §3.2's M1 rewrite
+— Task 2 now uses S₅'s own 5-point defining action (`K₂=5`), decoupled
+from Task 1/3's K-axis, so the "order 120 > K=32" conflict this note
+flagged no longer arises. **One item is still open, unchanged by this
+revision:** `research/ncr_separation_grounding.md` item 8 (Nichani/Lee/
+Bietti rank-1-argmax capacity) is verified only via cross-reference to a
+prior in-repo fetch, not a fresh tool fetch this round — flagged for one
+human spot-check of the PDF directly before any paper-facing use. This
+document is gated for build authorization on: (1) GATE 1 (§9.1, the main
+ortho-write verdict) AND (2) GATE 2 (§9.2, the bridge-cell verdict, NEW
+this revision) — independent, both must resolve before their respective
+task's Phase 1+ GPU-h is spent — AND (3) ATTACK ROUND 2 on this revision
+itself, which should target (per the pattern of round 1) whichever pinned
+assumption looks most load-bearing: candidates include the §4.4 Axis-B
+statistical criterion's `R²` thresholds, the bridge cell's un-measured
+cost projection, and whether M1's S₅-on-5-points construction is itself
+well-posed for the FULL two-axis conjunction once built.
 
 ---
 
@@ -1426,3 +1982,54 @@ linear) or justify 10× on the actual ladder;
 (g) M6: fix the arithmetic and re-derive the M grid; (h) minors folded in.
 Rev 1 output → fresh independent ATTACK ROUND 2 before build authorization.
 Everything remains CONDITIONAL on the ortho-write verdict.
+
+---
+
+## §R1 REVISION 1 (2026-07-16) — changelog, every §A1 finding mapped to
+its exact fix, with section references
+
+**Scope discipline.** §1–§9 above are revised IN PLACE; §A1 and
+§A1-ADJUDICATION are left byte-intact as historical record, per the
+gauntlet-bookkeeping convention (`CLAUDE.md`). This changelog is the
+single place a reader can verify every one of the adjudication's eight
+binding items (a)–(h) was actually discharged, and where.
+
+| Finding | §A1-ADJUDICATION item | Exact fix | Where |
+|---|---|---|---|
+| **F1 [FATAL]** — §1's hypothesis demands non-solvable structural hardness AND O(log h) repeated-squaring on the SAME query family; provably mutually exclusive (single-operator power ⇒ cyclic/solvable; distinct-generator word ⇒ no squaring shortcut ⇒ Θ(L)) | (a) | §1 rewritten as an explicit CONJUNCTION of Axis A (Task 2, structural, read Θ(L), no speed claim) and Axis B (Task 1, complexity, O(log h), no hardness claim), with an explicit "no single family carries both" disclosure sentence. §2.1's read-mechanism paragraph splits `binexp_read` (Task 1/3) from `loop_read` (Task 2) and states they are not the same function. §3's intro paragraph and §3.1/§3.2 headers re-labeled (both now PRIMARY, one per axis, neither "secondary"). §4.4 re-scoped to Task 1 only. §7's table and overall-verdict rule rewritten around the two-family conjunction, with an explicit "removed" note stating the old single-family WIN path is no longer reachable. | §1; §2.1; §3 (intro), §3.1, §3.2; §4.4; §7 |
+| **M1 [MAJOR]** — Task 2 not well-posed at K=32: S₅ (order 120) has no action on 32 points; `CAPABILITY_SEPARATION`'s infra is ℝ^{d_min} rotation reps, not discrete-entity permutations; "already calibrated" overclaims A5/A6 (hard-stopped on a DIFFERENT task) | (b) | §3.2 rewritten: S₅'s verified 2-generator set `{t,c}` (symmetric closure `{t,c,c⁻¹}`, size 3) rendered as `4×4` (padded `5×5`) rotation-rep operators (`CAPABILITY_SEPARATION_DESIGN.md` §1.3, reused verbatim, verified real); the natural action is on S₅'s own 5 letters, giving Task 2 its own `K₂=5`, decoupled from Task 1/3's `K∈{15,32}`; a K/R table states what K and R mean per task; the A5/A6 hard-stop history is disclosed accurately (Rev 6 hard-stop was on `CAPABILITY_SEPARATION`'s OWN restricted-rank-recovery task, later diagnosed/lifted in Rev 7 — none of that calibration transfers to Task 2's discrete composition task, which needs its own Gate-0, provided by the bridge cell, M3). §5.3 updated to state the held-out-entity split applies per-episode at `K₂=5`. §2.1 adds the per-task `d_ncr` note and recomputes Task 2's own param count. | §3.2 (full rewrite); §5.3; §2.1 |
+| **M2 [MAJOR]** — §9's K≤15 fallback specifies cyclic "15-cycle products," silently dropping Task 2's non-solvable structure | (c) | §9 split into two INDEPENDENT gates (§9.1 main K-axis, §9.2 the new bridge-cell gate). GATE 1's NULL/FAIL branch no longer touches Task 2 at all (M1's decoupling makes the old "R×15-cycle" swap unnecessary, not just wrong — retired, not repaired). GATE 2 (bridge cell) explicitly marks Axis A REDUCED on its own PARTIAL branch (re-anchored `L*`, disclosed) and DROPPED on NULL/FAIL (disclosed, §7's overall verdict capped at PARTIAL) — no silent-drop path remains. §7's Axis-A WIN/PARTIAL/NULL cells cross-reference the bridge-cell gate explicitly. §8 item 7 (new) states the risk plainly. | §9.1, §9.2; §7 (Axis A row, overall verdict); §8 item 7 |
+| **M3 [MAJOR]** — the ortho-write gate is calibrated on cyclic/random-orthogonal K-cycles read at O(L), never S₅/A₅ writes; a WIN does not transfer to Task 2 | (d) | New Phase 0b BRIDGE CELL (§6.2): NS-polar write trained on S₅'s actual `{t,c,c⁻¹}` generators (`R=3, d=5`), priced as a step/seed-reduced PROJECTION from `NCR_ORTHO_WRITE.md` Part B's measured rate (≈4.24 GPU-h/320K-step cell) — ≈2.12 GPU-h (1×) / ≈4.24 GPU-h (2×) — with its own WIN/PARTIAL/NULL/FAIL bands (Gate-0 + one L=8 checkpoint) as a HARD GATE for Phase 1's new Task-2 calibration arm (§6.2 Phase 1). §9.2 states the gate's consequences for Axis A explicitly, independent of GATE 1's own verdict. | §6.2 (Phase 0b, Phase 1 Task-2 arm); §9.2; §6.3 item 5 |
+| **M4 [MAJOR]** — the GPU-h ledger fixes STEPS while §6.4 changes batch/seq (token-count mismatch); Phase-0a's rate probe is planned PACKED, which cannot yield the Phase-1–3 unpacked rate | (e) | §6.1 adds a tokens/sec derivation and states the held-fixed invariant is TOKENS, not steps, with an explicit re-pricing rule if the operating point changes. §6.2 restates every phase's budget in tokens (327.68M/cell calibration & 392M-main, 1.108B/cell 98M-main) and re-derives each phase's GPU-h as `tokens/(tokens_per_sec×3600)` — verified to reproduce the pre-Rev-1 numbers exactly at today's (32,512) operating point, so no number silently moved. §6.2 Phase 0a is split into a PACKED throughput-only measurement (Phase-0/0b scheduling only) and an UNPACKED measurement taken AT the operating point §6.4's saturation pilot selects, with explicit sequencing (pilot before probe). §6.4's own packing paragraph is rewritten to scope packing to Phase 0/0b ONLY and explicitly forbid packing the Phase-0a unpacked rate probe. | §6.1; §6.2 (Phase 0a, Phase 1/2/3 token restatement); §6.4 |
+| **M5 [MAJOR]** — Axis B gates the flagship verdict but its baseline is unchosen + unpriced; the ≥10× bar is transplanted from h≈10³–10⁶ onto a ≤61 accuracy-claimable ladder; and (per F1) cannot apply to Task 2 at all | (f) | §4.4 rewritten: architecture PINNED to extended-eigenvalue DeltaNet (Grazzi et al., `β∈(0,2)`), justified on cost grounds (reuses this repo's already-kernel-verified custom `fla` block, vs. RWKV-7's zero-measured-rate new kernel); explicitly re-scoped to Task 1 only (Task 2 has no O(log L) claim to compare, per F1). The ≥10× bar is REPLACED with (i) a provable, hardware-independent dependency-chain-length assertion (`⌈log₂h⌉` vs `h`, a build-time PASS/FAIL check) as the PRIMARY criterion, and (ii) a secondary wall-clock fit (`Model_log` vs `Model_lin`, OLS, `R²≥0.90` with a `≥0.05` margin over the wrong-family fit — a stated, justified relaxation of the toy-scale `R²≥0.998` precedent) measured on an extended timing-only ladder (`h∈{61,…,20000}`) decoupled from the accuracy-claimable ladder. §7's Axis-B row and §8 item 6 rewritten to match. Phase 0a (§6.2) now prices this arm's own rate probe explicitly (previously excluded). | §4.4 (full rewrite); §7 (Axis B row); §8 item 6; §6.2 (Phase 0a) |
+| **M6 [MAJOR]** — §4.3's `cap_length(M=32,R=32)≈966` is arithmetically wrong (correct value 60.5; 966 is the M=512 row) | (g) | §4.3 rewritten: the arithmetic error is fixed and explained (966 belongs to M=512). Recomputing under M1's own fix (Task 2 is now `R=3, d=5`, not `R=4–32, d=33`) finds the structured-bank state is even smaller (300 bytes) than previously assumed — a NEW, more extreme finding, disclosed. TWO coherent M-grids are re-derived, each verified to clear the 20-token floor at every grid point (the pre-Rev-1 draft's own grid did not, for either case, on direct recomputation) — Case (i) single-relation `M∈{384,…,6144}`, Case (ii) structured-bank `M∈{5120,…,81920}`. | §4.3 (full rewrite) |
+| **m1 [MINOR]** — bf16/fp32 boundary reconciliation has a kill gate but no concrete casting design | (h) | §8 item 2 now specifies the concrete cast pipeline (fp32 upcast at the NCR head's own input boundary, full fp32 internal pipeline, bf16 downcast at output) as a named Phase-0 smoke item. | §8 item 2 |
+| **m2 [MINOR]** — the "cleanly" kill-trigger has no threshold | (h) | §8 item 2 pins an exact threshold: gradient cross-check at `<1×10⁻²` relative tolerance, reusing `DELTANET_REALDATA_DESIGN.md` §4.4's own Tier-1 convention verbatim (both forward outputs and gradients checked). | §8 item 2 |
+| **m3 [MINOR]** — the ≤5% pricing assumption and the >20% kill trigger leave an unguarded 5–20% band | (h) | §8 item 3 rewritten as a two-tier rule with the gap closed, not left open: `>5%` triggers a defined MANDATORY RE-PRICE (was previously undefined in that band); `>8%` (tightened from 20%, a 2.5× reduction) triggers KILL, justified against the ≤1.2%-measured `FROZEN_BIAS_LM_DESIGN.md` precedent (8% ≈ 6.7× that analog — generous but non-vacuous). Every point in `(5%,∞)` now has a defined consequence. | §8 item 3 |
+
+**Net effect on the compute ledger (§6.2).** Grand total moves from the
+pre-Rev-1 draft's ≈462 GPU-h (2×, excluding the rollout baseline) / ≈580
+GPU-h (2×, including a same-order-of-magnitude rollout placeholder) to
+**≈482 GPU-h (2×, now including the rollout baseline's OWN Phase-0a rate
+probe, plus the bridge cell and Task 2's doubled Phase-1 calibration) /
+≈602 GPU-h (2×, same rollout-arm full-training-cell placeholder logic
+applied on top)**. The increase is fully attributable to closing gaps the
+attack round found (M3's bridge cell, M4/M5's now-included rollout-arm
+Phase-0a probe, M1/M3's Task-2 calibration arm) — no number moved without
+a named cause.
+
+**What is NOT yet resolved, carried forward explicitly for ATTACK ROUND
+2 (not silently deferred):** (1) the bridge cell's own cost is a
+PROJECTION, not a measurement (§6.3 item 5) — its true rate, and whether
+the `R=3/d=5` object trains at all, are open until it runs; (2) the §4.4
+Axis-B statistical criterion's `R²` thresholds (`0.90`, margin `0.05`)
+are this design's own pinned choice, justified but not measured against
+any precedent at LM scale; (3) whether S₅-on-5-points, once actually
+built, supports BOTH held-out axes (depth and entity) cleanly at such a
+small `K₂` is asserted by analogy to Task 1's existing mechanism, not
+independently verified; (4) the extended-β DeltaNet patch's own
+wall-clock/stability behavior at LM batch sizes is entirely unmeasured
+(§4.4, §6.3 item 3a) — Phase 0a is now BUDGETED for it (§6.2) but has not
+run. Everything in this document remains CONDITIONAL on both §9 gates
+(GATE 1: main ortho-write verdict; GATE 2: the bridge cell) and on a
+fresh, independent ATTACK ROUND 2 before build authorization.
