@@ -67,3 +67,29 @@ citation enters any doc; the coordinator spot-checks load-bearing claims
 (e.g. fetch the arXiv abstract) before folding them in. Standing grounding
 memos live in `research/`. Novelty = a searched absence, never an assumed
 one.
+
+## Novelty re-verification gate (PI directive, 2026-07-16)
+
+A novelty check done once at design time goes stale the moment the claim
+moves. Re-run the gate BEFORE every launch and at every CLAIM PIVOT — a
+reframed headline is a NEW claim even when the experiment is unchanged
+(the field it competes in changes; precedent: the flagship's
+length-generalization reframe moved it into a far more crowded literature
+than its original access-complexity framing).
+
+The gate, triple-sworn:
+1. **External sweep, by-TASK angle** (worker agent, web-verified): who has
+   run this task family / protocol? What exact train-test regimes?
+2. **External sweep, by-MECHANISM angle** (independent worker agent):
+   who has built this mechanism or claimed this property? Re-verify the
+   standing neighbor list; hunt specifically for post-memo publications.
+3. **Internal-archive sweep** (worker agent, read-only): EXPERIMENT_LOG,
+   STATE.md scorecard, KILL_LIST, archive/, the design registries — does
+   our own record already contain, constrain, or contradict the planned
+   cells or claim?
+
+Both external agents are prompted ADVERSARIALLY ("find the scoop") and
+must return the kill-question verdict plus the narrowest honest unclaimed
+statement. The coordinator (or an Opus judge for publication-bound claims)
+adjudicates all three, records the verdict in the relevant `research/`
+memo or design registry, and only then lets the dependent stage proceed.

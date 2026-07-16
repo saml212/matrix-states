@@ -34,6 +34,14 @@ the loop that enforces these; both transfer with the repo.
   literature (agent web-verified, coordinator spot-checked — never cited
   from memory). Standing memos in `research/`. Novelty is a searched
   absence.
+- **Novelty re-verification gate (PI, 2026-07-16):** novelty is checked
+  at design time AND re-checked before every launch and at every CLAIM
+  PIVOT — a reframed headline is a NEW claim and re-enters the gate.
+  The gate = two independent external sweeps (by-task + by-mechanism
+  angles, separate agents) + one internal-archive sweep (EXPERIMENT_LOG,
+  archive/, KILL_LIST, design registries — don't redo or contradict our
+  own recorded work), adjudicated before the dependent stage proceeds.
+  Verdicts recorded in the relevant `research/` memo or design registry.
 - **Ceremony tiers:** <10 GPU-h → 1 audit round; 10–50 GPU-h → audit +
   pre-launch resource/placement red-team; >50 GPU-h or publication-bound →
   full multi-round adversarial gauntlet.
