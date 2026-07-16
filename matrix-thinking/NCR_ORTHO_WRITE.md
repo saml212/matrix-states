@@ -338,3 +338,39 @@ the far healthier baseline this wave actually uses.
 - [ ] Independent code audit (fresh agent).
 - [ ] Pre-launch (resource/placement) audit.
 - [ ] Runner: ~20 GPU-h, 4× budget, then blind assess against §4.
+
+---
+
+## § CEILING AMENDMENT (v2 re-launch) — recorded 2026-07-16 UTC, BEFORE the re-run
+
+**What changed (compute-budget GUARD only, NOT science).** The runner's
+`--ceiling-gpuh` runaway guard is raised **3.0 → 6.0 h**. A first v2 runner
+launched Part A (16 primary cells) on a drained GPU under a 3.0 h wall-clock
+ceiling and correctly HALTED Part B (8 discriminator cells) because the
+discriminator cells MEASURED ~4.24 h > 3.0 h → they would have aborted mid-run.
+The 3.0 h ceiling was priced **~2× optimistic** against the actual on-box rate.
+
+**Measured completion time for the FROZEN 320K-step cells (unchanged science):**
+- Primary (ortho / free) single-relation cell: **~2.8 h** to complete 320K steps.
+- Discriminator (ortho-bank / free-bank, R=4) cell: **~4.24 h** to complete 320K
+  steps.
+
+The 6.0 h ceiling sits comfortably above BOTH measured rates and remains a pure
+runaway/hang guard — it aborts only a genuinely stuck run, never a healthy one.
+
+**Nothing scientific moves.** 320K steps (4× budget), h\*=40, the realistic eval
+ladder {5,12,20,29,40,61}, the NS-polar orthogonal-write parametrization
+(`n_power=12`, `n_iter`/anneal), R=4 bank, and the frozen §4 WIN/PARTIAL/NULL/FAIL
+bands are ALL UNCHANGED. `--ceiling-gpuh` is not a science parameter; it does not
+enter any recovery/verdict computation. The runner still emits NO verdict; the
+blind assess step still applies the §4 map verbatim.
+
+**Compute correction.** The §6 pre-registration estimated **~20 GPU-h** total. The
+MEASURED rate implies ~77 GPU-h for the full 24 cells (16 primary × ~2.8 h ≈ 45
+GPU-h + 8 disc × ~4.24 h ≈ 34 GPU-h ≈ **~77 GPU-h**, wall-clock reduced by
+distributing across several drained GPUs). The estimate was ~2× low per cell and
+the discriminator arm heavier than priced; the science bar is unaffected.
+
+**Discipline.** This amendment is recorded and committed BEFORE the v2 re-launch
+(record-verdict-first). Any completed Part A cells from the first v2 run are
+resume-safe and retained (the re-launch skips COMPLETED cells).
