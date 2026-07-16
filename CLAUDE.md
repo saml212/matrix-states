@@ -12,6 +12,34 @@ Every cycle should make the next cycle better.
 **Assess:** Be honest. Negative results are data. Don't spin.
 **Codify:** Update STATE.md and EXPERIMENT_LOG.md. If you learned a lesson, also emit a `[LEARN]` block so it auto-saves to the learnings DB (see "Learnings DB" below).
 
+## Operating Doctrine (PI-ratified 2026-07-16)
+
+The `/research-cascade` skill (`.claude/skills/research-cascade/`) encodes
+the loop that enforces these; both transfer with the repo.
+
+- **THE GOAL — one spearhead:** capability separation (NCR exact O(log h)
+  composition reads) inside a real LM at 98M–392M params by ~mid-Aug 2026 →
+  the flagship ICLR-2027 paper. Everything else is support or queue filler.
+- **Pipeline:** always concurrent — RUN experiment N; PLAN N+1 with every
+  WIN/PARTIAL/NULL branch pre-specified and pre-attacked (launches same day
+  as N's verdict); WRITE UP N−1 with a [PENDING] slot for N. Zero GPU gap
+  between verdict and next launch.
+- **Utilization, not occupancy:** target 100% on all 8 GPUs; per-GPU util
+  sampled 3×/tick; sustained <50% = a bug. Saturation-packing is a
+  pre-launch design gate (predicted SM util + memory in every design; small
+  cells packed N-per-GPU with contention-priced ceilings, or sized up).
+  Measured cautionary case 2026-07-16: toy cells drew 44–59% SM / 1.7GB on
+  80GB H100s.
+- **Research grounding:** every design, claim, and report cites VERIFIED
+  literature (agent web-verified, coordinator spot-checked — never cited
+  from memory). Standing memos in `research/`. Novelty is a searched
+  absence.
+- **Ceremony tiers:** <10 GPU-h → 1 audit round; 10–50 GPU-h → audit +
+  pre-launch resource/placement red-team; >50 GPU-h or publication-bound →
+  full multi-round adversarial gauntlet.
+- **Model tiering:** worker subagents Sonnet-class; judges/attack/blind
+  assess Opus-class.
+
 ## Learnings DB
 
 A SQLite DB at `.claude/memory/workflow.db` persists durable rules, corrections, and gotchas across sessions. Relevant rules auto-inject at prompt time via the `load-relevant-rules.sh` hook.
