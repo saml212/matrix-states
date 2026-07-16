@@ -474,3 +474,270 @@ its shallower bar, escalate to the WIN branch's full ladder as a follow-on;
 if it doesn't, the K-ladder line closes here, cheaply.
 
 **Under NULL or FAIL:** this document does not execute. No cells launch.
+
+---
+
+## §A1 ATTACK ROUND 1 (2026-07-16, pre-build, independent)
+
+Adversarial pre-build review. Every §2/§3/§4/§7/§8 number was recomputed from
+the pinned formulas; every load-bearing citation was checked against
+`NCR_ORTHO_WRITE.md`, `NOVEL_ARCH_WATERFALL.md:3899-3901`, `ncr_task.py`,
+`ncr_ortho_write.py`, and `chapter2/model_v4.py`. Arithmetic is CLEAN
+throughout (see "verified clean" at the end). The killers are structural.
+
+### FATAL
+
+**A1.1 — FATAL. The `h=64` encoder-hidden cap makes Gate-0 STRUCTURALLY
+UNPASSABLE at K=96 and K=128 (and razor-thin at K=64). The write cannot
+reach rank K.**
+- Defective claim (§2): "*`h=64` fixed (encoder hidden unchanged across K…)*"
+  and finding (1): "*Params stay trivial end to end (175K→200K, +14%) — the
+  'never the constraint' precedent holds for PARAMS.*" The design treats
+  `h=64` as a param-count question ONLY and never asks what it does to the
+  **write rank**.
+- Evidence: the write is produced by `BindingEncoder`
+  (`chapter2/model_v4.py:52-63`): `self.row_out = nn.Linear(h, d)`, then
+  `Z = self.row_out(q)` where `q` is `(B, d, h)`. Every one of the `d` rows of
+  `Z` is the image of an `h`-vector under ONE shared `h→d` linear map, so
+  **`rank(Z) ≤ h + 1 = 65`** for all K (the `+1` is the bias). Gate-0 requires
+  `mean A_eff_rank ≥ 0.9·K` (design §6; enforced verbatim at
+  `ncr_earlyln_scale.py:322`, `AEFF_RANK_FRAC_BAR*K`), and `A_eff_rank` is
+  `effective_rank(A)` of the entity operator `A` derived from `Z`
+  (`chapter2/analyze_zdump.py:166`, `= exp(entropy(σ))≤ rank`), so
+  `A_eff_rank ≤ rank(Z) ≤ 65`. Then:
+  - K=48 (d=49): cap `min(d,h)+1≈49`, bar `0.9·48=43.2` → feasible (d<h; no cap).
+  - K=64 (d=65): cap `≈65`, bar `0.9·64=57.6` → RAZOR-THIN (needs eff-rank
+    57.6 against a hard structural ceiling of 65; a soft-trained encoder rarely
+    fills 89% of its rank ceiling).
+  - K=96 (d=97): cap `≈65`, bar `0.9·96=86.4` → **IMPOSSIBLE (86.4 > 65)**.
+  - K=128 (d=129): cap `≈65`, bar `0.9·128=115.2` → **IMPOSSIBLE (115.2 > 65)**.
+- Why the precedent is silent: the validated regime (K=16/24/32) has `d ≤ 33 <
+  h=64`, so the `h` cap NEVER binds there (`A_eff_rank≈31` at K=32 sits under
+  `d=33`, not under `h`). The ladder is the FIRST time `d` crosses 64
+  (K≥64) — exactly where the cap bites — and it does so with `h` held fixed.
+  "Carried by extrapolation" (§2) is thus doubly unvalidated: the design flags
+  the relative-headroom axis but MISSES the write-rank-expressivity axis.
+- The design's own safety nets misdiagnose it: (a) the Stage-0 calibration cell
+  is at K=128 (§5) — it will fail Gate-0 for THIS reason, and the design would
+  misattribute it to relative-headroom or NS-convergence. (b) The §2 fallback
+  (retest at `d=1.25K` = 160 at K=128) makes it strictly WORSE — rank still
+  capped at 65, bar still 115.2, in an even larger ambient space. (c) The §5
+  `orthogonality_error` abort WOULD fire (NS-polar of a rank-65 `Z` in d=129 is
+  a partial isometry; scale-normalized `‖QᵀQ−I‖_F ≈ 11`, not machine
+  precision), but the pre-registered remediation ("raise `n_iter`") CANNOT fix
+  it: a zero singular value is a fixed point of the NS map `x←1.5x−0.5x³`, so no
+  number of iterations orthogonalizes a rank-deficient write.
+- Minimal fix: `h` (encoder hidden) MUST scale with K so `h ≳ d = K+1` (e.g.
+  `h = max(64, K+ margin)`), which is what actually lets `row_out` write rank-K.
+  This is NOT a patch: the `40h²` param term then grows as K² (invalidating the
+  §2 "params trivial" finding and the entire §2/§4/§7/§8 cost model), and the
+  FLOP/NS tables must be recomputed. BUILD-BLOCKED until `h(K)` is redesigned
+  and every downstream table redone. (Alternatively cap the ladder at K≤48 —
+  the only rung whose `d<h` keeps the write full-rank in the validated regime —
+  but that abandons the scaling-law premise.)
+
+### MAJOR
+
+**A1.2 — MAJOR. The free-write "<0.5 at same depth" WIN(K) clause is never
+measured at any new K, and the cited precedent is mischaracterized.**
+- Defective text (§4): "*the free-write baseline is NOT re-run at each new K; it
+  is already established DEAD at K=24/32 …, §4's own pinned baseline-reuse
+  precedent*", carried into §6 WIN(K): "*free-write baseline (extrapolated-dead
+  …, not freshly re-measured) stays <0.5 at the same depth*".
+- Evidence: `NCR_ORTHO_WRITE.md` §4 pins the K=32 free clause as **measured**
+  ("*reads < 0.5 at h=40 (measured; … re-analyzed on the identical realistic
+  ladder from the archived z-dumps, CPU, free)*", §4 + the "Pinned baselines"
+  block). That precedent REUSES AN EXISTING MEASUREMENT (a K=32 z-dump that
+  physically exists). No free-write z-dump exists at K∈{48,64,96,128} — there is
+  nothing to re-analyze — so the design is not "reusing a measurement," it is
+  EXTRAPOLATING across K and calling it reuse. The WIN(K) band therefore
+  contains a gate clause that can never be checked, so WIN(K) collapses to a
+  single-arm ortho claim — which directly undercuts the PI's capability-
+  SEPARATION headline (a separation claim needs both arms AT that K).
+- Minimal fix: measure a free-write anchor at ≥1 new K (minimum: K=48, the floor
+  cell; a fresh free run is cheap relative to the wave), OR restate WIN(K) as an
+  explicit single-arm claim with the free comparison labeled
+  "extrapolated-from-K≤32, NOT measured at this K." Do not pre-register an
+  unverifiable clause inside a WIN band.
+
+**A1.3 — MAJOR. The mechanistic corroboration thresholds are asserted
+K-independent, but their far-depth meaning compounds over `h*=K+8` and goes
+vacuous at large K — contra the CLAUDE.md instrument-relative rule.**
+- Defective text (§6 WIN(K)): "*mechanistic corroboration unchanged
+  (departure-from-normality ≤0.02, cond#≤~2, min|λ|/c\*≥0.9) — these thresholds
+  … are not themselves K-dependent*", with §6 also claiming the bands "*mirror
+  `NCR_ORTHO_WRITE.md` §4 Part A exactly*".
+- Evidence: the far-depth recovery these numbers corroborate decays as
+  `(min|λ|/c*)^h` (`NCR_ORTHO_WRITE.md` §1). The SAME threshold `min|λ|/c*=0.9`
+  leaves the weak mode at `0.9^40 = 0.015` at K=32 (h*=40) but `0.9^136 = 4·10⁻⁷`
+  at K=128 (h*=136) — total annihilation. So a threshold that is meaningful
+  corroboration at K=32 is satisfied by operators far too imperfect to win at
+  K=128; the corroboration has NO discriminating power at large K. CLAUDE.md's
+  hard rule is explicit: "*the … n_iter-sufficiency frontier MOVES with K/d …
+  Never carry an admission profile derived at one K/d to another without
+  re-validating.*" Asserting flat K-independence violates it.
+- Minimal fix: tie corroboration tightness to `h*` (require
+  `(min|λ|/c*)^(K+8) ≥` a fixed fidelity, likewise for cond#/departure), OR
+  explicitly demote the three numbers to non-binding sanity checks and state
+  the behavioral `rec@0.9` is the SOLE gate. Either way, drop the false
+  "not K-dependent" and "mirror exactly" wording.
+
+**A1.4 — MAJOR. The Stage-0 orthogonality abort trigger is a pre-registered
+decision gate with no pinned threshold (adjudication-by-vibes).**
+- Defective text (§5): "*Target: `‖QᵀQ-I‖_F` at machine-precision-ish … a
+  **materially non-zero** residual at K=128 is an explicit ABORT-and-redesign
+  trigger*".
+- Evidence: "machine-precision-ish" and "materially non-zero" are not numbers.
+  `orthogonality_error` is a scale-NORMALIZED Frobenius residual
+  (`ncr_ortho_write.py:144-151`) that is never exactly zero and (per A1.1) reads
+  ≈11 under rank-deficiency and O(1e-2) under mild NS under-convergence — utterly
+  different regimes that "materially non-zero" cannot distinguish. Pre-
+  registration discipline (the doc's own record-first framing; the frozen §4
+  bands) requires a frozen number for any abort gate.
+- Minimal fix: pin an exact numeric tolerance (e.g. scale-normalized
+  `orthogonality_error ≤ 1e-2` per the code's own self-test t4 bound, or the
+  realized K=32 ortho value once available) AND a forced-fail negative test, per
+  the CLAUDE.md "run the negative unit test that proves the check has teeth"
+  rule.
+
+**A1.5 — MAJOR. Residue-8 monoculture: the primary bar has FIXED effective
+relational depth at every K, so §6's "K-general depth composition" readout
+overstates what the ladder measures.**
+- Defective framing (§1 / §6a): "*one full relational cycle plus a novel
+  residue*" and "*the orthogonal write's realistic-depth composition ceiling is
+  K-general*".
+- Evidence: every primary `h*=K+8` has residue 8 (design §3), so the effective
+  target is `π^8` at EVERY K; and for a faithfully-learned orthogonal operator
+  `Z^K≈I`, so `Z^(K+8)≈Z^8` — the "+K" contributes nothing but a physical-
+  application stress. The full realistic ladder's forward effective depths are
+  `{5,8,12,20}` (fixed, K-independent) plus `π^{-3}` (near=K-3 AND stretch=2K-3
+  both `≡ -3 mod K`). No ladder point probes a forward effective depth that
+  GROWS with K. So the "scaling law" measures orthogonality-survival over `K+8`
+  physical applications with EFFECTIVE relational depth pinned at ≤20 — not
+  deeper compositional generalization. (Aggravator: residue 8 has identical
+  special structure `gcd(8,K)=8 ⇒ 8 sub-cycles` at every ladder K, so a
+  residue-8-specific effect would masquerade identically across all four rungs.)
+- Minimal fix: add a novel primary checkpoint whose effective (mod-K) depth
+  GROWS with K and whose gcd-with-K varies (e.g. a residue coprime to K giving a
+  single long cycle), OR restate the §1/§6 readout precisely as
+  "physical-application-fidelity scaling," dropping "compositional depth
+  generalization" at the primary. (Note: this monoculture is inherited from the
+  frozen K=32 pre-reg, so the fix is claim-scoping, not a build blocker on its
+  own — but the ladder AMPLIFIES a single-K confound into a four-point "law.")
+
+**A1.6 — MAJOR. The pinned trim order provably cannot reach the 150 GPU-h cap
+in the compute-bound worst case it is built for.**
+- Defective claim (§4): "*Pinned trim order if the calibration-corrected
+  projection still exceeds the cap*" (steps 1–5), against "*Planning cap … 150
+  GPU-h*".
+- Evidence (recomputed on the design's own §4 nominal table): applying ALL four
+  trims — drop B@K128 (−391.6), K96 A n4→n1 (−90.4), drop B@K48 (−36.2), K128 A
+  n4→n1 (−194.0) — leaves `K48 A 23.9 + K64 A 44.7 + K96 A n1 30.13 + K128 A n1
+  64.65 = 163.4 h`, still **> 150 h**. Step 5 is the floor (K48+K64 only), so
+  K96/K128 A at n1 are neither trimmable-to-zero nor floor — the trim order
+  bottoms out at 163.4 h and cannot satisfy its own cap. (The floor deliverable,
+  68.6 h, IS protected — that part is clean.)
+- Minimal fix: add explicit "drop K96 A entirely / drop K128 A entirely" steps
+  before the floor, OR raise the cap to ≥165 h, OR state plainly that the cap
+  binds only under the overhead-bound (calibration-corrected) regime and the
+  compute-bound worst case is PI-gated, not trim-order-satisfiable. (Real-world
+  stakes are low — uptime-metered grant, cap is "adjustable" — but the stated
+  mechanism is internally inconsistent.)
+
+### MINOR
+
+**A1.7 — MINOR. §6 claims PARTIAL(K) "mirror[s] §4 Part A exactly," but the
+checkpoint set differs.** Frozen K=32 PARTIAL (`NCR_ORTHO_WRITE.md` §4) is
+"`h∈{20 OR 29=K-3}`"; design §6 PARTIAL(K) is "`K-3 / 2K-3`" — it drops the
+shallow-20 checkpoint and substitutes the deeper 2K-3. A silent re-derivation of
+a frozen band. Fix: say "generalized (20→2K-3)," not "exactly."
+
+**A1.8 — MINOR. §7 runaway-abort formula uses the SOLO ceiling for packed
+cells.** §7 states the trigger as "1.5× that cell's own `ceiling(K)`" while the
+same section's packed-correction paragraph and §8 require the CONTENDED
+projection — a literal reader kills healthy packed cells. Fix: write
+"1.5× `packed_ceiling(K,N)`" for packed cells.
+
+**A1.9 — MINOR. The `d=1.25K` fallback is under-motivated by, and mildly in
+tension with, the only d-variation evidence in the cited source.** It is
+well-posed (`K≤d` holds at d=60/80/120/160, task defined — attack-surface-2's
+narrow question passes), BUT `NCR_ORTHO_WRITE.md` §5 shows the MORE-headroom
+(2K) convention was catastrophically ill-conditioned (K24@d48 cond#≈2951,
+"polar barely helps") vs the K+1 tight-spare being "far healthier." Moving
+toward 2K to rescue trainability is thus a DIAGNOSTIC ("does headroom matter"),
+not a presumed rescue, and its own cost is un-repriced (`NS(160)≈656M` at K=128,
+~1.9× `NS(129)`). Fix: reframe as a diagnostic and cite the §5 cautionary point.
+
+**A1.10 — MINOR. Single-seed Stage-0 drives a branch/redesign decision despite
+documented high trainability seed-variance.** §5's FAIL clause (Gate-0 dead at
+K=128 → don't launch upper ladder / go to `d=1.25K`) fires on ONE seed, but the
+project's own record (`CLAUDE.md` / STATE §1.40: "one fresh seed cleared the
+bar") warns trainability is seed-variance-heavy. Fix: require a 2nd calibration
+seed before the FAIL→redesign branch fires (cheap; one extra cell).
+
+**A1.11 — MINOR. §9 PARTIAL branch and §6 bands are not fully reconciled.** §9
+moves the primary to `K-3` under PARTIAL, but §6's WIN(K)/PARTIAL(K)/NULL(K)
+bands are written only for the `K+8` primary; the branch does not restate the
+full band set at the moved bar. Fix: give the PARTIAL-branch band mapping
+explicitly.
+
+### Verified CLEAN (attack surfaces exercised, no defect found)
+- **All §2 tables** (params `166784+257d`; FLOP `311296K+16384d+768K²+256Kd+256d²`
+  at h=64; `NS=160d³+48d²`; F+NS; ratio-vs-K32; `1/d`; K/d; memory `320·d²`/ex ×256):
+  every cell recomputed EXACT, including `NS(33)=5,802,192`, `P(33,64)=175,265`.
+- **§3 mod-K residue table**: all residues recomputed EXACT (near=K-3, h*≡8,
+  stretch=2K-3, synthetic=8K-3); all `∉{0,1,2,3}` verified; `h*/3` multiples
+  (18.7×/24×/34.7×/45.3×) EXACT. Matches `ncr_task._gen_grid` (ladder_residue=K-3,
+  ladder=m·K-3, h_star=8K-3) and GRIDS is pre-defined for all four K.
+- **§4 pricing**: per-cell (5.98/9.06/11.18/16.93/30.13/45.63/64.65/97.90 h),
+  subtotals (A 447.7 / B 427.8 / total 875.5), K128=650.2h=74% — all EXACT.
+- **§7 ceiling** (`2·ratio·4.24`: 18.1/33.9/91.3/195.8) and **§8 packed**
+  (×1.3: 23.5/44.1; `2/1.3=1.54×`) — EXACT.
+- **Attack-surface-8 (disc-rate ceiling distorting trim order)**: does NOT hold.
+  The trim order (§4) prices A at 2.8h and B at 4.24h correctly; the disc-rate
+  +2× conservatism lives ONLY in the §7 sticker-ceiling, which does not feed the
+  trim order. (Separately flawed via A1.6, but not by double-counting.)
+- **Code-claim checks**: `d=K+1` (`ncr_ortho_write.py:286`, overrides
+  GRID_SHAPES d=2K), `h=64` (`:287`, `GRID_SHAPES[K]["h"]`), `NS_ITER_DEFAULT=40`
+  / `NS_POWER_DEFAULT=12` (`:82-83`), `orthogonality_error` instrumented
+  (`:144`) — all match the design's "reused inputs."
+
+### VERDICT: **BUILD-BLOCKED** (A1.1 is fatal: K=96/K=128 Gate-0 is
+unpassable because the fixed `h=64` write caps `rank(Z)≤65 < 0.9·K`; the
+calibration cell, the `d=1.25K` fallback, and the `n_iter` remediation all fail
+to address it). Re-registration required before any build: scale `h(K)` and
+redo every §2/§4/§7/§8 table, then clear A1.2–A1.6.
+
+---
+
+## §A1-ADJUDICATION (coordinator, 2026-07-16 — recorded before dispatching Rev 1)
+
+**A1.1 FATAL: CONFIRMED against the raw code by the coordinator directly**
+(per the conflicting-claims/tiebreak rule — verified, not taken on the
+attacker's word): `chapter2/model_v4.py:52` `row_out = nn.Linear(h, d)` with
+`Z = row_out(q)`, `q:(B,d,h)` ⇒ `Z = QW + 1bᵀ` ⇒ `rank(Z) ≤ h+1 = 65`;
+`ncr_earlyln_scale.py:75` `GRID_SHAPES` pins `h=64` for ALL K∈{14..128};
+`ncr_earlyln_scale.py:322` gate requires `aer_mean ≥ 0.9·K` = 86.4 (K=96) /
+115.2 (K=128) — both `> 65`, structurally unpassable. Context: `h=64 = 8K`
+at the original K=8; the h/K ratio silently shrank as K grew and the
+validated regime (K≤32, bar 28.8) never touched the ceiling.
+
+**Disposition:** BUILD-BLOCKED verdict ACCEPTED. Rev 1 dispatched with:
+(a) h must scale with K — coordinator steer: `h=2K` preserves the ratio at
+the LAST VALIDATED rung (K=32, h=64=2K), making the rank ceiling `2K+1 ≥
+0.9K` trivially and minimizing extrapolation distance (h=8K matches only the
+K=8 rung and 4×-overshoots the validated ratio); Rev 1 may argue an
+alternative but must justify it against this default and re-derive EVERY
+§2/§4/§7/§8 cost/memory table for the chosen h(K);
+(b) A1.2–A1.6 each addressed with an exact, testable change (A1.2: measured
+free-write confirmatory cells n=1 per new K, or an explicit one-arm
+reframing of WIN(K) — no extrapolated baseline inside a WIN clause;
+A1.3: mechanistic thresholds re-derived per-K from band arithmetic, e.g.
+`min|λ| ≥ floor^(1/h*(K))`, honoring the instrument-relative rule;
+A1.4: exact orthogonality_error tolerance + a forced-fail negative test;
+A1.5: honest reframe of effective-depth claims + at least one added
+non-residue-8 novel probe depth per K; A1.6: trim order re-derived to
+actually reach the 150h cap);
+(c) minors A1.7–A1.11 folded in. Rev 1 output → fresh independent ATTACK
+ROUND 2 (multi-round rule) before any build authorization. The design
+remains CONDITIONAL on the ortho-write verdict regardless.
