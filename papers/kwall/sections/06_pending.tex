@@ -14,12 +14,13 @@ read.
 % evidence: NCR_ORTHO_WRITE.md S2/S4b/S8/S9
 
 \begin{quote}
-\textbf{VERDICT (conditional on an in-progress code re-audit -- see
-below): Part A FAIL. Part B FAIL.} The Newton--Schulz-constrained write
-does not train at $K{=}32$; the free-write control, run in the identical
-harness, reproduces the wall cleanly, validating the instrument.
+\textbf{VERDICT: Part A FAIL. Part B FAIL.} The Newton--Schulz-constrained
+write does not train at $K{=}32$; the free-write control, run in the
+identical harness, reproduces the wall cleanly, validating the
+instrument. An independent post-FAIL code re-audit closed
+MECHANISM-CONFIRMED -- no implementation defect (see below).
 \end{quote}
-% evidence: NCR_ORTHO_WRITE.md S9.5
+% evidence: NCR_ORTHO_WRITE.md S9.5/S10.0
 
 The bands below were fixed before any result existed and are reproduced
 verbatim so the verdict below can be checked mechanically against them; a
@@ -123,23 +124,24 @@ configuration, disclosed as such -- it does not strengthen or weaken the
 Part-A ortho-write FAIL.
 % evidence: NCR_ORTHO_WRITE.md S9.2
 
-\textbf{Caveat, stated plainly: this verdict is conditional on an
-in-progress code re-audit.} The behavioral signature -- loss engaging
-then collapsing, free-write training cleanly in the identical pipeline --
-is consistent with the pre-registered ``too rigid to train through''
-mechanism, and that is the reading this section reports. But behavioral
-data alone cannot exclude an implementation defect in the 40-iteration
-Newton--Schulz polar projection: a CPU smoke test passed (step-0 gradient
-norm $0.5$--$0.9$) yet training still destabilized over the full
-320K-step trajectory, and an independent re-audit of the
-Newton--Schulz/\texttt{encode} path under the full optimizer trajectory
-is underway but not complete as of this draft. The FAIL verdict above is
-behaviorally the pre-registered mechanism; it is not yet ruled
-independent of a possible implementation bug, and the paper's verdict is
-conditional on that audit closing clean. This caveat is recorded in
-\texttt{NCR\_ORTHO\_WRITE.md} \S9.4 (item 1) and must be read alongside
-the verdict, not as a footnote to it.
-% evidence: NCR_ORTHO_WRITE.md S9.4
+\textbf{Bug-vs-mechanism, resolved.} Behavioral data alone could not
+exclude an implementation defect in the 40-iteration Newton--Schulz
+polar projection (a CPU smoke test passed at step 0 yet training still
+destabilized over the full 320K-step trajectory -- the caveat recorded
+at assessment time in \texttt{NCR\_ORTHO\_WRITE.md} \S9.4). An
+independent post-FAIL code re-audit has since closed
+MECHANISM-CONFIRMED, no bug: CPU reproductions of the pinned projection
+function refuted the prime suspect (a Newton--Schulz convergence-basin
+violation -- the per-forward spectral pre-scale is essentially exact and
+the iteration orthogonalizes to $\|Q^\top Q - I\| \approx 0$ through
+input condition numbers of $10^6$) and diagnosed the true failure as an
+independent trainability trap of the tight-spare ($d{=}K{+}1$) regime:
+the scale-invariant loss exerts no pressure on the spare direction,
+$\sigma_{\min}$ collapses below the iteration's working range, and the
+polar backward explodes as $\sim 1/\sigma_{\min}$
+(\texttt{NCR\_ORTHO\_WRITE.md} \S10). The FAIL verdict above is
+therefore unconditional.
+% evidence: NCR_ORTHO_WRITE.md S10.0/S10.1/S10.7
 
 \textbf{What this establishes.} The $K{=}32$ wall reproduces under an
 independent training run in this section's own harness and is not
@@ -149,7 +151,7 @@ instrument (the free-write control trains cleanly in the same pipeline),
 is itself evidence about the wall's character: it is not merely that
 nobody has tried constraining the write, but that the specific,
 principled constraint this program pre-registered does not survive
-contact with training at $K{=}32$, pending the code audit above. Per the
+contact with training at $K{=}32$. Per the
 pre-registered next move on FAIL, the follow-on is a fallback
 parametrization (a Cayley map or skew-symmetric matrix exponential,
 Section~\ref{sec:diagnosis}) or a softer spectral-penalty variant -- not

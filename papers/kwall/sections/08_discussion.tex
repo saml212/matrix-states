@@ -20,9 +20,10 @@ post-hoc orthogonal projection recovers depth on an already-trained
 operator; it does not, by itself, establish that training the constraint
 directly will converge or generalize past $K{=}24$ -- that is exactly
 what Section~\ref{sec:pending}'s now-landed run tested, and the answer
-was negative: the constrained write did not train (FAIL, conditional on
-the code re-audit disclosed there). We report the odds we assigned
-before running it, not after.
+was negative: the constrained write did not train (FAIL, confirmed as
+mechanism rather than implementation defect by the code re-audit
+disclosed there). We report the odds we assigned before running it, not
+after.
 
 \textbf{We do not claim a new state-tracking expressivity result.}
 Section~\ref{sec:related} names two published results
@@ -52,16 +53,28 @@ and $K{=}32$) has no loss-curve signature under the one check performed
 and is reported as an open, twice-observed phenomenon, not resolved.
 % evidence: NOVEL_ARCH_WATERFALL.md S11.5/S11.6
 
-% NOTE: resolve after design-doc §10 (bug-vs-mechanism code re-audit) lands -- this passage's "pending fix landing NULL" framing awaits that resolution.
-\textbf{Falsification, restated.} The bound half of this paper's claim --
+\textbf{Falsification, resolved.} The bound half of this paper's claim --
 that the $K{=}32$ wall is not rescued by dimension convention or training
 budget alone under the recipe tested -- would be voided by any single
 untested lever (a fourth budget multiple, a different anneal schedule, a
 different loss) reaching CONVERGED-ROBUST with median far-depth recovery
 at $h^\ast \geq 0.9$; none of the twenty-four cells tested against the
-levers we did try did so. The mechanism half would be voided by the
-pending fix (Section~\ref{sec:pending}) landing NULL with a clean
-mechanistic signature (departure-from-normality and condition number
-already near their healthy targets) -- that specific combination would
-mean the diagnosis is wrong, not merely incomplete, and we would report
-it as such.
+levers we did try did so. The mechanism half's pre-registered voiding
+condition -- the fix landing NULL with a clean mechanistic signature
+(departure-from-normality and condition number already near their healthy
+targets) -- did not occur: the fix experiment
+(Section~\ref{sec:pending}) landed FAIL, not NULL, and its signature is
+degenerate and untrained (departure-from-normality $0.17$--$0.69$,
+condition number $154$--$4387$), so the wall-mechanism diagnosis stands
+unvoided -- though a FAIL, unlike a WIN, does not additionally confirm
+it. The post-FAIL code re-audit has since closed MECHANISM-CONFIRMED, no
+bug: the projection \emph{route} failed for a now-diagnosed, independent
+trainability reason -- a tight-spare ($d{=}K{+}1$) ill-conditioning trap
+in which the scale-invariant loss exerts no pressure on the spare
+direction, $\sigma_{\min}$ collapses below the Newton--Schulz iteration's
+working range, and the polar backward explodes as $\sim 1/\sigma_{\min}$
+-- which neither confirms nor refutes the wall mechanism itself; the
+orthogonal-operator hypothesis remains open for structurally different
+parametrizations, and a Cayley/skew-symmetric fallback design is in
+progress (\texttt{NCR\_ORTHO\_WRITE.md} \S10).
+% evidence: NCR_ORTHO_WRITE.md S10.0/S10.7/S10.8
