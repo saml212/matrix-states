@@ -1979,3 +1979,271 @@ before the exposure. All §2-relevant metric values remain unread.
 **Status: v2 built, verified, deployed, NOT relaunched** — §B4's ruling
 and the coordinator's follow-up both gate any relaunch on the delta
 re-audit of this fix (which should also adjudicate F-A/F-B above).
+
+---
+
+## §B6 DELTA RE-AUDIT (2026-07-17)
+
+Same independent auditor as §B4. Read-only except this section. All
+numerics below re-run from scratch with independent seeds/frames (seed
+1234/7/21/3 harness vs §B5's seed-0 `verify_d1_fix.py`), on CPU torch
+2.8.0, through the REAL v2 `encode()` path (module loaded from the
+md5-pinned working copy `matrix-thinking/ncr/ncr_ortho_fallback_stage0.py`
+= `ce1448ab3d47536ebf3e82b146e33722`, byte-identical to the archived
+`experiment-runs/2026-07-17_ncr_ortho_fallback_stage0/
+ncr_ortho_fallback_stage0_v2.py` — both md5s verified this session;
+loaded module asserted to carry the finfo.tiny guard and not the old
+`NS_EPS` guard before any numbers were taken; `newton_schulz_polar`
+module-attribute capture, not a scratch re-implementation).
+
+### Ruling 1 — D1 FIX VERIFICATION: **CONFIRMED DEAD.**
+
+v1→v2 diff regenerated independently (`diff -u` between the two archived
+files): **exactly one semantic line changed** — `scale = S_floor /
+S.clamp_min(NS_EPS)` → `scale = S_floor /
+S.clamp_min(torch.finfo(S.dtype).tiny)` — plus a 9-line comment block.
+Nothing else. Matches §B5's "11 lines, no other change" claim exactly;
+also cross-checked against commit `15e3dc1`'s hunk for the working copy
+(identical). §2's pseudocode line was corrected to match, with an inline
+D1 marker (verified at the §2 code block).
+
+§B4's numeric table re-run against v2's actual code (fp64, non-normal
+`Z = U₀·diag(σ)·V₀ᵀ`, `U₀≠V₀`, `σ_max=5`, `eps_rel=1e-3`, target floor
+`5.000e-3`, independent frames):
+
+| d | raw σ_min (set) | achieved σ_min(Z_damped) | achieved/target |
+|---|---|---|---|
+| 5 | 1e-4 | 5.000000e-3 | 1.0000 EXACT |
+| 5 | 1e-9 (v1: 100× short) | 4.999999e-3 | 1.0000 (rel err ~2e-7, see note) |
+| 5 | literal 0.0 | 1.712e-2 | 3.42 (noise regime — F-A) |
+| 25 | 1e-4 | 5.000000e-3 | 1.0000 EXACT |
+| 25 | 1e-9 (v1: 100× short) | 5.000000e-3 | 1.0000 EXACT |
+| 25 | literal 0.0 | 4.183e-3 | 0.84 (noise regime — F-A) |
+
+The D1 axis (resolvable σ_min below the old `NS_EPS=1e-7` threshold) is
+fixed: `σ_min=1e-9` rows, where v1 fell exactly 100× short, are now
+exact. **Precision note (refines §B5's "rel tol 1e-10" prose, which its
+own table already contradicted at d=5):** the achieved floor's relative
+error is `≈ ε_dtype·σ_max/σ_i` — the dtype SVD's own relative accuracy
+on the small singular value (fp64 at σ_i=1e-9, σ_max=5: bound ~5.5e-6,
+measured 2e-7). This is the clean, unified statement: exactness degrades
+continuously as σ_i approaches the noise floor, reaching O(1) exactly
+there — which IS finding F-A, not a separate phenomenon. D1 itself
+(a spurious 100×-level leak in a fully-resolvable regime) is dead.
+
+### Ruling 2 — F-A ADJUDICATION: **ACCEPTED, re-scoped — via the MARGIN argument, NOT the unreachability argument.**
+
+Independently reproduced F-A's O(1) spread: 8 fresh fp64 frames, d=25,
+true σ_min=0 → achieved/target ratios {0.16, 0.32, 0.40, 0.43, 0.57,
+0.71, 2.41, 4.11} — same O(1)-uncontrolled character as §B5's {1.46 …
+0.00}. §B4's "removing the clamp reproduces the exact target… down to
+and including literal σ_i=0" is hereby CORRECTED on the record: that
+claim was seed/shape-lucky at d=5 (my own §B4 CASE-C run landed near
+target by luck); the mechanism §B5 identifies is right — SVD backward
+error `~ε·σ_max` amplified by `scale ~ S_floor/σ_noise` lands the
+achieved value at floor magnitude times an uncontrolled O(1) factor,
+and left-multiplication `M@Z` can never raise the rank of a truly
+rank-deficient `Z`, so the worst case is 0, not O(1).
+
+**The coordinator's proposed dynamical unreachability argument is
+REJECTED.** The floor acts on the *output* `Z` each forward; it adds no
+restoring pressure on the raw encoder's σ_min (gradients pass straight
+through `M`, and §10's diagnosis is precisely that the read exerts zero
+pressure on the spare direction). The raw σ_min's random walk therefore
+proceeds exactly as in the parent run — which *measured* it crossing
+~1e-7 absolute (~1e-8 relative against the drifted σ_max), i.e. at/below
+fp32's resolvability floor (`ε_fp32·σ_max ≈ 1.2e-7·σ_max`). The
+noise-floor regime is not just reachable in training, it is the
+*expected destination* of a full Stage-0 run. F-A is live for the
+experiment, not moot.
+
+**It is nonetheless ACCEPTABLE for Stage-0's purpose, by margin:** the
+guarantee Stage-0 actually needs is `cond(Z_damped) ≪ 1e7` (the §10.2
+danger threshold), not exactness. In the reachable regime (dense fp32
+encoder output, computed σ_min at noise, NOT bit-exact zero — §B5's B2b
+empirical case, achieved 2.5× target), an O(1)-approximate floor with
+measured ratios in [0.15, 4.1] bounds cond(Z_damped) at O(1e3–1e4) —
+still ≥3 orders inside the danger threshold. The truly-unbounded case
+(achieved 0) requires bit-exact rank deficiency, which for a dense fp32
+encoder output is the F-B structured-input case — dispositioned under
+Ruling 3, where the v3 guard converts it from Inf/NaN into a finite,
+bounded no-op on that one direction for that one write (worst realized
+cost in training: one skipped step via the existing finite-grad check;
+in eval: none — see Ruling 3's eval-safety note).
+
+**Required §2 re-scoping text (to be applied in the v3 cycle; replaces
+the sentence "**`σ_min(Z_damped) ≥ eps_rel·σ_max(Z_raw)` holds exactly,
+for every `Z_raw`, regardless of normality**" and its immediate
+"even if the raw encoder's true `σ_min` random-walks to exactly 0"
+claim later in the same section):**
+
+> **Scoped guarantee (§B6/F-A).** `Z_damped`'s singular values are
+> `scale_i·σ_i`. For every computed `σ_i` the dtype's SVD resolves
+> (`σ_i ≳ ε_dtype·σ_max`; fp32 ~1.2e-7·σ_max) and above the guard's
+> bite point (`eps_rel·σ_max·1e-6`), the floor
+> `σ_floor,i = max(σ_i, eps_rel·σ_max)` holds to the SVD's own relative
+> accuracy on `σ_i` (rel error ≈ `ε_dtype·σ_max/σ_i`), regardless of
+> normality. At the dtype noise floor the achieved value is
+> O(1)-approximate, not exact (measured 0.15×–4.1× target across
+> independent frames), and for a truly rank-deficient `Z_raw` no floor
+> is delivered on the dead direction at all (left-multiplication cannot
+> raise rank) — the guard caps `scale ≤ 1e6` so that case is a finite,
+> bounded under-floor, never Inf/NaN. In the reachable training regime
+> this still bounds `cond(Z_damped)` at O(1e3–1e4), ≥3 orders inside
+> §10.2's 1e7+ danger threshold — sufficient for Stage-0's purpose,
+> but the claim "exact for every Z_raw, even σ_min exactly 0" is
+> WITHDRAWN.
+
+**Pre-registered ASSESS addendum (no code change):** before applying
+§2's branch logic to any FAIL, ASSESS reads the z-dump's raw-Z σ_min
+statistics (existing instrument). If raw σ_min sat at the fp32 noise
+floor for a substantial fraction of writes, record that the floor
+operated in its O(1)-approximate regime — the attribution logic is
+unchanged (an O(1e4) cond still cannot re-arm the 1e7 trap), but the
+record must show the check was made rather than assume exactness.
+
+### Ruling 3 — F-B ADJUDICATION: **(a) v3 REQUIRED.** finfo.tiny alone is rejected.
+
+F-B independently REPRODUCED through the real v2 `encode()` including
+the real NS-40: fp32 input with two bit-exact-zero columns → computed
+σ tail `[0.333, 0.0, 0.0]` (exact zeros) → `scale = S_floor/tiny ≈ 8e35`
+→ `encode()` output **NaN** (isfinite=False). Confirmed exactly as §B5
+reported.
+
+**Why (b) accept-with-mitigations loses:** Stage-0's entire purpose is
+to drive the encoder INTO the near-rank-deficient regime and hold it
+there — exposure is not incidental, it is the experiment. A full attempt
+runs ~42K steps × 256 matrices ≈ 10.7M SVDs with the trained encoder
+spending the back half of the run at the fp32 noise floor (Ruling 2),
+plus the maximum-hazard moment is POST-train eval/z_dump — thousands
+more SVDs on exactly the most-degenerate trained state — where §B5
+itself notes there is NO finite-grad guard. A single eval-path hit
+poisons the terminal JSON with NaN metrics and voids another 1.75 GPU-h
+attempt plus a cycle — strictly more expensive than the ~30-min v3
+cycle. The mitigations are real but asymmetric: they protect training
+steps, not the harvest.
+
+**Exact v3 spec (mechanical; 2 semantic lines + comment edit):**
+
+1. The guard line in `NCROrthoWriteModel.encode()` (v2's line
+   `scale = S_floor / S.clamp_min(torch.finfo(S.dtype).tiny)`) becomes:
+
+```python
+scale = S_floor / S.clamp_min((self._eps_rel * sigma_max * 1e-6).clamp_min(torch.finfo(S.dtype).tiny))
+```
+
+   (COMPOSED guard, not the bare relative guard from §B4: the relative
+   term `eps_rel·σ_max·1e-6` alone is 0 when `Z≡0` exactly, which would
+   reintroduce 0/0; the outer `.clamp_min(tiny)` is the pure-0/0
+   backstop for that measure-zero case — verified below: `Z≡0` →
+   `Z_damped≡0`, finite. For every realistic `σ_max>~1e-29` the relative
+   term dominates and the composed guard ≡ the relative guard.)
+
+2. `RUNNER_TAG` → `"ncr_ortho_fallback_stage0_v3"` (so the terminal
+   JSON self-identifies which script produced it — §B4 item-5
+   discipline; the voided v1 attempt's JSON carries `_v1`).
+
+3. The D1-fix comment block's last lines amended to describe the
+   composed guard (F-B marker; non-semantic). §2's pseudocode guard
+   line + the Ruling-2 re-scoping text applied in the design doc.
+
+Nothing else changes. Expected v3-vs-v2 diff: exactly the two semantic
+lines above + comment/doc edits — any other hunk voids the
+pre-authorization below.
+
+**The composed guard is PRE-VERIFIED here (so the v3 check is purely
+mechanical conformance).** Standalone replication of v2's block with the
+exact replacement line, my frames:
+
+- fp64 resolvable regime: σ_min=1e-4 → ratio 1.000000000 (EXACT);
+  exact down to the bite point (σ_min ∈ {1e-7, 1e-8, 5e-9} all 1.0000).
+- fp32 resolvable regime: σ_min/σ_max=2e-5 → 1.0006; 2e-6 → 0.991 —
+  exact to fp32's own SVD accuracy (`ε·σ_max/σ_i` bound), identical to
+  v2 there.
+- fp32 bit-exact-zero columns (the F-B reproducer): max scale = 1.000e6
+  (capped exactly), `Z_damped` finite, **NS output finite** — F-B dead.
+- `Z≡0`: `Z_damped≡0`, finite (the composed backstop working).
+- fp32 noise regime (true σ_min=1e-7 rel 2e-8): finite, floor achieved
+  at 8.5× target (benign overshoot direction, like §B5's B2b 2.5×).
+- Gradient through the block with a zero-column item in the batch:
+  finite (max |grad| ~3e5, no Inf/NaN).
+- Disclosed loosened band (fp64 only, σ_i ∈ [tiny, 1e-9·σ_max)):
+  measured profile σ_min=1e-9 → 0.20× target, 1e-10 → 0.02× — linear
+  in σ_i, exactly the documented trade. Production fp32 never resolves
+  σ into this band (noise floor 1.2e-7·σ_max sits 2+ orders above the
+  5e-9·σ_max-equivalent bite point... at σ_max=5: bite 5e-9 absolute vs
+  fp32 noise ~6e-7 absolute — 120× separation); the band matters only
+  to fp64 verification harnesses, which must use the scoped expectation
+  above, not exactness, inside it. Note `‖Z_damped‖₂ = σ_max(Z_raw)`
+  exactly under the cap (singular values are `min`-composed), so NS —
+  a polynomial iteration, division-free — receives a bounded input and
+  its forward is structurally finite; eval paths (forward-only,
+  `no_grad`) are therefore safe even in the worst rank-deficient case.
+
+**Eval-path safety after v3 (closing §B5's "eval/z_dump have no guard"
+worry):** eval is forward-only; NS forward is matmul-polynomial with no
+division; with scale capped, `Z_damped` is bounded by `σ_max` exactly —
+so no eval-path Inf/NaN is reachable through this block under v3. The
+residual worst case (truly dead direction → under-floored, NS backward
+explosion) exists only in training and only costs a skipped step via
+the existing finite-grad check.
+
+### Ruling 4 — VOIDED-ARTIFACT QUARANTINE: **mv REQUIRED before relaunch.**
+
+Confirmed from the code: `run_primary_cell`'s resume logic skips only
+`status=="COMPLETED"`; an `ABORTED-BUDGET` JSON is silently OVERWRITTEN
+by `rn.atomic_write_json` at the re-run's terminal write. The voided v1
+JSON must be moved aside BEFORE relaunch — and so must the driver log,
+which §B5 discloses contains the 4 unmasked loss lines of the voided
+attempt (quarantining it is also the blind-discipline fix: the assessor
+must never open it). Exact commands (box, before the v3 launch):
+
+```
+mv /home/nvidia/ncr/results_ortho_fallback/stage0_damped_K24_s0.json \
+   /home/nvidia/ncr/results_ortho_fallback/VOID_CONTENTION_attempt1_v1_stage0_damped_K24_s0.json
+mv /home/nvidia/ncr/results_ortho_fallback/run_stage0.log \
+   /home/nvidia/ncr/results_ortho_fallback/VOID_CONTENTION_attempt1_v1_run_stage0.log
+```
+
+Both `VOID_CONTENTION_*` files archive to the SSD mirror at harvest per
+the standing policy; the blind assessor's instruction is to read ONLY
+`stage0_damped_K24_s0.json` (which after the mv can only be the v3
+attempt's) and may additionally verify its `runner_tag ==
+"ncr_ortho_fallback_stage0_v3"` and `git_commit` against the v3 pin.
+The §B5 blind-slip does not taint the v3 relaunch: the exposed values
+belonged to an attempt already ruled VOID pre-exposure, and the mv
+removes them from the assessor's path.
+
+### VERDICT
+
+**BLOCKED(v3 required — spec given above, mechanical).** D1 is
+confirmed dead in v2 and F-A is adjudicated ACCEPTED-AS-RESCOPED, but
+F-B is a reproduced non-finite forward on the prescribed guard's own
+extreme, in the exact regime Stage-0 exists to probe, with the unguarded
+eval harvest as the exposed surface — one more 1-line-semantic fix cycle
+is cheaper than the void it risks.
+
+**PRE-AUTHORIZED AUTO-CLEAR (no further audit round needed):** the
+relaunch is CLEAR-FOR-RELAUNCH the moment ALL of the following hold,
+verified by the build agent and recorded in a §B7 build note:
+
+1. v3-vs-v2 `diff` shows exactly the Ruling-3 spec: the composed guard
+   line (byte-identical to the line given above), the `RUNNER_TAG`
+   bump, comment/§2-doc edits only. Any other hunk → back to audit.
+2. Fresh md5 pin for v3 recorded (repo working copy + experiment-runs
+   archive + box copy post-scp, all three matching).
+3. 9/9 CPU self-test suite passes on v3 unmodified, plus a numeric
+   floor re-check reproducing at minimum: fp64 σ_min=1e-9 EXACT, fp32
+   zero-column finite-through-encode, `Z≡0` finite (the three
+   regime-defining rows; expected values in Ruling 3's pre-verification).
+4. The two Ruling-4 `mv` commands executed and verified (`ls` shows the
+   `VOID_CONTENTION_*` names; the bare `stage0_damped_K24_s0.json`
+   absent pre-launch).
+5. Launch parameters per §B3(2): `--ceiling-gpuh 1.75`, external
+   timeout 7200 s, all other cell parameters exactly §B1's (arm
+   `damped_polar`, K=24, seed 0, steps 42000, `--eps-rel 1e-3`,
+   ns-iter 40, ns-power 12, anneal-frac 0.5), blind discipline with the
+   loss-masking filter on EVERY log read this time.
+
+Conditions 1–4 failing in any particular → BLOCKED again, fresh md5,
+delta back to this auditor.
