@@ -1602,3 +1602,246 @@ NOW, in parallel with the doomed first attempt; the relaunch fires only
 after (a) the audit returns clean and (b) the first attempt has
 terminated. If the audit finds a defect, the fix re-enters this ruling's
 protocol with a fresh md5 pin.
+
+---
+
+## §B4 INDEPENDENT CODE AUDIT (2026-07-17)
+
+Fresh agent, read-only against the repo except this appended section.
+Diff regenerated independently (`diff -u`) rather than trusting §B1's
+itemization; md5s reconfirmed: base
+`experiment-runs/2026-07-16_ncr_ortho_write/ncr_ortho_write.py` =
+`83b5d7bd273e9e83698fed27a9f2ef45` (934 lines), patched
+`experiment-runs/2026-07-17_ncr_ortho_fallback_stage0/ncr_ortho_fallback_stage0.py`
+= `70dd7923027f4dcf9f0f1e964fc0930c` (984 lines, +50 net) — both match
+§B1's stated hashes.
+
+### Per-item verdicts
+
+**1. Spec fidelity — PASS (with a caveat inherited from the spec itself,
+see finding D1).** The inserted block, in `NCROrthoWriteModel.encode()`:
+
+```python
+if self._damped:
+    with torch.no_grad():
+        U, S, Vh = torch.linalg.svd(Z, full_matrices=False)
+        sigma_max = S[..., :1]
+        S_floor = S.clamp_min(self._eps_rel * sigma_max)
+        scale = S_floor / S.clamp_min(NS_EPS)
+        M = U @ torch.diag_embed(scale) @ U.transpose(-1, -2)
+    Z = M @ Z
+Z = newton_schulz_polar(Z, n_iter=self._ns_iter, n_power=self._ns_power)
+```
+
+matches §2's pseudocode symbol-for-symbol: `M` is built from `U` on
+**both** sides (`U·diag(scale)·Uᵀ`), never `Vh` — verified this is what
+§2 actually specifies ("`M` is built from left singular vectors only"),
+not a paraphrase error. `newton_schulz_polar` is called unmodified,
+receiving the damped `Z` — it internally re-derives its own detached
+`sigma_hat` via power iteration exactly as §2 describes ("UNCHANGED call,
+damped input"); no line inside `newton_schulz_polar` differs from the
+base file (confirmed by direct region diff, not just the top-level
+`diff -u`). Detachment is correct: the SVD and `M` construction sit
+inside `with torch.no_grad():`; the final `Z = M @ Z` is **outside** that
+block (same indentation as the `with` statement), so `M` carries no grad
+history and `Z` retains its normal graph — `dL/dZ_raw = Mᵀ @
+dL/dZ_damped = M @ dL/dZ_damped` (M is symmetric), exactly the
+straight-through gradient §2 specifies. `eps_rel` plumbing is complete
+and correct end-to-end: `--eps-rel` CLI flag → `args.eps_rel` →
+`run_primary_cell(eps_rel=...)` → `build_primary_model(eps_rel=...)` →
+`NCROrthoWriteModel(eps_rel=...)` → `self._eps_rel` → used at the one
+call site. No dead or orphaned parameter.
+
+**2. The floor property — FATAL, see D1.** Independently re-derived the
+algebra and ran a numeric check (CPU, float64, non-normal `Z`, scratch
+script) rather than trusting §2's worked proof. Confirmed the claimed
+identity `M @ Z_raw = U·diag(scale⊙σ)·Vᵀ` is right, but the "exactly
+`σ_floor,i = max(σ_i, eps_rel·σ_max)`, regardless of normality... even if
+σ_min random-walks to exactly 0" claim is **false as coded** whenever a
+raw singular value falls below `NS_EPS = 1e-7` — see D1 for the full
+derivation and reproducing numbers.
+
+**3. Arm dispatch — PASS, clean.** `--arm` routes correctly:
+`build_primary_model` has one `if/elif/elif/raise` per arm, no fallthrough.
+`"free"` returns `els.NCREarlyLNModel` untouched by any of this diff.
+`"ortho"` constructs `NCROrthoWriteModel(..., orthogonal=True)` with
+`damped` left at its default `False` — inside `encode()`,
+`if self._orthogonal: if self._damped: ...` is skipped entirely (the
+inner `if` is simply not entered), so the executed statements are
+byte-identical to the base file's `encode()` for this arm: control-flow
+and data are unchanged, confirmed by diffing the reachable statement
+sequence, not just reading the source side-by-side. `"damped_polar"` is
+the only path that sets `damped=True`, and it is only reachable via
+explicit `--arm damped_polar` — no other arm or code path can enter the
+new block. The **control property holds**: `free` and `ortho` are
+provably identical to the pinned parent script's behavior.
+
+**4. Bounds/edge cases — MIXED, see D1 for the load-bearing one.**
+Divide-by-zero itself is guarded (`S.clamp_min(NS_EPS)` in the
+denominator prevents literal `0/0`/`inf`/`nan` — confirmed, no crash
+observed at any tested singular-value magnitude down to exact `0.0`
+input); the guard's cost is D1, a silent math defect, not a crash — so
+this is **not** a MAJOR "crash risk" item, it is the FATAL "wrong math"
+item under a different name. Batch dimensions: `Z` is `(...,d,d)`
+(`TRAIN_BATCH=256` batched); `torch.linalg.svd(Z, full_matrices=False)`,
+`diag_embed`, and the two batched matmuls all operate per-item correctly
+under PyTorch's standard batched linear-algebra semantics — verified
+shapes numerically (`U:(B,d,d)`, `S:(B,d)`, broadcasting `S` against
+`S[...,:1]` is correct). Degenerate/near-degenerate singular values
+(the healthy `free_K24` convergent regime, `cond≈1`, per §2's own note)
+pose no problem for this specific construction even though `U` is
+non-unique in a degenerate subspace: `M` restricted to a block of equal
+`σ` reduces to `scale_const · I` on that subspace, which is invariant to
+which orthonormal basis `U` happens to return — verified algebraically,
+not just asserted. Dtype: no `autocast`/`.half()`/AMP anywhere in either
+file (confirmed by grep) — training runs in plain fp32 throughout,
+consistent with the rest of the base script; the new SVD call inherits
+`Z`'s device and dtype automatically, no explicit device-management bug.
+
+**5. Record fields — PASS.** `rec = dict(..., arm=arm, ...,
+eps_rel=(eps_rel if arm == "damped_polar" else None), ..., runner_tag=
+RUNNER_TAG, ...)` — all three required fields (`arm`, `eps_rel`,
+`runner_tag`) are present in the result JSON, confirmed at the exact
+line in `run_primary_cell`. `--ceiling-gpuh` / `ceiling_gpuh` is
+untouched by the diff (default `3.0` unchanged; `ceiling_s = ceiling_gpuh
+* 3600.0`, passed unmodified into `els.train_earlyln_cell`, a function in
+a different, untouched file) — confirmed functional and unchanged, not
+just "not in the diff."
+
+**6. No collateral edits — PASS, clean.** Independently regenerated
+`diff -u` shows exactly 8 hunks, all falling inside the 9 items §B1
+itemizes (two of §B1's items share one contiguous hunk). Region-diffed
+`_self_test()`, the `OrthoBankModel`/Part-B chain
+(`class OrthoBankModel` through `run_disc_cell`), `spectral_diagnostics`,
+`eval_cell`, `blank_out`, `axis_c_lock`, `z_dump`, and the core NS-40
+iteration loop and `orthogonality_error` — all byte-identical to the
+base file outside the itemized hunks (verified via targeted `diff`, not
+inferred from the top-level diff alone). Zero hunks touch any of these.
+
+**7. §B1's itemization — PASS, honest.** Compared §B1's 9-point list
+against the independently regenerated diff line-by-line: every item is
+accurate, nothing is omitted, no hunk exists outside the 9 described
+changes. §B1's md5s, line counts (934→984, +50 net), and per-item
+description all check out exactly.
+
+### Defects found
+
+**D1 (FATAL — wrong math).** The floor property §2 exists to guarantee —
+`σ_min(Z_damped) ≥ eps_rel·σ_max(Z_raw)` "exactly, for every `Z_raw`,
+regardless of normality... even if the raw encoder's true `σ_min`
+random-walks to exactly 0" — **does not hold as coded (nor as literally
+specified in §2's own pseudocode, which the code matches exactly)
+whenever a raw singular value `σ_i < NS_EPS = 1e-7`.**
+
+*Derivation.* `M @ Z_raw`'s `i`-th singular value is `scale_i · σ_i`,
+not `S_floor_i` directly. `scale_i = S_floor_i / max(σ_i, NS_EPS)`. When
+`σ_i ≥ NS_EPS`, `max(σ_i,NS_EPS)=σ_i` and the division-then-multiplication
+cancels exactly: `scale_i·σ_i = S_floor_i` — the floor holds exactly, to
+floating-point precision, as claimed. **When `σ_i < NS_EPS`**, the clamp
+breaks the cancellation: `scale_i·σ_i = S_floor_i·(σ_i / NS_EPS)`, which
+is `S_floor_i` scaled DOWN by the ratio `σ_i/NS_EPS < 1` — the achieved
+singular value degrades toward zero as `σ_i→0`, rather than saturating at
+`eps_rel·σ_max`. At the literal `σ_i=0` limit the achieved value is
+exactly `0`, not `eps_rel·σ_max` — directly contradicting §2's own quoted
+claim for that exact case.
+
+*Numeric confirmation* (float64, CPU, non-normal `Z = U₀ diag(σ) V₀ᵀ`,
+`d=5`, `eps_rel=1e-3`, reproduced from a fresh random non-normal frame,
+script discarded after use):
+
+| raw `σ_min` | target floor (`eps_rel·σ_max`) | achieved `σ_min(Z_damped)` | floor holds? |
+|---|---|---|---|
+| `1e-4` (`> NS_EPS`) | `5.00e-3` | `5.00e-3` | YES (exact) |
+| `1e-9` (`< NS_EPS`) | `5.00e-3` | `5.00e-5` | **NO — 100× short** |
+| `≈0` (machine noise `~2e-16`) | `5.00e-3` | `1.02e-11` | **NO — ~9 orders short** |
+
+Confirmed the failure is caused specifically by the `NS_EPS` clamp, not
+by anything fundamental to the `M@Z_raw` construction at moderately small
+`σ`: removing the clamp (`scale = S_floor / S`, no floor on the
+denominator) reproduces the exact target floor at every tested magnitude
+down to and including literal `σ_i=0` input, with no `NaN`/`Inf`, because
+float64 division-then-multiplication by the *same* operand cancels
+exactly regardless of how small that operand is (the unclamped
+construction only risks a literal `0/0` on a bit-exact-zero *computed*
+singular value, an edge case the current `NS_EPS` guard over-corrects for
+by four orders of magnitude relative to what's needed).
+
+*Why this is FATAL, not MINOR.* `NS_EPS = 1e-7` is a general-purpose
+divide-by-zero guard, reused verbatim from an unrelated normalization
+context earlier in the file (the power-iteration `v.norm().clamp_min(eps)`
+calls, and the `orthogonality_error`/`cond` diagnostics). Its magnitude
+was never chosen with this construction's exactness requirement in mind.
+It happens to coincide almost exactly with §10.2's own diagnosed danger
+threshold — the design doc states the fix must protect against `σ_min`
+crossing "`~1e-7`" (§2, "Cost of the fix") and separately states the
+translated danger threshold is "`σ_min≲1e-7`" (§10.2, cited verbatim in
+§2's own cost-of-fix paragraph). That is precisely the regime in which
+this guard silently disables the floor. The entire Stage-0 branch-logic
+(PASS / same-signature-FAIL / different-signature-FAIL, §2) assumes the
+floor is exact and attributes a same-signature FAIL to `"eps_rel
+undersells the actual random-walk rate"` — but if `σ_min` does drift
+below `1e-7` during the run (the exact scenario §10 diagnosed happening
+over training), a same-signature FAIL could instead be caused by this
+undisclosed leak, not by `eps_rel` being the wrong order of magnitude.
+Retrying with `eps_rel=1e-2` (the pre-authorized branch) would not fix
+this — the leak is in the `NS_EPS` denominator guard, an axis the
+pre-registered retry ladder never touches. This is a defect in §2's own
+worked derivation (the code faithfully implements the spec's flawed
+pseudocode, verbatim) — fixing it requires amending both the design doc
+and the code, not the code alone.
+
+*Suggested fix (for the coordinator/build agent, not applied here — this
+audit is read-only except this section).* Decouple the denominator guard
+from `NS_EPS`: use a guard several orders of magnitude below any
+`eps_rel·σ_max` value ever expected (e.g. `S.clamp_min(eps_rel * sigma_max
+* 1e-6)` or an absolute `torch.finfo(S.dtype).tiny`-scale constant), so
+the guard only prevents literal `0/0` and no longer interferes with the
+construction anywhere near the operating region `NS_EPS` currently
+clobbers. Re-verify with the same numeric check (the harness script used
+here, reconstructable in under 10 lines) before re-launching.
+
+*Coverage gap, not a false claim (MINOR).* §B2.1's CUDA smoke check `s1`
+reported "PASS, min margin −9.5e-12" — this is consistent with a smoke
+input whose synthetic `σ_min` sat comfortably above `NS_EPS` (i.e., it
+exercised the "floor holds" branch of the table above, not the
+"`σ_min<NS_EPS`" branch). The smoke suite's PASS is truthful for what it
+tested; it simply never tested the regime that matters, and nothing in
+§B1/§B2's record claims it did. Flagged so a future smoke revision adds a
+synthetic sub-`NS_EPS` input as an explicit test case.
+
+**No other defects found.** Items 1, 3, 4 (except D1's crash-adjacent
+sub-point, which is not a crash), 5, 6, 7 are all clean — no wrong
+routing, no collateral edits, no undisclosed diff content, no record-field
+gaps, no ceiling-wiring regression.
+
+### Independent floor-property check result
+
+**FAILED.** `σ_min(Z_damped) ≥ eps_rel·σ_max(Z_raw)` does **not** hold
+exactly as coded whenever `σ_min(Z_raw) < NS_EPS = 1e-7` — confirmed both
+algebraically and numerically (table above). It **does** hold exactly
+(to floating-point precision) whenever `σ_min(Z_raw) ≥ NS_EPS`. Given
+§10.2's own measured danger threshold sits at essentially the same
+`~1e-7` magnitude as `NS_EPS`, this is not a remote corner case — it is
+centered on the exact input regime Stage 0 exists to probe.
+
+### Ruling
+
+**BLOCKED(fixes).** One FATAL defect (D1): the `NS_EPS`-clamped
+denominator in the SVD-floor construction silently breaks the "exact,
+regardless of normality" floor guarantee precisely in the `σ_min≲1e-7`
+regime that motivates this entire fallback design, undermining the
+pre-registered branch-logic's causal interpretation (a same-signature
+FAIL could be a floor-leak artifact, not evidence about `eps_rel`'s
+magnitude). Everything else audited clean (spec fidelity outside D1, arm
+dispatch and the undamped-path control property, batch/dtype/device
+handling, record fields, ceiling wiring, zero collateral edits, honest
+§B1 itemization). **Required before relaunch:** amend §2's construction
+(and its own worked proof) to decouple the denominator guard from
+`NS_EPS`, patch the one line in `encode()` accordingly, re-run the 9/9
+CPU self-test plus a numeric floor-property check spanning `σ_min` both
+above and below the old `NS_EPS` threshold, get a fresh md5 pin, and
+re-submit for audit (or a lighter delta-only re-check against this
+record, coordinator's call) before spending further GPU-h. The
+in-flight contended attempt (tmux `ncr_fb0_g0`) was already ruled VOID by
+§B3 on unrelated (contention) grounds — this finding does not change
+that disposition, it blocks the *next* (re-priced) attempt until fixed.
