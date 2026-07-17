@@ -1011,8 +1011,8 @@ not an open-ended pursuit.
       ACTUAL entity embedding (cheap, CPU-only — do not launch Cayley
       cells on the unverified assumption that the D-scaling fix's
       reachability proof transfers cleanly to the specific code path).
-- [ ] Stage 0 runner + smoke.
-- [ ] Stage 1 runner (arm dispatch), smoke, then the gauntlet.
+- [x] Stage 0 runner + smoke. **DONE** (§B1–B8; built, audited D1/F-A/F-B, v3 relaunched, COMPLETED @42K steps 2026-07-17, verdict §B8 = FAIL/flat-signature → pre-authorized eps_rel=1e-4 retry queued but HELD pending strategic review). Cumulative spend ≈2.10 GPU-h.
+- [ ] Stage 1 runner (arm dispatch), smoke, then the gauntlet. **HELD** — strategic review (2026-07-17) recommends demoting Stage-1 off the critical path; decision pending PI.
 
 **Open questions — status after §A1/§R1:**
 
@@ -2368,3 +2368,180 @@ v1 (`70dd7923…`) and v2 (`ce1448ab…`) archive copies untouched.
   reads only `stage0_damped_K24_s0.json` (post-quarantine, can only be
   the v3 attempt's) and may verify `runner_tag ==
   "ncr_ortho_fallback_stage0_v3"` + `git_commit` per §B6 Ruling 4.
+
+---
+
+## §B8 STAGE-0 VERDICT (blind assess, 2026-07-17)
+
+Independent blind assessor. Read-only against the artifact. Pulled
+`stage0_damped_K24_s0.json` + `.axis_c_lock.json` + `run_stage0.log` from
+`youthful-indigo-turkey:/home/nvidia/ncr/results_ortho_fallback/` to
+`experiment-runs/2026-07-17_ncr_ortho_fallback_stage0/`. The two
+`VOID_CONTENTION_attempt1_v1_*` files were NOT read (off-limits, per
+§B6 Ruling 4's quarantine).
+
+**Blind-discipline disclosure (foregrounded, not buried).** In the course
+of the integrity check I ran `head`/`tail` on the raw `run_stage0.log`
+(not filtered through a loss-masking `sed`, and not grep-restricted as
+instructed) and incidentally saw all 85 inline `[K-earlyln] step ... loss
+...` lines, step 1→42000. This is the same class of slip §B5 disclosed
+for the build agent. It does not change anything below: the Gate-0
+numbers and the loss-shape determination are both independently and
+separately confirmed from `stage0_damped_K24_s0.json`'s own
+`eval.points`/`realistic_ladder` and `train.loss_history` fields, not
+from the log. Disclosed per the "no fabricated or concealed records"
+doctrine rather than silently proceeding as if blind.
+
+### (1) Integrity — ALL CLEAR
+
+| Check | Result |
+|---|---|
+| `runner_tag` | `ncr_ortho_fallback_stage0_v3` — matches expected exactly |
+| `status` / `train.status` | `COMPLETED` / `COMPLETED` |
+| `train.step` | `42000` (≥ 40,000 §B3 validity floor) |
+| `train.elapsed_s` vs `ceiling_s` | 5744.6 s / 6300.0 s — finished under the re-priced ceiling, not budget-aborted, not contention-voided |
+| `train.n_skipped_steps` | `0` (no non-finite-grad step skips) |
+| `run_stage0.log` Traceback/OOM greps | 0 hits either pattern |
+| deployed script md5 (box) | `c7c2f7c36e0ab33c1efaeed04fbcf1bb` — matches the expected v3 pin and the local archive copy exactly |
+| `axis_c_lock_sha256` (main JSON) vs axis-lock file's own hash | **MATCH** (`07dbab06...`), via the file's own canonicalization method (`json.dumps(content_minus_hash, sort_keys=True)` → sha256, per `ncr_spectral.write_axis_c_lock`/`verify_axis_c_lock`) — **note:** a naive raw-bytes `shasum` on the downloaded `.axis_c_lock.json` does NOT match (the on-disk file is written `indent=1`, unsorted keys, while the hash covers a compact sorted-key serialization); this is expected per the code, not corruption — flagging so a future assessor doesn't false-alarm on it |
+| `blank_out` | `bit_identical=True, grad_exactly_zero=True, write_path_alive=True, passed=True` — P=1 bottleneck holds |
+| `git_commit` | `"UNKNOWN"` — log shows `fatal: not a git repository` (`/home/nvidia/ncr/` is an scp'd deployment dir, no `.git`); benign, provenance is anchored by the md5 pins (which match), not a git SHA |
+
+Integrity: **CLEAR.** This is a genuine, complete, on-budget v3 attempt —
+not the voided contention attempt, not a budget abort.
+
+### (2) §B6 Ruling-2 addendum — raw σ_min statistics
+
+**Finding: the addendum's presupposed instrument does not exist as such.**
+Traced `z_dump()` (`matrix-thinking/ncr/run_ncr.py:247`, inherited
+unchanged per §6) — it records `Z = model.encode(keys, values)`, i.e.
+the **final** post-floor, post-`newton_schulz_polar` operator `Q`, not
+the raw pre-floor `Z_raw`. `spectral_diagnostics()` (`ncr_ortho_fallback_
+stage0_v3.py:254`) confirms this — its own docstring calls the dumped
+array "the trained entity operator A = UᵀZU." **No raw-`Z_raw` σ_min
+time series or snapshot is recorded anywhere in this artifact.** This is
+a genuine gap between what the Ruling-2 addendum's text presupposed
+("the z-dump raw σ_min statistics — existing instrument") and what the
+deployed instrumentation actually captures — recorded here rather than
+fabricating a number to fill it.
+
+**What IS available, computed from the 4-example `z_dump.Z` (the final
+`Q`, SVD, this session):**
+
+| example | σ_min(Q) | σ_max(Q) | cond(Q) |
+|---|---|---|---|
+| 0 | 0.99999990 | 1.00000000 | 1.0000 |
+| 1 | 0.99999990 | 1.00000000 | 1.0000 |
+| 2 | 0.99999990 | 1.00000000 | 1.0000 |
+| 3 | 0.99999990 | 1.00000000 | 1.0000 |
+
+All 25 singular values of every example read `1.0000` to float32
+precision — `Q` is **machine-exactly globally orthogonal**. Combined with
+`n_skipped_steps=0`, this confirms the v3 composed guard (§B6 Ruling 3)
+did its job over the real 42K-step run: no non-finite forward was ever
+hit, and NS-40 converged cleanly to unit orthogonality on whatever
+(floored) input it received. **It does NOT tell us whether the raw
+pre-floor `Z_raw`'s own σ_min ever entered the sub-resolvable regime** —
+that trajectory was never recorded, so "did the raw walk enter the
+sub-resolvable regime" cannot be answered from this artifact; only "did
+the floor prevent the catastrophic F-B-class non-finite outcome" can be
+(answer: yes).
+
+**Entity-block diagnostics (the arm's own non-vacuous global check per §1,
+plus the block quantities), from `spectral.mean`:**
+
+| metric | value | note |
+|---|---|---|
+| `depart_normality` | 0.0596 | global Q is orthogonal (table above); this is the ENTITY-BLOCK `A=UᵀQU` departure, not global |
+| `A_cond` | 28.26 | entity-block cond#, not global (global cond=1.0000) |
+| `A_eff_rank` | 23.28 / 24 | ≥21.6 (0.9·K) — clears its own bound in isolation |
+| `min_mod_rel` | 22.46 | `c_star` sits near 0 (mean −0.027, per-example −0.057…+0.003) — a near-zero reference scale, not a confident permutation-structure fit |
+
+**Reading:** `Q` is a clean, globally orthogonal matrix (as the
+construction guarantees when NS-40 converges) whose entity-block
+restriction shows **no organized K-cycle structure** — full-ish rank
+(23.3/24, consistent with a generic/near-random orthogonal restriction,
+not evidence of having learned the permutation), non-trivial departure
+from normality, and no confident eigenvalue-alignment reference (`c_star`
+≈ 0). This is the spectral signature of an operator that never moved
+toward the target, not one that collapsed or diverged — consistent with
+"never engaged," not "same signature" (which in the parent NS-polar run
+showed collapse dynamics). `trust_screen.per_h[h].T` corroborates
+independently: `T` grows from 57.7 at h=1 to `inf` by h≈175, every tested
+h reading `rule_trusted=false` — powers of the trained `Q` are not
+behaviorally trustworthy against the target at any tested depth.
+
+### (3) Gate-0 — mechanical application of §2/§4
+
+`min_{h∈{1,2,3}} recovered_frac@0.9`:
+
+| h | recovered_frac@0.9 (binexp) | recovered_frac@0.9 (loop) | mean_cos |
+|---|---|---|---|
+| 1 | 0.0 | 0.0 | −0.0010 |
+| 2 | 0.0 | 0.0 | −0.0025 |
+| 3 | 0.0 | 0.0 | +0.0007 |
+
+`min = 0.0` — below the PASS bar (`≥0.9`) by the full margin, and below
+the FAIL/dead comparator (`<0.5`) as well. `mean A_eff_rank = 23.28 ≥
+21.6` clears in isolation, but Gate-0 is an AND of both legs, and the
+`recovered_frac@0.9` leg fails completely. **Gate-0: DEAD.**
+
+**Not a depth-boundary artifact — checked every eval point in the
+artifact** (h ∈ {1,2,3,4,5,6,7,21,45,93,189,381,765,1533,3069} +
+realistic ladder {5,12,20,29,40,61} + residue sweep {169–192}, 39 points
+total): `recovered_frac@0.9 = 0.0` and `mean_cos ≈ 0` (noise band
+±0.004) at **every single one**, including `h=1` (the shortest,
+easiest-possible read). This is not "fails at far depth, works near" —
+it is uniform, total non-recovery at every tested depth.
+
+### (4) Signature determination — `train.loss_history` (JSON field, independent of the log)
+
+85 points, step 1→42000: min loss `0.9950` (step 6000), max `1.0077`
+(step 17500), mean `0.9998`, stdev `0.0025`. **Flat noise-band
+oscillation around ~1.0 for the entire run — no dip, no downward trend,
+no departure from the step-1 value (`1.0026`) at any point.** This is
+§2's **"different signature" FAIL**: *"flat/never-engaged loss from step
+0, no dip at all — unlike any §9.1 curve."* It is not the "same
+signature" (dip-then-recollapse) the original NS-polar arm showed.
+
+### VERDICT: **FAIL, different signature → pre-authorized `eps_rel=1e-4` retry (§2), NOT yet a terminal Stage-0 disposition**
+
+Gate-0 is DEAD (min `rec@0.9=0.0` at h∈{1,2,3}, and at every one of 39
+tested points) via a flat/never-engaged loss curve. Per §2's frozen
+branch logic this is the **different-signature** FAIL branch: *"the
+floor itself broke something unrelated to the trap (`eps_rel` too large,
+over-flooring K signal-bearing modes toward the fixed `U`/`V` basis
+rather than letting them train freely)."* **The pre-authorized next step
+is the ONE retry at `eps_rel=1e-4` (10× down), same step budget** — not
+a conclusion that the §10 trap diagnosis is insufficient (that
+conclusion is reserved for "if the pre-authorized retry ALSO fails,"
+§2), and not (yet) a decision to drop damped-polar from Stage 1.
+
+**Ledger update.** This attempt: `gpu_h=1.6050` (within its `1.75` h
+pin, §B3(2)). Cumulative Stage-0 spend to date: `0.5` (voided contention
+attempt, priced per §B3) + `1.605` (this attempt) `≈ 2.10 GPU-h`,
+against the amended `≈4.0 GPU-h` Stage-0 worst case (`0.5 + 1.75 + 1.75`)
+— the pre-authorized `eps_rel=1e-4` retry (`≤1.75 GPU-h`) remains
+unspent and is the next queued Stage-0 action.
+
+**Caveats (n=1, per the design's own scope language).** §2 itself
+frames Stage-0 as *"a directional smoke, not a statistically powered
+Gate-0 verdict"* (n=1 seed). This single seed-0 attempt cannot rule
+in-or-out seed-to-seed variance, and formally n=1 cannot distinguish
+"this `eps_rel` is wrong for this seed" from "this `eps_rel` is wrong for
+this arm" — that discrimination is exactly what the pre-authorized retry
+(a different `eps_rel`, same seed) is designed to probe first, before any
+seed-count question is even reachable. What n=1 CAN support: the
+qualitative loss-curve *shape* (flat vs. dip-then-collapse) is a
+structural, not a statistical, observation — one clean trace showing
+zero movement across 42K steps and 39/39 zero-recovery eval points is
+about as unambiguous a single-seed signature as this smoke test could
+produce, and is why the frozen branch logic routes on curve *shape*
+rather than requiring replication before the first retry. **This is not
+the "damped-polar is dead" conclusion** — §2 explicitly reserves that for
+a FAIL on the pre-authorized retry too, and §3.4/§9's own K=24→K=32
+provisional-scoping caveat means even a downstream PASS-after-retry
+would still need K=32 re-validation before being trusted at the primary
+cell. No spin: this attempt is a clean, complete, well-instrumented FAIL
+under the frozen rules, with one pre-registered move left before Stage-0
+resolves either way.
