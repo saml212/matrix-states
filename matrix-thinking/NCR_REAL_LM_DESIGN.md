@@ -3656,3 +3656,395 @@ n=5) and GATE-1's ortho-write verdict pinning the exactness horizon H — are
 UNCHANGED and still gate any Task-2/Axis-A GPU-h. Build authorization
 continues to require both §9 gates plus the R6 build-time §7 coherence
 re-expression.
+
+---
+
+## §N2 GATE-1 AMENDMENT + SCALE-TARGET (PI-ratified 2026-07-17)
+
+**Standing.** APPEND-ONLY, per §N1's own convention (line 3342-3344 above):
+this section does not alter any frozen §0-§9, §A/§R, or §N1 text; every
+amendment to a frozen gate, dimension, or ledger line is EXPLICITLY
+LABELLED with reasoning below, never silently substituted.
+
+**Trigger — the verdict §9.1 was downstream of has now landed.**
+`NCR_ORTHO_WRITE.md` §9 VERDICT OF RECORD (2026-07-17): Part A (K=32, the
+§9.1 primary) reads **FAIL** — Gate-0 dead 4/4 seeds, in-dist
+`recovered_frac@0.9`=0.000 at h∈{1,2,3}, loss dips then collapses to ≈1.0;
+Part B (structured-operator discriminator) also reads **FAIL**, compounded
+by a dead free-bank baseline. §10 POST-FAIL CODE RE-AUDIT (independent,
+read-only) rules **(C) MECHANISM-CONFIRMED, no bug**: in the tight-spare
+`d=K+1` geometry the cosine-similarity read exerts zero gradient pressure
+on the write's overall scale or its `(d-K)`-dim spare direction; that
+direction random-walks toward zero, and once it crosses `~1e-7` the
+Newton-Schulz polar projection's backward Jacobian explodes (`~1/σ_min`),
+gradient-clipping converts the explosion into a task-destroying step, and
+the resulting near-singular state is absorbing at K≥24 (§10.7). **This FAIL
+is not K=32-specific** — `ortho_K24_s{0-3}` fails identically (Gate-0 dead
+4/4, same dip-then-collapse signature, §9.1's own per-cell table). §9.1's
+own branch structure ("If ORTHO-WRITE WIN/PARTIAL/NULL/FAIL") is therefore
+resolved on its FAIL leg — but that leg's own K=15 fallback ("Falls back to
+K=15, d≈16... re-derive from that config's own archived z-dumps before
+pinning a number," line 1990-1994) is superseded, per the PI-ratified pivot
+below, by a config §9.1 never named: **K=24, d_ncr=25, free-write (no
+NS-polar projection at all)**.
+
+### N2.1 GATE-1 discharge by amendment, not satisfaction
+
+§9.1's own text conditions the flagship's K-axis on two premises, both now
+independently falsified:
+
+1. **"Ortho-write is the route to larger K."** FALSIFIED by §9/§10 above:
+   the NS-polar constraint is mechanism-confirmed untrainable at K∈{24,32}
+   under the tight-spare geometry this document's own §2.1/§3.2 use — not a
+   budget or calibration miss, an absorbing optimization pathology (§10.0).
+2. **"Larger K is required."** FALSIFIED independently of (1): nothing in
+   this document's own hypothesis (§1), Axis-B claim (§4.4/§7), or Task-2
+   construction (§3.2) is a function of K's numeric value. The O(log h)
+   read is `binexp_read`'s repeated squaring over a `d_ncr×d_ncr`
+   matrix — exact by construction (matmul associativity) at ANY d,
+   K-independent. Axis-A's `K₂=5` (§3.2, entity-pool size) is ALREADY
+   decoupled from Task 1/3's K-axis and was never K=32-contingent. The
+   `d_ncr=K+1` head-width choice is a per-relation write-conditioning
+   parameter, not a capability requirement — §3.2 itself already states a
+   `d=16` (K=15) contingency for exactly this reason (line 665, "or 16
+   under GATE 1's K=15 fallback"). Head params/FLOPs are shown negligible
+   at either d (N2.2(c) below) — "bigger K" bought nothing this design's
+   own hypothesis needed and cost real trainability.
+
+**The amended enabling condition (supersedes §9.1's WIN/PARTIAL/NULL/FAIL
+branch dispatch for GATE-1 ONLY; §9.2/GATE-2 is untouched — see N2.7 item
+1):** the free-write K=24/d_ncr=25 healthy verdict of record —
+`NCR_ORTHO_WRITE.md` §9.1's own "Secondary observation (K24, not scored by
+§4)" and §9.3's spectral summary: `free_K24_s{0-3}` — in-dist
+`recovered_frac@0.9`=1.000 at h∈{1,2,3} in all 4 seeds, far-depth
+`recovered_frac@0.9`∈{0.999,1.000} at every audited ladder rung
+h∈{5,12,20,29,40,61} (§9.1's per-cell table), `A_eff_rank`=23.99-24.00 (=
+full K), departure-from-normality 0.004-0.009, condition number 1.0-1.1,
+`min|λ|/c*`=0.99-1.00, all 4/4 seeds, at the 320,000-step (4×) budget —
+**SATISFIES the flagship's write-viability precondition**: a shared-`d_ncr`
+NCR head trains a converged, well-conditioned, far-depth-exact write at a
+real (K,d) operating point this document already uses (§3.1's abelian
+construction, §2.1's shared-head architecture). **This DISCHARGES GATE-1.**
+No ortho-write mechanism is used anywhere downstream; every place
+§2.1/§2.2/§3.1/§3.2 above says "passed through the Newton-Schulz orthogonal
+-write projection... if the ortho-write gate licenses it" now reads "the
+free (unconstrained) write, licensed by this amendment" — the NS-polar
+pipeline (`NCR_ORTHO_WRITE.md` §2) is RETIRED from the Stage-1 build, not
+merely unused this wave (§9.1's own pre-registered next move on FAIL — "a
+fallback parametrization... not more budget" — is deferred to the
+expm/Cayley track, `STATE.md` 2026-07-17 briefing, DEMOTED off the critical
+path, idle-filler only).
+
+### N2.2 The three mechanical re-derivations
+
+**(a) `d_ncr`: 33 → 25.** K=24, tight-spare `d=K+1=25` — verified against
+§3.2's OWN convention, not asserted fresh: line 665, "`d_ncr = K+1 ∈ {16,
+33}`," and §9.1's own K=15 fallback already instantiates the identical rule
+at a different K (`d≈16`, i.e. 15+1). 24+1=25 is the SAME formula at the
+amended K, not a new convention. Task 1/3's abelian construction (§3.1) and
+the shared-head architecture (§2.1) both parametrize directly on `d_ncr`;
+no other frozen text pins `d_ncr` to 33 specifically except by way of K=32
+(§9.1's now-discharged primary branch).
+
+**(b) Task-2 writes: `ρ_{S₅}(g) ⊕ I_{29}` → `ρ_{S₅}(g) ⊕ I_{21}`.** Verified
+against §3.2's own general formula (line 666, "embedded... as `ρ_{S₅}(g) ⊕
+I_{d_ncr−4}`") and its own dimension claim (line 651-653: "`d_min=4`,
+realized as the 4-dimensional standard representation... on the zero-sum
+hyperplane of ℝ⁵"). §9.2's `I_{29}` is that general formula evaluated at
+`d_ncr=33` (33−4=29); at the amended `d_ncr=25`, the identical formula
+gives `I_{25−4}=I_{21}`. Both blocks remain exactly orthogonal by the same
+argument §3.2 already makes (`ρ_{S₅}` pinned real-orthogonal, `I` trivially
+orthogonal, singular-value floor at exactly 1 — none of this is
+d-dependent). No other §3.2 quantity moves: `K₂=5` (entity pool) and `R=3`
+(generator count) are independent axes, already decoupled from `d_ncr` by
+§3.2's own K/R/d table (line 735-739).
+
+**(c) Param counts + §6.2 GPU-h ledger, re-priced at K=24/d=25.**
+
+*Params* (formula `P(d,h)=40h²+4dh+46h+d`, verified exact, §2.1 line 291,
+`NOVEL_ARCH_WATERFALL.md` §9.3): `P(25,64) = 40·4096 + 4·25·64 + 46·64 + 25
+= 163,840+6,400+2,944+25 =` **173,209 params** (was 175,265 at d=33) —
+**2,056 fewer params, −1.17% of the head's own size.** As a fraction of the
+backbone: 98M → 173,209/97,618,176 = 0.1774% (was 0.1795%); 392M →
+173,209/391,869,440 = 0.0442% (was 0.0447%). **Direction: cheaper, as
+expected** (a smaller `d` shrinks the `4dh+d` terms); **magnitude:
+invisible at the design's own reporting precision** — both figures still
+round to "+0.18% / +0.045%," confirming §2.1's own finding that the `40h²`
+encoder-width term (163,840 of 175,265 → 94.6% of the head, UNCHANGED since
+`h_ncr=64` is untouched by this amendment) dominates, not `d`.
+
+*FLOPs* (formula `F(K,d,h)=76Kh²+4dh²+12K²h+4Kdh+4d²h`, verified exact,
+§2.1 line 314): `F(24,25,64) = 76·24·4096 + 4·25·4096 + 12·576·64 +
+4·24·25·64 + 4·625·64 = 7,471,104+409,600+442,368+153,600+160,000 =`
+**8,636,672 FLOPs/relation-write** (was 11,837,696 at K=32/d=33) —
+**3,201,024 fewer FLOPs, a 27.0% reduction per write.** §2.1's own
+overhead-share calculation (line 412-415: "≤64 write invocations/step ×
+1.2×10⁷ FLOPs ≈ 7.7×10⁸ FLOPs/step — ≈0.008% of backbone FLOPs/step")
+shrinks proportionally to ≈5.5×10⁸ FLOPs/step ≈ **0.006%** of the same
+≈9.6×10¹² FLOPs/step backbone figure (invocation count carried over
+unchanged — §2.1's own `T_bind=224` was derived FOR K=32 specifically and
+is not re-derived here for K=24; a build agent should re-check it, but
+even a 2× miss on invocation count leaves this in the same negligible
+band).
+
+*§6.2 GPU-h ledger — UNCHANGED, not merely small.* Phase 0 (smoke, ≈2
+GPU-h), Phase 1 (calibration, 10.76 GPU-h 1×/21.52 GPU-h 2×), Phase 2 (98M
+main, ≈107.7/215.3 GPU-h), and Phase 3 (392M main, ≈113.3/226.7 GPU-h) are
+all priced from §6.1's measured tokens/sec anchors (69,424 tok/s @ 98M,
+19,598 tok/s @ 392M, both plain-backbone measurements) times a FLAT ≤5%
+NCR-overhead ceiling (§2.2 line 325, "by analogy to the ONE directly
+comparable measured precedent... ≤1.2% overhead" — a projected assumption,
+never a `d`-derived one) — **neither term is a function of `d_ncr`.** §2.1's
+own line 306-307 states this explicitly as the load-bearing point: "cost
+is governed by the encoder's own width, not by the written object's
+dimension." **GATE-3's ~22 GPU-h calibration price (Phase 0 + Phase 1,
+`STATE.md` 2026-07-17 briefing) therefore does not move under this
+amendment** — the only line items that move are the on-paper param/FLOP
+figures above, both already negligible and now marginally more so. (One
+qualification, flagged not resolved here: Phase 1's own 21.52 GPU-h (2×)
+splits evenly, 10.76/10.76, between a Task-1 arm and a Task-2 arm gated
+separately by GATE-2 — see N2.7 item 1, since GATE-2 is untouched by this
+amendment.)
+
+### N2.3 Headline reframe
+
+Per §N1 R1 (line 3412-3443, already-ratified, this amendment does not
+alter it) and `research/ncr_separation_grounding.md` Part 3(a)-(b) (lines
+239-265): the flagship capability headline is **the composition READ is
+exact BY CONSTRUCTION** — `binexp_read`'s repeated squaring is ordinary
+matrix multiplication, associative and error-free up to floating-point
+accumulation, true at ANY K or scale because it is an algebraic identity,
+not a learned regularity (§N1's own "ENTAILED by the read mechanism...
+rather than being a learned regularity that is only empirically checked,"
+line 3432) — **plus O(log h) query-time sequential access complexity**,
+versus every published matrix-state alternative's Θ(h) rollout (§4.4, Axis
+B). **The learned WRITE is a separate claim, empirically demonstrated, not
+by-construction:** the K=24/d=25 free-write verdict (§9.1/§9.3) shows the
+encoder trains a well-conditioned (cond≈1.0), full-rank (`A_eff_rank`=24.0)
+operator WITHOUT an explicit orthogonality projection — a genuine, measured
+result about one architecture at one (K,d) operating point (grounding memo
+Part 3(a): "an empirical result about one architecture at one scale, not a
+new complexity-class capability... exactness [of the write] as its
+necessary empirical companion"). **This reframe is consistent everywhere it
+touches:** §N1's own EXACT AMENDED FLAGSHIP CLAIM (line 3428-3443) already
+states the read is "ENTAILED... up to a MEASURED... exactness horizon H" —
+this amendment supplies the mechanism by which H is now measured (free-
+write's own far-depth recovery, §9.1, not ortho-write's — since ortho-write
+is dead, H is re-anchored to the free-write ladder: h≈61 clears at ≈1.0
+recovery in 4/4 K=24 seeds, the new empirical floor for H pending any
+deeper eval, N2.7 item 2). No frozen claim language is altered by this
+reframe — §1's hypothesis and §7's WIN bands are untouched; this section
+states which existing sentences the amendment's mechanism now satisfies.
+
+### N2.4 The load-bearing caveat — RECIPE-CONDITIONAL, GATE-3 stays fully load-bearing
+
+**The K=24-healthy result does not hold at every `(K,d)` recipe — it is
+specific to the tight-spare `d=K+1` geometry with EXTENDED (4×/320,000-step)
+budget, and the recipe-dependence is documented, not assumed:**
+
+- **Dead at the older `d=2K` ("2K") recipe.** `NOVEL_ARCH_WATERFALL.md`
+  §11.4's own joint summary (line 4569-4596): K=24 at `d=48` (the `d=2K`
+  convention) reads **0/4 Gate-0 CONVERGED at every budget/anneal
+  combination tried** (1×, 2×, 4×, anneal 0.75 — 16 cells) — the SAME K, a
+  categorically dead recipe at the wider `d`. `NCR_ORTHO_WRITE.md` §5's own
+  in-silico table corroborates from the opposite direction: `K24@d48 (2K,
+  dead)` has `cond#=2951.5`, `front asis@.9=0.0` — "even post-hoc polar
+  barely helps," vs. `K24@d25 (K+1)` "the far healthier baseline this wave
+  actually uses." **This is the regate precedent**: the SAME K produces a
+  dead cell at one `d` convention and a healthy one at another — nothing
+  about "K=24" alone was ever the free variable; the `(K,d)` PAIR is.
+- **Weak at 1× (80,000-step) budget, even at the healthy `d=K+1` geometry.**
+  `NOVEL_ARCH_WATERFALL.md` §11.4 Table 2 (line 4477-4480): K24@d25 at 1×
+  budget reaches 4/4 Gate-0 CONVERGED (in-dist recovery=1.000 uniformly)
+  but far-depth recovery is **weak-and-seed-variable**
+  (`sweep_min_rec`={0.0511, 0.0000, 0.0448, 0.0000}, fronts={21,93,189,189})
+  — NOT the clean 1.0-at-all-depths result cited in N2.1. That clean result
+  is specifically the `NCR_ORTHO_WRITE.md` §9 wave's **4× (320,000-step)
+  EXTENDED-budget** cell. **"Extended budget" is therefore a load-bearing
+  qualifier of the cited verdict, not a detail** — a build agent porting
+  this to the real-LM Phase-1/2/3 token budgets (327.68M-1.108B tokens/cell,
+  §6.2) must not assume the reduced-length calibration run automatically
+  inherits the 4×-toy-harness far-depth quality; §11.4's own open item (4),
+  "K=24's far-depth reliability... an unexplained variance this wave does
+  not resolve," stays unresolved.
+
+**Consequently: GATE-3 (Phase-0/1 calibration, ~22 GPU-h) STAYS fully
+load-bearing, unweakened by GATE-1's discharge.** The NCR head has NEVER
+trained inside a real LM — every cited free-write K=24 number above is
+from the isolated synthetic Task-E harness (`NCR_ORTHO_WRITE.md`), not from
+a bind-clause-in-real-text training signal. §9.1's own text already names
+this exact risk for a different branch and it applies unchanged here: "the
+write-conditioning problem... is not guaranteed to manifest identically
+once bind clauses are embedded in a real-LM training signal (a new confound
+this document does not resolve and must not assume away)" (line
+1999-2003). GATE-3 is the make-or-break de-risk for THIS confound,
+independent of and downstream from GATE-1's now-discharged ortho-vs-free
+question — it must run, unconditionally, before any scale spend. **The
+demonstrated capability envelope is bounded honestly: K≤24 at `d=K+1`, with
+extended (4×) budget, on the synthetic harness — documented as a boundary,
+not a floor to build past without re-verification.** No claim in this
+document extends the free-write finding to K>24, to the 1×-budget-
+equivalent calibration length, or to the real-LM training signal ahead of
+GATE-3's own readout.
+
+### N2.5 SCALE-TARGET extension (PI-ratified)
+
+The flagship ladder's TOP is amended from 392M to **1B+ parameters on the
+capability** — 392M becomes a checkpoint, not the finish line. Rationale
+(PI, `STATE.md` 2026-07-17 briefing): the field's credibility bar for "real
+architecture, not a toy" sits near 1B; a clean NCR separation at 392M is a
+strong result, but the honest ambition given the grant window (≈192 GPU-h/
+day operative rate, CLAUDE.md Hardware) is to reach it — a ~1000-2000 GPU-h
+1B run is an order of magnitude smaller than the remaining multi-thousand-
+GPU-h window at that daily rate, and does not displace the committed
+484-608 GPU-h §6.2 ledger or the ~300 GPU-h fix-at-scale/other campaigns
+already in flight.
+
+**Recording discipline, binding:** the 1B rung is recorded here as **INTENT
+ONLY**. It is NOT a committed spec — no `(K,d,n_layers,d_model)`
+configuration, token budget, or GPU-h ceiling is pinned by this amendment.
+Before any 1B GPU-h is spent, the 1B rung requires its OWN: (i) pre-launch
+attack round, (ii) resource/placement red-team, and (iii) its own priced
+ledger, sequenced exactly like every other scale step in this document's
+own §6.2 discipline ("every number is either cited from a measured rate...
+or marked PRICE-UNKNOWN/PROJECTED. No rate is guessed," line 1307-1309) —
+a 1B config has ZERO measured rate anywhere in this repo today, and per
+CLAUDE.md's own ceremony tiers (">50 GPU-h or publication-bound → full
+multi-round adversarial gauntlet") a ~1000-2000 GPU-h run requires the
+FULL gauntlet, not the lighter 10-50 GPU-h tier this document's own Phase
+1-3 cells mostly clear. **This escalation is gated on the 392M rung
+holding** (§7's own WIN/PARTIAL bands, unaltered by this amendment).
+
+**The sequence, stated explicitly (supersedes no frozen text — §6.2's
+Phase 0-3 structure already ends at 392M; this appends the next rung, not
+committed):**
+
+`GATE-3 calibration (K=24, 98M, ~22 GPU-h, Phase 0+1) → 98M main (Phase 2,
+≈107.7-215.3 GPU-h) → 392M main (Phase 3, ≈113.3-226.7 GPU-h) → [1B's own
+ceremony gate — attack + red-team + ledger, not yet run] → 1B+.`
+
+The immediate committed action, and the only one this amendment authorizes
+GPU-h for, is **GATE-3 at 98M.**
+
+### N2.6 Novelty check
+
+**This amendment does NOT trigger a fresh novelty re-verification sweep.**
+Per the novelty-reverification-gate doctrine (a re-check is required at a
+CLAIM PIVOT), this is not one: §N1's three sweeps (2026-07-16) already
+adjudicated the claim this document makes — "(i) a BY-CONSTRUCTION
+exactness guarantee... and (ii) a query-time O(log h) sequential access
+complexity" (line 3428-3436) — and that claim is UNCHANGED by moving from
+K=32/d=33 to K=24/d=25. Sweep 1 (BY-MECHANISM, line 3355) searched the
+mechanism combination, not a specific K; sweep 2 (BY-TASK, line 3374)
+searched the S₅ separation SHAPE, which N2.2(b) shows is K/d-invariant by
+construction (`ρ_{S₅}(g)⊕I_{d−4}` at ANY `d≥4`); sweep 3 (INTERNAL ARCHIVE,
+line 3394) is unaffected (K=24 was already an in-repo cell, not a novel
+internal configuration). **K and parameter-scale are not axes that move the
+competitive field** — no located prior-art distinction in §N1's Tier-1/2/3
+citation list (line 3590-3630) turns on the NCR head's specific `d` or the
+backbone's specific parameter count; MuonSSM, FWM, DeltaProduct, Log-Linear
+Attention, Yau et al., and every other must-cite work is differentiated on
+MECHANISM (rank-1 vs full-rank orthogonalization, expressivity-existence
+vs trained-exactness, parallel-scan-throughput vs query-time-sequential-
+depth), never on K or scale. The §N1 verdict stands: **GATE-2's novelty
+precondition remains DISCHARGED** (§N1's own DISCHARGE, line 3644-3658);
+this amendment changes GATE-1's mechanism (ortho→free) and the flagship's
+scale target, neither of which §N1 adjudicated or needs to re-adjudicate.
+
+### N2.7 Resistance points flagged for the coordinator (not resolved by this amendment)
+
+Surfaced per this amendment's own instruction, not silently absorbed:
+
+1. **GATE-2 (bridge cell, §9.2/§6.2 Phase 0b) is UNTOUCHED by this
+   amendment and is now internally in tension with N2.3's headline
+   reframe.** GATE-2 as frozen trains an NS-polar orthogonal write on S₅
+   generators (`ρ_{S₅}(g)⊕I_{d_ncr−4}` — the SAME target object N2.2(b)
+   re-derives for free-write) — but §9/§10's mechanism finding applies to
+   the NS-polar projection itself, not to K=32 specifically, and both
+   `ortho_K24` cells in §9.1's own table ALSO failed Gate-0 4/4 (identical
+   dip-then-collapse signature). There is no principled reason to expect
+   GATE-2's bridge cell — an NS-polar write on a DIFFERENT full-rank
+   orthogonal target at the identical tight-spare `d_ncr` — to escape the
+   same absorbing ill-conditioning trap §10 diagnoses. **Axis A/Task 2
+   therefore remains gated behind a bridge cell built on a mechanism this
+   amendment's own evidence predicts will FAIL**, unless GATE-2 receives
+   its own amendment (a free-write analog of the bridge cell — untested,
+   not built, not priced here). Until that happens, this amendment
+   discharges GATE-1 (unblocking Axis B/Task 1 and Task 3, which inherit
+   Task 1's abelian construction) but does NOT unblock Axis A/Task 2's
+   Phase-1 calibration arm. **Concretely: of GATE-3's ~22 GPU-h (Phase 0
+   ≈2 GPU-h + Phase 1 10.76/21.52 GPU-h at 1×/2×), only Phase 0 + the
+   Task-1 half of Phase 1 (≈7.4-12.8 GPU-h) is actually unblocked by THIS
+   amendment; the Task-2 half (≈5.38/10.76 GPU-h) stays behind GATE-2
+   pending its own reconciliation.** The coordinator should decide whether
+   GATE-3 launches Task-1-only now or waits for a GATE-2 amendment to
+   launch both arms together.
+2. **§N1 R2's eval-grid extension (line 3479-3511) pins its added OOD
+   rungs `{60,100,160}` to "the GATE-1-measured exactness horizon H"** — a
+   quantity §N1 expected ortho-write to supply. Under this amendment, H
+   must instead come from the free-write ladder (N2.3 re-anchors it to
+   h≈61, §9.1's own audited rung) — a build agent implementing §N1 R2
+   needs this substitution stated explicitly, which this amendment does
+   (N2.3) but §N1's own text (untouched, per append-only) still reads as
+   if ortho-write will supply H.
+3. **§4.3's KV-cache-memory-matched baseline (Case i/ii, line 1034-1068)
+   computes `state_bytes` from `d_ncr=33` explicitly** (`33²×4=4,356` bytes
+   Task 1; `3×33²×4=13,068` bytes Task 2) — these numbers move under
+   `d_ncr=25` (`25²×4=2,500`; `3×25²×4=7,500`) and the re-derived `M`-grids
+   (line 1046, 1063) move with them. This is NOT one of the three
+   re-derivations this amendment was scoped to (N2.2), and is NOT
+   recomputed here — flagged so a build agent does not silently carry
+   forward the d=33 grid.
+
+### N2.8 COORDINATOR ADJUDICATION of N2.7 (Fable, verified vs raw text 2026-07-17)
+
+Accept §N2 (clean append, 3 re-derivations verified vs §3.2's own
+formulas). Ruling on the N2.7 flags:
+
+**N2.7-item-1 (the load-bearing one) — PARTIALLY OVERTURNED, split the
+launch.** The agent's claim "no principled reason to expect GATE-2's
+bridge cell to escape the §10 trap" is too strong. §10's trap requires an
+UNCONSTRAINED direction whose σ_min random-walks to 0 (the scale-invariant
+loss puts zero pressure on it). Task-1's tight-spare write HAS exactly one
+such direction (the d−K=1 spare, never queried) → §9 FAIL confirmed.
+Task-2's target `ρ_{S₅}(g)⊕I_{21}` is FULL-RANK (all σ=1, the M7 fix) —
+whether the trap forms depends on whether Task-2's training loss
+CONSTRAINS the I_{21} padding block or the read ignores it. That is
+UNTESTED and mechanistically distinct from §9; the §9 FAIL does NOT
+cleanly transfer, and neither does a guarantee of success. **So Task-2 is
+neither auto-unblocked (agent's over-optimism the free-write reframe would
+imply) nor doomed (agent's over-pessimism).**
+
+**DECISION — GATE-3 launches in TWO WAVES:**
+- **WAVE 1 (NOW): Phase-0 + Task-1 only** (≈7.4-12.8 GPU-h). Cleanly
+  unblocked by §N2 (free-write K=24 = §9 healthy verdict). De-risks the
+  make-or-break question — does the NCR head train inside a real 98M LM
+  AT ALL — on the axis that's actually ready. Task-1/Axis-B (O(log h)
+  exact composition, the access-complexity separation) is ALSO the
+  cleaner headline per `research/ncr_separation_grounding.md` Part 3
+  (the O(log h) read is THE load-bearing novelty; length-gen was demoted
+  to disclosed-genre corroboration). Leading with it at scale is
+  on-strategy, not a consolation.
+- **WAVE 2 (after a cheap Task-2 write resolution): Task-2 calibration.**
+  Resolve Task-2's write BEFORE committing its ~5.4-10.8 GPU-h: first a
+  ~0-GPU paper check of whether Task-2's loss constrains the I_{21} block
+  (reading the read/loss code — if constrained, §10 trap cannot form and
+  the NS-polar bridge cell is expected-safe; if not, the trap risk is
+  live); then the ≈3.18 GPU-h bridge cell as the empirical test. Candidate
+  write mechanisms if NS-polar traps: free-write (§9 shows it's naturally
+  cond-1.0 — but inexact), or expm/Cayley (note the det-parity subtlety —
+  ρ_{S₅}(transposition) has det=−1 in the 4-dim rep, so plain expm∈SO(d)
+  can't hit odd generators without a reflection; same issue the fallback
+  gauntlet §A1 surfaced). This is a real open design fork, recorded as
+  such — not hand-waved.
+
+**N2.7-item-2 (H re-anchor) — ACCEPTED**, §N2.3's re-anchor of H to the
+free-write ladder (h≈61) stands; a build agent follows §N2.3 not §N1's
+stale ortho-write H.
+**N2.7-item-3 (§4.3 KV-cache d=25 bytes) — ACCEPTED as a build-time
+TODO**: state_bytes 4356/13068 → 2500/7500, M-grids re-derive; not a
+Wave-1 blocker (Wave-1 is calibration, not the KV-matched baseline);
+must be fixed before the Phase-2 memory-matched comparison.
+
+GATE-1 DISCHARGED for Task-1/Axis-B + Task-3. GATE-2 (Task-2) stays live,
+re-scoped to the Wave-2 write-resolution above.
