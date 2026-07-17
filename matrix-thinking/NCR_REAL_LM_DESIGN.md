@@ -4275,3 +4275,56 @@ outright, disclosed as such in any resulting write-up. Either way, GPU
 spend on the full Phase-0/Phase-1 training run stays gated on that
 decision plus the coordinator's own independent audit, per the build
 brief.
+
+## §G3-B2 COORDINATOR ADJUDICATION of the Wave-1 integration gaps (Fable, verified vs §2.1/§3.2/§6.2 text, 2026-07-17)
+
+The §G3-B1 build correctly STOPPED rather than invent architecture. On
+reading the design directly, the "three unspecified gaps" reduce to TWO
+bounded adapter decisions — the design already pins the rest:
+- **Task/data:** the `grammar_rd.py` bind-clause grammar (`<buf...> KEY
+  <rel> VALUE .`) rendered through the real GPT-2 tokenizer, interleaved
+  into real-corpus (WikiText/OpenR1) documents, autoregressive per-token
+  stream (§3.2, lines 578-583, 479). SPECIFIED.
+- **Tap points:** operators written at bind-clause positions, reads at
+  query positions, off the post-`norm_f` hidden (§2.1 lines 250, 386-389,
+  §2.2). SPECIFIED.
+- **Objective:** next-token CE on the query-answer tokens within the
+  autoregressive stream; `recovered_frac@0.9` is the EVAL metric, not the
+  train loss. SPECIFIED.
+
+**RULING — the two remaining adapters, minimal calibration-scoped defaults:**
+1. **Write adapter (768→d_ncr):** a learned `Linear(d_model=768 →
+   encoder-input-dim)` applied to the post-norm hidden at each bind-clause's
+   KEY and VALUE token positions, feeding the BindingEncoder's key/value
+   inputs at their ACTUAL signature (the build agent matches the real
+   `NCREarlyLNModel`/`BindingEncoder` input shapes — do not guess shapes).
+   One Linear per role (key, value). Rationale: fewest degrees of freedom
+   → fewest ways for a bad adapter to confound the signal.
+2. **Read injection:** the read output `o ∈ R^{d_ncr}` (from `binexp_read`
+   at the query position — Wave-1 is Task-1/abelian ONLY) → a learned
+   `Linear(d_ncr → 768)`, ADDED to the query-position post-norm hidden
+   before the SHARED LM head (design §2.1's option (a), not the MLP→logits
+   option (b)). Rationale: directly tests whether the composed read is
+   usable by the backbone's own head; no separate output pathway to
+   confound.
+
+**DISCLOSURE + FAIL-INFORMATIVENESS (the Stage-0 lesson, binding):** these
+are CALIBRATION defaults, NOT the frozen flagship architecture. GATE-3
+Wave-1's job is BINARY — does the NCR head train through a real 98M
+DeltaNet backbone at all. A **PASS** validates the graft is trainable
+(final architecture refined afterward). A **FAIL is NOT conclusive** until
+a wiring ablation (MLP write-adapter; the alternative read-injection
+option (b); teacher-forced-operator control that isolates read-vs-write)
+rules out a wiring artifact — precedent: §B4/§B6, where a guard/wiring
+defect masqueraded as a mechanism FAIL and only an independent audit
+caught it. The build-continuation records these ablation arms as
+pre-authorized so a FAIL routes to them, not to "NCR can't train in a real
+LM."
+
+**Wave-1 scope:** Task-1/Axis-B only (abelian, `binexp_read`); Phase-0
+timing (the PRICE-UNKNOWN real-corpus rate, §6.2) + a small Phase-1
+calibration cell at short horizons — NOT the full length-generalization
+sweep. NEXT: build-continuation replaces §G3-B1's `PlaceholderIntegrationGlue`
+with this ratified wiring → mandatory independent audit (correctness AND
+wiring-bias/FAIL-informativeness) BEFORE any GPU spend → coordinator
+red-team → blind launch.
