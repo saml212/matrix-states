@@ -158,13 +158,18 @@ with torch.no_grad():                                          # detached — mi
     U, S, Vh = torch.linalg.svd(Z_raw, full_matrices=False)    # EXISTING sigma_hat
     sigma_max = S[..., :1]                                     # detached-power-iteration
     S_floor = S.clamp_min(eps_rel * sigma_max)                 # pattern already in this
-    scale = S_floor / S.clamp_min(torch.finfo(S.dtype).tiny)   # file (below)
+    scale = S_floor / S.clamp_min((eps_rel * sigma_max * 1e-6).clamp_min(torch.finfo(S.dtype).tiny))   # file (below)
                 # ^ [D1 FIX, §B4 audit 2026-07-17] originally S.clamp_min(NS_EPS);
                 # NS_EPS=1e-7 sits exactly at §10.2's diagnosed danger threshold and
                 # silently degraded the floor to proportional-in-sigma_min below 1e-7
                 # (sigma_min=1e-9 -> 100x short of floor; ~0 -> 9 orders short — §B4 D1).
-                # finfo.tiny is a pure 0/0 guard outside the operating region: for any
-                # computed sigma_i >= tiny, division-then-multiplication cancels exactly.
+                # [F-B FIX, §B6 Ruling 3, 2026-07-17] COMPOSED guard replacing the
+                # v2 bare finfo.tiny: the relative term eps_rel*sigma_max*1e-6 caps
+                # scale at 1e6 (kills §B5 F-B: fp32 bit-exact-zero sigma -> scale
+                # ~1e36 -> non-finite forward); the outer finfo.tiny backstop covers
+                # the measure-zero Z==0 case (relative term 0 there -> would
+                # reintroduce 0/0). Exact floor above the bite point; bounded,
+                # finite under-floor below it — see the §B6-scoped guarantee below.
     M = U @ torch.diag_embed(scale) @ U.transpose(-1, -2)      # (...,d,d), symmetric PSD
 Z_damped = M @ Z_raw          # NEW — exact sigma_min floor, straight-through gradient
                                # (M constant w.r.t. autograd: dL/dZ_raw = M @ dL/dZ_damped)
@@ -181,8 +186,25 @@ with that axis.
 **Why this is a genuine floor.** `M @ Z_raw = U·diag(scale)·Uᵀ·U·Σ·Vᵀ =
 U·diag(scale⊙σ)·Vᵀ` — `Z_damped`'s own SVD shares `Z_raw`'s `U`,`V` and has
 singular values exactly `σ_floor,i = max(σ_i, eps_rel·σ_max)`.
-**`σ_min(Z_damped) ≥ eps_rel·σ_max(Z_raw)` holds exactly, for every
-`Z_raw`, regardless of normality** — no Weyl approximation, no
+
+> **Scoped guarantee (§B6/F-A; replaces the withdrawn "exact for every
+> Z_raw" claim).** `Z_damped`'s singular values are `scale_i·σ_i`. For
+> every computed `σ_i` the dtype's SVD resolves (`σ_i ≳ ε_dtype·σ_max`;
+> fp32 ~1.2e-7·σ_max) and above the guard's bite point
+> (`eps_rel·σ_max·1e-6`), the floor `σ_floor,i = max(σ_i, eps_rel·σ_max)`
+> holds to the SVD's own relative accuracy on `σ_i` (rel error ≈
+> `ε_dtype·σ_max/σ_i`), regardless of normality. At the dtype noise floor
+> the achieved value is O(1)-approximate, not exact (measured 0.15×–4.1×
+> target across independent frames), and for a truly rank-deficient
+> `Z_raw` no floor is delivered on the dead direction at all
+> (left-multiplication cannot raise rank) — the guard caps `scale ≤ 1e6`
+> so that case is a finite, bounded under-floor, never Inf/NaN. In the
+> reachable training regime this still bounds `cond(Z_damped)` at
+> O(1e3–1e4), ≥3 orders inside §10.2's 1e7+ danger threshold —
+> sufficient for Stage-0's purpose, but the claim "exact for every
+> Z_raw, even σ_min exactly 0" is WITHDRAWN.
+
+No Weyl approximation, no
 eigenvalue/singular-value conflation. The floor is expressed RELATIVE to
 `σ_max` (not an absolute constant, unlike the struck patch) because §10.7
 measured `σ_max` itself drifting unconstrained (5→13 observed): an
@@ -219,9 +241,12 @@ input cond up to `1e6`, degrading only at `1e7`+, §10.1) and four orders
 below the measured danger threshold translated to relative terms
 (`σ_min≲1e-7` against an O(1) healthy `σ_max`, §10.2 — relative cond
 `≳1e7`). Unlike the struck additive floor, this bound holds **regardless
-of how far σ_min has drifted** — even if the raw encoder's true `σ_min`
-random-walks to exactly 0, `Z_damped`'s floored `σ_min` is still
-`eps_rel·σ_max` exactly. (A smooth alternative, damping via
+of how far σ_min has drifted** within the dtype's resolvable regime —
+[the original "even if σ_min random-walks to exactly 0, the floor is
+still exact" claim is WITHDRAWN per §B6/F-A: at the dtype noise floor
+the floor is O(1)-approximate, and at true rank deficiency it is a
+bounded, finite under-floor — see the scoped guarantee above]. (A smooth
+alternative, damping via
 `Z(ZᵀZ+εI)^{-1/2}`, was considered and rejected: its output singular value
 `σ_i/√(σ_i²+ε)` → 0 as `σ_i` → 0, so it does NOT provide a floor
 independent of how small `σ_min` has drifted — `cond ≈ √ε/σ_min → ∞` as
@@ -2247,3 +2272,99 @@ verified by the build agent and recorded in a §B7 build note:
 
 Conditions 1–4 failing in any particular → BLOCKED again, fresh md5,
 delta back to this auditor.
+
+---
+
+## §B7 V3 BUILD + AUTO-CLEAR CHECKLIST + RELAUNCH RECORD (2026-07-17, build agent)
+
+### v3 build
+
+Applied exactly §B6 Ruling 3's spec to the v2 working copy. v2→v3 `diff -u`
+(regenerated between the two archived files): **exactly 2 hunks** —
+(1) `RUNNER_TAG` `"ncr_ortho_fallback_stage0_v1"` → `"..._v3"` (v2 had
+never bumped the tag; §B6 Ruling 3 item 2 notes the voided attempt's JSON
+carries `_v1`); (2) the guard line, **byte-identical to §B6's given line**:
+`scale = S_floor / S.clamp_min((self._eps_rel * sigma_max * 1e-6).clamp_min(torch.finfo(S.dtype).tiny))`,
+plus the comment-block amendment (F-B marker). Nothing else. §2's
+pseudocode guard line updated to match (marked D1+F-B), the Ruling-2
+scoped-guarantee blockquote installed in place of the withdrawn "exact
+for every Z_raw" sentence, and the later "even if σ_min random-walks to
+exactly 0" claim struck with a WITHDRAWN marker pointing at the scoped
+guarantee.
+
+| File | md5 |
+|---|---|
+| v3 working copy — `matrix-thinking/ncr/ncr_ortho_fallback_stage0.py` | `c7c2f7c36e0ab33c1efaeed04fbcf1bb` |
+| v3 archive — `experiment-runs/2026-07-17_ncr_ortho_fallback_stage0/ncr_ortho_fallback_stage0_v3.py` | `c7c2f7c36e0ab33c1efaeed04fbcf1bb` |
+| v3 on box — `/home/nvidia/ncr/ncr_ortho_fallback_stage0.py` | `c7c2f7c36e0ab33c1efaeed04fbcf1bb` (verified post-scp) |
+| v3 driver — `orchestration/run_stage0_v3.sh` (archive = box) | `96cc2f8103b9c6d4165d3a5d1af4eea3` |
+| Auto-clear verification script (archived) — `verify_v3_autoclear.py` | `2dc6b69cee03b10d800f77d6addf3d2c` |
+
+v1 (`70dd7923…`) and v2 (`ce1448ab…`) archive copies untouched.
+
+### Auto-clear checklist (§B6's five conditions, each verified)
+
+1. **Diff conformance — HOLDS.** v2→v3 diff = the composed-guard line
+   (byte-identical to §B6's spec), the `RUNNER_TAG` bump, comment/§2-doc
+   edits. No other hunk.
+2. **Triple md5 pin — HOLDS.** `c7c2f7c36e0ab33c1efaeed04fbcf1bb` in all
+   three places (table above).
+3. **Self-tests + numeric rows — HOLDS, with one recorded tiebreak.**
+   9/9 CPU self-test suite PASS on v3 unmodified. Numeric rows (real
+   CUDA, through the real v3 `encode()`, module identity asserted first):
+   - fp64 **resolvable-exact**: σ_min ∈ {1e-7, 1e-8, 5e-9} →
+     achieved/target 0.999999995 / 1.000000034 / 0.999999964 (EXACT to
+     the SVD's own accuracy, matching Ruling 3's pre-verification rows).
+   - fp32 zero-column F-B reproducer: scale capped at exactly 1.0000e6,
+     `Z_damped` finite (max 3.79 ≈ σ_max, per Ruling 3's `‖Z_damped‖₂ =
+     σ_max` note), `encode()` output FINITE end-to-end — **F-B dead**.
+   - `Z≡0`: `Z_damped≡0` exactly, output finite — composed backstop works.
+   - **TIEBREAK RECORDED (for the auditor):** condition 3's label reads
+     "fp64 σ_min=1e-9 EXACT", but Ruling 3's own pre-verification —
+     which the condition's parenthetical names as the source of expected
+     values — puts σ_min=1e-9 (at σ_max=5) BELOW the composed guard's
+     bite point (5e-9 absolute) in the *disclosed loosened band*, with
+     pre-verified expected value **0.20× target**; no spec-conformant v3
+     could read EXACT there. The coordinator's relaunch dispatch names
+     this row "resolvable-exact". Both sources disambiguate identically;
+     the row was tested as pre-verified: measured σ_min=1e-9 →
+     **0.20000× target**, reproducing §B6's own number to 4 decimals.
+     Flagged here rather than silently normalized; if the auditor meant
+     something else by that label, the launch decision should be
+     revisited against this record.
+4. **Quarantine — HOLDS.** Both §B6 Ruling-4 `mv`s executed on the box;
+   `ls` verified: `VOID_CONTENTION_attempt1_v1_stage0_damped_K24_s0.json`
+   and `VOID_CONTENTION_attempt1_v1_run_stage0.log` present, bare
+   `stage0_damped_K24_s0.json` and `run_stage0.log` both ABSENT
+   pre-launch (`test ! -f` both confirmed).
+5. **Launch params — HOLDS.** `--ceiling-gpuh 1.75` (internal, graceful,
+   6300 s), external `timeout 7200`, cell params exactly §B1's
+   (`damped_polar`, K=24, seed 0, steps 42000, `--eps-rel 1e-3`,
+   ns-iter 40, ns-power 12, anneal-frac 0.5), same outdir. Blind
+   discipline: every log read since the v3 cycle began has gone through
+   the loss-masking `sed` filter — no exceptions this time.
+
+**ALL FIVE HOLD → relaunch executed under the pre-authorization.**
+
+### Relaunch record
+
+- **Placement:** all 8 GPUs still carry one 392M production job each at
+  100% util (checked immediately pre-launch) — no free GPU exists, so
+  the contended-rate assumption stands (no solo-rate note applies).
+  GPU 0 (uniform load across all 8; same GPU as the smoke + attempt 1).
+- **tmux:** `ncr_fb0_g0`, driver `run_stage0_v3.sh 0`, launched
+  **2026-07-17T08:02:48Z**. Confirmed alive post-launch; fresh
+  `run_stage0.log` growing.
+- **Measured rate (masked reads, elapsed-seconds field only):** step
+  1000 at 143 s → ~143 ms/step, contention factor 3.35 vs the 3.3
+  §B3(2) priced. **Expected COMPLETED at ≈6,000 s ≈ 09:43Z**, ~5%
+  inside the 6,300 s internal ceiling — tighter than the pricing's
+  nominal margin; if contention degrades >~5% further the internal
+  ceiling fires first (gracefully, `ABORTED-BUDGET`), which under the
+  re-priced ceiling would be a genuine budget event to bring back to
+  the coordinator, not auto-retried (the driver's terminal-status gate
+  stops on it).
+- **Blind:** no metric value read at or since launch; the assessor
+  reads only `stage0_damped_K24_s0.json` (post-quarantine, can only be
+  the v3 attempt's) and may verify `runner_tag ==
+  "ncr_ortho_fallback_stage0_v3"` + `git_commit` per §B6 Ruling 4.
