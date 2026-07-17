@@ -158,7 +158,13 @@ with torch.no_grad():                                          # detached — mi
     U, S, Vh = torch.linalg.svd(Z_raw, full_matrices=False)    # EXISTING sigma_hat
     sigma_max = S[..., :1]                                     # detached-power-iteration
     S_floor = S.clamp_min(eps_rel * sigma_max)                 # pattern already in this
-    scale = S_floor / S.clamp_min(NS_EPS)                      # file (below)
+    scale = S_floor / S.clamp_min(torch.finfo(S.dtype).tiny)   # file (below)
+                # ^ [D1 FIX, §B4 audit 2026-07-17] originally S.clamp_min(NS_EPS);
+                # NS_EPS=1e-7 sits exactly at §10.2's diagnosed danger threshold and
+                # silently degraded the floor to proportional-in-sigma_min below 1e-7
+                # (sigma_min=1e-9 -> 100x short of floor; ~0 -> 9 orders short — §B4 D1).
+                # finfo.tiny is a pure 0/0 guard outside the operating region: for any
+                # computed sigma_i >= tiny, division-then-multiplication cancels exactly.
     M = U @ torch.diag_embed(scale) @ U.transpose(-1, -2)      # (...,d,d), symmetric PSD
 Z_damped = M @ Z_raw          # NEW — exact sigma_min floor, straight-through gradient
                                # (M constant w.r.t. autograd: dL/dZ_raw = M @ dL/dZ_damped)
@@ -1845,3 +1851,131 @@ record, coordinator's call) before spending further GPU-h. The
 in-flight contended attempt (tmux `ncr_fb0_g0`) was already ruled VOID by
 §B3 on unrelated (contention) grounds — this finding does not change
 that disposition, it blocks the *next* (re-priced) attempt until fixed.
+
+---
+
+## §B5 D1 FIX + VERIFICATION RECORD (2026-07-17, build agent; relaunch still GATED on the delta re-audit)
+
+**Fix applied exactly as directed (§B4 suggestion, coordinator-selected
+variant):** the SVD-floor denominator guard `S.clamp_min(NS_EPS)` →
+`S.clamp_min(torch.finfo(S.dtype).tiny)` — a pure 0/0 guard decoupled from
+`NS_EPS`, plus a comment block marking it as the D1 fix. §2's pseudocode
+line corrected to match (marked inline). The three pre-existing
+`clamp_min(NS_EPS)` sites elsewhere in the file (`orthogonality_error`,
+`chain_read` renorm, `bank_orthogonality` cond) are the unrelated base-
+script contexts D1 identified the guard was wrongly *reused from* —
+deliberately untouched.
+
+**File pins (v1 preserved as-run, per the reproducibility rule):**
+
+| File | md5 |
+|---|---|
+| v1 (AS-RUN, VOID-CONTENTION attempt) — `experiment-runs/2026-07-17_ncr_ortho_fallback_stage0/ncr_ortho_fallback_stage0.py` | `70dd7923027f4dcf9f0f1e964fc0930c` (unmodified) |
+| v2 (D1-fixed) — `...same dir.../ncr_ortho_fallback_stage0_v2.py` | `ce1448ab3d47536ebf3e82b146e33722` |
+| v2 working copy — `matrix-thinking/ncr/ncr_ortho_fallback_stage0.py` | `ce1448ab3d47536ebf3e82b146e33722` |
+| v2 on box — `/home/nvidia/ncr/ncr_ortho_fallback_stage0.py` | `ce1448ab3d47536ebf3e82b146e33722` (verified post-scp) |
+| Verification script (archived) — `...same dir.../verify_d1_fix.py` | `c5d7a4282e0c8b881843e8a31c9cefd2` |
+
+v1→v2 diff: 11 lines (the one guard line replaced + a 9-line comment
+block + 1 context). No other change. 9/9 CPU self-test suite re-run on v2:
+ALL PASS.
+
+**Verification (real CUDA, H100, through the ACTUAL fixed `encode()` code
+path — module-attribute capture of `newton_schulz_polar`'s input, not a
+scratch re-implementation; the loaded module was asserted to carry the
+fixed guard and not the old one before any numbers were taken).**
+
+§B4's exact table, float64, non-normal `Z = U₀ diag(σ) V₀ᵀ` (`U₀≠V₀`),
+`eps_rel=1e-3`, `σ_max=5` (target floor `5.000e-3`), at §B4's `d=5` AND
+production `d=25`:
+
+| d | raw σ_min (set) | computed raw σ_min | achieved σ_min(Z_damped) | floor |
+|---|---|---|---|---|
+| 5 | 1e-4 | 1.000e-4 | 5.000000e-3 | **EXACT** |
+| 5 | 1e-9 | 1.000e-9 | 5.000001e-3 | **EXACT** |
+| 5 | literal 0.0 | 2.76e-17 (noise) | 7.314e-3 | above target (noise regime, see F-A) |
+| 25 | 1e-4 | 1.000e-4 | 5.000000e-3 | **EXACT** |
+| 25 | 1e-9 | 1.000e-9 | 5.000000e-3 | **EXACT** |
+| 25 | literal 0.0 | 5.79e-16 (noise) | 8.874e-4 | **~0.18× target (F-A)** |
+
+**The D1 defect is fixed on its own axis:** every resolvable-σ row —
+including `1e-9`, two orders below the old `NS_EPS` threshold where v1
+fell 100× short — is now EXACT (rel tol 1e-10). fp32 resolvable-regime
+check (B3): exact to fp32's intrinsic SVD accuracy (achieved/target
+0.99789; the intrinsic absolute-error bound `ε·σ_max` gives ~6e-3 rel at
+this σ_min — fp64-style 1e-10 exactness is not defined for fp32 here).
+CUDA grad smoke, healthy regime (B1): 47/47 param grad norms finite &
+nonzero on v2. Realistic fp32 trap-regime input (B2b: stored σ_min at
+fp32 noise level 2.4e-8, sub-`NS_EPS`, NOT bit-exact zero — the regime
+§10 actually diagnosed): encode() finite, grads finite & nonzero, floor
+achieved at 2.5× target (noise-regime overshoot, benign direction).
+
+**TWO NEW FINDINGS surfaced by this verification — for the delta
+re-audit, NOT self-adjudicated here:**
+
+- **F-A (noise-floor approximation — construction-intrinsic, no guard
+  fixes it).** At inputs whose computed σ_min sits at the dtype's noise
+  floor (`~ε·σ_max`; the literal-0.0 rows), the achieved floor is
+  O(1)-approximate, not exact: measured achieved/target ratios across 6
+  fp64 frames = {1.46, 0.43, 0.33, 0.18, 0.15, **0.00**}. Mechanism: the
+  SVD's own backward error (`~ε·σ_max` absolute) is amplified by
+  `scale ~ S_floor/σ_noise` to exactly floor magnitude, so the achieved
+  value there is uncontrolled to an O(1) factor — and left-multiplication
+  `M @ Z` can never raise the rank of an effectively-singular matrix.
+  **This bounds what ANY denominator guard can deliver**; §B4's D1 text
+  ("removing the clamp reproduces the exact target floor... down to and
+  including literal σ_i=0") was seed/shape-lucky at its d=5 test — my
+  d=5 run also landed above target, my d=25 frames landed anywhere in
+  [0, 1.46]×. Consequence for §2's claim language: "exact for every
+  Z_raw, even σ_min exactly 0" must be re-scoped to "exact for every
+  σ_min the dtype's SVD resolves (≳ ε·σ_max); order-of-magnitude-only at
+  the noise floor." For Stage-0's purpose (bound cond ~1e3 vs the 1e7+
+  danger) an O(1)-loose floor still delivers ~3 orders of safety margin
+  in the typical case, but the 0.00× frame shows the worst case is NOT
+  bounded — the coordinator/re-audit must decide whether this is
+  acceptable for the causal-attribution claim or whether the
+  construction needs a different mechanism at the noise floor.
+- **F-B (fp32 bit-exact-zero → non-finite forward — NEW defect in the
+  prescribed guard at its own extreme).** With computed σ bit-exact 0.0
+  (fp32 SVD of a matrix with exactly-zero columns returns exact zeros),
+  `scale = S_floor/finfo(fp32).tiny ≈ 8e35`; `Z_damped` reaches ~8e29
+  magnitudes (amplified catastrophic cancellation) and the downstream NS
+  polar goes **non-finite (encode() output Inf/NaN — reproduced, B2)**.
+  The old `NS_EPS` guard masked this (scale capped ~1e5) at the cost of
+  D1. Mitigating context: (a) bit-exact-zero computed σ requires
+  structured inputs (exact zero rows/columns) — a generic dense fp32
+  encoder output lands at noise level (~1e-7·σ_max), NOT exact zero
+  (B2b confirms that realistic regime is finite and well-behaved); (b)
+  the training loop's existing finite-grad check skips non-finite steps
+  (`n_skipped`), so even a hit degrades to a skipped step in training —
+  but eval/z_dump paths have no such guard. Options for the re-audit
+  (NOT applied — no authority): §B4's own alternative guard
+  `S.clamp_min(eps_rel * sigma_max * 1e-6)` caps scale at 1e6,
+  eliminating F-B's overflow while sacrificing nothing fp32 can resolve
+  anyway (fp32's noise floor `~1.2e-7·σ_max` sits above that clamp's
+  bite point `1e-9·σ_max`); it would slightly loosen fp64 exactness in
+  the [tiny, 1e-9·σ_max) band, which production (fp32) never occupies.
+
+**First attempt terminal status (structure only, §B3's VOID-CONTENTION
+disposition unchanged):** `status=ABORTED-BUDGET`, `train.step=13,500`,
+`elapsed_s=1823` vs `ceiling_s=1800` — the internal ceiling fired
+gracefully at the first 500-step check past 1800s, close to §B3's ~12,900
+prediction (measured mean rate ~135 ms/step vs the 139 ms/step estimate).
+Driver detected the terminal status and exited (by design — no retry on
+a graceful budget abort); tmux `ncr_fb0_g0` ended; GPU 0 carries only its
+production job again. The JSON is at
+`/home/nvidia/ncr/results_ortho_fallback/stage0_damped_K24_s0.json` —
+left in place, NOT deleted: the v2 relaunch must either use a fresh
+outdir or clear this VOIDED artifact first, since the resume-safe
+skip-if-COMPLETED logic does not skip `ABORTED-BUDGET` (it would re-run
+in place) but the blind assessor must never mistake this voided JSON for
+a §2 branch event. **Blind-discipline disclosure:** one `tail` of the
+driver log during the wait was issued without the loss-masking `sed`
+filter used everywhere else, briefly exposing loss values from this
+VOIDED attempt (~4 log lines); the values were disregarded, are not
+reproduced anywhere, and the attempt was already ruled VOID by §B3
+before the exposure. All §2-relevant metric values remain unread.
+
+**Status: v2 built, verified, deployed, NOT relaunched** — §B4's ruling
+and the coordinator's follow-up both gate any relaunch on the delta
+re-audit of this fix (which should also adjudicate F-A/F-B above).
