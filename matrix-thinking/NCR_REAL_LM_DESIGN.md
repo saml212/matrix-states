@@ -4823,3 +4823,38 @@ never tapped for the write). Note-only.
 **DISPOSITION: BLOCKED → runner-build with the two-arm design + attribution
 rule + smoke-5 fix baked in; NO graft code change needed. Then re-verify the
 runner wires the control correctly (I check) → red-team → launch.**
+
+## §G3-B6 WAVE-1 RUNNER BUILD + COORDINATOR VALIDATION (Fable, 2026-07-17)
+
+The runner-build agent thrashed (3× monitor-defer + re-launch of its own
+smoke, never closing); coordinator took over, cleaned up the runaway smoke
+PIDs (exact-PID kills), and VALIDATED the runner directly.
+
+**Runner VALIDATED (`ncr_lm_wave1_runner.py`, + `orchestration/run_wave1_calibration.sh`):**
+- **Control zeroes the read EXACTLY, pre- AND post-train** (`read_ablation_check`:
+  pre/post `max_abs_diff = 0.0`, both `verified_exact_zero = true`) — the §G3-B5
+  fix confirmed: `backbone_only`'s read contributes exactly zero to its logits,
+  a genuine frozen-at-init null. Audited graft code (`ncr_lm_forward`) untouched;
+  ablation via a separate `ncr_lm_forward_ablatable` wrapper.
+- **Two arms** `['full_graft','backbone_only']`, bit-identical init, same batch.
+- **Attribution schema in results JSON** (blind-assessor-ready): metric (a)
+  `recovered_frac@0.9` on `o_raw` → PRIMARY = full−backbone GAP at deep ladder
+  {5,12,20,29,40,61}; metric (b) `answer_accuracy` on actual logits → the
+  PRECONDITION (backbone-shortcut check); `attribution.frozen_rule_text` verbatim.
+- **Phase-0 measured rate** (box, GPU5): full 0.1174 / backbone 0.1133 / both-arms
+  0.2308 s/step; 5568 tok/step/arm; suggested ceiling **4.865 GPU-h @ 20K steps
+  batch=32** (contended ×3.3 applied).
+- Launch cmd: `bash orchestration/run_wave1_calibration.sh <GPU> 4.865 20000 0`
+  (batch=32 train / 64 eval, self-healing supervisor, terminal-status-gated,
+  stop-file, blind).
+
+**COORDINATOR RED-TEAM FINDING — memory-fit gate (not yet cleared):** the two
+arms are CO-RESIDENT (`restore_arms_and_opts` + `build_two_arms` place both full
+98M+head+opt on device). At batch=32 train / 64 eval, the ~2× footprint (single
+arm ≈23.5GB per FROZEN_BIAS §13.7) risks OOM in the ~36GB free alongside the
+production queue (all 8 GPUs ~44/81GB used); eval-batch=64 is the named eval-OOM
+hazard. **LAUNCH IS GATED on a real-config memory probe** (batch=32/eval=64/both
+arms, running now). If it OOMs/approaches the limit: reduce eval-batch, or free
+one arm's activations between arms (sequential), or drop to a fitting batch —
+the calibration's job is binary trainability, robust to a smaller batch. Do NOT
+blind-launch the ~5 GPU-h cell until fit is confirmed.

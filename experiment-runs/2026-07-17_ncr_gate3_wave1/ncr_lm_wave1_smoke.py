@@ -549,8 +549,29 @@ def smoke_4_ncr_head_forward_backward(device: str):
 
 
 def smoke_5_ncr_head_checkpoint_resume(device: str):
+    """sec G3-B4-3 [MINOR] FIX: the retired version saved+loaded `ncr2` but
+    then never called it -- its assertion compared binexp_read(Z_probe,...)
+    against itself twice, proving only that a pure function is
+    deterministic (a labeling/coverage weakness, not a validity hole -- real
+    full-graft round-trip coverage already exists in smoke 8). This version
+    actually EXERCISES `ncr2`: take one real gradient step (so the
+    checkpoint's contents are non-trivial, not just fresh init), save, load
+    into a FRESH NCREarlyLNModel instance, and require `ncr2.encode(...)` +
+    the downstream `binexp_read` on `ncr2`'s own Z to be BIT-IDENTICAL to
+    the original `ncr`'s outputs on the SAME inputs."""
     torch.manual_seed(4)
     ncr = build_ncr_head().to(device)
+    keys = torch.randn(4, K_NCR, D_NCR, device=device)
+    values = torch.randn(4, K_NCR, D_NCR, device=device)
+    Z_train = ncr.encode(keys, values)
+    loss = Z_train.pow(2).mean()
+    loss.backward()
+    with torch.no_grad():
+        for p in ncr.parameters():
+            if p.grad is not None:
+                p -= 0.01 * p.grad
+                p.grad = None
+
     tmpdir = tempfile.mkdtemp(prefix="ncr_lm_wave1_ckpt_")
     ckpt_path = os.path.join(tmpdir, "ncr_head.pt")
     torch.save({"step": 0, "model_state_dict": ncr.state_dict(),
@@ -560,13 +581,16 @@ def smoke_5_ncr_head_checkpoint_resume(device: str):
     ncr2.load_state_dict(loaded["model_state_dict"])
     ncr.eval(); ncr2.eval()
     with torch.no_grad():
-        Z_probe = torch.randn(2, D_NCR, D_NCR, device=device)
+        Z1 = ncr.encode(keys, values)
+        Z2 = ncr2.encode(keys, values)          # ncr2 IS called now -- the fix
         q_probe = torch.randn(2, 3, D_NCR, device=device)
-        o1 = nm.binexp_read(Z_probe, q_probe, 5)["o"]
-        o2 = nm.binexp_read(Z_probe, q_probe, 5)["o"]   # pure function, module-level -- sanity only
-    ok = torch.equal(o1, o2)
-    _report("smoke 5: NCR head checkpoint save/load round-trip + binexp_read determinism", ok,
-            f"ckpt={ckpt_path}")
+        o1 = nm.binexp_read(Z1[:2], q_probe, 5)["o"]
+        o2 = nm.binexp_read(Z2[:2], q_probe, 5)["o"]
+    ok = torch.equal(Z1, Z2) and torch.equal(o1, o2)
+    _report("smoke 5: NCR head checkpoint round-trip -- ncr2 (the loaded copy) produces "
+            "BIT-IDENTICAL encode()+binexp_read outputs to ncr (the post-one-grad-step original) "
+            "on the SAME inputs (sec G3-B4-3 fix: the retired version never called ncr2 at all)", ok,
+            f"ckpt={ckpt_path} max_Z_diff={(Z1-Z2).abs().max().item():.2e}")
     del ncr, ncr2
     torch.cuda.empty_cache() if device == "cuda" else None
 
