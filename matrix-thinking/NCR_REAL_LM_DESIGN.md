@@ -4858,3 +4858,32 @@ arms, running now). If it OOMs/approaches the limit: reduce eval-batch, or free
 one arm's activations between arms (sequential), or drop to a fitting batch —
 the calibration's job is binary trainability, robust to a smaller batch. Do NOT
 blind-launch the ~5 GPU-h cell until fit is confirmed.
+
+## §G3-B7 WAVE-1 CALIBRATION LAUNCHED (make-or-break, 2026-07-17 22:10 UTC)
+
+Memory-fit red-team gate CLEARED empirically: a bounded 70-step real-config
+probe (batch=32 train / 64 eval, both arms) COMPLETED on GPU 2 (~37GB free
+alongside production) through TWO evals with ZERO OOM — the co-resident arms
+train SEQUENTIALLY per step (additive Phase-0 timing confirmed), so only one
+arm's activations peak at a time (~23GB, not the ~47GB worst case). Red-team
+did its job (probed, not blind-launched).
+
+**LIVE:** tmux `ncr_g3w1_g2`, GPU 2, cell `wave1_calib_K24_s0`, runner md5
+`5c0442c9` (box == repo, validated), orchestration supervisor (terminal-status-
+gated, stop-file `/home/nvidia/results_gate3_wave1/STOP`), 20000 steps, batch=32/
+eval=64, seed 0, ceiling 4.865 GPU-h (timeout 20141s), BLIND. Both arms
+(full_graft + backbone_only o≡0 control). Launched 22:10 UTC, clean start (step
+1, 0 errors); expected ~4.2-4.9h contended.
+
+**ON COMPLETION (the frozen §G3-B5 attribution rule — blind assessor applies
+mechanically to `wave1_calib_K24_s0.json`):** PRECONDITION (metric-b
+answer_accuracy on actual logits): is backbone_only materially BELOW full_graft
+(read demonstrably load-bearing)? If NO (backbone shortcuts) → UNINTERPRETABLE,
+re-bottleneck. If YES → PRIMARY (metric-a recovered_frac@0.9 GAP on o_raw at deep
+ladder): does full_graft materially exceed the backbone_only frozen-null at deep
+depth? PASS = make-or-break passed (NCR head trains + load-bearing in a real LM)
+→ up ladder 98M→392M→[own gate]→1B+. FAIL → route pre-wired ablations
+(--teacher-force / --adapter mlp / --read-inject b) FIRST; only if genuine,
+honest "NCR can't train in a real LM" → PI immediately (bet in trouble; scaling
+paper + kwall = shippable core). n=1 first signal; add seeds if borderline
+(§2.35 precedent).
