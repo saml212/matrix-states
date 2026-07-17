@@ -374,3 +374,188 @@ the discriminator arm heavier than priced; the science bar is unaffected.
 **Discipline.** This amendment is recorded and committed BEFORE the v2 re-launch
 (record-verdict-first). Any completed Part A cells from the first v2 run are
 resume-safe and retained (the re-launch skips COMPLETED cells).
+
+---
+
+## §9 VERDICT OF RECORD (blind assess, 2026-07-17)
+
+Assessed blind against the frozen §4 / §4b bands ONLY, from the raw per-cell
+JSONs. (§7 ODDS and §8 STATUS occupy 7/8; this is the next free number.)
+
+### §9.0 Integrity check — CLEAN
+
+- **Frozen bands intact.** `git show cffc209:…NCR_ORTHO_WRITE.md` diffed against
+  the working copy: the ONLY difference is the appended `§ CEILING AMENDMENT`
+  (commit 62a6fb6, a recorded compute-guard amendment, not tampering). §4/§4b are
+  byte-identical to cffc209 — the frozen WIN/PARTIAL/NULL/FAIL bands govern
+  verbatim.
+- **Run script md5 MATCH.** On-box `/home/nvidia/ncr/ncr_ortho_write.py` md5 =
+  `83b5d7bd273e9e83698fed27a9f2ef45` == committed `3086dfa` == working copy ==
+  the pinned prefix `83b5d7bd…`. No drift.
+- **Logs clean.** 0 `Traceback`, 0 `CUDA out of memory`, 0 `ABORTED-BUDGET` across
+  all `run*.log`/`finisher*.log` (the only "ceiling" hits are parameter echoes in
+  cell headers). All 24 cells `train.status = COMPLETED` at 320000 steps; all 24
+  `blank_out.passed = True` (P=1 bottleneck holds: read is bit-identical under
+  raw-input corruption, grad w.r.t. raw inputs exactly zero); all 16 Part-A cells
+  carry `axis_c_lock_sha256`. No malformed or missing-field cells. Per-cell wall:
+  Part-A free ~2.35 h, Part-A ortho ~3.3 h, Part-B ~3.4–4.3 h — all under the
+  amended 6.0 h ceiling.
+- **Archives (both, md5-verified spot check):**
+  `experiment-runs/2026-07-16_ncr_ortho_write/` (in-repo, 5.7 MB, all files
+  <25 MB cap) and
+  `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-16_ncr_ortho_write/`.
+  40 JSONs (24 primary + 16 axis_c_lock) + 7 logs + the run script.
+
+### §9.1 PART A — VERDICT: **FAIL** (constraint breaks trainability)
+
+Scored arm = **ortho-write at K=32** (the §4 primary). Gate-0 precondition:
+`min_{h∈{1,2,3}} recovered_frac@0.9 ≥ 0.9` AND `mean A_eff_rank ≥ 0.9·32 = 28.8`.
+`recovered_frac@0.9` for in-dist h∈{1,2,3} read from `eval.points[h].reads.binexp`;
+far depth from `realistic_ladder[h].recovered_frac@0.9`; spectral from
+`spectral.mean`.
+
+Per-cell raw metrics (all 16 Part-A cells):
+
+| cell | ind h1 | ind h2 | ind h3 | A_eff_rank | loss min | loss final | rec@40 | rec@20 | rec@29 | rec@61 | depNrm | A_cond | min\|λ\|/c* |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| free_K24_s0 | 1.000 | 1.000 | 1.000 | 24.00 | 0.0001 | 0.0001 | 1.000 | 1.000 | 1.000 | 1.000 | 0.005 | 1.0 | 1.00 |
+| free_K24_s1 | 1.000 | 1.000 | 1.000 | 24.00 | 0.0001 | 0.0001 | 1.000 | 1.000 | 1.000 | 1.000 | 0.004 | 1.0 | 1.00 |
+| free_K24_s2 | 1.000 | 1.000 | 1.000 | 24.00 | 0.0002 | 0.0004 | 1.000 | 1.000 | 1.000 | 1.000 | 0.008 | 1.1 | 1.00 |
+| free_K24_s3 | 1.000 | 1.000 | 1.000 | 24.00 | 0.0003 | 0.0004 | 0.999 | 1.000 | 1.000 | 0.999 | 0.009 | 1.1 | 0.99 |
+| free_K32_s0 | 0.988 | 0.952 | 0.875 | 31.09 | 0.0383 | 0.0395 | 0.000 | 0.000 | 0.000 | 0.000 | 0.058 | 118.7 | 0.32 |
+| free_K32_s1 | 0.991 | 0.963 | 0.912 | 31.05 | 0.0312 | 0.0312 | 0.000 | 0.001 | 0.000 | 0.000 | 0.047 | 551.1 | 0.12 |
+| free_K32_s2 | 0.991 | 0.963 | 0.912 | 31.09 | 0.0324 | 0.0328 | 0.000 | 0.001 | 0.000 | 0.000 | 0.054 | 54.9 | 0.28 |
+| free_K32_s3 | 0.989 | 0.958 | 0.896 | 31.05 | 0.0333 | 0.0353 | 0.000 | 0.000 | 0.000 | 0.000 | 0.060 | 558.6 | 0.31 |
+| **ortho_K24_s0** | 0.000 | 0.000 | 0.000 | 13.53 | 0.0652 | 1.0011 | 0.000 | 0.000 | 0.000 | 0.000 | 0.685 | 365.5 | 3.15 |
+| **ortho_K24_s1** | 0.000 | 0.000 | 0.000 | 14.37 | 0.0656 | 0.9987 | 0.000 | 0.000 | 0.000 | 0.000 | 0.463 | 334.2 | 22.26 |
+| **ortho_K24_s2** | 0.000 | 0.000 | 0.000 | 16.39 | 0.0642 | 1.0049 | 0.000 | 0.000 | 0.000 | 0.000 | 0.341 | 161.7 | 1.57 |
+| **ortho_K24_s3** | 0.000 | 0.000 | 0.000 | 17.96 | 0.0656 | 1.0011 | 0.000 | 0.000 | 0.000 | 0.000 | 0.302 | 153.8 | 2.85 |
+| **ortho_K32_s0** | 0.000 | 0.000 | 0.000 | 27.30 | 0.9087 | 0.9965 | 0.000 | 0.000 | 0.000 | 0.000 | 0.170 | 420.8 | 24.84 |
+| **ortho_K32_s1** | 0.000 | 0.000 | 0.000 | 20.54 | 0.3222 | 1.0023 | 0.000 | 0.000 | 0.000 | 0.000 | 0.422 | 1774.5 | 3.32 |
+| **ortho_K32_s2** | 0.000 | 0.000 | 0.000 | 20.29 | 0.4743 | 1.0027 | 0.000 | 0.000 | 0.000 | 0.000 | 0.442 | 420.7 | 7.32 |
+| **ortho_K32_s3** | 0.000 | 0.000 | 0.000 | 17.61 | 0.0632 | 1.0006 | 0.000 | 0.000 | 0.000 | 0.000 | 0.442 | 4386.5 | 0.86 |
+
+**Band arithmetic (ortho K=32, the scored cell):**
+- Gate-0 in-dist recovered_frac@0.9 = **0.000** at h=1,2,3 for **all 4/4 seeds**
+  (< 0.9 bar; also < the 0.5 FAIL threshold). Rank leg also fails: A_eff_rank
+  17.6–27.3 < 28.8. Gate-0 is DEAD in 4/4 seeds.
+- **FAIL band** ("ortho-write Gate-0 DEAD, in-dist < 0.5, in ≥3/4 seeds — the
+  projection is too rigid to train through"): satisfied at **4/4 ≥ 3/4 → FAIL.**
+- WIN/PARTIAL/NULL are all unreachable: median far-depth recovered_frac@0.9 = 0.000
+  at every ladder rung {5,12,20,29,40,61}; the WIN mechanistic signature
+  (depart-normality ≤ 0.02, cond ≤ ~2, min|λ|/c* ≥ 0.9) is contradicted
+  (ortho depart 0.17–0.69, cond 154–4387) — the untrained model's write operator
+  is degenerate, not orthogonal. (NULL is additionally blocked because it requires
+  Gate-0 to PASS, which it does not.)
+
+**Loss signature (the FAIL mechanism, observed).** The ortho cells' loss
+transiently *dips* then *collapses back to ~1.0*: K32 min-loss 0.063–0.909, K24
+min-loss ~0.065, but every final loss ≈ 1.0 (random). The optimization briefly
+engages the task then destabilizes under the orthogonal constraint — the
+"too rigid to train through" mechanism §4's FAIL band names, not a flat
+never-started curve.
+
+**Baseline behaves exactly as pre-registered — isolating the constraint.** The
+free-write arm trained cleanly in the SAME harness: free_K32 converges in-dist
+(≈0.99/0.95/0.88 at h1/2/3) and dies at far depth (recovered_frac@0.9 = 0.000 at
+every h ≥ 20, front ≈ 5–6), and its spectral diagnosis (depart 0.047–0.060, cond
+54.9–558.6, min|λ|/c* 0.12–0.32) reproduces the §5 K32 wall diagnosis (0.055–0.063
+/ 320–395 / 0.125–0.284) that motivated this wave. Because free trains and ortho
+does not in the identical pipeline, the failure localizes to the NS-polar
+constraint, not the task/eval/harness.
+
+**Per §4, the pre-registered next move on FAIL is a fallback parametrization
+(§2 Cayley map or skew-symmetric matrix-exponential) or a softer spectral-penalty
+variant — NOT more budget.**
+
+**Secondary observation (K24, not scored by §4 — primary is pinned at K=32).**
+The ortho K24 cells fail identically (4/4 Gate-0 dead, same dip-then-collapse).
+Notably the free K24 baseline recovers ALL far depths (h=5…61 ≈ 1.0) and is
+spectrally healthy (depart ~0.006, cond ~1.0, A_eff_rank = 24.0 = full K): the
+far-depth wall is a K=32 phenomenon at this tight-spare (d=K+1) recipe; K24/d25
+free-write does not exhibit it, consistent with §5's framing of K24 as the
+healthier baseline.
+
+### §9.2 PART B — VERDICT: **FAIL** (ortho-bank Gate-0 dead 4/4), compounded by a dead baseline
+
+Scored per §4b with path-length L in place of h; in-dist from `in_dist[L]`,
+depth from `chain_ladder[L].recovered_frac@0.9`.
+
+| cell | ind L1 | ind L2 | ind L3 | loss min | loss final | L20 | L32 | L40 | bank ortho_err | bank cond |
+|---|---|---|---|---|---|---|---|---|---|---|
+| disc_free_s0 | 0.000 | 0.000 | 0.000 | 0.9936 | 0.9989 | 0.000 | 0.000 | 0.000 | 32.4 | 6.6e12 |
+| disc_free_s1 | 0.000 | 0.000 | 0.000 | 0.9943 | 1.0021 | 0.000 | 0.000 | 0.000 | 27.8 | 6.6e12 |
+| disc_free_s2 | 0.412 | 0.026 | 0.001 | 0.2074 | 0.2103 | 0.000 | 0.000 | 0.000 | 3.15 | 212.6 |
+| disc_free_s3 | 0.000 | 0.000 | 0.000 | 0.9949 | 0.9962 | 0.000 | 0.000 | 0.000 | 30.0 | 9.9e6 |
+| **disc_ortho_s0** | 0.000 | 0.000 | 0.000 | 0.9928 | 1.0009 | 0.000 | 0.000 | 0.000 | 0.176 | 1.86 |
+| **disc_ortho_s1** | 0.000 | 0.000 | 0.000 | 0.9946 | 1.0016 | 0.000 | 0.000 | 0.000 | 0.151 | 2.43 |
+| **disc_ortho_s2** | 0.000 | 0.000 | 0.000 | 0.9942 | 1.0021 | 0.000 | 0.000 | 0.000 | 0.107 | 1.19 |
+| **disc_ortho_s3** | 0.000 | 0.000 | 0.000 | 0.9936 | 0.9998 | 0.000 | 0.000 | 0.000 | 0.290 | 2.00 |
+
+**Band arithmetic (ortho-bank):** in-dist recovered_frac@0.9 = **0.000** at
+L=1,2,3 for **all 4/4 seeds** (loss flat at ~1.0 throughout); chain_ladder = 0.000
+at every L. Gate-0 DEAD in 4/4 → **FAIL** (≥3/4). WIN (median rec@0.9 at L*=32 ≥ 0.9
+AND free-bank < 0.5 at L=32) and PARTIAL (L∈{12,20}) are unreachable; NULL is
+blocked (requires Gate-0 to pass).
+
+**Compounded null — the discriminator is uninformative.** The free-bank BASELINE
+also failed Gate-0: s0/s1/s3 in-dist 0.000 (loss ~1.0), s2 partial (in-dist
+L1=0.412 < 0.5, loss min 0.207) → 4/4 free-bank seeds < 0.5. Neither arm learned
+even the in-distribution (L=1,2,3) task at the Part-B config (R=4 bank, 320K
+steps), so there is NO trained free-bank baseline to discriminate against. Part B
+does not test the ortho-vs-free far-depth contrast it was designed for — the whole
+Part-B task failed to train, over and above the ortho-constraint FAIL. `bank_
+orthogonality` confirms neither model is orthogonal in the trained state (free
+degenerate, cond up to 6.6e12; ortho ortho_err 0.11–0.29 — the write is not driven
+to Q^T Q = I because the encoder output is degenerate/untrained).
+
+### §9.3 Spectral diagnostics summary
+
+- **Free K24 (healthy/normal):** depart-normality 0.004–0.009, cond 1.0–1.1,
+  min|λ|/c* 0.99–1.00, A_eff_rank 24.0 (= full K). Far-depth recovery ≈ 1.0 at all
+  ladder rungs.
+- **Free K32 (the wall, reproduced):** depart 0.047–0.060, cond 54.9–558.6,
+  min|λ|/c* 0.12–0.32, A_eff_rank ≈ 31. Non-normal + ill-conditioned; far-depth
+  dies at h≈5–6. Matches §5's independent CPU diagnosis of the archived z-dumps —
+  the mechanism the wave targeted is real and replicates.
+- **Ortho K24/K32 (untrained/degenerate):** depart 0.17–0.69, cond 154–4387,
+  A_eff_rank collapsed to 13.5–27.3 (below K). No trained orthogonal operator was
+  produced in any ortho cell; the spectral fields reflect degenerate encoder
+  output, not a normal/orthogonal write.
+
+### §9.4 Anomalies / caveats (foregrounded)
+
+1. **FAIL is behaviorally the pre-registered mechanism, but a code bug cannot be
+   excluded from behavioral data alone.** The transient loss-dip-then-collapse
+   argues the optimization engages (favoring the rigid-constraint reading), and
+   the free arm training cleanly in the same pipeline localizes the failure to the
+   NS-polar path — but before committing the §2 fallback, an independent code
+   re-audit of `newton_schulz_polar` / `NCROrthoWriteModel.encode` under the full
+   320K-step optimizer trajectory is warranted (the CPU smoke passed step-0
+   grad-norm 0.5–0.9 yet training still destabilized).
+2. **Part B is a compounded null.** Its free-bank baseline never trained, so Part B
+   yields NO discriminator signal. The R=4 distinct-op-bank task likely needs its
+   own calibration (it never cleared in-dist at 320K steps in either arm) before it
+   can serve as the mod-K-trap-safe discriminator §4b intends. This is separate
+   from, and does not strengthen, the Part-A ortho FAIL.
+3. **Baseline-side Gate-0 nit (does not affect any verdict).** Free K32 marginally
+   misses the strict Gate-0 ≥0.9 bar at h=3 (0.875 s0, 0.896 s3; 0.912 s1/s2). The
+   free arm is used only for the WIN "free-write < 0.5 at h=40" comparison, which
+   holds decisively (0.000 all seeds); no verdict depends on this.
+
+### §9.5 Verdicts of record
+
+- **Part A: FAIL** — ortho-write Gate-0 dead in 4/4 K=32 seeds (in-dist
+  recovered_frac@0.9 = 0.000; loss dips then collapses to ~1.0); the orthogonal
+  constraint is too rigid to train through at this parametrization. Free baseline
+  reproduces the pre-registered wall (converges in-dist, dies at far depth). No
+  far-depth crack. Pre-registered next move: §2 fallback (Cayley / skew-exp) or
+  softer spectral penalty, not more budget.
+- **Part B: FAIL** — ortho-bank Gate-0 dead in 4/4 seeds; additionally the
+  free-bank baseline is dead (4/4 < 0.5), so the discriminator is uninformative
+  (compounded task-level null).
+
+**Archive paths.** `experiment-runs/2026-07-16_ncr_ortho_write/` (in-repo) and
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-16_ncr_ortho_write/`
+(SSD mirror). Raws: 24 primary JSONs + 16 axis_c_lock + run/finisher logs + the
+pinned run script `ncr_ortho_write.py` (md5 83b5d7bd…).
