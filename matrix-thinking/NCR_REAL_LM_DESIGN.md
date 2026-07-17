@@ -4048,3 +4048,230 @@ must be fixed before the Phase-2 memory-matched comparison.
 
 GATE-1 DISCHARGED for Task-1/Axis-B + Task-3. GATE-2 (Task-2) stays live,
 re-scoped to the Wave-2 write-resolution above.
+
+---
+
+## §G3-B1 WAVE-1 BUILD RECORD (2026-07-17, build agent — Phase-0 + Task-1 only)
+
+**Scope discharge check (done first, per this section's own dependency).**
+`git log --oneline | grep f9414ff` confirms commit f9414ff ("NCR flagship
+§N2 GATE-1 AMENDMENT... GATE-3 SPLIT: Wave-1 NOW = Phase-0 + Task-1") is
+in history; §N2.1/§N2.8 above are the ratified text. No duplicate build
+found (`find . -iname "*ncr_lm*" -o -iname "*ncr_real*" -o -iname
+"*gate3*"` returned only this design doc before this section was appended;
+no prior `experiment-runs/2026-07-17_ncr_gate3_wave1/` directory existed).
+
+### Integration surface (identified BEFORE building, per the build brief)
+
+**Confirmed from-scratch graft — no existing code combines the NCR module
+with the DeltaNet LM backbone anywhere in this repo.**
+`grep -rl "DeltaNetLM\|lm_pretrain_rd" matrix-thinking/ncr/` and
+`grep -rl "ncr_earlyln_scale\|ncr_models\|BindingEncoder\|ncr_ortho_write"
+matrix-thinking/deltanet_rd/` both return empty. The two halves are
+mechanically well-specified in isolation:
+
+- **Backbone**: `DeltaNetLM(vocab_size=50257, d_model=768, d_state=64,
+  n_layers=12, conv_size=4, num_heads=1, ffn_mult=4)` —
+  `matrix-thinking/deltanet_rd/lm_pretrain_rd.py`, rung-1 config
+  (`lm_rd_rung_configs.py RUNGS[1]`). `forward(token_ids,
+  return_hidden=True)` returns the POST-`norm_f` hidden state
+  `(B,T,768)` — this IS §2.2's own tap point ("a side-channel module
+  attached after the backbone's final layer, reading the backbone's own
+  hidden states at bind-clause/query positions," line 388-389).
+- **NCR head**: `ncr_earlyln_scale.NCREarlyLNModel(d=25, h=64)` — the
+  FREE-WRITE arm (`ncr_ortho_write.py build_primary_model("free", ...)`
+  returns this class verbatim), K=24/d_ncr=25 per §N2.2(a). No NS-polar
+  projection anywhere (§N2.1: "No ortho-write mechanism is used anywhere
+  downstream" — the NS-polar pipeline is retired from this build).
+  `.encode(keys, values) -> Z (B,25,25)`; read via the module-level pure
+  function `ncr_models.binexp_read(Z, q, h)`.
+
+**Three integration decisions this design leaves genuinely unresolved
+(none invented by this build — see the module docstring of the harness
+below for the full citation trail):**
+
+1. **Write-side adapter.** §2.2 (line 388-389) pins WHERE the taps come
+   from (post-backbone-final-layer hidden states, at bind-clause/query
+   positions) but not the projection architecture that turns a 768-dim
+   hidden state into BindingEncoder's expected 25-dim key/value vector —
+   dimension, shared-vs-separate key/value adapters, and whether these
+   adapter params are counted in the "175K/173K-param NCR head" budget
+   (§2.1's `P(d,h)` formula counts BindingEncoder's own internal params
+   only) are all absent from the text.
+2. **Read injection.** §2.1 (line 284-288) states VERBATIM: *"Either read
+   injects its output o into the residual stream at the query position
+   (e.g. added to the Transformer's own hidden state before the final LM
+   head, or consumed by a small MLP that produces logits directly for the
+   query token — build-time decision, not resolved here)."* Explicitly,
+   textually unresolved by the frozen design's own authors, not a gap
+   this build introduced.
+3. **Training-loss / `recovered_frac@0.9` scoring protocol on real text.**
+   §7's bands reuse the `recovered_frac@0.9` cosine-recovery metric
+   convention (`NOVEL_ARCH_WATERFALL.md` §3.2a), which presupposes a
+   *target vector* to score cosine similarity against — but no target
+   construction (frozen per-entity table, à la
+   `matrix-thinking/deltanet_rd/probe_head_rd.py`'s H2H-established
+   `build_probe_target_table`/`cosine_recovery_frac`/`probe_aux_loss`
+   pattern, vs. some other scheme), no CE-vs-aux loss weighting, and no
+   schedule is pinned anywhere in this document for Task 1's real-LM
+   setting.
+
+Per the build brief's own instruction ("If the integration is
+underspecified in the design, STOP and report the specific gap; do not
+invent it"), this build does **NOT** wire a spec-authorized end-to-end
+graft. It builds and real-CUDA-smokes the two well-specified components
+independently, PLUS one clearly-labeled, non-authoritative placeholder
+instantiation of the three open decisions — built solely to prove the
+mechanical plumbing (shapes/dtypes/gradients/memory co-residency) is
+viable, never to be read as the coordinator's pick.
+
+### What was built
+
+One new file, additive only — **zero edits to any existing file**
+(`ncr_earlyln_scale.py`, `ncr_models.py`, `lm_pretrain_rd.py` all reused
+verbatim, unmodified):
+
+`experiment-runs/2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_smoke.py` (≈420
+lines) — builds the 98M backbone and the K=24/d=25 free-write NCR head,
+verifies both param counts against §N2.2(c)'s exact formulas, and runs a
+9-item real-CUDA smoke suite. Contains `class PlaceholderIntegrationGlue`
+implementing ONE precedented instantiation of gaps (1)-(3) above (linear
+768↔25 adapters mirroring `probe_head_rd.py`'s `build_adapter_arm`;
+additive-residual injection, the first of §2.1's two disclosed options;
+joint CE + cosine-aux-probe loss mirroring `probe_head_rd.py`'s
+`joint_loss`/`AUX_WEIGHT_DEFAULT=0.1`) — every non-spec choice is
+commented in-place with its precedent and its "NOT ratified" status.
+
+**Base file md5s (verbatim reuse, box vs. local repo — confirmed
+byte-identical):**
+
+| File | md5 |
+|---|---|
+| `matrix-thinking/ncr/ncr_earlyln_scale.py` | `3a87fcc92bb8341203c5e8c1f039a0af` |
+| `matrix-thinking/ncr/ncr_models.py` | `6d7b30a592bee11f6c2135165801742d` |
+| `matrix-thinking/deltanet_rd/lm_pretrain_rd.py` | `34addd9d8cc6a3df5a367d0f18a2ee0e` |
+| `experiment-runs/2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_smoke.py` (new, box copy) | `1e8811d0ced020d154250b98c5401242` |
+
+### Real-CUDA smoke results (box `youthful-indigo-turkey`, GPU 7, 2026-07-17)
+
+Ran twice: a CPU param-count-only pre-check, then the full CUDA suite.
+**9/9 items PASS, 0 FAILURES, wall-clock 10.9s.** Full JSON:
+`experiment-runs/2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_results.json`.
+
+| # | Item | Result |
+|---|---|---|
+| 0a | Backbone param count vs. 98M target (15% tol) | PASS — 97,618,176 (rel_err 0.39%) |
+| 0b | NCR head param count vs. §N2.2(c) formula (exact) | PASS — 173,209 == 173,209 |
+| 1 | Backbone forward+backward, finite grads | PASS — loss=11.0006, grad_norm=18.08 |
+| 2 | Backbone checkpoint save→load→forward | PASS — bit-identical, max_abs_diff=0.00e+00 |
+| 3 | Backbone eval batch, B=32/T=512 (Phase-1 op point), no_grad | PASS — peak 9.52 GB |
+| 4 | NCR head (K=24,d=25) forward+backward, finite grads | PASS — loss=0.9675 |
+| 5 | NCR head checkpoint round-trip + `binexp_read` determinism | PASS |
+| 6 | `binexp_read` finite at ladder h∈{5,12,20,29,40,61} | PASS — all finite |
+| 7 | **Co-residency**: backbone+NCR+placeholder-glue, ONE joint fwd/bwd/opt-step | PASS — loss_ce=10.98, loss_aux=1.00, 208 params w/ grad, peak 2.14 GB |
+
+Smoke item 7 originally crashed on a shape bug in the harness's OWN
+placeholder aux-loss call (`entity_ids` shaped `(B,3)` against an
+`ncr_pred` shaped `(B,24,25)`) — fixed (entity_ids now `(B,K)`), re-run,
+passed. This was a harness bug, not a backbone/NCR-head defect.
+
+### Pre-launch red-team (answers recorded)
+
+1. **Memory fit.** 98M backbone alone, full training op point (B=32/
+   T=512): design's own §6.1 anchor is 23.5GB/80GB (measured, uncontended,
+   full training incl. optimizer state). This build's own eval-only
+   no_grad measurement at the same shape: 9.52GB peak (no optimizer
+   states, explaining the gap). NCR head adds 173,209 params (0.18% of
+   backbone) plus a K=24×d=25 activation footprint — negligible next to a
+   (32,512,768) backbone activation tensor; expected total training
+   footprint ≈23.5-24GB, consistent with §2.1's own "cost is governed by
+   the encoder's own width [64], not the written object's dimension [25]"
+   finding. Every one of the 8 GPUs currently carries ~44-45GB of existing
+   production jobs, leaving ~36-37GB free — a 24GB Wave-1 cell fits
+   comfortably in that headroom (44+24=68GB < 80GB), matching this box's
+   own standing 1-job-plus-headroom packing pattern (CLAUDE.md
+   saturation-packing).
+2. **Measured-rate timeout/ceiling.** §6.1's 0.236 s/step (98M) is an
+   UNCONTENDED rate. All 8 GPUs are currently production-busy (86-100%
+   util, confirmed below) — per the operating doctrine's own measured
+   cautionary precedent ("Stage-0 measured 3.3× slowdown contended"), a
+   Wave-1 cell packed onto a currently-busy GPU should be PRICED at
+   ≈3.3× wall-clock, not the bare uncontended rate: Phase-0 (~2 GPU-h
+   uncontended) → ≈6.6h wall-clock contended; Phase-1 Task-1 arm (5.38
+   GPU-h at 1×, 4 cells) → ≈17.75 GPU-h-equivalent wall-clock contended
+   if serialized on one GPU, or ≈4.5-4.6h per cell if the 4 cells run in
+   parallel across 4 separate (each individually contended) GPUs. Any
+   real launch's `--internal-timeout` must be set well above the
+   contended estimate, not the uncontended one (production jobs on this
+   box already set 36,000-86,400s timeouts for their own, larger 392M
+   cells — the same discipline applies here).
+3. **Placement.** `nvidia-smi` (both before and after this smoke run):
+   **all 8 GPUs are production-busy**, 86-100% util, 43.5-45.1GB/80GB
+   used each (fixscale 392M seed-ext waves + queue workers, confirmed via
+   `ps aux` — job names `fixscale_seedext_arm_*`, `fixscale_98m_*`,
+   `queue_worker_g{0-7}` tmux sessions). **No drained GPU exists.** This
+   build's own smoke ran on GPU 7 (37,533 MiB free, the most headroom of
+   the 8) in a brief, ~11-second slot; `nvidia-smi` before/after confirms
+   memory returned exactly to the pre-smoke baseline (43,549 MiB used)
+   and the compute-process count on the box is unchanged (9 rows,
+   including the CSV header, i.e. 8 processes) — no production job was
+   disturbed. A real Phase-0/Phase-1 launch must price the §item-2
+   contention factor above rather than assume an idle GPU.
+4. **Duplicate check.** No pre-existing Wave-1 harness, no pre-existing
+   `experiment-runs/2026-07-17_ncr_gate3_wave1/` directory, no prior
+   `§G3-B1`/"BUILD RECORD" section in this file — confirmed by grep
+   before this section was written (see the dependency check above).
+5. **Gate-discharge check.** `f9414ff` is in `git log`; its subject and
+   this document's own §N2.1/§N2.8 text agree — GATE-1 is discharged for
+   Task-1/Axis-B (Wave-1's scope), GATE-2/Task-2 stays live and is
+   correctly OUT of this build's scope (Wave-1 = Phase-0 + Task-1 only,
+   per the build brief).
+
+### Launch command — NOT RUNNABLE YET (blocked on the 3 gaps above)
+
+No honest "exact command" exists for the NCR-augmented Phase-0/Phase-1
+training cells, because the training SCRIPT implementing gaps (1)-(3) is
+itself the blocked artifact — writing it would mean inventing the
+architecture this section exists to flag. The shape it would take, once
+the coordinator resolves the 3 gaps, mirrors `lm_pretrain_rd.py`'s own
+existing CLI convention plus new NCR-specific flags this build would add:
+
+```
+python3 lm_pretrain_rd.py \
+  --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data \
+  --d-model 768 --d-state 64 --n-layers 12 --seq-len 512 --batch-size 32 \
+  --steps 20000 --ckpt-every 1000 --seed <n> \
+  --internal-timeout <>= contended estimate above, item 2, NOT the uncontended rate> \
+  --ncr-active --ncr-d 25 --ncr-h 64 --ncr-k 24 --ncr-write-arm free \
+  --ncr-adapter <UNRESOLVED, gap 1> --ncr-inject <UNRESOLVED, gap 2> \
+  --ncr-aux-weight <UNRESOLVED, gap 3> \
+  --ckpt-dir /data/ncr_wave1_ckpts/... --out results/ncr_wave1/...
+```
+
+Flags after `--ncr-write-arm free` do not exist in any script today and
+are placeholders for what the resolved design would need.
+
+### Archive
+
+Harness + results archived at
+`experiment-runs/2026-07-17_ncr_gate3_wave1/` (`ncr_lm_wave1_smoke.py`,
+`ncr_lm_wave1_results.json`), per `CLAUDE.md`'s reproducibility rule.
+
+### Readiness verdict
+
+**BLOCKED-with-gap on the end-to-end integration** (the three items
+above — write-side adapter, read injection, training-loss protocol —
+none pinned by the frozen+amended spec, one explicitly self-flagged as
+"not resolved here"). **NOT BLOCKED at the component level**: the 98M
+rung-1 backbone and the K=24/d_ncr=25 free-write NCR head are each
+independently real-CUDA-verified (forward, backward, finite grads,
+checkpoint save/resume, eval batch) and mechanically co-resident on one
+GPU with headroom to spare. The coordinator's two options: (a) resolve
+gaps (1)-(3) explicitly (a short adjudication, not a rebuild — the
+components are ready) and re-dispatch a build-continuation agent to wire
+the ratified choices, replacing `PlaceholderIntegrationGlue`; or (b)
+ratify this build's placeholder as a provisional Phase-0 architecture
+outright, disclosed as such in any resulting write-up. Either way, GPU
+spend on the full Phase-0/Phase-1 training run stays gated on that
+decision plus the coordinator's own independent audit, per the build
+brief.

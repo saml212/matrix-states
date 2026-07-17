@@ -1,0 +1,41 @@
+{
+  "smoke 0a: backbone param count within 15% of 98M target": {
+    "passed": true,
+    "detail": "measured=97,618,176 target=98,000,000 rel_err=0.0039"
+  },
+  "smoke 0b: NCR head param count EXACTLY matches sec N2.2(c) formula (173,209)": {
+    "passed": true,
+    "detail": "measured=173,209 formula=173,209"
+  },
+  "smoke 1: backbone (98M rung-1 config) forward + backward, finite grad norms": {
+    "passed": true,
+    "detail": "loss=11.0006 grad_norm=18.0814"
+  },
+  "smoke 2: backbone checkpoint save -> fresh model -> load -> BIT-IDENTICAL forward": {
+    "passed": true,
+    "detail": "ckpt=/tmp/ncr_lm_wave1_ckpt_uf3n0d79/backbone.pt max_abs_diff=0.00e+00"
+  },
+  "smoke 3: backbone eval batch at Phase-1 operating point (B=32,T=512), no_grad, finite": {
+    "passed": true,
+    "detail": "peak_mem_allocated=9.52 GB"
+  },
+  "smoke 4: NCR free-write head (K=24,d=25) forward + backward, finite grad norms": {
+    "passed": true,
+    "detail": "loss=0.9675 Z.shape=(8, 25, 25)"
+  },
+  "smoke 5: NCR head checkpoint save/load round-trip + binexp_read determinism": {
+    "passed": true,
+    "detail": "ckpt=/tmp/ncr_lm_wave1_ckpt_ydwjmqaa/ncr_head.pt"
+  },
+  "smoke 6: NCR binexp_read finite at every realistic-ladder depth h in {5,12,20,29,40,61}": {
+    "passed": true,
+    "detail": "per_h_finite={5: True, 12: True, 20: True, 29: True, 40: True, 61: True}"
+  },
+  "smoke 7 (PLACEHOLDER GLUE): backbone + NCR head co-resident, ONE joint fwd/bwd/opt-step, finite grads through BOTH modules": {
+    "passed": true,
+    "detail": "loss_ce=10.9786 loss_aux=1.0015 n_params_with_grad=208 peak_mem_allocated=2.14 GB"
+  },
+  "_co_residency_peak_mem_gb": 2.143705088,
+  "_wall_clock_sec": 10.911887407302856,
+  "_failures": []
+}
