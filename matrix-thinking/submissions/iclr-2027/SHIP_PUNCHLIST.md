@@ -47,3 +47,23 @@ camera-ready, NOT the writing.
   unavailable venue template + missing refs.bib block a real build.
 - kwall (papers/kwall, 13pp) is the SEPARATE, verdict-complete workshop artifact
   — ships independently, faster; add the §B8 Stage-0-FAIL pointer to its §6.
+
+## STATUS UPDATE 2026-07-17 (post-full-draft)
+DONE: mechanical blockers (13 figs, refs.bib, anonymization, A2 tables incl.
+the added Program F scaling-ladder compute); FULL BODY PROSE §01-§10 (voice
+approved, 12,079 body + 4,759 appendix words); static checks clean (0 dangling
+refs, bijective cites, balanced envs, no unescaped specials); stale-skeleton
+fix-at-scale PARTIAL verdict folded.
+
+REMAINING pre-arXiv (all NON-GPU, deferred to a TeX-capable machine — local
+tectonic dylib-broken/sandboxed, no pdflatex local or on-box; do NOT install
+multi-GB texlive on the production box for this):
+1. **Compile + real page count.** 12,079 body words very likely EXCEEDS
+   ICLR's ~9-10pp main-text limit → expect a COMPRESSION PASS is needed
+   (push more to appendix). Confirm actual pages on any machine with TeX.
+2. **Length trim to venue limit** (informed by #1).
+3. **Item-7:** strip ~49 internal design-doc filenames from LaTeX source
+   comments before arXiv source upload (or upload PDF-only).
+4. **Final honest-disclosure read** end-to-end (the 0.44-vs-0.5 framing).
+The CONTENT is draft-complete; these are submission-polish, not research.
+kwall (13pp) remains the separate, faster, verdict-complete workshop ship.
