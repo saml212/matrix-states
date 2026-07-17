@@ -4596,3 +4596,230 @@ GPU spend on any real Phase-0/Phase-1 training cell stays gated on the
 mandatory independent audit §G3-B2 itself requires (correctness AND
 wiring-bias/FAIL-informativeness) plus the coordinator's own red-team,
 per the build brief. STOPPING here.
+
+## §G3-B4 INDEPENDENT PRE-SPEND AUDIT (2026-07-17)
+
+Independent auditor, did NOT write the graft. Target: `experiment-runs/
+2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_smoke.py`, md5
+`c54ef692061c02294c38d5dc154166ae` (VERIFIED, matches). Read-only except this
+section. Signatures cross-checked against the REAL sources: `model_v4.py`
+`BindingEncoder`, `ncr_models.py` `binexp_read`, `ncr_earlyln_scale.py`
+`NCREarlyLNModel`, `lm_pretrain_rd.py` `DeltaNetLM`, `grammar_rd.py`
+`sample_batch_rd`/`DeltaNetRDTaskConfig`.
+
+### Dimension 1 — Graft correctness vs §G3-B2 ratified spec: PASS (no defects)
+
+Every wiring claim checks out against the real code, not the build's prose:
+- **Write adapters at the right positions.** `extract_kv` gathers hidden at
+  `key_pos = item_pos-2` (KEY) and `val_pos = item_pos` (VALUE) — byte-for-byte
+  grammar_rd's own convention (`grammar_rd.py:452-453`: `item_pos =
+  arange(K)*clause_len + buf_len + 2`, `key_pos = item_pos-2`). fp32-cast at the
+  boundary. Fed to `ncr_head.encode(keys_v, values_v)` → `BindingEncoder.forward(
+  keys, values)` whose real signature is `(B,K,d)`/`in_proj=Linear(2*d,h)`, d=25
+  — EXACT match; `d_ncr=25` = the encoder's own `d`. RULING 1 satisfied.
+- **Read injection = option (a).** `o` (25-d, from `binexp_read`) → `read_injector
+  = Linear(25,768,bias=False)` → ADDED to `hidden[:, query_mark_col]` (the <Q>
+  position, col 173) → `F.linear(·, backbone.embed.weight)` = the SHARED tied
+  head (`DeltaNetLM.forward` tied-head path confirmed). Not degenerate. RULING 2
+  satisfied.
+- **CE on the query-answer token only.** `loss = F.cross_entropy(logits,
+  answer_token)` at the single <Q> position; `answer_token = entity at tgt_slot =
+  π^h(a)`; `input_ids = doc[:,:-1]` drops the answer so <Q>@173 is the last input
+  col and its next-token target is the answer@174. Standard AR next-token at ONE
+  position — not all-tokens, not the wrong span. Correct.
+- **`recovered_frac@0.9` is eval-only.** Computed solely inside `smoke_9` under
+  `no_grad`; never enters `loss`. Correct.
+- Column arithmetic (`query_key_col=T_bind+buf_len=171` = query KEY;
+  `query_mark_col=T_bind+query_len-1=173` = <Q>), the single-int hop into
+  `binexp_read` (`assert isinstance(h,int)` honored), K=24→T_bind=168→input=174
+  (≥ the 128 `_MIN_KERNEL_T` floor), and the tied-head/`config()` round-trip are
+  all correct. Param counts exact (backbone 97,618,176; NCR head 173,209 =
+  40·64²+4·25·64+46·64+25; integ 57,600). The graft IS the ratified wiring.
+
+### Dimension 2 — FAIL-informativeness / wiring-bias: **FATAL (verdict-blocking)**
+
+**DEFECT G3-B4-1 [FATAL] — the calibration cannot localize a FAIL to the NCR
+head, because the ratified FAIL-informativeness ablation set omits the one
+control that closes the dominant confound: a plain-DeltaNet backbone-only
+(read-ablated, o≡0) arm.**
+
+Trace of the concern:
+1. The read is ADDITIVE and NON-bottlenecked: `logits = tied_head(h_q +
+   read_injector(o))`. `h_q` is the backbone's own post-`norm_f` hidden at <Q>,
+   which has causally attended over every bind clause and the query. The 98M
+   DeltaNet is a fast-weight associative memory; **Task 1 is the abelian
+   single-K-cycle (§2.2 confirms it is CYCLIC/solvable), so the backbone is NOT
+   structurally barred** from learning the in-distribution h∈{1,2,3} lookup
+   directly through `h_q`. This is exactly the P=1-bottleneck failure the repo's
+   own standing learnings warn about ("decoder reads ONLY the state, never raw
+   inputs… verify with a blank-out test") and which `model_v4.py`'s synthetic
+   task enforces by construction (`decode = pure fn of Z`) but this graft does
+   NOT.
+2. Consequence for a **FAIL**: if the backbone solves in-distribution via `h_q`,
+   the CE loss saturates and the NCR pathway (adapters→encoder→read_injector) is
+   gradient-STARVED — so `recovered_frac@0.9` stays low. Phase-1's Gate-0 keys on
+   "**in-distribution** recovery ≥0.9" (§6.2), which is precisely the
+   starvation-sensitive quantity. A Gate-0 FAIL then reads as "the NCR head can't
+   train through a real LM" when the true cause is "the backbone made the NCR
+   read non-load-bearing." §G3-B2's ratified ablations (MLP write-adapter,
+   read-inject option (b), teacher-force) vary the adapter/read FORM and isolate
+   encoder-vs-rest — **none of them tests whether the backbone alone already
+   solves the task**, so the FAIL routes to no ablation and stays uninterpretable.
+   This is the §B4/§B6 pattern: the design proof + spec + build all missed it.
+3. Consequence for a **PASS/tie**: both Phase-1 arms (NCR + flat-vector) can ride
+   the same backbone shortcut and tie at the backbone's level — a hollow,
+   uninterpretable comparison.
+
+Gradient path itself is CLEAN (no wrongful detach): loss→read_injector→o→Z→
+{key_adapter,value_adapter, encoder}, and →q_key→key_adapter, and →h_q→backbone;
+smoke 7 confirms all three modules receive finite grad (backbone=158, ncr=47,
+integ=3). No vanishing at train depths (h∈{1,2,3}; renorm is positive-scalar,
+cosine-invariant). The problem is not a broken pathway — it is a COMPETING,
+un-bottlenecked pathway that can starve the one under test.
+
+**DEFECT G3-B4-2 [MAJOR] — value↔next-key space-alignment burden absent from the
+synthetic task that validated NCR.** `binexp_read` composes ONE `Z` repeatedly, so
+multi-hop coherence requires `value_adapter(h_val[i]) ≈ key_adapter(h_key[π(i)])`
+(the VALUE of clause i and the KEY of clause π(i) are the same entity but reached
+through two INDEPENDENT no-bias Linears at two DIFFERENT token positions). The
+synthetic NCR task had keys/values in ONE space by construction (`query_keys =
+keys.clone()`, `value_j = key_{π(j)}` literally). Here the model must LEARN that
+alignment, driven only by CE at h∈{1,2,3}. It is learnable in-distribution (h=2,3
+exert some pressure) but is an extra graft-specific burden that compounds
+DEFECT-1's starvation: a FAIL could reflect "the two adapters couldn't align
+through a real backbone," not "NCR composition doesn't work." Adapter dimensional
+CAPACITY is adequate (768→25 no-bias places 24 near-orthogonal entity directions
+in R^25, 24≤25; read_injector 25→768 is full-width, not a masking bottleneck) —
+so a FAIL is NOT an adapter-capacity artifact; it is this alignment + the shortcut.
+
+### Dimension 3 — Unfrozen BUFFER row (§G3-B3 disclosed deviation): HARMLESS (MINOR/note)
+
+Ruled decisively harmless FOR THIS CALIBRATION. R2-3's zero-pin+freeze rationale
+is specific to `model_rd.py`'s beta-mask WRITE machinery, which this backbone
+(`lm_pretrain_rd.DeltaNetLM`, plain learned beta) does not use. The BUFFER token
+(id 50257) is a single GLOBAL learnable embedding (no positional embedding), fills
+only non-content positions, is never tapped by `extract_kv` (which reads KEY/VALUE
+positions only), and — being a constant vector — cannot carry per-example answer
+info into the sequence; the answer is dropped from `input_ids` entirely. Worst
+case it injects a data-independent constant into the DeltaNet recurrence at buffer
+positions: architectural noise, not a leak, shortcut, or PASS/FAIL bias. Note-only.
+(grammar_rd's own docstring EXPECTS zero-pin; a real flagship freeze is cheap
+cleanliness but not load-bearing for the calibration's validity.)
+
+### Dimension 4 — Teacher-force control validity: VALID as scoped (MINOR caveats)
+
+The closed-form fit is mathematically correct: `Z = (pinv(k)@v)^T` gives `Z k_i =
+v_i` exactly when K=24 ≤ d=25 with k full-row-rank (generic for distinct
+entities); `k@pinv(k)=I_24` verifies it, and smoke 10 measures fit_residual
+7.3e-6. Isolation is real: `k,v` are `.detach()`ed, so the encoder
+(`BindingEncoder`) receives ZERO grad (smoke 10 confirms `ncr_untouched=True`)
+while backbone/key_adapter/read_injector still train. So (teacher-force PASS +
+free-write FAIL) DOES localize to encoder write-learning — a VALID encoder-vs-rest
+isolation. Caveats: (a) it does NOT isolate NCR-vs-backbone — DEFECT-1's shortcut
+applies to teacher-force too, so a teacher-force PASS can also ride `h_q`; (b) at
+HELD-OUT depth the multi-hop teacher-force read inherits DEFECT-2's alignment
+burden, so it isolates one-hop write-quality cleanly only in-distribution.
+value_adapter legitimately gets no grad in this mode (operator built from detached
+values) — not a bug. Control is sound for its stated purpose.
+
+### Dimension 5 — Vocab 50257→50259 fix: SANE (no inconsistency)
+
+grammar_rd mints `buffer_id=50257`, `query_id=50258`; a 50257-row embedding
+CUDA-asserts OOB on those ids (build hit this). Building the grammar-dependent
+backbone at `vocab_size_total=50259` adds exactly +2 tied embedding rows (+1,536
+params, inside tolerance); the tied head emits 50259 logits; the answer is always
+a real entity id < 50257 (valid class index); the +2 reserved ids are valid but
+low-prob logit slots. The `add` read-injector is vocab-independent (only the
+unused `mlp_logits` arm touches vocab). No embedding/logit inconsistency. Clean.
+
+### Dimension 6 — Uninterpretable-signal / vacuous-smoke sweep
+
+- **DEFECT G3-B4-3 [MINOR] — smoke 5's checkpoint-round-trip sub-claim is
+  VACUOUS.** It saves+loads `ncr2` but the assertion compares `o1` vs `o2`, both
+  `binexp_read(Z_probe,q_probe,5)` on the SAME random tensors — `ncr2` is never
+  called. It verifies only that a pure function is deterministic; the ncr-head
+  round-trip is untested here. (Real full-graft round-trip coverage DOES exist in
+  smoke 8, so this is a labeling/coverage weakness, not a validity hole.)
+- **Framing note (not a code defect):** all 11 smokes prove TRAINABILITY
+  (gradients flow, shapes/finite/determinism) — none tests, or can test, whether
+  the read is LOAD-BEARING. smoke 9's `rf=0.0000` at init is expected and proves
+  nothing about the eventual verdict. So the all-PASS smoke suite is silent on the
+  DEFECT-1 confound by construction; closing it is a TRAINING-time control, not a
+  smoke.
+
+### DISPOSITION
+
+| Defect | Sev | Disposition |
+|---|---|---|
+| G3-B4-1 backbone-only control missing; in-dist-recovery FAIL/PASS not localizable | **FATAL** | BLOCK GPU spend until Phase-1 adds a plain-DeltaNet backbone-only (o≡0, read-ablated) arm AND registers the attribution rule (below) |
+| G3-B4-2 value↔next-key alignment burden | MAJOR | Register as a known FAIL-mode; add an alignment diagnostic (or a shared/tied write adapter) as a pre-authorized ablation; do NOT read teacher-force at held-out depth as a clean write-isolation |
+| G3-B4-3 vacuous smoke-5 round-trip | MINOR | Fix the assertion to compare `ncr` vs `ncr2` outputs (or delete the vacuous half); non-blocking |
+| BUFFER unfrozen (dim 3) | MINOR | Note-only; freeze at flagship time for cleanliness |
+
+**Required attribution rule to make GATE-3 interpretable:** a Phase-1 Gate-0
+in-distribution-recovery FAIL may be attributed to "the NCR head can't train
+through a real LM" ONLY IF the backbone-only arm does NOT itself solve the task
+in-distribution (i.e., its answer accuracy is materially below the full graft's —
+the NCR read is demonstrably load-bearing). If backbone-only already solves it,
+the calibration is uninterpretable and the graft must be re-bottlenecked (e.g.
+read-only decode / harder P=1 bottleneck) BEFORE main-wave GPU. This is the repo's
+own blank-out-test discipline, applied at the graft.
+
+**The graft code is CORRECT and may be committed.** What is not yet safe is
+spending GPU on a make-or-break verdict, because a FAIL (and a hollow PASS) cannot
+currently be localized to the NCR head.
+
+**VERDICT: BLOCKED** (add the backbone-only control arm + attribution rule to
+Phase-1; the two MINORs and the MAJOR-2 diagnostic are recommended alongside but
+G3-B4-1 is the launch-blocker). Re-audit not required for the code — only
+confirmation that Phase-1's runner build wires the backbone-only arm.
+
+## §G3-B5 COORDINATOR ADJUDICATION of the §G3-B4 audit (Fable, 2026-07-17)
+
+Audit ACCEPTED. The graft code is correct (§G3-B4 dim-1 PASS); the block is
+experimental-design, and the FATAL is in MY OWN §G3-B2 wiring ruling — owned
+here.
+
+**G3-B4-1 [FATAL] — ACCEPTED.** My ratified read-injection (`tied_head(h_q +
+read_injector(o))`, option a) is additive/non-bottlenecked. Task-1 is the
+abelian K-cycle (solvable), so a 98M DeltaNet can solve in-distribution
+h∈{1,2,3} through `h_q` alone, gradient-starving the NCR read → a FAIL would
+misread as "NCR can't train" (hollow PASS symmetric). This is the repo's own
+P=1-bottleneck / blank-out hard rule (CLAUDE.md), the same class as the
+§B4/§B6 Stage-0 miss. The fix does NOT require a graft code change — it is a
+CONTROL ARM + a registered interpretation rule, both baked into the runner:
+
+**GATE-3 Wave-1 calibration = TWO arms + registered attribution (frozen
+before spend):**
+1. **Full-graft** (NCR read active).
+2. **Backbone-only control** (`o ≡ 0`, read-ablated — the wiring already
+   supports it trivially; this IS the blank-out discipline at the graft).
+- **PRIMARY interpretable signal = the recovery GAP (full-graft −
+  backbone-only), at DEEP composition depth** (h beyond in-distribution),
+  where a solvable-task backbone cannot shortcut via length-generalization —
+  the program's own thesis. 
+- **PASS** (NCR head trains AND is load-bearing) = full-graft recovers deep
+  composition (recovered_frac@0.9 ≥ the §6.2 Gate-0 bar at deep h) AND
+  materially exceeds backbone-only there.
+- **FAIL** = full-graft does NOT recover deep composition. Attributable to
+  the NCR head as "can't train" ONLY IF the read was demonstrably
+  load-bearing — i.e. NOT the case that backbone-only already solves
+  in-distribution (which would mean the read got no gradient → re-bottleneck,
+  not "NCR can't train"). The pre-wired `--teacher-force-operator` +
+  `--adapter mlp` + `--read-inject b` arms disambiguate on a FAIL.
+- **UNINTERPRETABLE** = backbone-only also solves the deep task → the task
+  isn't testing composition → redesign before main-wave spend.
+
+**G3-B4-2 [MAJOR] — ACCEPTED, controlled not blocking.** The value↔next-key
+adapter-alignment burden means a FAIL could be adapter-misalignment not NCR
+mechanism; the `--adapter mlp` + `--teacher-force` arms are the registered
+disambiguators (adapter CAPACITY is adequate per the audit, so not a capacity
+artifact). Route a FAIL through them before concluding.
+**G3-B4-3 [MINOR] — fix in runner** (vacuous smoke-5 checkpoint assertion).
+**BUFFER deviation — HARMLESS** (audit dim-3: R2-3's zero-pin is
+beta-mask-specific; this backbone doesn't use it; BUFFER is a global constant,
+never tapped for the write). Note-only.
+
+**DISPOSITION: BLOCKED → runner-build with the two-arm design + attribution
+rule + smoke-5 fix baked in; NO graft code change needed. Then re-verify the
+runner wires the control correctly (I check) → red-team → launch.**
