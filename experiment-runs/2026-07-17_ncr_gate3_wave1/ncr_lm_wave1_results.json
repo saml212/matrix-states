@@ -7,13 +7,21 @@
     "passed": true,
     "detail": "measured=173,209 formula=173,209"
   },
+  "smoke 0c: NCRIntegration (linear/add, the ratified default) param count exact, DISCLOSED SEPARATELY from the 173,209-param NCR head (sec G3-B1 gap 1's open question)": {
+    "passed": true,
+    "detail": "measured=57,600 expected=57,600 (key+value adapters 38,400 + read_injector 19,200)"
+  },
+  "smoke 11: ablation-flag construction (--adapter mlp, --read-inject mlp_logits, and both together) -- CPU-fast, shape+finite only, NOT run through the full backbone/CE/backward pipeline this wave": {
+    "passed": true,
+    "detail": "(adapter=mlp,read_inject=add): shapes_ok=True finite_ok=True n_params=324,146; (adapter=linear,read_inject=mlp_logits): shapes_ok=True finite_ok=True n_params=5,116,957; (adapter=mlp,read_inject=mlp_logits): shapes_ok=True finite_ok=True n_params=5,383,503"
+  },
   "smoke 1: backbone (98M rung-1 config) forward + backward, finite grad norms": {
     "passed": true,
     "detail": "loss=11.0006 grad_norm=18.0814"
   },
   "smoke 2: backbone checkpoint save -> fresh model -> load -> BIT-IDENTICAL forward": {
     "passed": true,
-    "detail": "ckpt=/tmp/ncr_lm_wave1_ckpt_uf3n0d79/backbone.pt max_abs_diff=0.00e+00"
+    "detail": "ckpt=/tmp/ncr_lm_wave1_ckpt_posi6ayo/backbone.pt max_abs_diff=0.00e+00"
   },
   "smoke 3: backbone eval batch at Phase-1 operating point (B=32,T=512), no_grad, finite": {
     "passed": true,
@@ -25,17 +33,47 @@
   },
   "smoke 5: NCR head checkpoint save/load round-trip + binexp_read determinism": {
     "passed": true,
-    "detail": "ckpt=/tmp/ncr_lm_wave1_ckpt_ydwjmqaa/ncr_head.pt"
+    "detail": "ckpt=/tmp/ncr_lm_wave1_ckpt_pirul49_/ncr_head.pt"
   },
   "smoke 6: NCR binexp_read finite at every realistic-ladder depth h in {5,12,20,29,40,61}": {
     "passed": true,
     "detail": "per_h_finite={5: True, 12: True, 20: True, 29: True, 40: True, 61: True}"
   },
-  "smoke 7 (PLACEHOLDER GLUE): backbone + NCR head co-resident, ONE joint fwd/bwd/opt-step, finite grads through BOTH modules": {
-    "passed": true,
-    "detail": "loss_ce=10.9786 loss_aux=1.0015 n_params_with_grad=208 peak_mem_allocated=2.14 GB"
+  "_grammar_pool_report": {
+    "n_names_candidate": 213,
+    "n_names_verified": 213,
+    "names_rejected": [],
+    "n_train_names": 107,
+    "n_heldout_names": 106,
+    "n_rel_a_candidate": 21,
+    "n_rel_a_verified": 21,
+    "rel_a_rejected": [],
+    "n_rel_b_candidate": 16,
+    "n_rel_b_verified": 16,
+    "rel_b_rejected": [],
+    "period_id": 13,
+    "buffer_id": 50257,
+    "query_id": 50258,
+    "vocab_size_base": 50257,
+    "vocab_size_total": 50259
   },
-  "_co_residency_peak_mem_gb": 2.143705088,
-  "_wall_clock_sec": 10.911887407302856,
+  "smoke 7 (RATIFIED WIRING): full graft on a REAL grammar_rd Task-1 document (K=24 bind clauses + 1 query, h=2 in-dist), CE-only loss, ONE joint fwd/bwd/opt-step, finite grads through backbone+NCR-head+integration": {
+    "passed": true,
+    "detail": "loss_ce=11.0706 n_params_with_grad=208 (backbone=158 ncr=47 integ=3) peak_mem_allocated=2.03 GB doc_len=175"
+  },
+  "smoke 8: FULL-GRAFT checkpoint save -> fresh backbone+ncr+integ -> load -> BIT-IDENTICAL forward (logits, o, Z)": {
+    "passed": true,
+    "detail": "ckpt=/tmp/ncr_lm_wave1_ckpt_0yl2mp1q/full_graft.pt max_logit_diff=0.00e+00"
+  },
+  "smoke 9: eval batch (no_grad) at held-out depth h=5 (not in Task-1's train range {1,2,3}), recovered_frac@0.9 computed, finite logits/read": {
+    "passed": true,
+    "detail": "recovered_frac@0.9=0.0000 mean_answer_logprob=-10.8397 B=16 (untrained model at init -- rf near-0 is EXPECTED, this item proves the metric COMPUTES, not that the graft has converged)"
+  },
+  "smoke 10: --teacher-force-operator -- closed-form Z fit residual small, ncr_head (encoder) receives ZERO gradient (isolation proof), backbone/key_adapter/read_injector DO train": {
+    "passed": true,
+    "detail": "fit_residual_max=7.30e-06 loss_ce=11.3633 ncr_untouched=True backbone_trained=True key_adapter_trained=True read_injector_trained=True"
+  },
+  "_co_residency_peak_mem_gb": 2.028988416,
+  "_wall_clock_sec": 14.586001634597778,
   "_failures": []
 }

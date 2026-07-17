@@ -4328,3 +4328,271 @@ sweep. NEXT: build-continuation replaces §G3-B1's `PlaceholderIntegrationGlue`
 with this ratified wiring → mandatory independent audit (correctness AND
 wiring-bias/FAIL-informativeness) BEFORE any GPU spend → coordinator
 red-team → blind launch.
+
+## §G3-B3 WAVE-1 BUILD-CONTINUATION (2026-07-17, build agent — replaces
+`PlaceholderIntegrationGlue` with the §G3-B2 ratified wiring)
+
+**Scope discharge check.** §G3-B2 (above) is the ratified adjudication this
+section builds against; no duplicate build found (`find . -iname
+"*ncr_lm_wave1*"` returns only §G3-B1's existing
+`experiment-runs/2026-07-17_ncr_gate3_wave1/` — this build edits that
+directory's script IN PLACE, additive to the design doc, no new directory).
+
+### What was implemented
+
+**One file, edited in place** (the §G3-B1 build's own path, per the build
+brief's "REPLACE" instruction):
+`experiment-runs/2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_smoke.py` (≈700
+lines, up from ≈420). `ncr_earlyln_scale.py`/`ncr_models.py`/
+`lm_pretrain_rd.py` remain reused verbatim, unmodified (md5s below,
+byte-identical to §G3-B1's own table); this build adds ONE new verbatim
+dependency, `grammar_rd.py` (the real bind-clause grammar generator §G3-B1
+never invoked — its own smoke used random tensors, not real task data).
+
+**`class NCRIntegration`** replaces `PlaceholderIntegrationGlue` — a real,
+gradient-trainable module, not a smoke-only stand-in:
+
+1. **Write adapter (RULING 1, exact shapes).** `key_adapter =
+   Linear(768, 25, bias=False)`, `value_adapter = Linear(768, 25,
+   bias=False)` — one per role, applied to the post-norm hidden at each
+   bind-clause's KEY/VALUE token positions (`grammar_rd.sample_batch_rd`'s
+   own `item_pos - 2` / `item_pos`). Shape matched by DIRECT INSPECTION of
+   `matrix-thinking/chapter2/model_v4.py BindingEncoder.__init__`
+   (`self.in_proj = nn.Linear(2*d, h)`, `forward(self, keys, values)` with
+   keys/values: `(B,K,d)`) — encoder-input-dim IS `d_ncr=25` exactly, NOT
+   ambiguous. These are the IDENTICAL shapes §G3-B1's own placeholder
+   guessed; what changed is everything downstream (real data, real
+   objective, real metric, ablation flags — see below).
+2. **Read injection (RULING 2, exact shape).** `read_injector =
+   Linear(25, 768, bias=False)`, output ADDED to the query's own `<Q>`
+   marker-position post-norm hidden, before the shared (tied) LM head —
+   design §2.1 option (a) verbatim. The disclosed option (b) (MLP→vocab
+   logits) is ALSO built, flag-gated (`--read-inject mlp_logits`), ADDING
+   to (not replacing) the base LM-head logits — a build-time
+   interpretation, disclosed in the script's own module docstring item
+   (iii), never the default.
+3. **Param delta, disclosed SEPARATELY from the NCR head's own 173,209
+   (§G3-B1 gap 1's open question, now answered by disclosure, not
+   silently folded in):** `NCRIntegration` (linear/add, the ratified
+   default) = 2×768×25 (adapters) + 25×768 (read_injector) = **57,600
+   params exactly** (smoke item 0c asserts this exactly, not a tolerance
+   band). Total NCR-related addition to the 97,618,176-param 98M backbone:
+   173,209 + 57,600 = 230,809 params (**+0.236%**) — still negligible,
+   moved from §2.1's own "+0.18%" (NCR head alone) by the adapters'
+   inclusion, a number that document never separately priced.
+
+**Ablation flags pre-wired (§G3-B2's FAIL-informativeness list), all
+CODE-VERIFIED this wave (not merely declared):**
+- `--adapter {linear,mlp}`: `mlp` = `Linear(768,192)→GELU→Linear(192,25)`
+  per role (width `d_model//4`, a build-time convention, not pinned by the
+  design — item (iii)). Verified by CONSTRUCTION + shape/finite forward
+  (smoke item 11, CPU-fast) — never run through the full backbone/CE/
+  backward pipeline this wave, per the build brief.
+- `--read-inject {add,mlp_logits}`: `mlp_logits` =
+  `Linear(25,100)→GELU→Linear(100,vocab_size)` (width `4*d_ncr`, same
+  convention discipline). Same verification level as `--adapter`.
+- `--teacher-force-operator`: a closed-form least-squares operator fit,
+  `Z_teacher^T = pinv(keys_v.detach()) @ values_v.detach()`, bypassing
+  `ncr_head`'s own `BindingEncoder` ENTIRELY (its parameters never enter
+  the autograd graph) — isolates "can read+inject+head consume a
+  perfect-for-the-current-adapters operator" from "can the encoder learn a
+  good operator" (module docstring item (ii), a build-time mechanism
+  choice, not literal design text). UNLIKE the other two flags, this one
+  IS real-CUDA-verified end-to-end this wave (smoke item 10): closed-form
+  fit residual `7.30e-06` (near-exact, K=24<d=25 generically consistent
+  system), `ncr_head` parameters receive **ZERO** gradient
+  (`ncr_untouched=True`), while `backbone`/`key_adapter`/`read_injector`
+  DO train (`backbone_trained=key_adapter_trained=read_injector_trained=
+  True`) — the isolation property holds exactly as designed.
+
+**DISCOVERED WIRING GAP (mechanical, singularly-determined, fixed and
+disclosed — not a STOP-worthy ambiguity, not silently invented):**
+`grammar_rd.py` mints TWO reserved token ids beyond GPT-2's real 50,257
+vocabulary (`BUFFER=50257`, `<Q>=50258` — its own module docstring). A
+`DeltaNetLM` built at the design's own pinned `vocab_size=50257` (§2.2) has
+NO embedding/head rows for these ids — feeding it a real grammar_rd
+document crashed with a CUDA out-of-bounds embedding-gather assert (hit
+and confirmed during this build's first on-box run, full traceback
+archived in the build session). Fix: every grammar_rd-dependent smoke item
+(7-10) builds `DeltaNetLM(vocab_size=pools.vocab_size_total=50259, ...)`
+instead — +2 embedding/tied-head rows, **+1,536 params (0.0016% of the
+backbone)**, inside every existing tolerance; smoke items 0-6 (component-
+only, no grammar_rd) are UNCHANGED at `vocab_size=50257`. ONE DISCLOSED
+DEVIATION from `grammar_rd.py`'s own convention: that module's docstring
+also states the BUFFER row is "zero-pinned AND frozen... (R2-3 — see
+`model_rd.py`)" — a property of a DIFFERENT model class
+(`DELTANET_REALDATA_DESIGN.md`'s own `model_rd.py`), never invoked by THIS
+design (which names `lm_pretrain_rd.DeltaNetLM`, a plain vanilla-embedding
+LM, as its backbone, §2.2). This build does NOT replicate the zero-pin/
+freeze (`DeltaNetLM` has no such mechanism; adding one is a genuine
+architecture change, out of scope) — flagged for audit/coordinator: does
+this deviation matter, given NCR's write path never uses the causal-rank
+design's own beta-mask mechanism that motivated R2-3 in the first place.
+
+**Other build-time interpretations disclosed (not literal design text,
+full rationale in the script's own module docstring):**
+- **`recovered_frac@0.9`'s eval-only target (item (i)):** SELF-consistent
+  — `target = key_adapter(hidden at the answer entity's OWN bind-clause
+  KEY position)`, mirroring `ncr_models.py`'s own `query_keys`-same-space-
+  as-`keys` convention (no external frozen probe table invented; one was
+  considered — mirroring `probe_head_rd.py`'s `build_probe_target_table`
+  — and rejected, since the CE-only training objective gives `o` no
+  reason to align with an EXTERNAL target, which would make the metric
+  read near-zero regardless of graft quality).
+- **Document construction:** ONE bind episode (K=24) + ONE query clause
+  per synthetic document (§3.1's own "1-2 bind episodes... plus a query
+  clause," the minimal instance); `n_query=1` (avoids drawing/discarding
+  23 unused queries per row). Real+synthetic BATCH-level mixing (§5.2
+  Option 1) is NOT built this wave — out of the "BUILD+SMOKE, do not
+  launch" scope; the production trainer that adds it is the documented
+  next step (launch command below).
+- **Read mechanism uniformity:** `binexp_read` used for BOTH the h=2
+  train-range smoke (item 7) AND the h=5 held-out eval smoke (item 9) —
+  NOT the isolated synthetic harness's train(masked-compose)/eval
+  (binexp_read) split, since §2.1 line 279 pins `binexp_read` as Task 1's
+  read mechanism unconditionally and it is exact+differentiable at every
+  h≥1. `ncr_head.encode()` is called directly (bypassing `forward()`'s
+  masked-compose path), the same precedent §G3-B1's own smoke_6
+  established.
+
+### Real-CUDA smoke results (box `youthful-indigo-turkey`, GPU 7, 2026-07-17)
+
+Ran twice: a CPU pre-check (param counts + ablation-flag construction,
+1.8s), then the full CUDA suite. **11/11 items PASS, 0 FAILURES,
+wall-clock 14.6s.** Full JSON:
+`experiment-runs/2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_results.json`.
+
+| # | Item | Result |
+|---|---|---|
+| 0a | Backbone param count vs. 98M target (15% tol) | PASS — 97,618,176 (rel_err 0.39%) |
+| 0b | NCR head param count vs. §N2.2(c) formula (exact) | PASS — 173,209 == 173,209 |
+| 0c | NCRIntegration (linear/add) param count (exact) | PASS — 57,600 == 57,600 |
+| 1 | Backbone forward+backward, finite grads | PASS — loss=11.0006, grad_norm=18.08 |
+| 2 | Backbone checkpoint save→load→forward | PASS — bit-identical, max_abs_diff=0.00e+00 |
+| 3 | Backbone eval batch, B=32/T=512 (Phase-1 op point), no_grad | PASS — peak 9.52 GB |
+| 4 | NCR head (K=24,d=25) forward+backward, finite grads | PASS — loss=0.9675 |
+| 5 | NCR head checkpoint round-trip + `binexp_read` determinism | PASS |
+| 6 | `binexp_read` finite at ladder h∈{5,12,20,29,40,61} | PASS — all finite |
+| 7 | **THE make-or-break: full graft** (backbone→write-adapter→encoder→ `binexp_read`→read-inject→LM-head→CE) on a REAL `grammar_rd` Task-1 document (K=24 clauses + 1 query, h=2 in-dist), ONE joint fwd/bwd/opt-step | PASS — loss_ce=11.0706, 208 params w/ grad (backbone=158, ncr=47, integ=3), peak 2.03 GB, doc_len=175 tokens |
+| 8 | Full-graft checkpoint save→fresh backbone+ncr+integ→load→forward | PASS — bit-identical (logits, o, Z), max_diff=0.00e+00 |
+| 9 | Eval batch (no_grad) at held-out depth h=5, `recovered_frac@0.9` computed | PASS — rf=0.0000 (untrained-at-init, EXPECTED — proves the metric COMPUTES, not convergence), mean_answer_logprob=-10.84 |
+| 10 | `--teacher-force-operator` isolation | PASS — fit_residual=7.30e-06, `ncr_head` receives ZERO grad, backbone/key_adapter/read_injector DO train |
+| 11 | Ablation-flag construction (`--adapter mlp`, `--read-inject mlp_logits`, both) | PASS — all 3 combinations shape-correct + finite, CPU-fast |
+
+**Base file md5s (verbatim reuse — confirmed byte-identical, box vs. local
+repo, and identical to §G3-B1's own table for the three shared files):**
+
+| File | md5 |
+|---|---|
+| `matrix-thinking/ncr/ncr_earlyln_scale.py` | `3a87fcc92bb8341203c5e8c1f039a0af` |
+| `matrix-thinking/ncr/ncr_models.py` | `6d7b30a592bee11f6c2135165801742d` |
+| `matrix-thinking/deltanet_rd/lm_pretrain_rd.py` | `34addd9d8cc6a3df5a367d0f18a2ee0e` |
+| `matrix-thinking/deltanet_rd/grammar_rd.py` (NEW dependency this build) | `b7eeca0f6fc56210ef9c633fe719b540` |
+| `matrix-thinking/chapter2/model_v4.py` (NEW — BindingEncoder signature source) | `633775b55a802df12a0dab45e0d223d7` |
+| `experiment-runs/2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_smoke.py` (edited in place) | `c54ef692061c02294c38d5dc154166ae` |
+
+### Pre-launch red-team (answers recorded)
+
+1. **Memory fit.** Phase-0-scale smoke footprint: 2.03 GB peak (B=4,
+   doc_len=175, full graft co-resident: backbone+ncr_head+integ+Adam
+   optimizer states). §G3-B1's own 98M-alone eval-only anchor (9.52 GB,
+   no optimizer states) and §6.1's full-training anchor (23.5 GB,
+   B=32/T=512, optimizer states included) both stand unchanged — this
+   wave's ADDITIONAL footprint (NCR head + integration adapters +
+   grammar_rd batch) is negligible next to either anchor, confirming
+   §G3-B1's own prediction ("expected total training footprint ≈23.5-24GB
+   ... negligible next to a (32,512,768) backbone activation tensor").
+2. **Placement / contention.** `nvidia-smi` before AND after this smoke
+   run: all 8 GPUs remained production-busy (86-100% util both times,
+   43,833-45,081 MiB/80GB each) — SAME finding as §G3-B1, re-verified
+   fresh, not assumed stale. This build's own smoke ran on GPU 7 (the most
+   headroom, matching §G3-B1's own choice) for an 14.6s wall-clock CUDA
+   window; `nvidia-smi` before/after confirms memory returned EXACTLY to
+   the pre-smoke baseline (43,833 MiB) and the compute-process count is
+   unchanged (9 rows incl. header = 8 processes) — no production job
+   disturbed, same discipline as §G3-B1.
+3. **Measured-rate timeout/ceiling.** UNCHANGED from §G3-B1's own pricing
+   (this build did not re-measure a full training cell, only the smoke
+   suite above) — §6.1's 0.236 s/step (98M) uncontended rate, ≈3.3×
+   contended multiplier per §G3-B1 item 2's own precedent, still applies
+   to any real Phase-0/Phase-1 launch.
+4. **Duplicate check.** `grep -c "§G3-B3" NCR_REAL_LM_DESIGN.md` returns 1
+   occurrence (this section, being written) before this edit; no prior
+   `ncr_lm_wave1_smoke.py` REWRITE session found in git history at this
+   path beyond §G3-B1's own original commit.
+5. **Gate-discharge check.** §G3-B2 (immediately above, same file) is the
+   ratified adjudication this section implements; its two RULINGs are
+   both implemented EXACTLY as stated (shapes verified against the real
+   `BindingEncoder` signature, not guessed) — no design decision was
+   re-opened.
+
+### Launch command — STILL NOT RUNNABLE (by design, per the build brief)
+
+Unlike §G3-B1's version (which had two UNRESOLVED adapter flags), this
+build's wiring is COMPLETE and real-CUDA-verified — but a full Phase-0/
+Phase-1 TRAINING SCRIPT (real+synthetic batch mixing per §5.2 Option 1,
+step loop, LR schedule, checkpoint cadence, logging) does not exist yet;
+only the INTEGRATION MODULE (`NCRIntegration`) + its own standalone
+smoke driver do. Wiring `NCRIntegration` into `lm_pretrain_rd.py`'s
+existing training loop is the NEXT build step, gated on the independent
+audit this section's own STOP now hands off to. The shape the eventual
+command takes, mirroring `lm_pretrain_rd.py`'s own CLI convention, with
+the adapter/inject choices now RESOLVED (not "UNRESOLVED, gap 1/2" as in
+§G3-B1):
+
+```
+python3 lm_pretrain_rd.py \
+  --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data \
+  --d-model 768 --d-state 64 --n-layers 12 --seq-len 512 --batch-size 32 \
+  --steps 20000 --ckpt-every 1000 --seed <n> \
+  --internal-timeout <>= contended estimate, §G3-B1 item 2: ≈3.3x the
+      uncontended rate (Phase-1: 1.377 GPU-h/cell uncontended -> ≈4.5-4.6h
+      wall-clock contended per cell if parallelized across 4 GPUs)> \
+  --ncr-active --ncr-d 25 --ncr-h 64 --ncr-k 24 --ncr-write-arm free \
+  --ncr-adapter linear --ncr-read-inject add --ncr-vocab-size-total 50259 \
+  --ckpt-dir /data/ncr_wave1_ckpts/... --out results/ncr_wave1/...
+```
+
+Flags after `--ncr-write-arm free` do not exist in `lm_pretrain_rd.py`
+today (this build's `NCRIntegration` module would be imported and wired
+into that script's training loop, not re-derived) — `--ncr-adapter
+linear --ncr-read-inject add` are now the RATIFIED, real-CUDA-verified
+defaults (not placeholders); `--ncr-vocab-size-total 50259` is this
+section's own discovered-and-fixed wiring requirement.
+
+**Expected wall-clock.** Measured (this smoke): 14.6s wall-clock for the
+full 11-item CUDA suite (Phase-0-scale shapes only, B≤16, doc_len=175 —
+NOT a training-cell timing measurement). §G3-B1's own Phase-0a/Phase-1
+GPU-h estimates (§6.2 text, unchanged by this build) remain the governing
+projections for any real training cell; this wave produced no NEW timing
+data at training scale (that is Phase-0a's own job, §6.2, still gated on
+the independent audit below).
+
+### Archive
+
+Harness + results archived at
+`experiment-runs/2026-07-17_ncr_gate3_wave1/` (`ncr_lm_wave1_smoke.py`,
+`ncr_lm_wave1_results.json`), per `CLAUDE.md`'s reproducibility rule —
+same directory as §G3-B1, script edited in place per the build brief's
+"REPLACE" instruction, results JSON overwritten with this wave's own
+11-item run.
+
+### Readiness verdict
+
+**READY-FOR-AUDIT.** The §G3-B2 ratified wiring is fully implemented,
+real-CUDA-verified end-to-end on REAL `grammar_rd` Task-1 data (not
+random tensors) — forward, backward, finite grads through BOTH adapters
+AND the backbone, a real optimizer step, full-graft checkpoint save/
+resume (bit-identical), an eval batch computing `recovered_frac@0.9`, and
+the `--teacher-force-operator` isolation property holding exactly as
+designed. One discovered wiring gap (grammar_rd's reserved token ids
+needing a +2 vocab extension) was fixed and disclosed, not silently
+invented or left as a STOP — it is mechanically singular (grammar_rd's
+own docstring names the exact convention) and negligible in cost
+(+1,536 params). Two ablation flags (`--adapter mlp`, `--read-inject
+mlp_logits`) are construction-verified but NOT run through the full
+pipeline this wave, per the build brief's "pre-wire... do not run them."
+GPU spend on any real Phase-0/Phase-1 training cell stays gated on the
+mandatory independent audit §G3-B2 itself requires (correctness AND
+wiring-bias/FAIL-informativeness) plus the coordinator's own red-team,
+per the build brief. STOPPING here.
