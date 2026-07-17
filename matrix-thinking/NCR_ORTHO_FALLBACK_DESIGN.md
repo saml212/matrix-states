@@ -1308,3 +1308,297 @@ implements A1.3's body text exactly (`n→8`, `+17.2 GPU-h`), not the
 verdict summary's paraphrase, since the body text is the operative finding
 and the arithmetic (`4 additional seeds × 4.3 GPU-h = 17.2 GPU-h`) only
 resolves against `n→8` from a baseline of 4.
+
+---
+
+## §B1 STAGE-0 BUILD RECORD (2026-07-17)
+
+Build-and-launch agent report, against the frozen §2 patch (commit `28e69cb`,
+FROZEN CLEAR-FOR-STAGE-0-BUILD). No tunable choices made outside §2's spec;
+no ambiguity encountered that required a STOP.
+
+**Files.**
+
+| File | md5 |
+|---|---|
+| Base (pinned, unmodified) — `experiment-runs/2026-07-16_ncr_ortho_write/ncr_ortho_write.py` | `83b5d7bd273e9e83698fed27a9f2ef45` |
+| Patched — `matrix-thinking/ncr/ncr_ortho_fallback_stage0.py` (working copy) | `70dd7923027f4dcf9f0f1e964fc0930c` |
+| Archived — `experiment-runs/2026-07-17_ncr_ortho_fallback_stage0/ncr_ortho_fallback_stage0.py` | `70dd7923027f4dcf9f0f1e964fc0930c` (byte-identical to working copy) |
+| Deployed on box — `/home/nvidia/ncr/ncr_ortho_fallback_stage0.py` | verified `70dd7923027f4dcf9f0f1e964fc0930c` post-scp (§B1.3) |
+
+Base: 934 lines. Patched: 984 lines (+50 net).
+
+**Diff summary (verified via `diff -u`, every hunk itemized — nothing
+outside this list touched):**
+
+1. Docstring: one addendum paragraph documenting the Stage-0 patch (no code).
+2. `RUNNER_TAG`: `"ncr_ortho_write_v1"` → `"ncr_ortho_fallback_stage0_v1"`.
+3. New constant `STAGE0_EPS_REL_DEFAULT = 1e-3` (§2's pinned primary value).
+4. `NCROrthoWriteModel.__init__`: two new kwargs, `damped: bool = False`,
+   `eps_rel: float = STAGE0_EPS_REL_DEFAULT`; two new attribute assignments.
+5. `NCROrthoWriteModel.encode()`: one new `if self._damped:` block inserted
+   inside the existing `if self._orthogonal:` branch — the exact §2 patch
+   (`U,S,Vh = torch.linalg.svd(Z, full_matrices=False)` under `no_grad`,
+   `S_floor = S.clamp_min(eps_rel*sigma_max)`, `scale = S_floor/S.clamp_min(NS_EPS)`,
+   `M = U @ diag_embed(scale) @ Uᵀ`, `Z = M @ Z`), followed by the
+   **UNCHANGED** `newton_schulz_polar(Z, n_iter=self._ns_iter, n_power=self._ns_power)`
+   call — verbatim per §2, no line inside `newton_schulz_polar` itself touched.
+6. `build_primary_model()`: new `eps_rel` kwarg (threaded through) + new
+   `if arm == "damped_polar":` branch constructing `NCROrthoWriteModel(...,
+   damped=True, eps_rel=eps_rel, ...)`.
+7. `primary_cell_id()`: new `if arm == "damped_polar": return
+   f"stage0_damped_K{K}_s{seed}"` branch (cell registry).
+8. `run_primary_cell()`: signature gains `eps_rel` kwarg; `assert arm in
+   (...)` widened to include `"damped_polar"`; `build_primary_model(...)`
+   call threads `eps_rel`; result dict's `orthogonal=` field widened to
+   `arm in ("ortho", "damped_polar")` and a new `eps_rel=` field recorded
+   (`None` for non-damped arms).
+9. CLI (`main()`/`argparse`): `--arm` choices widened to include
+   `"damped_polar"`; new `--eps-rel` flag (default `STAGE0_EPS_REL_DEFAULT`);
+   `--outdir` default changed `results_ortho_write` → `results_ortho_fallback`;
+   `run_primary_cell(...)` call threads `args.eps_rel`.
+
+No line inside `newton_schulz_polar`, `orthogonality_error`,
+`spectral_diagnostics`, `realistic_ladder_eval`, the Part-B
+(`OrthoBankModel`/chain) code, or `_self_test()` was touched — confirmed by
+running the pre-existing 9-test CPU `--smoke` suite unmodified against the
+patched file: **9/9 PASS**, byte-identical assertions to the base script's
+own suite (local CPU run, this session).
+
+**Cell config.** `stage0_damped_K24_s0`: `arm=damped_polar`, `K=24`,
+`d=25`, `seed=0`, `eps_rel=1e-3`, `ns_iter=40`, `ns_power=12`,
+`anneal_frac=0.5`, `steps=42000`, `--ceiling-gpuh 0.5` (passed explicitly on
+the CLI, not a changed script default — the base script's `--ceiling-gpuh`
+default of `3.0` is untouched in the diff; Stage-0's `0.5` ceiling is a
+launch-command choice, not a code change). Output dir:
+`/home/nvidia/ncr/results_ortho_fallback/`.
+
+**Budget.** ≤0.5 GPU-h this attempt; ≤1.0 GPU-h Stage-0 total including one
+pre-authorized `eps_rel` retry (10× up `1e-2` on same-signature FAIL, 10×
+down `1e-4` on different-signature FAIL — §2 branch logic, not pre-launched
+here, contingent on this attempt's outcome).
+
+**Launch command (box, inside the tmux driver — §B2 for the full
+supervisor wrapper):**
+
+```
+CUDA_VISIBLE_DEVICES=<N> /home/nvidia/tdenv/bin/python3 \
+  /home/nvidia/ncr/ncr_ortho_fallback_stage0.py --primary-cell \
+  --arm damped_polar --K 24 --seed 0 --steps 42000 --eps-rel 1e-3 \
+  --ns-iter 40 --ns-power 12 --anneal-frac 0.5 --ceiling-gpuh 0.5 \
+  --outdir /home/nvidia/ncr/results_ortho_fallback
+```
+
+See §B2 (below) for the CUDA smoke results, pre-launch red-team answers,
+and final launch/placement details.
+
+---
+
+## §B2 STAGE-0 SMOKE + RED-TEAM + LAUNCH RECORD (2026-07-17)
+
+**PROCESS-GAP FLAG (read first).** §10's own checklist lists *"Independent
+code audit (fresh agent) of the expm/Cayley `encode()` overrides + the
+Stage-0 SVD-floor patch, **BEFORE any GPU spend**"* as a distinct, still
+**unchecked** `[ ]` item, separate from §A1's attack round (which reviewed
+the pre-registration text, not the code — the code did not exist until this
+build). This build-and-launch agent's own dispatch instructions specified
+BUILD → RECORD → CUDA-smoke → self-check red-team → blind-launch, with no
+separate code-audit dispatch step, and the agent proceeded on that basis —
+by the time this gap was noticed (mid-build-record write-up, after the CUDA
+smoke and the real launch were already in flight) real GPU-h had already
+been spent. **Not self-resolved**: per CLAUDE.md's own hard rule ("Audit
+code with a separate agent before running experiments... A self-audit by
+the same implementer is not a substitute for an independent audit"), the
+9/9 CPU self-test + the CUDA smoke below are necessary but do not discharge
+this checklist item — they are the implementer's own verification, not an
+independent review. Coordinator: either (a) rule that Stage-0's light
+`<10 GPU-h` ceremony tier (§ preamble, CLAUDE.md's `<10 GPU-h → 1 audit
+round`) is satisfied by §A1's already-complete attack round even though it
+predates the code, and tick the checklist item on that basis, or (b)
+dispatch a fresh independent code-audit agent against this diff now (cheap,
+the whole file is 984 lines, the diff is ~50 net lines, itemized in §B1)
+and treat this run's result as provisional until that lands. The agent did
+not kill the in-flight run over this (§B2.3 below explains why), but is
+not deciding this gate itself.
+
+### §B2.1 CUDA smoke (real GPU, `youthful-indigo-turkey`, not a CPU stub)
+
+Ran `/home/nvidia/ncr/cuda_smoke_stage0.py` (scratch verification script,
+not part of the frozen file) on GPU 0 while it was already carrying an
+unrelated 100%-SM production job (see §B2.3). All four checks **PASS**:
+
+| Check | Result |
+|---|---|
+| s1: SVD-floor property (`σ_min(Z_damped) ≥ eps_rel·σ_max(Z_raw)`), CUDA fp64 | PASS, min margin −9.5e-12 (numerical noise, exact to tolerance) |
+| s2: forward + backward through the damped `encode()` path; explicit per-param grad-norm finiteness | PASS — 47/47 param grad norms finite & nonzero (range 1.18e2–1.90e4); `keys`/`values` input grads finite & nonzero |
+| s3: end-to-end micro cell (`run_primary_cell`, `damped_polar`, K=24, steps=5) at the **production** `EVAL_BATCH_SIZE=256`/`EVAL_BATCHES=8` (no tiny override — the eval-OOM hard rule requires testing the real eval batch size) | PASS — COMPLETED in 35.6 s, `eval_cell` + `realistic_ladder_eval` both ran clean, no OOM; peak CUDA memory **0.214 GB** |
+| s4: whole-cell checkpoint/resume (the harness's only checkpoint unit — `ncr_earlyln_scale.py`'s own documented design has no mid-cell checkpoint, "cells are short, whole-cell skip-if-COMPLETED is the resume-safety unit") | PASS — second call detected the COMPLETED JSON and skipped without re-running |
+
+Smoke output dir (`results_ortho_fallback_SMOKE/`) removed after the check;
+`results_ortho_fallback/` (the real output dir) was empty before launch —
+verified.
+
+### §B2.2 Pre-launch red-team (self-check)
+
+- **Fits in memory?** Yes, trivially. Smoke measured 0.214 GB peak at 5
+  steps; the parent §9.0 measured ~2.4 GB for a full 320K-step ortho cell
+  at the *same* K=24/d=25 shape (Adam states + activations dominate over
+  the 5-step smoke). Either figure sits far under the ~36–37 GB free per
+  GPU (all 8 GPUs were carrying a large co-tenant job at launch time, see
+  below) — memory is not the constraint, matching §3.5's own "never the
+  constraint" finding.
+- **Timeout/ceiling wired?** Yes, two layers: (1) the frozen internal
+  `--ceiling-gpuh 0.5` (1800 s), checked every `log_every=500` steps inside
+  `train_earlyln_cell` (unmodified — inherited from the base script), which
+  returns `ABORTED-BUDGET` gracefully; (2) an external `timeout 2400`
+  backstop in the driver script (`orchestration/run_stage0.sh`), 600 s of
+  margin above the internal ceiling, matching the parent run's own
+  timeout-above-ceiling discipline (catches a hang, not a graceful abort).
+- **Duplicate check?** Confirmed clean both before build (`ls
+  /home/nvidia/ncr/results_ortho_fallback/` → "No such file or directory")
+  and again immediately before launch (same result) — no prior Stage-0
+  results to collide with.
+- **Gate discharged?** Verified via `git log`/`git rev-parse HEAD`: the
+  repo's `HEAD` is exactly `28e69cb` (the frozen "CLEAR-FOR-STAGE-0-BUILD"
+  commit) for `NCR_ORTHO_FALLBACK_DESIGN.md`, with no commits after it
+  touching this file — this build agent's own edits (§B1/§B2) are the only
+  uncommitted (`git status` shows `M`) changes, awaiting the coordinator's
+  commit per the task's own instructions. (See §B2's PROCESS-GAP flag above
+  for the one checklist item this does NOT discharge.)
+- **Placement — GPU + contention, MEASURED not assumed.** All 8 GPUs were
+  at 99–100% SM utilization at launch time, each running one unrelated
+  392M-param `lm_pretrain_rd.py` production job (~43.5–44.1 GB/80 GB used,
+  ~37 GB free each) — **not** the parent run's own N=2/GPU packing case
+  (two similarly-sized NCR cells); this is one NCR cell riding alongside a
+  large, unrelated, already-saturating job. Launched on GPU 0 (arbitrary —
+  all 8 read within noise of each other; GPU 0 was also the smoke GPU).
+  Memory-wise this is fine (1.086 GB used post-launch, per
+  `nvidia-smi --query-compute-apps`, out of ~37 GB free). **SM-contention
+  risk materialized and was measured, not merely a listed risk**: see
+  §B2.4 — the achieved training rate under contention is ~3.3× slower than
+  the design's solo-calibrated estimate, threatening the pre-registered
+  step-count margin. This is the single most important finding in this
+  record; do not skip §B2.4.
+
+### §B2.3 Why the run was NOT killed after the contention finding (§B2.4)
+
+The rate deviation in §B2.4 was measured ~2–3 minutes into an already-live
+run, not before launch (the box was saturated on all 8 GPUs at build time —
+there was no idle GPU to canary against, and the doctrine + this agent's
+own instructions forbid killing another job to make room). At that point:
+(1) the frozen ceiling is wall-clock-based, not step-count-based, by
+design (§2: *"the ceiling is a wall-clock cap"*) — the harness already
+degrades gracefully to `ABORTED-BUDGET` rather than running away or
+corrupting anything; (2) killing and relaunching elsewhere would not help
+— every GPU was equally saturated, so a relaunch would very likely
+reproduce the same contention; (3) the total cost at stake is the
+pre-priced ≤0.5 GPU-h ceiling regardless of outcome. Continuing was the
+lower-risk choice; the alternative (killing an in-flight, ceiling-bounded,
+smoke-verified run on a discretionary judgment call) would itself be
+outside this agent's "no tunable choices, STOP-and-report" mandate.
+**Flagging prominently instead of silently accepting the outcome is the
+STOP-and-report response here** — the run continues, but its result should
+be read through §B2.4's caveat, not taken as a clean Stage-0 verdict
+without checking the achieved step count first.
+
+### §B2.4 MEASURED contention finding (load-bearing caveat for ASSESS)
+
+Log timestamps (elapsed-seconds field only — no loss/metric values read,
+per the blind-launch instruction):
+
+| step | elapsed |
+|---|---|
+| 1 | 1 s |
+| 500 | 71 s |
+| 1000 | 140 s |
+
+Steady-state rate ≈ **139 ms/step** (step 1→1000: 139 s / 999 steps).
+The frozen §2 solo-calibrated estimate was ~3.3 h/320K steps + 15% derate
+≈ 3.795 h/320K steps ≈ **42.7 ms/step** — the measured contended rate is
+**~3.3× slower**. Extrapolating linearly, the 1800 s (0.5 GPU-h) internal
+ceiling will be reached at roughly **step ≈ 12,900** — about **31%** of the
+pre-registered ≈42,000-step target, NOT the full budget. §2's own margin
+arithmetic (*"≈42,000 achievable steps... margin over the worst observed
+free-arm convergence step [22,000] ≈ 1.9×"*) assumed the solo rate; at
+~12,900 achieved steps the effective margin is **≈0.59×** — UNDER 1×,
+i.e. this attempt is likely to hit `ABORTED-BUDGET` before even the
+free-arm's own worst-case convergence point, let alone give the
+damped-polar arm room to converge. **Consequence for ASSESS:** if this
+cell's terminal JSON shows `status=ABORTED-BUDGET` with `train.step` well
+below ~40,000, that is a **contention/placement artifact, not a
+same-signature or different-signature FAIL** per §2's branch logic — none
+of the three pre-registered branches (PASS / same-signature FAIL / 
+different-signature FAIL) anticipated a budget exhaustion this early, and
+applying any of them mechanically to a step-starved run would be an
+instrument-relative mis-read, exactly the class of error the doctrine's
+own "read the raw artifact, don't average or default" rule (CLAUDE.md Hard
+Rules) exists to prevent. **Recommendation:** the coordinator should check
+`train.step` in the output JSON before applying §2's branch logic; if it
+terminates well short of ~40K steps, the honest read is "inconclusive —
+contention-starved, re-run once a less-saturated GPU-hour is available,"
+not a PASS/FAIL/retry decision, and the ≤1.0 GPU-h Stage-0 ceiling should
+arguably be treated as not yet properly spent (a genuine solo attempt has
+not yet been made).
+
+### §B2.5 Launch details
+
+- **tmux session:** `ncr_fb0_g0` (box `youthful-indigo-turkey`), running
+  `orchestration/run_stage0.sh 0` — confirmed alive post-launch and again
+  at the last check in this record.
+- **Driver:** self-healing supervisor (`while [ ! -f STOP ]; do ...; sleep
+  15; done`), but retry-gated on TERMINAL status (`COMPLETED` or
+  `ABORTED-BUDGET`) via the cell's own JSON `status` field, not a naive
+  infinite retry-on-any-exit loop — an infinite loop would re-spend the
+  §2 ceiling on every restart after a graceful abort, violating the frozen
+  ≤1.0 GPU-h Stage-0 total. Retries ONLY on a genuine crash (process died
+  without writing a valid terminal-status JSON).
+- **Output:** `/home/nvidia/ncr/results_ortho_fallback/stage0_damped_K24_s0.json`
+  (not yet written as of this record — still training); log:
+  `/home/nvidia/ncr/results_ortho_fallback/run_stage0.log`.
+- **Expected completion (at the MEASURED, not pinned, rate):** given
+  §B2.4's ~139 ms/step and the 1800 s internal ceiling, expect
+  `ABORTED-BUDGET` at ≈1800 s (~30 min) wall-clock from launch
+  (2026-07-17T07:13Z), i.e. **≈07:43Z**, at ≈step 12,900 — NOT a
+  `COMPLETED` at step 42,000 as the solo pin implied. The external 2400 s
+  timeout backstop is not expected to fire (the internal ceiling should
+  fire first, gracefully).
+- **Blind discipline maintained:** no loss/recovery/spectral metric value
+  was read at any point in this record — only `status`, `step`, and
+  elapsed-seconds fields (process-liveness/throughput, not science).
+
+## §B3 COORDINATOR RULING — CONTENTION VOID + RE-PRICED CEILING + AUDIT GATE (2026-07-17, pre-abort, no results read)
+
+Recorded BEFORE the running attempt terminates and before any metric is
+read. Two §B2 flags adjudicated:
+
+**(1) Contention void.** The first Stage-0 attempt (tmux ncr_fb0_g0,
+launched 07:13Z) runs at a measured ~139 ms/step vs the solo-calibrated
+~42.7 ms/step (~3.3×) because all 8 GPUs carry unrelated 392M production
+jobs — a placement regime the Stage-0 spec never priced (its 0.5 GPU-h
+ceiling assumed the solo rate; §5's contention pricing covered Stage-1
+N=2 NCR-cell packing only). The expected ABORTED-BUDGET at ≈step 12,900
+(~31% of the ≈42K target, ~0.59× of worst-seed convergence) is therefore
+**VOID-CONTENTION — not a §2 PASS/FAIL branch event**. §2's branch logic
+applies only to attempts reaching ≥40K steps or terminating for a
+non-budget reason. Precedent: the parent run's ceiling amendment
+(62a6fb6).
+
+**(2) Re-priced ceiling + relaunch protocol.** Stage-0 attempts under
+the current contention regime get `--ceiling-gpuh 1.75` (0.5 solo-
+equivalent × 3.3 measured, rounded up) with the external timeout raised
+to match (7200s). Worst-case Stage-0 spend becomes: 0.5 (voided attempt,
+priced) + 1.75 (amended attempt) + 1.75 (the one pre-authorized eps
+retry, if triggered) ≈ **4.0 GPU-h** — still inside the <10 GPU-h
+ceremony tier; Stage-1 ledger unchanged. No mid-cell resume exists
+(whole-cell checkpoint unit, §B2), so the voided attempt's compute is
+written off.
+
+**(3) Audit gate (the §B2 process-gap flag).** The design §10 checklist
+item "independent code audit before GPU spend" was not discharged before
+the first launch (coordinator dispatch omission, owned here). Ruling:
+the item is discharged for the AMENDED attempt by an independent audit
+of the ~50-line build diff (base 83b5d7bd → patched 70dd7923) running
+NOW, in parallel with the doomed first attempt; the relaunch fires only
+after (a) the audit returns clean and (b) the first attempt has
+terminated. If the audit finds a defect, the fix re-enters this ruling's
+protocol with a fresh md5 pin.
