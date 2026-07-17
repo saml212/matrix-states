@@ -1,5 +1,52 @@
 # STATE — Current Project State
 
+## DAY BRIEFING — 2026-07-17 (current; supersedes all below)
+
+**THE NCR ARC + STRATEGIC PIVOT (all pushed, main @ ~1cb3c9a+).**
+Spearhead = NCR capability separation in a real LM. The 24-cell
+ortho-write run COMPLETED and its **verdict of record is FAIL** (both
+Part A + Part B, `NCR_ORTHO_WRITE.md` §9): the Newton–Schulz-polar
+orthogonal write is Gate-0 dead 4/4 seeds at K=24 and K=32 — the
+pre-registered "too rigid to train through" mechanism. **§10 code
+re-audit = MECHANISM-CONFIRMED, no bug:** a tight-spare (d=K+1)
+ill-conditioning trap (scale-invariant loss → no pressure on the spare
+direction → σ_min collapses below the NS working range → polar backward
+explodes ~1/σ_min → absorbing near-singular state at K≥24). The
+**free-write control VALIDATED the harness** and is the load-bearing
+finding: **free-write K=24 / d=25 recovers 1.0 at ALL far depths, cond
+1.0, 4/4 seeds** — the wall is K=32-specific, K=24 already works.
+
+**Fallback gauntlet (expm/Cayley design):** frozen through §A1 attack (1
+FATAL: a false det-parity reachability claim) + §R1; Stage-0
+damped-polar smoke gate ran (§B1–B8) through a full audit chain that
+caught, on paper/CPU before real spend, a contention-void first attempt,
+a FATAL guard defect (`NS_EPS` floor leak in the exact-σ_min regime), and
+a reproduced fp32 NaN edge — v3 relaunched, **§B8 verdict = FAIL /
+never-engaged** (~2.1 GPU-h total).
+
+**PI-RATIFIED PIVOT (2026-07-17) — the current plan:** (1) **UN-GATE the
+flagship to K=24 free-write NOW** — nothing in `NCR_REAL_LM_DESIGN.md`
+requires K=32 (head width cosmetic, S₅ rep is 4-dim + I padding, bands
+K-agnostic, the O(log h) read is exact by construction independent of K);
+GATE-1 amended-not-satisfied (amendment §N2 in flight). (2) **Aim the
+ladder at 1B+ params on the capability** — 392M is now a checkpoint, not
+the finish; ~1B is where the field's "real architecture not toy"
+credibility bar sits; sequenced GATE-3 calib (K=24, 98M, ~22 GPU-h, the
+make-or-break de-risk — the NCR head has NEVER trained in a real LM) →
+98M → 392M → [own-ceremony gate] → 1B+. (3) **DEMOTE the expm Stage-1
+rescue** off the critical path (idle-filler only). (4) **SHIP the
+attractor scaling paper** (`submissions/iclr-2027/`, science resolved,
+~4-6 agent-days of prose, zero GPU-h, ICLR-full; punch-list committed) +
+kwall (13pp verdict-complete workshop artifact). Honest bar: even at 1B a
+clean NCR separation is a STRONG paper; "world-changing" additionally
+needs the capability to matter on a task people care about — an open
+question the PI is weighing.
+
+**Operating mode (PI 2026-07-17):** back to normal pricing — coordinator
+(Fable) is the brain/steward: do synthesis + verification directly,
+delegate only genuinely-parallel heavy lifting to Sonnet-5 workers /
+Opus judges, be economical.
+
 ## DAY BRIEFING — 2026-07-10 (the quotable summary; supersedes 07-09's below)
 
 **Verdicts of record landed:** (1) **H2H AXIS-1 WIN AT n=3** (§1.40) —

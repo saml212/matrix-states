@@ -1011,8 +1011,8 @@ not an open-ended pursuit.
       ACTUAL entity embedding (cheap, CPU-only — do not launch Cayley
       cells on the unverified assumption that the D-scaling fix's
       reachability proof transfers cleanly to the specific code path).
-- [x] Stage 0 runner + smoke. **DONE** (§B1–B8; built, audited D1/F-A/F-B, v3 relaunched, COMPLETED @42K steps 2026-07-17, verdict §B8 = FAIL/flat-signature → pre-authorized eps_rel=1e-4 retry queued but HELD pending strategic review). Cumulative spend ≈2.10 GPU-h.
-- [ ] Stage 1 runner (arm dispatch), smoke, then the gauntlet. **HELD** — strategic review (2026-07-17) recommends demoting Stage-1 off the critical path; decision pending PI.
+- [x] Stage 0 runner + smoke. **DONE** (§B1–B8; built, audited D1/F-A/F-B, v3 relaunched, COMPLETED @42K steps 2026-07-17, verdict §B8 = FAIL/flat-signature). Cumulative spend ≈2.10 GPU-h. **eps_rel=1e-4 retry CANCELLED-STRATEGIC (PI-ratified 2026-07-17):** not run — this whole arm is off the critical path (below).
+- [~] Stage 1 runner + gauntlet. **DEMOTED (PI-ratified 2026-07-17).** The strategic review established the flagship does NOT require K≥32 (un-gated to K=24 free-write, see NCR_REAL_LM_DESIGN.md §N2); the expm Stage-1 rescue was scoped to break a wall the flagship now walks around. Status: **idle-GPU filler ONLY** — a future K-scaling-law-of-the-method bonus for the flagship's scaling chapter, never a gate, never on the critical path. Do not launch as a dependency of anything.
 
 **Open questions — status after §A1/§R1:**
 
