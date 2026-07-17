@@ -775,3 +775,234 @@ resolving unilaterally:**
    PASS/FAIL with "ran out of steps." This data point was not available
    during drafting and should be pulled from the archived free_K24 z-dumps
    before Stage 0 launches.
+
+---
+
+## §A1 ATTACK ROUND 1 (2026-07-17)
+
+Independent adversarial review, READ-ONLY except this appended section. Every
+arithmetic claim recomputed; the det-parity math re-derived against the ACTUAL
+task/embedding code (`ncr_task.py`, `chapter2/task_e.py`, `analyze_zdump.py`)
+and confirmed numerically (script logged in session archive). The σ_min(I+W)
+proof, the ledger, and the packing plan survive; the load-bearing NEW math
+(§3.1 det-parity reachability) does NOT.
+
+### FATAL
+
+**A1.1 — FATAL. The §3.1 "reachability impossibility" for `expm` is FALSE.
+The spare dimension's determinant sign is a FREE choice the loss is
+indifferent to, so plain `expm(W)` (confined to SO(d), NO reflection) reaches
+an EXACT solution at even K. The reflection fix `R` is unnecessary and rests
+on a false premise — and the false premise directly contradicts this design's
+own inherited §10 mechanism.**
+
+*Evidence (code, not architecture).* The learned operator's behavioral target
+is NOT "the K-cycle permutation matrix embedded as identity-on-spare." The
+task's ideal write is `z_ideal = K_mat · P · K_matᵀ` (verbatim,
+`analyze_zdump.py` DERIVATION; `K_mat` = K random orthonormal key columns, `P`
+= canonical K-cycle) — this is **rank K in ambient d=K+1, with the (d−K)=1
+spare direction mapped to ZERO**. The read (`binexp_read`, then
+`recovery_cosine` to `pool[π^h(i)]`) constrains `Q` ONLY on the K entity keys;
+the spare direction is entirely unconstrained. §10.7 of the parent doc states
+this as the FAIL mechanism itself: *"zero pressure on the (d−K)=1 spare
+direction's magnitude."*
+
+*The math §3.1 got wrong.* A solving orthogonal `Q` must act on the entity
+subspace `E` as the K-cycle (forced) and, being orthogonal with `E` invariant,
+acts on the 1-dim spare as `s = ±1` (free). `det(Q) = det(P|_E)·s =
+(−1)^(K−1)·s`. For even K this is `(−1)·s`: **choosing `s=−1` gives det=+1,
+i.e. `Q ∈ SO(d)`, reachable by plain `expm(W)`.** The design's own §3.1 even
+supplies the refutation and fails to connect it: it notes `expm` reaches a
+`(−1,−1)` PAIRED block at θ=π — the cycle's single −1 eigenvalue (j=K/2) pairs
+with the free spare's −1 to make −1 multiplicity 2 (even), det +1, expm-
+reachable. Numerically confirmed (K=4, d=5, random key frame): the `s=−1`
+operator is orthogonal to 2e-15, solves the task exactly at h∈{1,2,3,5,40},
+det=+1.000, reachable by SO(d); the `s=+1` operator solves it too (det=−1).
+**BOTH determinant components contain an exact solution.** §3.1's claim that
+both arms are "mathematically INCAPABLE of reaching the target… wasting the
+entire Stage-1 budget on an experiment that could never have succeeded" is
+wrong.
+
+*Does the reflection break anything?* No — `R·expm(W)` still contains a
+solution (the `s=+1` one), and the read (`(R·expm(W))^h` by repeated squaring
+of the stored `Q`) is computed correctly and lands on the entity targets for
+the block-diagonal solution. So the reflection is HARMLESS to solution
+existence and to the O(log h) read — it is merely UNNECESSARY, adds a fixed
+mis-motivated buffer, and (small) risks perturbing trainability by forcing the
+opposite spare sign. The damage is scientific: a false "verified 10-minute
+checklist finding" that the design would carry into the paper (§8's
+differentiator-sentence style), plus a "build-blocking" fix that blocks
+nothing real.
+
+*Cayley is different — right conclusion, wrong reason.* Unscaled Cayley's
+image EXCLUDES eigenvalue −1 entirely (`(1−iθ)/(1+iθ)=−1` is unsolvable). EVERY
+solution has ≥1 eigenvalue −1 (the cycle's forced j=K/2 mode, independent of
+the spare), so unscaled Cayley genuinely cannot reach any solution and DOES
+need the `D`-scaling. The design reaches this conclusion via the wrong
+invariant (det parity); the correct invariant is the FORCED −1 eigenvalue on
+the entity subspace. Keep Cayley's demotion; fix its stated reason. (The
+Helfrich "exactly one −1 entry in D" count is likewise spare-dependent and
+should be re-derived from the entity-subspace spectrum, not from det.)
+
+*Required fix (blocking).* (1) Delete the "reachability impossibility"
+framing and the claim that plain expm/Cayley waste the budget. (2) Make
+**plain `expm(W)` (no `R`) the PRIMARY arm** — it reaches an exact SO(d)
+solution via the free spare, is simpler, and drops the whole reflection
+apparatus + the §3.1/§10 pre-launch eigenvalue-parity check for expm. (3)
+Re-derive the Cayley `D`-scaling justification from the forced entity-subspace
+−1 eigenvalue. (4) Optionally keep `R·expm` as a disclosed comparison, not a
+necessity. The rationale for choosing expm over NS-polar (avoids the 1/σ_min
+backward blow-up) is untouched and still valid — only the det-parity sub-
+argument dies.
+
+### MAJOR
+
+**A1.2 — MAJOR. The Stage-0 `Z+εI` patch is NOT a sound σ_min floor for the
+actual (non-normal) encoder output; the Weyl justification proves the wrong
+thing, and the 10× eps retry ladder addresses the wrong axis.**
+
+The design (§2) justifies the floor via Weyl: `|σ_i(A+εI)−σ_i(A)| ≤ ε`. That
+bounds the CHANGE in each singular value, not a LOWER FLOOR. For a NON-NORMAL
+matrix, εI shifts EIGENVALUES, not singular values; σ_min(Z+εI) can be ≪ ε.
+Concrete: `Z=[[0,M],[0,0]]` (nilpotent, σ={M,0}); `Z+εI=[[ε,M],[0,ε]]` has
+`σ_min·σ_max = ε²`, so `σ_min ≈ ε²/M ≪ ε` for large M=σ_max. The ortho cells'
+measured departure-from-normality was 0.17–0.69 (parent §9.1) and the drift
+drove encoder cond≈1e8 — i.e. exactly the non-normal, large-σ_max regime where
+`ε²/M` collapses the additive floor. The "Tikhonov/ridge, effective floor of
+order ε on that direction" argument is a normal/PSD intuition that does not
+transfer. Consequence: a Stage-0 FAIL "same signature" would be
+MIS-ATTRIBUTED to "SGD pushed the effective magnitude below the floor" when in
+fact no floor ever existed; the pre-authorized `eps=1e-2` (10×) retry chases
+the wrong axis (bigger ε does not fix a structural `ε²/M` collapse). *Fix:*
+either (a) replace additive `εI` with a genuine σ_min floor — SVD singular-
+value clamp of the raw encoder output, or damping along the polar direction
+`Z(ZᵀZ+εI)^{-1/2}` — or (b) explicitly downgrade Stage-0's soundness claim,
+correct the Weyl reasoning to "additive-εI probe, floor not guaranteed for
+non-normal Z," and state that a Stage-0 FAIL is INCONCLUSIVE about the trap.
+Bounded blast radius (Stage 0 is ≤1 GPU-h and Stage 1's 2-arm grid runs
+regardless), so MAJOR not FATAL — but the math is wrong and the recorded
+conclusion would be too.
+
+**A1.3 — MAJOR. The split-result seed-escalation must be pre-registered as a
+frozen decision rule NOW, not left to mid-run coordinator discretion — a
+blind-assess protocol cannot have a discretionary hole at its decision point.**
+
+§9 / open-Q3 correctly invoke the §2.35 1-in-5 catastrophic-seed precedent
+(measurable only at n≥5) but then punt: *"the coordinator should not treat a
+split result as a clean verdict without at least considering…"* That is
+exactly the ad-hoc, post-hoc-discretion move the record-before-read discipline
+(§6, inherited) forbids. The escalation trigger and its budget must be frozen
+before launch. *Fix:* pin a crisp rule, e.g. **"IF the selected arm's decisive
+K=32 cell has 1 ≤ (Gate-0-passing seeds) ≤ 3 of 4, n is raised to 8 for that
+arm×K cell (pre-priced contingency +4 cells × 4.3 h = +17.2 GPU-h) and the §R3
+catastrophic-seed disposition clause applies; the ≥3/4 FAIL threshold is NOT
+mechanically applied to a split population."** Freeze the number; add the
+contingency line to the §5 ledger.
+
+**A1.4 — MAJOR. "A build agent substitutes the winning arm's name for
+'Newton–Schulz'… a disclosed terminology edit, not a re-gauntlet" (preamble,
+§4) understates the downstream work for a non-NS winner.**
+
+At the GATE level both downstream docs phrase GATE 1 on the OUTCOME
+(`NCR_KLADDER_DESIGN.md` §9: "rec@0.9 at h*=40 ≥0.9 at K=32";
+`NCR_REAL_LM_DESIGN.md` §9: "ortho-write verdict WIN/PARTIAL"), so the gate
+DISCHARGE is legitimately arm-agnostic — good. BUT both BUILDS hard-wire
+NS-polar mechanism specifics: the K-ladder's §2 FLOP model has an NS-specific
+"Newton–Schulz term" that grows with K and its own §A1.1 FATAL rests on the
+NS/encoder rank pipeline; the real-LM build bakes in the "Newton–Schulz
+orthogonal-write pipeline" (§2, lines ~252/361) and an NS-specific stability
+claim ("‖QᵀQ−I‖=1 unfixable by any amount of Newton–Schulz iteration", ~line
+679). Swapping in `expm` changes the per-write cost scaling and the stability
+argument, so it is NOT a pure rename. *Fix:* state that a non-NS winner
+requires the K-ladder and real-LM COST/STABILITY models (not the science gate)
+to be re-derived for the new parametrization before their builds execute —
+one bounded re-derivation, but flag it, don't call it a terminology edit.
+(The encoder rank-reachability issue is arm-independent and unaffected.)
+
+### MINOR
+
+**A1.5 — MINOR. The §1 falsifiable prediction / §4 WIN mechanistic
+corroboration is near-vacuous for the structural arms.** expm/Cayley produce a
+GLOBALLY orthogonal `Q` by construction (departure→0, cond→1 trivially,
+independent of whether the task is learned), so "the spectral signature moves
+toward orthogonal" cannot be falsified for these arms. The teeth that remain
+live in the entity-BLOCK quantities (`A=UᵀQU`: min|λ|/c*, block departure,
+block cond detect E-invariance / spare leakage, which are NOT guaranteed by
+global orthogonality). *Fix:* re-scope the WIN mechanistic leg explicitly to
+the entity-block diagnostics for structural arms and drop the global-
+orthogonality framing (which was the meaningful independent check only for
+NS-polar).
+
+**A1.6 — MINOR. Checklist item 2 ("compute FLOPs on paper, no exceptions") is
+only qualitatively discharged for expm.** §3.2 gives "a handful of d×d
+matmuls… same order as NS-40" but no per-write-step count for
+`matrix_exp`+backward at d=25/33. Because the cost pin (4.3 h/cell) is
+empirical and the regime is overhead-bound, this does not drive a wrong
+budget, but the explicit number (scaling-and-squaring ≈ Padé-13 ~6 matmuls +
+~2–4 squarings per forward, doubled-ish for the Fréchet backward, × batch 256)
+should be written down per the checklist. (torch.matrix_exp backward IS
+implemented/stable in torch 2.8; the target's minimal generator has eigenvalue
+gaps < 2π so it sits away from the expm singular set — both CLEAR.)
+
+**A1.7 — MINOR. eps is carried K=24→K=32 without re-validation (instrument-
+relative hard rule).** If Stage 0 PASSES, §3.4 pins the K=24 eps as the K=32
+damped-polar hyperparameter "no further tuning." The σ_min danger threshold is
+K/d-relative (parent hard rule: the n_iter-sufficiency frontier MOVES with
+K/d). §9's damped-polar bullet half-acknowledges this ("scale-dependent
+partial fix"). *Fix:* either re-validate the floor at K=32 or explicitly scope
+the K=32 damped-polar cell's result as provisional. (Compounds with A1.2: if
+the floor is unsound at K=24 it is more so at the larger d of K=32.)
+
+**A1.8 — MINOR. The grid is all-even-K (24, 32); there is no odd-K control.**
+The (now-refuted) parity hypothesis predicted plain-expm success at odd K
+(det=(−1)^(K−1)=+1) and failure at even K without R. An odd-K cell would have
+been the direct falsification test — moot given A1.1's refutation, but noted:
+the current grid cannot distinguish "parity story" from "spare-freedom story"
+because both K are even.
+
+### CLEAR (probed, survived)
+
+- **σ_min(I+W) ≥ 1 (§3.1):** CORRECT. W skew ⇒ W normal ⇒ I+W normal (both
+  `(I±W)` products equal `I−W²`); singular values = |eigenvalues| = |1+iθ| =
+  √(1+θ²) ≥ 1. Correctly and cleanly SCOPED — used only against §10-trap
+  re-entry through Cayley's inversion, kept explicitly separate from the
+  distinct ‖W‖→∞ parameter-blowup. Good.
+- **Ledger arithmetic (§5):** CLEAN. 2-arm 2×2×4=16 cells ×4.3=68.8 (+1.0
+  Stage-0 = 69.8 ✓); 3-arm 3×2×4=24 ×4.3=103.2 (+1.0=104.2 ✓); packing
+  N=2×8=16 slots = one wave for 16 cells, 16+8-solo for 24 ✓; 4.3 h pin is the
+  conservative discriminator-rate upper bound applied to cheaper single-
+  relation cells; 12 h contention ceiling generous (measured 68–77% SM single
+  → ~1.4–1.5× packed slowdown → ~6.5 h, well under 12 h). No double-count of
+  the canary.
+- **Saturation packing (§3.5):** realistic and canary-gated; memory trivial;
+  achieves the 100%-utilization intent.
+- **Open-Q5 (Stage-0 48K budget) — DISCHARGED by the data the draft said was
+  unavailable.** Pulled the archived `free_K24_s{0..3}` loss histories: healthy
+  cells reach loss <0.01 by step 7K–12K and <0.002 by 10K–22K (worst seed
+  22K). Stage-0's 48K budget carries ≥2× margin over healthy convergence, so a
+  Stage-0 FAIL is NOT confoundable with "ran out of steps." (Caveat: this is
+  the FREE arm; damped-polar-through-constraint could be somewhat slower, but
+  the 2× margin covers it.)
+- **Mod-K / blank-out / blind-record / resume-safety / novelty (OSA+MuonSSM
+  complementary, confirming-instance framing):** faithfully inherited; ladder
+  residues {5,12,20,29,40,61} all novel mod 24 AND mod 32 (asserted in
+  `realistic_ladder_eval`).
+
+### VERDICT: **REVISE**
+
+Blocking items before freeze:
+- **A1.1 (FATAL)** — correct the det-parity math; make plain `expm` primary;
+  drop the "reachability impossibility"/"wasted budget" framing; re-derive
+  Cayley's `D`-scaling reason from the forced entity-subspace −1 eigenvalue.
+- **A1.2 (MAJOR)** — fix or downgrade the `Z+εI` σ_min-floor claim (Weyl
+  bounds change, not floor; non-normal collapse `ε²/M`); the 10× retry chases
+  the wrong axis.
+- **A1.3 (MAJOR)** — pre-register the split-result n=5→8 escalation as a
+  frozen rule + priced ledger line.
+- **A1.4 (MAJOR)** — restate the downstream substitution as a bounded cost/
+  stability-model re-derivation for a non-NS winner, not a terminology edit.
+
+MINORs (A1.5–A1.8) fold into the same revision. The experiment is salvageable
+and worth running — expm is a sound choice on its real merit (no 1/σ_min
+backward blow-up); it is the design's central NEW argument, not the
+experiment, that fails the attack.
