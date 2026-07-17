@@ -19,8 +19,10 @@ The diagnosis (Section~\ref{sec:diagnosis}) explains \emph{why} a
 post-hoc orthogonal projection recovers depth on an already-trained
 operator; it does not, by itself, establish that training the constraint
 directly will converge or generalize past $K{=}24$ -- that is exactly
-what Section~\ref{sec:pending}'s pending run tests, and we report the
-odds we assigned before running it, not after.
+what Section~\ref{sec:pending}'s now-landed run tested, and the answer
+was negative: the constrained write did not train (FAIL, conditional on
+the code re-audit disclosed there). We report the odds we assigned
+before running it, not after.
 
 \textbf{We do not claim a new state-tracking expressivity result.}
 Section~\ref{sec:related} names two published results
@@ -50,6 +52,7 @@ and $K{=}32$) has no loss-curve signature under the one check performed
 and is reported as an open, twice-observed phenomenon, not resolved.
 % evidence: NOVEL_ARCH_WATERFALL.md S11.5/S11.6
 
+% NOTE: resolve after design-doc §10 (bug-vs-mechanism code re-audit) lands -- this passage's "pending fix landing NULL" framing awaits that resolution.
 \textbf{Falsification, restated.} The bound half of this paper's claim --
 that the $K{=}32$ wall is not rescued by dimension convention or training
 budget alone under the recipe tested -- would be voided by any single

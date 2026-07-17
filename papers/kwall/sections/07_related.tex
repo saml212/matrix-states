@@ -49,6 +49,55 @@ its necessary empirical companion. We do not claim a new expressivity
 result and would be incorrect to.
 % evidence: research/ncr_separation_grounding.md Part 3
 
+\textbf{The collapse-vs-hold genre on a harder task family, and what
+``exact'' does and does not mean (cite-and-distinguish).} This paper's
+own construction is a single cyclic group ($K$ entities on one
+Hamiltonian cycle, Section~\ref{sec:background}) -- deliberately simpler
+than, and explicitly not an instance of, the non-solvable-group word
+problems ($S_5$) that a separate, harder literature already studies; we
+do not conflate the two. That harder genre is nonetheless the closest
+external precedent for the general \emph{shape} this paper's $K$-axis
+also shows -- in-distribution success collapsing past some scale or
+depth -- and is an established pattern since 2022, not a phenomenon this
+paper discovers. \citet{liu2023shortcuts} originate it on $S_5$ itself
+(ICLR 2023 oral; arXiv v1 Oct.\ 2022): low-depth transformers construct
+an exact finite-state shortcut that is nonetheless brittle off the
+training distribution. \citet{li2025track} locate two distinct
+\emph{learned} collapse mechanisms (an associative-scan construction and
+a parity-pruned one) for $S_3$/$S_5$ state tracking inside real language
+models. Closest empirically: \citet{yau2026sequential}'s Prefix-Scannable
+Models hold an $S_5$ ``cups and balls'' task to test length $180$, where
+a transformer and a Mamba baseline both collapse -- the nearest published
+precedent to a collapse-vs-hold separation on a non-solvable-group task,
+though theirs is a learned, observed hold with no exactness argument,
+unlike the by-construction read guarantee this program's mechanism
+targets on its own, simpler task. \citet{siems2025deltaproduct}'s
+DeltaProduct and the concurrent matrix-valued-state line
+\citet{mishra2026m2rnn} sit in the same adjacent family; \citet{lee2026falsifier}
+is further adjacent concurrent work, cited here for existence only, not
+for any specific claim. One distinction is
+load-bearing for this paper's own diagnosis
+(Section~\ref{sec:diagnosis}) regardless of task family: DeltaProduct's
+and RWKV-7's state-tracking results \citep{siems2025deltaproduct,
+peng2025rwkv7} are \emph{expressivity} theorems -- a setting of weights
+exists under which the recurrence eventually computes the correct group
+product -- not a claim, enforced or measured, that an already-trained
+model composes exactly at arbitrary query-chosen depth from a single
+training regime; whether \emph{this program's own} trained write is
+exact and well-conditioned, not whether an exact write could in
+principle exist somewhere, is exactly what the Part~A/B ortho-write
+verdict (Section~\ref{sec:pending}) measures. Finally, the $O(\log h)$
+repeated-squaring read this paper builds on is not new mathematics: it
+is the classical mechanism behind Barrington's theorem that bounded-width
+branching programs capture $\mathrm{NC}^1$ via iterated, doubled group
+composition \citep{barrington1989}; this paper studies whether a model
+can be \emph{trained} to populate that read with a well-conditioned
+operator, not the read's asymptotic complexity, which predates this
+program by four decades and is unrelated to whether the composed group is
+solvable.
+% evidence: research/ncr_separation_grounding.md 2026-07-16 novelty-gate re-sweep;
+% matrix-thinking/NCR_REAL_LM_DESIGN.md S N1 R4 (tiered must-cite list)
+
 \textbf{Rank and readout.} The exact-continuous-recovery discipline of
 Section~\ref{sec:background} follows \citet{nichani2025understanding}'s
 rank-$m$-to-$\approx md$-associations argmax-capacity construction

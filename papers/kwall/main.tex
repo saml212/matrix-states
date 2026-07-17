@@ -118,8 +118,14 @@ each claim in the source of this paper. Diagnosis scripts
 (\texttt{k32\_spectral\_diag.py}, \texttt{k32\_counterfactual.py},
 \texttt{k32\_nonnormal\_frontier.py}) are archived at
 \texttt{experiment-runs/2026-07-16\_ncr\_ortho\_write/diagnosis/}. The
-ortho-write fix experiment (\S\ref{sec:pending}) was, as of this draft, a
-live pre-registered but not-yet-read GPU wave; this paper does not read
-its results path and reports the pre-registered bands only, as pending.
+ortho-write fix experiment (\S\ref{sec:pending}) was pre-registered with
+frozen verdict bands (repository commit \texttt{cffc209}, recorded before
+any tunable code or result existed); its results have since been read and
+blind-scored against those frozen bands, and \S\ref{sec:pending} reports
+the recorded verdict of \texttt{NCR\_ORTHO\_WRITE.md} \S9 (Part A FAIL,
+Part B FAIL, conditional on the in-progress code re-audit disclosed
+there). Raw per-cell JSONs, run logs, and the pinned run script are
+archived at
+\texttt{experiment-runs/2026-07-16\_ncr\_ortho\_write/}.
 
 \end{document}

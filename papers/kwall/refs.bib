@@ -12,6 +12,25 @@
 % the true names are plausible from general knowledge. Two entries with no
 % author list at all in the grounding memo (Log-Linear Attention, HOLA) are
 % cited via inline arXiv URL in the prose instead of a bibtex entry.
+%
+% 2026-07-16 addition (novelty-gate re-sweep citations, papers/kwall S7
+% maintenance pass): yau2026sequential, liu2023shortcuts, li2025track,
+% siems2025deltaproduct, mishra2026m2rnn, lee2026falsifier, barrington1989
+% below are the tiered must-cite list from research/ncr_separation_grounding.md's
+% "2026-07-16 novelty-gate re-sweep" section, cross-referenced against
+% matrix-thinking/NCR_REAL_LM_DESIGN.md S N1 R4's consolidated list.
+% siems2025deltaproduct, mishra2026m2rnn, and barrington1989 are reused
+% verbatim from papers/neurreps-ea/refs.bib (already arXiv-verified there).
+% yau2026sequential, li2025track, and lee2026falsifier's titles/author lists
+% were not fully stated in either memo (Lee's was explicitly flagged
+% CHARACTERIZATION AMBIGUOUS -- two sweeps described the same ID
+% differently) -- this maintenance pass independently re-verified all three
+% directly against the arXiv abstract pages before adding them here, which
+% also resolves the Lee ambiguity (both prior descriptions were partial but
+% compatible: the paper is a held-out transition-pair protocol evaluated on
+% an S3xS3 non-Abelian state-tracking task to horizon 10^6); this
+% reconciliation is reported to the coordinator and is not yet folded back
+% into the memo itself.
 
 @article{schlag2021fwm,
   title   = {Learning Associative Inference Using Fast Weight Memory},
@@ -122,4 +141,63 @@
   publisher = {Princeton University Press},
   year      = {2005},
   note      = {Surname-only per research/ortho\_write\_grounding.md S5 (given names not stated there)}
+}
+
+@article{yau2026sequential,
+  title   = {Sequential-Parallel Duality in Prefix Scannable Models},
+  author  = {Yau, Morris and Gupta, Sharut and Engelmayer, Valerie and Irie, Kazuki and Jegelka, Stefanie and Andreas, Jacob},
+  journal = {arXiv preprint arXiv:2506.10918},
+  year    = {2025},
+  note    = {Near-scoop on this program's own S$_5$ collapse-vs-hold construction (T-PSM holds to test length 180 where transformer and Mamba both collapse; empirical/learned, no exactness argument) per research/ncr\_separation\_grounding.md's 2026-07-16 novelty-gate re-sweep. Author list verified via direct arXiv abstract-page fetch, papers/kwall maintenance pass 2026-07-16}
+}
+
+@inproceedings{liu2023shortcuts,
+  title     = {Transformers Learn Shortcuts to Automata},
+  author    = {Liu, Bingbin and Ash, Jordan T. and Goel, Surbhi and Krishnamurthy, Akshay and Zhang, Cyril},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2023},
+  note      = {Oral. arXiv:2210.10749 (v1 Oct.\ 2022, v2 May 2023) -- the 2022-origin construction of the S$_5$-shortcut-collapse genre this program's own K-wall construction is disclosed against, per research/ncr\_separation\_grounding.md item 3}
+}
+
+@article{li2025track,
+  title   = {(How) Do Language Models Track State?},
+  author  = {Li, Belinda Z. and Guo, Zifan Carl and Andreas, Jacob},
+  journal = {arXiv preprint arXiv:2503.02854},
+  year    = {2025},
+  note    = {Two learned collapse mechanisms (associative scan; parity-pruned) for S$_3$/S$_5$ state tracking inside real LMs, per research/ncr\_separation\_grounding.md's 2026-07-16 novelty-gate re-sweep. Author list verified via direct arXiv abstract-page fetch, papers/kwall maintenance pass 2026-07-16}
+}
+
+@inproceedings{siems2025deltaproduct,
+  title     = {{DeltaProduct}: Improving State-Tracking in Linear {RNN}s via Householder Products},
+  author    = {Siems, Julien and Carstensen, Timur and Zela, Arber and Hutter, Frank and Pontil, Massimiliano and Grazzi, Riccardo},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2025},
+  note      = {arXiv:2502.10297. Reused verbatim from papers/neurreps-ea/refs.bib (already arXiv-verified there)}
+}
+
+@article{mishra2026m2rnn,
+  title   = {{M\textsuperscript{2}RNN}: Non-Linear {RNN}s with Matrix-Valued States for Scalable Language Modeling},
+  author  = {Mishra, Mayank and Tan, Shawn and Stoica, Ion and Gonzalez, Joseph and Dao, Tri},
+  journal = {arXiv preprint arXiv:2603.14360},
+  year    = {2026},
+  note    = {Concurrent matrix-valued-state adjacent competition (S$_3$, fixed nonlinear recurrence, not in-context-written operators), per research/ncr\_separation\_grounding.md's 2026-07-16 novelty-gate re-sweep. Reused verbatim from papers/neurreps-ea/refs.bib (already arXiv-verified there)}
+}
+
+@article{lee2026falsifier,
+  title   = {A Held-Out Transition-Pair Falsifier for Long-Horizon Non-{A}belian State Tracking},
+  author  = {Lee, Jeonghoon},
+  journal = {arXiv preprint arXiv:2606.07254},
+  year    = {2026},
+  note    = {Cited for existence only, per the coordinator's scoping instruction: research/ncr\_separation\_grounding.md flags this ID CHARACTERIZATION AMBIGUOUS (two independent sweeps described it differently) and instructs "do not state either description as settled." This maintenance pass independently verified the title/author via direct arXiv abstract-page fetch (2026-07-16), which resolves the ambiguity (both prior sweep descriptions were partial but compatible), but that reconciliation is reported to the coordinator, not asserted in the paper's prose}
+}
+
+@article{barrington1989,
+  title   = {Bounded-Width Polynomial-Size Branching Programs Recognize Exactly Those Languages in {NC}$^1$},
+  author  = {Barrington, David A. Mix},
+  journal = {Journal of Computer and System Sciences},
+  volume  = {38},
+  number  = {1},
+  pages   = {150--164},
+  year    = {1989},
+  note    = {The classical origin of exact group-word composition by repeated squaring/doubling (via width-5 permutation branching programs); the learned in-context instantiation is what this paper's own O(log h) read newly contributes, not the underlying math. Reused verbatim from papers/neurreps-ea/refs.bib (already arXiv-verified there)}
 }

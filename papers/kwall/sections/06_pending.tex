@@ -1,26 +1,29 @@
-\section{The Fix Experiment: Pending}
+\section{The Fix Experiment: Verdict}
 \label{sec:pending}
 
 The diagnosis in Section~\ref{sec:diagnosis} is a post-hoc counterfactual
-on an already-trained, free-write operator -- it does not establish that a
-model can learn to write an orthogonal operator directly. A GPU wave
-training the Newton--Schulz-constrained write end-to-end at $K \in
-\{24, 32\}$, $d{=}K{+}1$, 4 seeds, $4\times$ budget, plus a
-structured-operator discriminator (composing paths of \emph{distinct}
-random-orthogonal operators, removing every periodicity handle so
-depth cannot collapse modulo a cycle length) was pre-registered before
-any tunable code existed and, as of this draft, is a live run whose
-results this paper does not read.
-% evidence: NCR_ORTHO_WRITE.md S2/S4b/S8
+on an already-trained, free-write operator -- it does not by itself
+establish that a model can learn to write an orthogonal operator
+directly. A GPU wave training the Newton--Schulz-constrained write
+end-to-end at $K \in \{24, 32\}$, $d{=}K{+}1$, 4 seeds, $4\times$ budget,
+plus a structured-operator discriminator (composing paths of
+\emph{distinct} random-orthogonal operators, removing every periodicity
+handle so depth cannot collapse modulo a cycle length) was pre-registered
+before any tunable code existed and has now run to completion and been
+read.
+% evidence: NCR_ORTHO_WRITE.md S2/S4b/S8/S9
 
 \begin{quote}
-\textbf{[PENDING --- ortho-write verdict, lands \textasciitilde
-2026-07-17]}
+\textbf{VERDICT (conditional on an in-progress code re-audit -- see
+below): Part A FAIL. Part B FAIL.} The Newton--Schulz-constrained write
+does not train at $K{=}32$; the free-write control, run in the identical
+harness, reproduces the wall cleanly, validating the instrument.
 \end{quote}
+% evidence: NCR_ORTHO_WRITE.md S9.5
 
-The bands below were fixed before any result existed and are reported here
-so this paper is verdict-ready either way; a NULL is a finding about
-spectrum-blind objectives, not a result to hide.
+The bands below were fixed before any result existed and are reproduced
+verbatim so the verdict below can be checked mechanically against them; a
+FAIL is a finding about the constraint, not a result to hide.
 % evidence: NCR_ORTHO_WRITE.md S6 (record-before-read discipline)
 
 \textbf{Part A (primary, $K{=}32$, realistic re-registered $h^\ast{=}40$
@@ -52,14 +55,104 @@ mechanism is real, with no residual eigenphase question the way a single
 cycle's periodicity leaves open.
 % evidence: NCR_ORTHO_WRITE.md S4/S4b
 
-\textbf{Pre-registered odds (for an honest assessment, not a
-prediction dressed as a result).} $\approx 70$--$75\%$ Part A reaches WIN
-or high PARTIAL, on the basis that the mechanism is measured (not
-hypothesized) and the in-silico polar preview already achieves comparable
-depth extension without retraining; residual risk is the constraint
-blocking Gate-0 convergence, or trained orthogonality not being tight
-enough over $40$ physical applications. $\approx 80\%$ Part B reaches WIN,
-higher than Part A because exact orthogonality of a product carries no
-residual-phase caveat. $\approx 20$--$25\%$ the original synthetic
-$h{=}253$ target is recovered -- explicitly not the target, reported only
-if it happens. % evidence: NCR_ORTHO_WRITE.md S7
+\textbf{Pre-registered odds (reproduced for the record; not a prediction
+dressed as a result -- the actual outcome is reported below).}
+$\approx 70$--$75\%$ Part A reaches WIN or high PARTIAL, on the basis that
+the mechanism is measured (not hypothesized) and the in-silico polar
+preview already achieves comparable depth extension without retraining;
+residual risk is the constraint blocking Gate-0 convergence, or trained
+orthogonality not being tight enough over $40$ physical applications.
+$\approx 80\%$ Part B reaches WIN, higher than Part A because exact
+orthogonality of a product carries no residual-phase caveat. $\approx
+20$--$25\%$ the original synthetic $h{=}253$ target is recovered --
+explicitly not the target, reported only if it happens. The residual risk
+named for Part A -- Gate-0 blocking convergence -- is exactly what
+occurred. % evidence: NCR_ORTHO_WRITE.md S7
+
+\subsection*{Result}
+
+\textbf{Part A: FAIL.} Gate-0 (in-distribution trainability) is DEAD in
+$4/4$ seeds at $K{=}32$: $\mathrm{recovered\_frac@0.9} = 0.000$ at
+$h \in \{1,2,3\}$ in every seed (bar $\geq 0.9$; also below the $0.5$
+FAIL threshold), and mean $A_{\mathrm{eff\_rank}}$ ($17.6$--$27.3$) never
+reaches the $28.8$ rank bar. This is the \textbf{FAIL} band by
+construction: Gate-0 DEAD in $\geq 3/4$ seeds. WIN, PARTIAL, and NULL are
+all mechanically unreachable at this reading -- NULL specifically
+requires Gate-0 to PASS, which it does not. The secondary, not-separately-
+scored $K{=}24$ cells fail identically (4/4 Gate-0 dead, same signature).
+% evidence: NCR_ORTHO_WRITE.md S9.1
+
+\textbf{The training signature matches the pre-registered mechanism, not
+a dead-on-arrival run.} Every ortho cell shows the same shape: loss dips
+transiently (minimum $0.063$--$0.909$ across cells) and then collapses
+back to $\approx 1.0$ (random) by the end of training. The optimizer
+briefly engages the task before the orthogonality constraint destabilizes
+it -- the ``too rigid to train through'' failure mode named in \S4 in
+advance, observed here rather than assumed.
+% evidence: NCR_ORTHO_WRITE.md S9.1
+
+\textbf{The free-write arm, run in the identical harness, validates the
+instrument.} At $K{=}24$ it recovers essentially perfectly at every
+tested depth ($\approx 1.0$ from $h{=}5$ to $h{=}61$, spectrally healthy:
+departure-from-normality $\approx 0.006$, condition number $\approx 1.0$).
+At $K{=}32$ it reproduces the wall Section~\ref{sec:wall} and
+Section~\ref{sec:diagnosis} already describe: in-distribution recovery
+$0.875$--$0.991$ at $h{=}1,2,3$, then $\mathrm{recovered\_frac@0.9} =
+0.000$ at every $h \geq 20$, with the same non-normal, ill-conditioned
+spectral signature (departure-from-normality $0.047$--$0.060$, condition
+number $54.9$--$558.6$) as the archived checkpoints
+Section~\ref{sec:diagnosis} analyzed. Because free-write trains cleanly
+and ortho-write does not, in the same pipeline, on the same task, the
+failure localizes to the Newton--Schulz-constrained write path, not to
+the harness, the eval, or the task itself.
+% evidence: NCR_ORTHO_WRITE.md S9.1/S9.3
+
+\textbf{Part B: FAIL, and uninformative by construction.} The structured-
+operator discriminator's ortho-bank arm is Gate-0 DEAD in $4/4$ seeds
+($\mathrm{recovered\_frac@0.9} = 0.000$ at $L \in \{1,2,3\}$, loss flat at
+$\approx 1.0$ throughout) -- FAIL per \S4b's identical bands. Separately,
+and disclosed as its own finding rather than folded into the Part-A
+result: the \emph{free}-bank baseline also failed Gate-0 in $4/4$ seeds
+($3/4$ seeds never leave loss $\approx 1.0$; the fourth reaches
+in-distribution $0.412$ at $L{=}1$ before decaying, still below the $0.5$
+bar). Neither arm learned even the in-distribution ($L{=}1,2,3$) task at
+this configuration ($R{=}4$ operator bank, 320K steps), so Part B does
+not produce the ortho-vs-free far-depth contrast it was designed to
+discriminate. This is a bank-task calibration issue at this
+configuration, disclosed as such -- it does not strengthen or weaken the
+Part-A ortho-write FAIL.
+% evidence: NCR_ORTHO_WRITE.md S9.2
+
+\textbf{Caveat, stated plainly: this verdict is conditional on an
+in-progress code re-audit.} The behavioral signature -- loss engaging
+then collapsing, free-write training cleanly in the identical pipeline --
+is consistent with the pre-registered ``too rigid to train through''
+mechanism, and that is the reading this section reports. But behavioral
+data alone cannot exclude an implementation defect in the 40-iteration
+Newton--Schulz polar projection: a CPU smoke test passed (step-0 gradient
+norm $0.5$--$0.9$) yet training still destabilized over the full
+320K-step trajectory, and an independent re-audit of the
+Newton--Schulz/\texttt{encode} path under the full optimizer trajectory
+is underway but not complete as of this draft. The FAIL verdict above is
+behaviorally the pre-registered mechanism; it is not yet ruled
+independent of a possible implementation bug, and the paper's verdict is
+conditional on that audit closing clean. This caveat is recorded in
+\texttt{NCR\_ORTHO\_WRITE.md} \S9.4 (item 1) and must be read alongside
+the verdict, not as a footnote to it.
+% evidence: NCR_ORTHO_WRITE.md S9.4
+
+\textbf{What this establishes.} The $K{=}32$ wall reproduces under an
+independent training run in this section's own harness and is not
+rescued by the pre-registered orthogonal-write fix at this
+parametrization. A failed rescue attempt, run under a validated
+instrument (the free-write control trains cleanly in the same pipeline),
+is itself evidence about the wall's character: it is not merely that
+nobody has tried constraining the write, but that the specific,
+principled constraint this program pre-registered does not survive
+contact with training at $K{=}32$, pending the code audit above. Per the
+pre-registered next move on FAIL, the follow-on is a fallback
+parametrization (a Cayley map or skew-symmetric matrix exponential,
+Section~\ref{sec:diagnosis}) or a softer spectral-penalty variant -- not
+more training budget, which Section~\ref{sec:wall} already showed does
+not move this wall.
+% evidence: NCR_ORTHO_WRITE.md S9.5

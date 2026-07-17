@@ -48,8 +48,10 @@ diagnose it: the training objective is spectrum-blind by construction
 write drifts non-normal and ill-conditioned, and a post-hoc orthogonal
 projection of the same learned operator -- with no retraining -- already
 recovers most of the lost depth (Section~\ref{sec:diagnosis}). We
-pre-register the fix experiment's verdict bands and report its status as
-pending (Section~\ref{sec:pending}).
+pre-registered the fix experiment's verdict bands before it ran and
+report its landed verdict: FAIL -- the constrained write did not train --
+conditional on an in-progress code re-audit
+(Section~\ref{sec:pending}).
 
 \textbf{Contributions.} (1) A capability separation at $K{=}8$ under a
 readout and task construction closed against the two standard escape
@@ -63,6 +65,8 @@ jointly close the entity-count axis under a pre-registered stopping rule.
 non-normality induced by a loss that never sees conditioning. (4) A
 methods contribution, the single-Hamiltonian-cycle-plus-residue-guard
 construction that keeps a depth-generalization claim from silently
-collapsing modulo the cycle length. (5) A pre-registered, verdict-ready
-report of the fix in flight, so a null is reported as a finding about
-spectrum-blind objectives, not hidden.
+collapsing modulo the cycle length. (5) A pre-registered, band-scored
+report of the fix experiment's landed verdict -- FAIL (the constraint did
+not train through), which the pre-registered bands distinguish from a
+NULL (a write that trains but buys no depth) -- reported plainly as a
+finding, not hidden.

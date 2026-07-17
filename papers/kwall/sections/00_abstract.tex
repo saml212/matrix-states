@@ -27,8 +27,15 @@ $h\approx 27$--$51$ and lifts mid-depth recovery from near-zero to
 $0.73$--$0.98$, showing the wall is a synthetic property of the objective,
 not the architecture's capacity (effective rank already sits at $\approx K$
 in every dead cell). % evidence: NCR_ORTHO_WRITE.md S5
-We pre-register WIN/PARTIAL/NULL/FAIL bands for a live experiment training
-that constraint directly and report it as pending. Every model in this
+We pre-registered WIN/PARTIAL/NULL/FAIL bands for an experiment training
+that constraint directly, before any result existed; the verdict landed
+FAIL -- the Newton--Schulz-constrained write does not train (in-distribution
+recovery $0.000$ in $4/4$ seeds at both $K$ tested, the pre-registered
+``too rigid to train through'' mechanism) while the free-write control
+trains cleanly in the same harness -- conditional on an in-progress code
+re-audit that has not yet excluded an implementation defect in the
+projection. A failed pre-registered rescue under a validated instrument is
+itself evidence about the wall's character. Every model in this
 paper is under 200K parameters; this is a toy-scale mechanistic study, and
 we make no scaling claim beyond the diagnosis itself.
 \end{abstract}
