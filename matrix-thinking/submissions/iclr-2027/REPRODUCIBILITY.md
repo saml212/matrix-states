@@ -36,7 +36,7 @@ has evidentiary value if it points at the code that was actually run.
   concern, exact regeneration is a code property not a data-hosting one.
 - Real-text pretraining data: GPT-2-tokenized OpenR1-Math and WikiText-103
   spans. Release the exact tokenization/windowing script and the `meta.json`
-  provenance record (`/Volumes/1TB_SSD/learned-representations/data/
+  provenance record (`<data-root>/data/
   {reasoning,wikitext103_tokenized}/meta.json` fields, per
   `DELTANET_REALDATA_DESIGN.md` §13) rather than re-hosting the raw token
   arrays — both source corpora are already public (OpenR1-Math on HF,
@@ -62,9 +62,10 @@ has evidentiary value if it points at the code that was actually run.
 
 - No author-identifying material (session transcripts, internal Slack-
   style commentary, dated internal filenames referencing hardware account
-  names) — scrub `youthful-indigo-turkey` (the Brev box name) and any
-  other environment-identifying strings from the anonymized submission
-  copy; keep them in the camera-ready.
+  names) — scrub the training cluster's hostname/account alias and any
+  other environment-identifying strings (local disk mount paths, personal
+  machine names) from the anonymized submission copy; keep them in the
+  camera-ready.
 - The design documents are released with their FULL revision history
   (Rev 1/2/3, attack-round findings, verification-round findings) rather
   than a cleaned "final" version — this is a deliberate choice (§3), not

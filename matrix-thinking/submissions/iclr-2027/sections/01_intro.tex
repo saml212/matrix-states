@@ -1,109 +1,126 @@
 \section{Introduction}
 \label{sec:intro}
 
-% Full argument flow: NARRATIVE.md \S3 "\S1 Introduction"
+A recent wave of work measures the rank of the fixed-size state maintained
+by fast-weight linear-attention architectures on real, pretrained language
+models, and finds it bounded by sequence length \citep{nazari2026rank,
+sun2026staterank}. What this literature does not establish is whether
+stochastic gradient descent is \emph{forced} to use the rank a task
+requires, or whether the resulting linear operator is \emph{exact} once
+that rank is recruited. We close both gaps in a single architecture
+family, using a production DeltaNet layer (\texttt{fla-org}'s
+\texttt{chunk\_delta\_rule} kernel) as the vehicle throughout.
 
-\begin{itemize}
-  \item \textbf{Open on the tension.} Descriptive rank-measurement papers
-    (Nazari \& Rusch, arXiv:2602.04852; Sun et al., arXiv:2602.02195, both
-    Feb 2026) show fast-weight state rank is bounded by sequence length in
-    pretrained LLMs, but never show SGD is \emph{forced} to use that rank,
-    nor that the resulting operator is \emph{exact}. We close both gaps in
-    one architecture family.
-  \item \textbf{Contribution 1 (synthetic, CONFIRMED tier).} A provable
-    $\mathrm{rank}(S_T) \geq K$ necessity result for exact-continuous
-    recovery in a production fast-weight layer (DeltaNet,
-    \texttt{chunk\_delta\_rule}), causally confirmed via a razor-cliff
-    eval-truncation staircase: $k{=}31{\to}32$ jumps
-    $0.9681{\to}1.0000$ at $h{=}1$, $0.3412{\to}1.0000$ at $h{=}21$
-    ($d{=}64, K{=}32$). No inflation: entity-subspace rank $=$ whole-matrix
-    rank $=K$ to four decimal places.
-  \item \textbf{Contribution 2 (real data, CONFIRMED, qualified).} The SAME
-    causal necessity result transfers to real GPT-2-tokenized language at
-    the identical $(d,K)$ operating point (RD-1) --- \textbf{always stated
-    with the ``graded, not razor'' qualifier}: ceiling reached exactly at
-    $k{=}K$ at every $K\in\{8,16,24,32\}$ tested, but the transition window
-    widens from 2--3 ranks ($K{=}8$) to 12--13 ranks ($K{=}32$), and the
-    ceiling itself falls with $K$ (1.000 $\to$ 0.795).
-  \item \textbf{Contribution 3 (the new phenomenon).} What the synthetic
-    result cannot see: per-binding exactness, not capacity, is what
-    degrades with $K$ on real data, compounding geometrically with
-    composition depth ($\sim\varepsilon^h$).
-  \item \textbf{Contribution 4 (mechanism).} A causal attribution to
-    write-time key geometry (ruling out value geometry, NCE-crowding,
-    kernel precision) via a controlled embedding-source intervention, plus
-    an existence proof (surgical orthonormal-key pin, ``i-strong'') that
-    the exact solution is architecturally reachable: $\mathrm{rec@0.9} =
-    1.00/1.00/1.00$ at $h{=}1/2/3$, $K{=}32$, vs.\ learned baseline
-    $0.78/0.26/0.05$.
-  \item \textbf{Contribution 5 (the fix, demonstrated not just diagnosed).}
-    Differentiable per-episode Newton-Schulz key orthogonalization,
-    launch-gated on a pre-registered drift simulator. Clears the $K{=}16$
-    minimum-publishable bar (3/3 admissible seeds, $h{=}4$: $0.42$--$0.47
-    \to 0.95$--$1.00$ vs.\ bar $\geq 0.8$); improves $K{=}32$
-    $\sim$45$\times$ ($0.009 \to 0.39$--$0.50$, 3/3 fully admissible on
-    the \texttt{n\_iter=20} escalation, zero fallback steps), narrowly
-    missing the $\geq 0.5$ headline bar (mean $0.44$, 1/3 seeds at the
-    line) --- with the miss itself attributed to a second,
-    pre-registered, pre-measured mechanism (cross-episode key drift
-    $0.9037$ in the registered HIGH band, outcome F). The causal chain
-    closes with no unexplained residual.
-  \item \textbf{Contribution 6 (the fix's own hypothesized follow-on
-    mechanism, tested and REJECTED).} The residual outcome-F gap
-    (cross-episode key drift) motivates a natural follow-on: a learned,
-    per-entity cross-episode key anchor. It produces a real,
-    independently-replicated $K{=}32$ $h{=}4$ behavioral gain
-    ($0.4105 \to 0.61$--$0.71$, 9 seed-runs across 3 seed sets, 2
-    architecture variants) --- but its hypothesized entity-alignment
-    mechanism is REJECTED (Outcome C): a purpose-built per-entity
-    engagement instrument reads $<$14--41\% engagement at every measured
-    leg, confirmed across two independent mechanism-tier waves at
-    increasing evidentiary rigor, immune to a specific rescue attempt that
-    was itself independently attacked and rejected.
-  \item \textbf{Contribution 7 (the actual explanation, found by
-    pre-registered ablation).} A frozen, never-trained anchor table
-    (random or frame-potential init) at the same blend weight matches or
-    exceeds the learned table's own gain ($0.67$--$0.76$ vs.\
-    $0.61$--$0.71$) --- constancy in the blend arithmetic, not
-    entity-specific learned content, is the active ingredient. This is
-    CONFIRMED-BY-ABLATION: a falsifiable prediction (``a frozen table
-    should match the gain if constancy alone is the channel'') was stated
-    before the confirming data existed and held on fresh data.
-  \item \textbf{Contribution 8 (the capacity boundary, located, dissolved,
-    and its leading confound exonerated).} Extending the identical fix to
-    $K{=}48$ ($K/d{=}0.75$) shows both of its own named explanatory
-    channels measurably active yet the fix still misses its bar 0/3
-    seeds --- the capacity curve is a cliff
-    ($\sim$1.00 $\to$ $\sim$0.65 $\to$ $\sim$0.02), not a smooth decline.
-    A dedicated localization wave fits this transition's midpoint to
-    $x_0{=}0.5455$ (95\% CI $[0.5385,0.5513]$) at $d_{\mathrm{state}}{=}64$;
-    the identical $K/d$ window is then shown to DISSOLVE, not merely
-    shift, at $d_{\mathrm{state}}{=}128$ ($h4{=}1.0$, 12/12 cells); the
-    leading single-variable account of that dissolution (anchor-table
-    coherence) is directly tested by injecting controlled, frozen
-    coherence past $d{=}64$'s own realized band and is EXONERATED
-    ($h4{=}1.0$, 10/10 cells). A further wave tests the remaining
-    raw-state-capacity candidate directly at $d_{\mathrm{state}}{=}80/96$
-    and finds load tolerance grows SUPER-LINEARLY, not at a fixed $K/d$
-    ratio ($x_0(80){=}0.6779$, CI $[0.6683,0.6867]$, excluding the
-    ratio-invariant band; a wide-grid $d{=}96$ attempt, after an
-    independently-audited detour resolving a tolerance-miscalibration
-    false alarm in its own admission gate, finds NO cliff through
-    $K/d{=}0.9375$ but a non-monotonic curve that does not localize,
-    100\% bootstrap-degenerate) --- the precise functional form remains
-    open, stated as such rather than resolved.
-  \item \textbf{Contribution 9 (process, stated once, lightly).} Every
-    wave above was pre-registered, independently attacked, and --- for the
-    fix --- gated on a predicted outcome from a committed simulator before
-    any GPU spend. Offered as a template for trusting a negative result
-    (Wave F) enough to publish it, not as a self-congratulatory framing
-    device. Cite the two concrete bug catches (target-index gather bug,
-    \S\ref{sec:phenomenon}; cross-episode key drift, \S\ref{sec:the-fix})
-    as evidence, not the process in the abstract.
-  \item \textbf{What this paper is NOT.} Not a claim about production
-    Gated-DeltaNet at scale (H=1, single layer, sub-1M params here); not a
-    claim that natural-language reasoning \emph{requires} rank $K$ (Wave 2
-    is descriptive+interventional only); not a claim that the h=21
-    depth-decay mechanism is fixed by this paper's intervention (it is
-    not, stated explicitly in \S\ref{sec:results}).
-\end{itemize}
+Our first contribution is a provable necessity result: under a pinned
+linear-unbind readout (Section~\ref{sec:setup}), exact recovery of $K$
+independent bindings from a fast-weight state $S_T$ requires
+$\mathrm{rank}(S_T)\geq K$. We confirm this causally, not merely
+representationally, via an eval-time truncation staircase on synthetic
+data: at $d{=}64$, $K{=}32$, truncating a trained state from rank
+$k{=}31$ to $k{=}32$ moves recovery from $0.9681$ to $1.0000$ at
+composition depth $h{=}1$, and from $0.3412$ to $1.0000$ at $h{=}21$ --- a
+razor-sharp cliff at exactly $k{=}K{-}1{\to}K$, with no inflation
+(entity-subspace rank equals whole-matrix rank equals $K$ to four decimal
+places). Our second contribution transplants the identical $(d,K)$
+operating point onto real, GPT-2-tokenized language and finds the same
+causal necessity result holds (RD-1) --- with one mandatory qualifier: the
+transition is \emph{graded}, not razor-sharp. The truncation ceiling is
+reached exactly at $k{=}K$ at every $K\in\{8,16,24,32\}$ tested, but the
+window below that ceiling with non-trivial recovery widens from 2--3 ranks
+at $K{=}8$ to 12--13 ranks at $K{=}32$, and the ceiling itself falls with
+$K$, from $1.000$ to $0.795$.
+
+What this transfer exposes, and what the synthetic construction cannot
+see, is a phenomenon distinct from capacity: on real text,
+\emph{per-binding exactness} --- not the rank recruited --- is what
+degrades with $K$, and it compounds geometrically with composition depth
+($\sim\varepsilon^h$). We trace this decay to a single causal source.
+Holding grammar, model, and loss fixed and varying only the embedding
+source feeding the write-time key, every tested input geometry ---
+learned, frozen-orthonormal, frozen real-embedding, Gram-matched ---
+converges to the \emph{same} non-orthonormal write-time key attractor,
+ruling out value geometry, NCE-crowding, and kernel precision as
+competing accounts. A surgical existence proof completes the attribution:
+bypassing the learned key projection entirely with a hand-built,
+per-identity orthonormal key pin achieves $\mathrm{rec@0.9}=
+1.00/1.00/1.00$ at $h{=}1/2/3$ ($K{=}32$), against a learned baseline of
+$0.78/0.26/0.05$ --- proof that the architecture can represent and use the
+exact solution, and that ordinary training does not find it.
+
+Given that the exact solution exists and that soft interventions do not
+reach it (Section~\ref{sec:soft-fixes}), we design, gate, and demonstrate a
+differentiable fix: per-episode Newton-Schulz key orthogonalization at the
+write site, launched only after a pre-registered drift-based simulator
+predicted it would clear its bar. The fix lifts held-out four-hop recovery
+at $K{=}16$ from a $0.42$--$0.47$ baseline to $0.95$--$1.00$ (3/3 seeds
+admissible against a pre-registered, arm-specific criterion, clearing the
+$\geq0.8$ minimum-publishable bar), and improves $K{=}32$ four-hop
+recovery $\sim$45$\times$ ($0.009\to0.39$--$0.50$, 3/3 seeds fully
+admissible on the \texttt{n\_iter=20} escalation, zero fallback steps),
+narrowly missing the pre-registered $\geq0.5$ headline bar (mean $0.44$,
+one seed at the line). The miss is not left unexplained: trained
+cross-episode key drift at $K{=}32$ measures $0.9037$, inside the
+pre-registered high-drift band ($<0.95$) an earlier adversarial round had
+named and measured before this wave ran --- isolating cross-episode key
+\emph{stability}, not within-episode orthogonality, as the remaining
+bottleneck.
+
+That residual motivates a natural follow-on: can SGD supply cross-episode
+stability itself, via a learned, per-entity key anchor? We test this to
+completion across four waves. The behavioral gain is real and
+independently replicated --- $K{=}32$ four-hop recovery rises from a
+freshly measured $0.4105$ baseline to $0.61$--$0.71$ across 9 seed-runs
+spanning 3 distinct seed sets and 2 architecture variants --- but the
+hypothesized mechanism is rejected (Outcome C): a purpose-built
+per-entity engagement instrument shows fewer than 14--41\% of entities
+individually engage at every measured leg, confirmed across two
+independent mechanism-tier waves and immune to a specific rescue attempt
+that was itself independently attacked and rejected. We then find the
+actual explanation by pre-registered ablation, not speculation: a frozen,
+never-trained anchor table --- random or frame-potential initialized ---
+at the same blend weight matches or exceeds the learned table's own gain
+($0.67$--$0.76$ vs.\ $0.61$--$0.71$). This is confirmed by ablation, not
+merely suggested by it: the prediction that a frozen table should match
+the gain if constancy alone is the channel was registered before the
+confirming data existed, and it held. Constancy in the blend arithmetic,
+not entity-specific learned content, is the active ingredient; SGD's only
+demonstrated contribution is tuning a single blend-weight scalar. Finally,
+we bound this fix's operating regime rather than leave it open-ended.
+Extending the identical design to $K{=}48$ ($K/d{=}0.75$) shows both of
+its own explanatory channels measurably active yet the fix still misses
+its bar 0/3 seeds: the capacity curve is a cliff
+($\sim1.00\to\sim0.65\to\sim0.02$), not a smooth decline, while the
+theoretical ceiling itself declines only gently over the same range
+($0.97\to0.94\to0.90$). We locate this transition's midpoint at
+$x_0{=}0.5455$ (95\% CI $[0.5385,0.5513]$) at $d_{\mathrm{state}}{=}64$;
+show it is not a universal property of $K/d$ but dissolves entirely at
+$d_{\mathrm{state}}{=}128$ across the identical ratio window ($h4{=}1.0$,
+12/12 cells); directly test and exonerate anchor-table coherence as the
+driving confound, at both a concentrated and a diffuse injection
+structure, up to and beyond $d{=}64$'s own realized coherence band (every
+cell flat at $h4{=}1.0$); and, with coherence excluded, test the one
+remaining candidate --- raw state capacity --- directly, finding load
+tolerance grows \emph{super-linearly} in $d_{\mathrm{state}}$ rather than
+at a fixed ratio ($x_0(80){=}0.6779$, excluding the pre-registered
+ratio-invariant band; $x_0(96)$ itself not yet resolved, from genuine
+seed-level scatter rather than a data gap).
+
+Every claim above was pre-registered, independently attacked, and --- for
+the fix and its follow-on --- gated on a predicted outcome from a
+committed instrument before any GPU spend. We do not narrate this as a
+virtue in the abstract; we cite it where it did real work. A mini-audit
+caught a target-index gather bug in the real-data grammar that had made
+the binding task unsatisfiable as originally specced
+(Section~\ref{sec:phenomenon}); the fix's own gating diagnostic caught a
+cross-episode key-drift failure mode the original design missed
+(Section~\ref{sec:the-fix}).
+
+We are explicit about what this paper does not claim. We make no claim
+about production Gated-DeltaNet at scale: every causal chapter above uses
+a single head, single layer, sub-1M-to-low-single-digit-million-parameter
+configuration. We make no claim that natural-language reasoning
+\emph{requires} rank $K$; our corpus-generality evidence
+(Section~\ref{sec:discussion}) is descriptive and interventional, not
+premise-conditional causal. And we make no claim that the $h{=}21$
+literal-depth decay mechanism is fixed by this paper's intervention --- it
+is not, and we say so directly in Section~\ref{sec:results}.

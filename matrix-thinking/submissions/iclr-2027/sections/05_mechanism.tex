@@ -26,6 +26,20 @@
     non-orthonormal write-geometry basin.
 \end{itemize}
 
+% Data: experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wave1/
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\linewidth]{figures/fig04_embedding_source_attractor.pdf}
+  \caption{The attribution: every input geometry converges to the same
+  attractor. Bar chart of key-Gram deviation
+  ($\|K_{\mathrm{eff}}^\top K_{\mathrm{eff}} - I\|_F$) at $K{=}32$ across
+  arms: learned (iii, baseline, $2.71$--$2.77$), frozen orthonormal (i),
+  frozen real GPT-2 span embedding (ii), and the Gram-matched frozen
+  control (iv) --- all clustering at $2.71$--$2.92$ --- versus the
+  surgical pin (i-strong, $0.000$).}
+  \label{fig:embedding-attractor}
+\end{figure}
+
 \subsection{Complementary evidence: measured-$\beta$ reconstruction}
 \begin{itemize}
   \item Closed-form crosstalk reconstruction, measured $\beta$: residual
@@ -72,6 +86,30 @@ each necessary, jointly sufficient (Fig.~5)}
     discontinuous jump to $1.00$ --- the INTERACTION, not either main
     effect, is the figure's point.
 \end{itemize}
+
+% Data: experiment-runs/2026-07-03_deltanet_rd_waves/exactness/{wave1,wavegeo3}/
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/fig05_2x2_existence_proof.pdf}
+  \caption{The $2{\times}2$ existence proof: orthogonality and stability
+  are each necessary, jointly sufficient. Grid over \{orthogonal,
+  not-orthogonal\} $\times$ \{stable (context-free), not-stable
+  (episode-conditional)\}, cells report $\mathrm{rec@0.9}$ at $h{=}4$ (and
+  $h{=}7$) at $K{=}32$: stable+orthogonal (i-strong, pool-restricted to
+  $32{\leq}d_{\mathrm{state}}$) $h{=}4$ $1.0000$, $h{=}7$ $1.0000$;
+  stable+not-orthogonal (frozen-embedding arms i/iv) $h{=}4$
+  $0.0075$--$0.0114$, $h{=}7$ ${\approx}0.0000$; not-stable+orthogonal
+  (bare geo3 alone) $h{=}4$ $0.44$ mean, $h{=}7$ $0.018$ mean;
+  not-stable+not-orthogonal (fully-learned baseline) $h{=}4$ $0.009$,
+  $h{=}7$ ${\approx}0.0000$. Neither axis alone clears the $\sim$0.01
+  floor; orthogonality alone recovers most of the gap ($44$--$56\times$)
+  but plateaus at $0.44$; adding stability is a discontinuous jump to
+  $1.00$ --- the interaction, not either main effect, is the figure's
+  point. The i-strong cell's pool restriction ($32$ identities
+  $\leq d_{\mathrm{state}}{=}64$) is an existence-proof concession,
+  disclosed here, not hidden.}
+  \label{fig:existence-2x2}
+\end{figure}
 
 \subsection{Closing this section: whether SGD can reach the ``jointly
 sufficient'' corner itself --- the key-anchoring program's complete arc

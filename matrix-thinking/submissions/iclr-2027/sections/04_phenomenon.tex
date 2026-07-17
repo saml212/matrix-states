@@ -1,135 +1,160 @@
 \section{The Phenomenon: Rank Recruitment Is Reliable, Exactness Is Not}
 \label{sec:phenomenon}
 
-% Full numbers: NARRATIVE.md \S3 "\S4"; sources DELTANET_CAUSAL_RANK_DESIGN.md
-% \S12.3/\S12.4/\S12.8.3, DELTANET_REALDATA_DESIGN.md \S16-\S18,
-% TASK_E_FINDINGS.md \S3.
-
 \subsection{Synthetic baseline: the razor cliff}
-\begin{itemize}
-  \item Wave 0 (\texttt{DELTANET\_CAUSAL\_RANK\_DESIGN.md} \S12.3):
-    unconstrained arm saturates $\mathrm{rec@0.9}{=}1.0000$ at EVERY tested
-    $(d,K)$ cell, no late-transition regime.
-  \item No inflation (\S12.4): entity-subspace rank $=$ whole-matrix rank
-    $=K$ to 4 decimals (e.g.\ $31.9993$--$31.9994$ of $K{=}32$).
-  \item Eval-truncation staircase (\S12.8.3), $d{=}64,K{=}32$: ceiling
-    $k{\geq}32 \Rightarrow 1.0000$ at every $h$ incl.\ $h{=}21$; cliff
-    $k{=}31{\to}32$: $h{=}1$ $0.9681{\to}1.0000$, $h{=}21$
-    $0.3412{\to}1.0000$. Matches the $(K{-}h)/K$ bimodal per-mode-drop
-    theory to $0.001$--$0.003$ at every hop.
-\end{itemize}
 
-\subsection{Real-data transfer: the graded frontier (headline, Fig.~2)}
-\begin{itemize}
-  \item Same architecture, same delta rule, same provable bound,
-    transplanted to GPT-2-tokenized language.
-  \item $\mathrm{rec@0.9}$, ID $h{=}1/2/3$ (held-out $h{=}4$--$7$ in
-    parens): $K{=}8$: $1.000/0.999/0.978$ ($0.944/0.873/0.780/0.699$);
-    $K{=}16$: $0.997/0.90/0.68$ ($0.42$--$0.47/0.25$--$0.28/0.14$--$0.16/
-    0.07$--$0.10$); $K{=}24$: $0.94/0.58/0.27$
-    ($0.10/0.03/0.01/0.00$); $K{=}32$: $0.78/0.26/0.05$
-    ($0.009/0.001/0.000/0.000$).
-  \item Rank recruitment intact regardless (Fig.~3): entity-subspace rank
-    99\% ($K{=}8$), 98\% ($K{=}16$), 96--97\% ($K{=}24$), 94\% ($K{=}32$)
-    of target.
-  \item Eval-truncation staircase is causal (RD-1 CONFIRMED) but graded:
-    ceiling reached EXACTLY at $k{=}K$ at every $K$ --- but the ceiling
-    ITSELF falls with $K$: $1.000 \to 0.995 \to 0.938 \to 0.795$ at
-    $K{=}8/16/24/32$. Window below ceiling widens: 2--3 ranks ($K{=}8$)
-    $\to$ 12--13 ranks ($K{=}32$); steepest single-step jump shrinks
-    $+0.375 \to +0.066$.
-  \item \textbf{Mandatory qualifier, verbatim from source:} ``the
-    real-data transition is graded across a window several ranks wide,
-    not a single-step threshold ... If a future write-up quotes `razor
-    cliff at $k{=}K{-}1\to K$' for the real-data result, that is not what
-    was measured here.''
-\end{itemize}
+On the synthetic binding task, an unconstrained DeltaNet layer trained
+end-to-end saturates to $\mathrm{rec@0.9}=1.0000$ at every tested $(d,K)$
+cell, with no late-transition regime (Wave~0). Recruitment is exact, not
+merely sufficient: entity-subspace rank equals whole-matrix rank equals
+$K$ to four decimal places (e.g.\ $31.9993$--$31.9994$ of $K{=}32$) --- the
+model does not recruit more rank than the task requires. An eval-time
+truncation staircase at $d{=}64,K{=}32$ makes this necessity causal rather
+than merely observed: recovery sits at ceiling ($1.0000$) for every
+$k\geq32$ and every composition depth up to $h{=}21$, and collapses in a
+single step below it --- $h{=}1$ falls from $1.0000$ to $0.9681$ at
+$k{=}31$, $h{=}21$ from $1.0000$ to $0.3412$ --- matching the theoretical
+$(K{-}h)/K$ bimodal per-mode-drop prediction to within $0.001$--$0.003$ at
+every hop tested.
+
+\subsection{Real-data transfer: the graded frontier}
+
+Transplanting the identical architecture, delta rule, and provable bound
+onto GPT-2-tokenized language reproduces the necessity result but changes
+its shape entirely (Figure~\ref{fig:trunc-synth-real}). The eval-truncation
+staircase is still causal --- recovery reaches its ceiling exactly at
+$k{=}K$, for every $K$ tested --- but that ceiling is graded, not
+razor-sharp, and it degrades with $K$: the transition window with
+non-trivial sub-ceiling recovery widens from 2--3 ranks at $K{=}8$ to
+12--13 ranks at $K{=}32$, the single steepest jump shrinks from $+0.375$ to
+$+0.066$, and the ceiling itself falls from $1.000$ to $0.995$ to $0.938$
+to $0.795$ across $K\in\{8,16,24,32\}$. On real data the transition is a
+graded window several ranks wide, never a single-step threshold --- a
+distinction worth stating explicitly, since it is easy to misquote as a
+razor cliff, and that is not what was measured here.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.95\textwidth]{figures/fig01_eval_trunc_synth_vs_real.pdf}
+  \caption{The synthetic-vs-real gap. Two eval-truncation staircase
+  curves ($\mathrm{rec@0.9}$ vs.\ truncation rank $k$) at the identical
+  operating point $d_{\mathrm{state}}{=}64$, $K{=}32$, $h{=}1$, side by
+  side. \textbf{Left (synthetic):} a razor cliff, $k{=}31{\to}32$:
+  $0.9681{\to}1.0000$, ceiling exactly $1.0000$. \textbf{Right (real
+  tokenized text):} graded, with the steepest single-step jump only
+  $+0.066$ at $k{=}19{\to}20$; the ceiling is reached exactly at $k{=}32$,
+  but the ceiling itself is $0.795$, not $1.000$ --- real data never
+  reaches the synthetic ceiling even at full untruncated rank, a second
+  gap layered on top of the width gap. Twelve to thirteen ranks below
+  $K{=}32$ show non-trivial recovery on real data, against one rank
+  ($k{=}31$ only) on synthetic.}
+  \label{fig:trunc-synth-real}
+\end{figure*}
+
+This graded collapse is not a rank-recruitment failure
+(Figure~\ref{fig:rank-recruited}): entity-subspace rank tracks
+$94$--$99\%$ of target $K$ at every tested load ($99\%$ at $K{=}8$, $98\%$
+at $K{=}16$, $96$--$97\%$ at $K{=}24$, $94\%$ at $K{=}32$), essentially
+unchanged from the synthetic case. What degrades instead is per-binding
+write quality within the recruited rank
+(Figure~\ref{fig:k-axis-frontier}): in-distribution recovery
+($h{=}1/2/3$) and held-out recovery ($h{=}4$--$7$) both fall steeply with
+$K$ --- from $1.000/0.999/0.978$ ($0.944/0.873/0.780/0.699$ held out) at
+$K{=}8$, through $0.997/0.90/0.68$
+($0.42$--$0.47/0.25$--$0.28/0.14$--$0.16/0.07$--$0.10$) at $K{=}16$ and
+$0.94/0.58/0.27$ ($0.10/0.03/0.01/0.00$) at $K{=}24$, to $0.78/0.26/0.05$
+($0.009/0.001/0.000/0.000$) at $K{=}32$.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figures/fig02_k_axis_exactness_frontier.pdf}
+  \caption{The headline phenomenon: a graded $K$-axis exactness frontier
+  on real text. $\mathrm{rec@0.9}$ vs.\ composition depth $h$ (1--3
+  in-distribution, 4--7 held out), one line per $K\in\{8,16,24,32\}$.
+  $K{=}8$ stays near-exact through several held-out hops
+  ($1.000/0.999/0.978$ at $h{=}1/2/3$); $K{=}16$ is partial
+  ($0.997/0.90/0.68$); $K{=}24$ degrades further ($0.94/0.58/0.27$);
+  $K{=}32$ collapses beyond $h{=}1$ ($0.78/0.26/0.05$).}
+  \label{fig:k-axis-frontier}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.75\linewidth]{figures/fig03_rank_recruited_vs_K.pdf}
+  \caption{Capacity is not the difference: entity-subspace rank recruited
+  vs.\ $K$. Measured effective rank as a percentage of target $K$, at
+  every tested $K$ (synthetic $\approx100\%$; real $94$--$99\%$) ---
+  establishing that Figure~\ref{fig:k-axis-frontier}'s decay is not a
+  rank-recruitment failure.}
+  \label{fig:rank-recruited}
+\end{figure}
 
 \subsection{The depth-amplification law}
-\begin{itemize}
-  \item Imported from \texttt{TASK\_E\_FINDINGS.md} \S3: raw
-    iteration/composition depth is a sharper exactness probe than
-    single-hop cosine tolerance. Rank-$(K{-}1)$ operator passes shallow
-    hops ($\sqrt{1{-}1/K}$ per-dropped-mode cosine) and only reveals
-    deficiency at depth.
-  \item Theoretical spine for ``graded at $h{=}1$'' $\to$ ``collapsed by
-    $h{=}4$'': an $\varepsilon^h$-shaped law, recurs 3 more times (Wave
-    F's proportionality reading \S\ref{sec:soft-fixes}; the K=48 rider
-    below; the fix's own $h{=}21$ residual failure
-    \S\ref{sec:results}).
-  \item Deephop program CLOSED (\texttt{DELTANET\_REALDATA\_DESIGN.md}
-    \S18.1): decay curve is a function of $K$ ALONE --- invariant to hop
-    supervision (training AT $h{=}4,5$ produces statistically
-    indistinguishable recovery from held-out extrapolation, e.g.\ $K{=}16$
-    $h{=}4$: $0.390$--$0.503$ trained-at vs.\ $0.419$--$0.465$
-    extrapolated) AND to 2.5$\times$ training budget (62.5K vs.\ 25K steps
-    moves nothing at any $K$).
-  \item $h{=}21$ caveat, cite every time it recurs: a DEPTH-DECAY PROBE
-    (raw iteration count), not an independent held-out-hop test --- $21
-    \bmod K$ collides with in-distribution residues at small $K$; read via
-    \texttt{effective\_hop}.
-\end{itemize}
 
-\subsection{K=48 rider: the frontier breaks past $K \approx d/2$ --- now a
-measured cliff, not an open question (\S\ref{sec:the-fix}, \S\ref{sec:results},
-Fig.~11)}
-\begin{itemize}
-  \item Key-Gram deviation keeps growing ($2.7$ at $K{=}32 \to 4.3$ at
-    $K{=}48$); $h{=}1$ recovery halves ($0.41$--$0.44$); composition gone
-    by $h{\geq}2$ ($0.005$--$0.009$) \textbf{on the unfixed baseline}.
-  \item i-strong pin correctly REFUSED here by its own dimensional guard
-    (96 train+held-out identity vectors $> d_{\mathrm{state}}{=}64$).
-  \item \textbf{Updated status: this is no longer only an observed
-    breakdown of the unfixed baseline --- the fix's own operating regime
-    was extended to this cell and completed as a measured cliff
-    (\S\ref{sec:the-fix}).} At $K{=}48$ ($K/d{=}0.75$), F-geo-3 plus the
-    key-anchoring follow-on is fully admissible (3/3 seeds) but misses its
-    own pre-registered bar 0/3 seeds (mean $0.0215$ vs.\ bar $0.024434$),
-    with both of the design's own explanatory channels (drift-space
-    closure, $\sim$81\% of the gap; value-Gram relief, $0.626\times$ the
-    reference) measurably active yet insufficient. The three-point curve
-    ($\sim$1.00 at $K{=}16 \to \sim$0.65 at $K{=}32 \to \sim$0.02 at
-    $K{=}48$) is a cliff between half and three-quarter capacity, while the
-    theoretical $\lambda{=}1$ ceiling declines only gently over the same
-    range ($0.97 \to 0.94 \to 0.90$) --- the shortfall is a real,
-    structural saturation, not a measurement artifact. Binding survives
-    everywhere ($h{=}1$ guard $1.0000$, every cell, every $K$); composition
-    is what collapses.
-  \item What remains genuinely open (see limitations): \emph{why} the
-    break is so sharp between $K/d{=}0.5$ and $K/d{=}0.75$ when the
-    ceiling itself declines gently --- the design's own named, untested
-    candidate is value-crowding (more entities packed into the same fixed
-    value dimensionality), which would require a fresh design to test.
-  \item \textbf{The cliff is now LOCATED, not merely bracketed
-    (Fig.~\ref{fig:cliff}).} A dedicated localization wave measured 4 new
-    $K$'s --- $34, 38, 42, 46$ ($K/d{=}0.53125/0.59375/0.65625/0.71875$),
-    3 seeds each --- alongside the 3 archived anchors, and fit a sigmoid
-    $h_4(x) {=} L/(1{+}\exp((x{-}x_0)/w))$ to the resulting 7-point curve
-    with a 4,000-trial seed-level parametric bootstrap CI. The transition
-    lands at $x_0{=}0.5455$ (95\% CI $[0.5385, 0.5513]$, width $0.0127$,
-    0/4000 degenerate fits), $w{=}0.0597$ (CI $[0.0557, 0.0642]$) ---
-    narrowing the cliff's location from the prior 0.25-wide $(0.5, 0.75)$
-    bracket to a $\pm0.0064$-wide point estimate, a $\approx$20$\times$
-    tightening, without needing to resolve the sigmoid-vs-linear shape
-    question (retracted as underpowered at 6 points before any new data was
-    collected). \textbf{Scope, stated precisely:} candidate-(d) arm only
-    (no fresh reference arm at the 4 new $K$'s, a disclosed budget
-    tradeoff); no mechanism claim (this locates \emph{where} and \emph{how
-    wide} the transition is, not \emph{why} it occurs at this $K/d$ ratio);
-    measured at a single $d_{\mathrm{state}}{=}64$.
-  \item \textbf{The universality question above is now ANSWERED, and the
-    answer is negative (Fig.~\ref{fig:cliff}, right panel): the cliff is
-    dimension-dependent, not a universal property of $K/d$.} Re-running
-    the identical $K/d$ window at $d_{\mathrm{state}}{=}128$
-    ($K{=}68,76,84,92$, the same four ratios) shows $h4{=}1.0$ at every
-    load, every seed, 12/12 cells --- the transition does not shift, it
-    exits the measured window entirely. Instrument saturation is ruled out
-    (hop-21 recovery is not uniformly $1.0$; effective rank tracks each
-    $K$ almost exactly). Full mechanism testing --- whether this tracks
-    anchor-table coherence, forced by the Welch bound only when entity
-    count exceeds $d_{\mathrm{state}}$ --- is reported next
-    (\S\ref{sec:dose-response}).
-\end{itemize}
+Raw composition depth is a sharper exactness probe than any single-hop
+cosine tolerance: a rank-$(K{-}1)$ operator passes shallow hops (at
+$\sqrt{1-1/K}$ per-dropped-mode cosine) and only reveals its deficiency at
+depth, an $\varepsilon^h$-shaped decay that recurs three more times in
+this paper --- in the soft-fix interventions' proportional but
+insufficient gains (Section~\ref{sec:soft-fixes}), in the fix's own
+unrepaired $h{=}21$ residual (Section~\ref{sec:results}), and in why the
+capacity curve below is a cliff rather than a smooth decline. This decay
+curve is a function of $K$ alone: it is invariant to hop supervision
+(training directly at $h{=}4,5$ produces recovery statistically
+indistinguishable from held-out extrapolation --- e.g.\ $K{=}16$, $h{=}4$:
+$0.390$--$0.503$ trained-at vs.\ $0.419$--$0.465$ extrapolated) and to a
+$2.5\times$ larger training budget ($62.5$K vs.\ $25$K steps moves nothing
+at any $K$). One caveat travels with $h{=}21$ everywhere it recurs: it is
+a depth-decay probe on raw iteration count, not an independent
+held-out-hop test, since $21\bmod K$ collides with in-distribution
+residues at small $K$; we read it via its effective hop throughout.
+
+\subsection{The K=48 rider: the frontier breaks past $K\approx d/2$, and
+the break is now a located cliff}
+\label{sec:k48-rider}
+
+The frontier does not merely degrade past $K{=}d/2$ --- it breaks. On the
+unfixed baseline, key-Gram deviation keeps growing past $K{=}32$
+($2.7\to4.3$ at $K{=}48$), $h{=}1$ recovery halves ($0.41$--$0.44$), and
+composition is gone entirely by $h\geq2$ ($0.005$--$0.009$); the surgical
+orthonormal-key pin correctly refuses to apply here, by its own
+dimensional guard ($96$ train-plus-held-out identity vectors exceed
+$d_{\mathrm{state}}{=}64$). This is no longer only an observed breakdown:
+the fix's own operating regime, extended to $K{=}48$ ($K/d{=}0.75$) in
+Section~\ref{sec:the-fix}, is fully admissible (3/3 seeds) but misses its
+own pre-registered bar 0/3 seeds (mean $0.0215$ vs.\ bar $0.024434$), with
+both of the design's own explanatory channels --- drift-space closure
+($\sim$81\% of the gap to ceiling) and value-Gram relief ($0.626\times$
+the reference's deviation) --- measurably active yet insufficient. The
+resulting three-point curve ($\sim1.00$ at $K{=}16\to\sim0.65$ at
+$K{=}32\to\sim0.02$ at $K{=}48$) falls off a cliff between half and
+three-quarter capacity, while the theoretical $\lambda{=}1$ ceiling
+declines only gently over the same range ($0.97\to0.94\to0.90$): binding
+survives everywhere ($h{=}1$ guard $1.0000$, every cell, every $K$), and
+it is composition that collapses.
+
+A dedicated localization wave sharpens this from a bracket to a point
+estimate (Figure~\ref{fig:cliff}, left panel). Measuring four new loads
+--- $K{=}34,38,42,46$ ($K/d{=}0.53125,0.59375,0.65625,0.71875$), 3 seeds
+each --- alongside the three archived anchors gives a 7-point curve, to
+which a sigmoid $h_4(x)=L/(1+\exp((x-x_0)/w))$ fits with a $4{,}000$-trial
+seed-level parametric bootstrap: the transition lands at $x_0{=}0.5455$
+(95\% CI $[0.5385,0.5513]$, width $0.0127$, 0/4000 degenerate fits) with
+width $w{=}0.0597$ (CI $[0.0557,0.0642]$) --- an approximately $20\times$
+tightening of the prior 0.25-wide bracket. This localizes \emph{where} and
+\emph{how wide} the transition is at a single $d_{\mathrm{state}}{=}64$;
+it makes no mechanism claim, and covers the candidate-fix arm only (a
+disclosed budget tradeoff left the reference arm unmeasured at the four
+new loads).
+
+Whether that location is a universal property of the ratio $K/d$, or an
+artifact of $d_{\mathrm{state}}{=}64$ specifically, has a clear and
+negative answer (Figure~\ref{fig:cliff}, right panel). Re-running the
+identical $K/d$ window at $d_{\mathrm{state}}{=}128$
+($K{=}68,76,84,92$) shows $h4{=}1.0$ at every load, every seed, 12/12
+cells --- the transition does not shift, it exits the measured window
+entirely (instrument saturation is ruled out: hop-21 recovery is not
+uniformly $1.0$, and effective rank tracks each $K$ almost exactly).
 
 \begin{figure*}[t]
   \centering
@@ -152,107 +177,102 @@ Fig.~11)}
   \label{fig:cliff}
 \end{figure*}
 
-\subsection{The leading confound, tested directly: coherence-dose response}
+\subsection{The leading confound, tested directly: coherence-dose
+response}
 \label{sec:dose-response}
-\begin{itemize}
-  \item The two waves above (Fig.~\ref{fig:cliff}) differ in more than raw
-    scale: the $d{=}64$ anchor table (107 entities packed into 64
-    dimensions) is forced non-orthogonal by the Welch bound (measured
-    coherence $\max|\cos|{=}0.2842$ at construction, drifting under normal
-    training to a final-checkpoint range-of-$K$-means of
-    $0.373$--$0.385$); the $d{=}128$ table (107 entities, 128 dimensions)
-    is exactly orthogonal at construction ($\max|\cos|{=}0.000000$). This
-    is the single most natural remaining mechanistic candidate for the
-    cliff's disappearance, and we test it directly rather than by
-    inference.
-  \item \textbf{Design.} Hold $d_{\mathrm{state}}{=}128$, $n{=}107$,
-    $K{=}68$ fixed at exactly the geometry measured flat above; inject
-    controlled, \emph{frozen} coherence into the anchor table under a
-    concentrated (rank-4) injection structure; sweep the dose
-    $\{0.130, 0.284, 0.40\}$, the last exceeding $d{=}64$'s own realized
-    training band. The frozen table's gradient path is verified severed at
-    launch (\texttt{anchor\_table.weight.grad is None}) and its coherence
-    verified bit-identical across all 10 recorded checkpoints per cell at
-    harvest --- zero drift, zero tolerance slack used.
-  \item \textbf{Result: $h4{=}1.0$ at every cell, every dose, 10/10, no
-    exception} (Fig.~\ref{fig:dose}) --- flat across the entire dose
-    range, including $0.40$. This is the strongest possible exoneration
-    this design can produce for the rank-4 structure: directly-injected
-    anchor-table coherence, frozen for the full run and verified never to
-    drift, does not reproduce the $d{=}64$ cliff at matched
-    $K/d_{\mathrm{state}}/n$ geometry. Instrument saturation is again ruled
-    out (hop-21 recovery ranges $0.9987$--$1.0$ across all 10 cells, not
-    uniformly $1.0$).
-  \item \textbf{Scope, stated precisely:} this is a rank-4 (concentrated)
-    injection only --- it cannot distinguish ``coherence-as-a-scalar does
-    not drive the cliff'' from ``coherence-of-this-particular-structural
-    -kind does not drive it, but a diffuse ($\mathrm{subspace\_rank}{=}48$)
-    injection might.'' The diffuse co-primary arm is registered but
-    PI-gated, not run by this wave. Neither of the two most naturally
-    testable single-variable accounts of the cliff's dissolution ($K/d$
-    ratio; scalar rank-4 coherence) is sufficient; overlap structure and
-    raw state capacity ($d_{\mathrm{state}}$ grew $4\times$ while $K$ only
-    grew $\sim$2$\times$ across the two waves, a confound this design
-    cannot separate) remain the two live, unadjudicated candidates
-    (\S\ref{sec:discussion}).
-  \item \textbf{The raw-state-capacity candidate is then tested directly,
-    at two further $d_{\mathrm{state}}$'s, and load tolerance grows
-    SUPER-LINEARLY rather than staying fixed in $K/d$.} Re-running the
-    same localization fit used to place the $d{=}64$ cliff
-    (\S\ref{sec:phenomenon}'s K=48 rider above) at $d_{\mathrm{state}}{=}80$
-    locates its transition at $x_0{=}0.6779$ (95\% CI $[0.6683,0.6867]$,
-    clean, non-degenerate, $n{=}5$ seeds/$K$) --- entirely above the
-    pre-registered ratio-invariant band $[0.4745,0.6165]$ centered on
-    $d{=}64$'s own $x_0{=}0.5455$, a real, disclosed exclusion of ``the
-    cliff sits at a fixed $K/d$ fraction.'' \textbf{At
-    $d_{\mathrm{state}}{=}96$, a full unlocked grid ($K{\in}\{69,72,78,84,90\}$,
-    $n{=}3$ seeds/$K$) finds NO cliff anywhere through $K/d{=}0.9375$, but
-    the curve is non-monotonic rather than flat-at-ceiling:} per-$K$ means
-    $0.9592/0.9216/0.9326/0.9581/1.0000$ dip through $K{=}72/78$, partially
-    recover at $K{=}84$, and reach an exact ceiling at $K{=}90$ at these
-    archived seeds --- a follow-up pool-margin diagnostic finds this
-    specific ceiling reading does not replicate at a fresh seed
-    (\S\ref{sec:discussion}). (11 of the
-    12 new cells were initially flagged inadmissible by the convergence
-    gate; an independently-audited repro instrument diagnosed this as a
-    tolerance miscalibration --- all 4,608 flagged episodes resolve by
-    $n_{\mathrm{iter}}{\leq}28$ against a production $n_{\mathrm{iter}}{=}20$
-    --- and the admission flag alone, never the $h4$ measurement, was
-    recalibrated, unlocking the grid at zero new GPU spend.) The sigmoid
-    fit on the unlocked grid is degenerate at its own bounds
-    ($x_0{=}0.9$, $L{=}1.2$), with 100\% of 4,000 bootstrap resamples
-    degenerate --- \textbf{$x_0(96)$ does not localize}, from genuine
-    per-seed scatter (the noisiest group, $K{=}72$, spans
-    $0.8426$--$0.9904$) rather than the data gap that blocked the earlier
-    narrow-grid attempt. An absolute-slack account
-    ($x_0 \propto d_{\mathrm{state}}$ minus a constant, band
-    $[0.718,0.739]$) and a power-law account (band $[0.768,0.837]$) are
-    both still live and neither is excluded --- \textbf{the precise
-    functional form of the super-linear growth is not yet resolved, and
-    neither is the exact $d_{\mathrm{state}}{=}96$ transition point.} Seed
-    escalation at $K{=}72$ (the noisiest group) is the registered next
-    step, not launched by this wave.
-\end{itemize}
+
+The two waves above differ in more than raw scale. The $d{=}64$ anchor
+table (107 entities in 64 dimensions) is forced non-orthogonal by the
+Welch bound (construction-time $\max|\cos|{=}0.2842$, drifting under
+training to a final-checkpoint range of $0.373$--$0.385$); the $d{=}128$
+table (107 entities, 128 dimensions) is exactly orthogonal at construction
+($\max|\cos|{=}0.000000$). This is the single most natural mechanistic
+candidate for the cliff's disappearance, and we test it directly rather
+than by inference: holding $d_{\mathrm{state}}{=}128$, $n{=}107$, $K{=}68$
+fixed at exactly the geometry measured flat above, we inject controlled,
+\emph{frozen} coherence into the anchor table and sweep the dose
+$\{0.130,0.284,0.40\}$ --- the last exceeding $d{=}64$'s own realized
+training band --- under both a concentrated (rank-4) and a diffuse
+($\mathrm{subspace\_rank}{=}48$, the maximum scanned rank whose achieved
+dose ceiling still reaches $0.40$) injection structure. The frozen table's
+gradient path is verified severed at launch, and its coherence verified
+bit-identical across every recorded checkpoint at harvest.
+
+Both structures come back flat (Figure~\ref{fig:dose}): $h4{=}1.0$ at
+every cell, every dose, for both the rank-4 arm (10/10 cells) and the
+diffuse arm (9/9 cells), including at dose $0.40$. This is the strongest
+exoneration this design can produce, since a diffuse, maximum-scanned-rank
+injection was the one structural escape hatch a rank-4-only result would
+have left open: coherence is exonerated at both the concentrated and the
+diffuse structure, closing the two-structure requirement this program set
+for itself before either wave ran. Neither scalar nor structural
+coherence reproduces the $d{=}64$ cliff at matched
+$K/d_{\mathrm{state}}/n$ geometry (instrument saturation is again ruled
+out: hop-21 recovery ranges $0.9963$--$1.0$ across all cells, not
+uniformly $1.0$). With coherence fully excluded, the one candidate this
+program's own design left untested is raw state capacity:
+$d_{\mathrm{state}}$ grew $4\times$ between the cliff's location and its
+disappearance while $K$ only grew $\sim2\times$ at the matched ratio.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/fig_dose.pdf}
   \caption{Coherence-dose response at $K{=}68$, $d_{\mathrm{state}}{=}128$,
-  rank-4 (concentrated) injection: $h4$ (green) stays flat at $1.0$ at
-  every dose tested, including $0.40$ --- exceeding
+  matched against $d_{\mathrm{state}}{=}64$'s own cliff: $h4$ stays flat
+  at $1.0$ at every dose tested, including $0.40$ --- exceeding
   $d_{\mathrm{state}}{=}64$'s own measured trained-coherence band (grey
-  band, $[0.373, 0.385]$) --- while $d_{\mathrm{state}}{=}64$'s own cliff
-  (orange triangles) collapses across the identical coherence range at the
-  matched $K/d_{\mathrm{state}}$ window.}
+  band, $[0.373, 0.385]$) --- for BOTH a concentrated (rank-4) and a
+  diffuse ($\mathrm{subspace\_rank}{=}48$) injection structure, while
+  $d_{\mathrm{state}}{=}64$'s own cliff (orange triangles) collapses
+  across the identical coherence range at the matched
+  $K/d_{\mathrm{state}}$ window. Coherence is exonerated at both tested
+  structures, not merely the concentrated one.}
   \label{fig:dose}
 \end{figure}
 
-\subsection{Connective tissue: where this whole research line started}
-\begin{itemize}
-  \item Wave 0's K=32 rerun plateaus at $\mathrm{rec@0.9}$ $0.78$--$0.80$
-    for the final 21{,}000 of 25{,}000 steps (flat, not climbing;
-    entity-subspace rank $29.9$--$30.2$ --- capacity NOT the issue even
-    then) while K=16 converges cleanly to $0.996$--$0.999$. This single
-    anomalous plateau motivated designating $K{=}32$ the
-    exactness-mechanism program's headline cell.
-\end{itemize}
+We then test that candidate directly. Re-running the same localization
+procedure at $d_{\mathrm{state}}{=}80$ places the transition at
+$x_0{=}0.6779$ (95\% CI $[0.6683,0.6867]$, clean, non-degenerate,
+$n{=}5$ seeds/$K$) --- entirely above the pre-registered ratio-invariant
+band $[0.4745,0.6165]$ centered on $d{=}64$'s own $x_0{=}0.5455$, a real,
+disclosed exclusion of ``the cliff sits at a fixed $K/d$ fraction.'' Load
+tolerance grows \emph{super-linearly} in $d_{\mathrm{state}}$, not at a
+fixed ratio. At $d_{\mathrm{state}}{=}96$, however, a full unlocked grid
+($K\in\{69,72,78,84,90\}$, $n{=}3$ seeds/$K$, after an
+independently-audited repro instrument diagnosed an initial admissibility
+failure on 11/12 new cells as a tolerance miscalibration in the
+convergence gate rather than a real capacity wall --- every flagged
+episode resolves by $n_{\mathrm{iter}}\leq28$ against a production
+setting of $20$, and only the admission flag, never the $h4$ measurement,
+was recalibrated) finds no cliff anywhere through $K/d{=}0.9375$, but a
+non-monotonic curve ($0.9592/0.9216/0.9326/0.9581/1.0000$ across the five
+loads) that a sigmoid cannot localize: 100\% of $4{,}000$ bootstrap
+resamples land at the fit's own degenerate bounds. Neither of the two
+simplest rival functional forms for the super-linear growth --- an
+absolute-slack account ($x_0\propto d_{\mathrm{state}}$ minus a constant,
+band $[0.718,0.739]$) nor a power-law account (band $[0.768,0.837]$) ---
+is confirmed or excluded by this data; a follow-up pool-margin
+diagnostic, designed to test whether $K{=}84$'s dip below $K{=}90$
+reflects a genuine non-monotonicity, instead returned degenerate readings
+at fresh, independent seeds and is reported as an open
+instrument-sensitivity finding (the admission frontier itself moves with
+$K/d$, and a real but not-yet-isolated pool-margin effect was observed at
+the inadmissible cells) rather than a clean adjudication --- the full
+per-cell trail is reported in Appendix~\ref{sec:appendix-tables}. The
+precise functional form of the growth, and the exact
+$d_{\mathrm{state}}{=}96$ transition point, remain open; seed escalation
+at the noisiest measured group ($K{=}72$, per-seed range
+$0.8426$--$0.9904$) is the registered next step, not launched by this
+paper's own evidence base.
+
+\subsection{Where this line of inquiry started}
+
+The $K{=}32$ operating point was not chosen after the fact. In the
+earliest wave of this program, the unconstrained baseline's own $K{=}32$
+rerun plateaus at $\mathrm{rec@0.9}=0.78$--$0.80$ for the final
+$21{,}000$ of $25{,}000$ training steps --- flat, not still climbing, with
+entity-subspace rank $29.9$--$30.2$ confirming capacity was never the
+issue even then --- while the $K{=}16$ arm converges cleanly to
+$0.996$--$0.999$ over the same run. This single anomalous plateau is what
+designated $K{=}32$ the exactness-mechanism program's headline cell
+throughout the rest of this paper.

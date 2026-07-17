@@ -226,7 +226,8 @@
     PARTIALLY measured, and the fix mechanism's transfer to free-running
     text is separately tested and blocked.} Wave 2 establishes the
     truncation-damage phenomenon generalizes to naturalistic LM
-    pretraining at small scale (descriptive+interventional tier only).
+    pretraining at small scale (Fig.~8; descriptive+interventional tier
+    only).
     Beyond that: (a) \textbf{the controlled 14M$\to$98M$\to$392M
     $\to$1.31B parameter ladder is now COMPLETE, a positive headline
     result in its own right}: on a single held-fixed data mix, the
@@ -261,6 +262,49 @@
     production scale (b) but causal attribution there remains open and
     confounded (c), and the fix itself has not yet been shown to transfer
     to a free-running-text setting at all (d).
+
+    % Data: experiment-runs/2026-07-04_lm_rd_wave2/{waveC,waveD}/
+    \begin{figure}[t]
+      \centering
+      \includegraphics[width=0.75\linewidth]{figures/fig08_wave2_corpus_generality.pdf}
+      \caption{Wave 2: the phenomenon is not an artifact of the
+      synthetic probe grammar. Truncation-damage-vs-$k$ curves
+      (nats/token), reasoning (OpenR1-Math) vs.\ narrative (WikiText)
+      corpora at $k\in\{8,16,24,32,48,64\}$: openr1 is consistently more
+      truncation-sensitive at low-to-moderate $k$, both corpora
+      converging to the same noise floor at $k^*{=}48$. Two named
+      confounds apply (symbol density; home- vs.\ cross-domain
+      competence) --- this figure is descriptive/interventional support
+      (RD-2 tier), explicitly not premise-conditional causal.}
+      \label{fig:wave2-corpus}
+    \end{figure}
+
+    % Data: Panel A -- experiment-runs/2026-07-04_trackc_rung1/,
+    % 2026-07-05_trackc_rung2/, 2026-07-05_wave1ext/,
+    % 2026-07-06_trajectory_probes/, and the rung-3 (1.31B) result under
+    % experiment-runs/*trackc_rung3*/. Panel B --
+    % experiment-runs/2026-07-04_track_d/
+    \begin{figure*}[t]
+      \centering
+      \includegraphics[width=0.98\textwidth]{figures/fig09_trackc_ladder_and_trackd.pdf}
+      \caption{The attractor persists with scale, and a larger version
+      of it exists at production scale, unattributed. \textbf{Panel A}
+      (Track C pure-scale ladder): pooled chunk-level key-Gram deviation
+      (span-fraction) across a controlled
+      $14\mathrm{M}\to98\mathrm{M}\to392\mathrm{M}\to1.31\mathrm{B}$
+      parameter ladder on a single held-fixed data mix --- $0.248$,
+      $0.344$, $0.389$, $0.455$ --- monotonically increasing.
+      \textbf{Panel B} (Track D Phase 1): the same Gram-deviation
+      statistic measured in three production-scale pretrained
+      checkpoints: RWKV-7 1.5B ($43.5$--$44.0$), Falcon-Mamba-7B
+      ($49.9$--$50.2$), and a no-fixed-state negative control, Qwen2.5-1.5B
+      ($46.0$--$48.5$) --- all three cluster together, RWKV-7 and the
+      negative control statistically indistinguishable; the signature is
+      measurably present and larger at production scale, but not
+      attributable to the delta-rule family specifically without a
+      sharper instrument.}
+      \label{fig:trackc-trackd}
+    \end{figure*}
   \item \textbf{The admission-stack asymmetry, now footnote-level.}
     Because F-geo-3 makes the standard instruments tautological, a
     substitute pre-registered criterion applies to its seeds. With every

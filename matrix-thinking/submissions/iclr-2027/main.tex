@@ -17,10 +17,12 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
-% Draft-only: inline pending-number placeholders (Track C rung-3 is the
-% paper's one remaining open readout, per NARRATIVE.md \S9 item 3). Remove
-% this package and resolve every \todo{} before camera-ready.
-\usepackage{todonotes}
+% natbib: required for \citet{}/\citep{} used throughout (refs.bib). Most
+% conference .sty files (incl. every ICLR predecessor) already load natbib
+% internally -- this explicit load is a harmless no-op once iclr2027_
+% conference.sty is swapped in, and is REQUIRED for the citation commands
+% to compile against this placeholder .sty in the meantime.
+\usepackage{natbib}
 
 % PLACEHOLDER — replace with the real ICLR 2027 style file when released.
 % \usepackage{iclr2027_conference,times}
@@ -54,10 +56,7 @@ in a Real-Data Fast-Weight Language Model}
 \maketitle
 
 \begin{abstract}
-% Draft lives in NARRATIVE.md \S1 — ending resolved (K=32 escalation:
-% 3/3 admissible, zero fallbacks, bar narrowly missed, outcome-F
-% attribution). Paste and trim to venue word limit at prose time.
-\input{sections/00_abstract_placeholder}
+\input{sections/00_abstract}
 \end{abstract}
 
 \input{sections/01_intro}

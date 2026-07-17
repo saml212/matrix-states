@@ -67,6 +67,24 @@
     mechanism} --- a complete causal chain, no loose ends.
 \end{itemize}
 
+% Data: experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figures/fig07_fgeo3_headline.pdf}
+  \caption{The fix: F-geo-3's headline demonstration. Grouped bars,
+  $h{=}4$ $\mathrm{rec@0.9}$ at $K{=}16$ (left) and $K{=}32$ (right):
+  baseline vs.\ best soft arm vs.\ F-geo-3, with the two pre-registered
+  bars drawn as reference lines. $K{=}16$, $\geq0.8$: HIT, 3/3 admissible
+  seeds, $0.95$--$1.00$. $K{=}32$, $\geq0.5$: improved $\sim$45$\times$ to
+  $0.390/0.416/0.504$ (mean $0.44$), all 3 escalation seeds fully
+  admissible, bar narrowly missed with 1/3 seeds at the line. The
+  measured trained cross-episode key drift per $K$ ($0.94$ at $K{=}16$
+  vs.\ $0.9037$ at $K{=}32$, against the pre-registered $0.95$ HIGH-band
+  threshold) is annotated on the $K{=}32$ panel, carrying the outcome-F
+  attribution of the residual.}
+  \label{fig:fgeo3-headline}
+\end{figure*}
+
 \subsection{What does NOT move: $h{=}21$}
 \begin{itemize}
   \item Literal-depth composition STILL COLLAPSES under F-geo-3 ---
@@ -184,3 +202,62 @@ Fig.~11) --- not a forward-reference}
     No unexplained residual remains on this thread except the two
     explicitly named, not-yet-fully-adjudicated mechanistic candidates.
 \end{itemize}
+
+% Data: experiment-runs/2026-07-05_keyanchor_wave/,
+% 2026-07-05_keyanchor_confirm/, 2026-07-06_keyanchor_mech/,
+% 2026-07-07_keyanchor_e/
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figures/fig10_anchoring_wave_arc.pdf}
+  \caption{The anchoring wave's complete arc. \textbf{Panel A:} grouped
+  bars, $K{=}32$ $h{=}4$ $\mathrm{rec@0.9}$ across every wave in the
+  program's history in chronological order --- fresh bare-geo3 reference
+  ($0.4105$), Wave-1/confirm (same-seed reproduction, $0.556$--$0.665$),
+  the mechanism-tier wave (6 fresh seeds, 2 architecture variants:
+  candidate (d) $0.6141$--$0.7141$, candidate (d$'$) $0.6661$--$0.7141$)
+  --- with the $\geq0.5$ bar drawn as a reference line, establishing the
+  behavioral gain as independently replicated (9 seed-runs, 3 distinct
+  seed sets), not a one-off. \textbf{Panel B:} per-cell
+  $\mathtt{engaged\_frac\_v3}$ / median $r_e$ scatter (mechanism-tier
+  wave, both $K{=}32$ arms, all 6 seeds) against the design's own bands
+  --- every $K{=}32$ cell lands band C (engaged\_frac $3.7$--$41.1\%$,
+  median $r_e$ $0.15$--$0.23$), the literal assigned outcome for both
+  arms, 3/3 seeds each. \textbf{Panel C:} the resolution --- grouped
+  bars, $K{=}32$ $h{=}4$, candidate (d) learned table (mean $0.6669$)
+  vs.\ frozen-random arm e (mean $0.7274$) vs.\ frozen-frame-potential
+  arm e-fp (mean $0.7413$), per-seed dots shown, plus an inset showing
+  arm e's median $r_e$ is negative ($-0.13$ to $-0.24$) --- the
+  negative-control reading confirming the instrument works correctly on
+  a table that cannot mechanically engage. Both frozen arms match or
+  exceed the learned table $\Rightarrow$ constancy alone suffices; the
+  entity-alignment mechanism (Panel B) is rejected, but the behavioral
+  gain (Panel A) is real and is now explained.}
+  \label{fig:anchoring-arc}
+\end{figure*}
+
+% Data: experiment-runs/2026-07-06_keyanchor_mech/ (K=16/32),
+% 2026-07-07_keyanchor_k48/ (K=48)
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\linewidth]{figures/fig11_capacity_curve.pdf}
+  \caption{The capacity curve: where the fix works, and where it stops.
+  $x$-axis $K/d_{\mathrm{state}}\in\{0.25,0.5,0.75\}$ ($K{=}16/32/48$ at
+  $d_{\mathrm{state}}{=}64$), two lines: (1) candidate (d)'s measured
+  $h{=}4$ $\mathrm{rec@0.9}$ --- $\sim$1.00 ($K{=}16$) $\to$
+  $0.61$--$0.71$ ($K{=}32$, HIT its $\geq0.5$ bar) $\to$ $0.0215$
+  ($K{=}48$, MISS its $\geq0.024434$ bar, 0/3 seeds) --- a visible cliff
+  between the second and third points, not a smooth decline; (2) the
+  theoretical $\lambda{=}1$ ceiling computed alongside each point ---
+  $0.9745\to0.9423\to0.8987$ --- declining gently and near-linearly over
+  the same range. The gap between the two lines at $K{=}48$ is the
+  figure's point: the mechanism is not failing because the ceiling
+  collapsed, it is failing to reach anywhere near a ceiling that is
+  still high ($\sim$0.90). $K{=}48$ is annotated with the two checked
+  explanatory channels and their status: drift-space closure (post-NS
+  drift $0.887$ vs.\ ceiling $0.899$ vs.\ reference $0.838$ --- closes
+  $\sim$81\% of the gap) and value-Gram relief ($0.626\times$ the
+  reference's deviation) --- both real, neither sufficient.
+  \textbf{Inset:} $h{=}1$ in-distribution guard, flat at $1.0000$ across
+  all three $K$ --- binding survives, composition collapses.}
+  \label{fig:capacity-curve}
+\end{figure}

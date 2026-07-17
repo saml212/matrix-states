@@ -7,24 +7,522 @@
 % 2026-07-04_lm_rd_wave2}/ via the extraction scripts named in
 % REPRODUCIBILITY.md \S1.1, so appendix numbers cannot silently drift
 % from the archived source of truth.
+%
+% Every number below was read directly from either (a) a markdown table in
+% the cited design-doc section, cross-checked where noted against the raw
+% per-run JSON under experiment-runs/, or (b) a direct sum of the `wall_s`
+% field across raw run JSONs (the same "serial-sum of wall_s, house
+% convention" method the design docs use for their own compute tables --
+% see e.g. DELTANET_REALDATA_DESIGN.md \S15.3/\S16.9). Cells with no number
+% locatable in either source are marked TODO[path] rather than estimated.
 
-\begin{itemize}
-  \item Table A1: full eval-truncation staircase, all 4 K, real data
-    (\texttt{DELTANET\_REALDATA\_DESIGN.md} \S17.4 fixed-grid $\cup$
-    K-local-window tables).
-  \item Table A2: full Wave F 18-cell table (key/value Gram deviation,
-    ID + held-out recovery, per arm $\times$ K) ---
-    \texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md} \S15.1.
-  \item Table A3: F-geo-3 Wave (K=16, K=32 \texttt{n\_iter=12}, and the
-    completed K=32 \texttt{n\_iter=20} escalation cells --- report the
-    n\_iter=12 vs.\ n\_iter=20 numerical identity explicitly, it carries
-    the fallback-irrelevance finding) ---
-    \texttt{experiment-runs/2026-07-03\_deltanet\_rd\_
-    waves/exactness/wavegeo3/}.
-  \item Table A4: Wave 2 (Waves C+D) full 2$\times$2 train$\times$eval
-    corpus grid + token-class stratification ---
-    \texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.3.
-  \item Table A5: compute accounting (GPU-hours per wave, all waves) ---
-    pulled from each wave's own measured \texttt{wall\_s} field, never
-    estimated; every wave in this program logs it directly.
-\end{itemize}
+\subsection{Table A1: the h=1 eval-truncation staircase, all four K}
+\label{tab:a1-eval-truncation}
+
+Source: \texttt{DELTANET\_REALDATA\_DESIGN.md} \S17.3 (Method) and \S17.4
+(``The h=1 eval-truncation staircase''), \S17.5. Seed counts match
+\S\ref{sec:reproducibility}'s reproducibility statement exactly
+($K{=}16$ $n{=}10$, $K{=}32$ $n{=}7$, $K{=}8/24$ $n{=}2$ each) --
+no discrepancy found between this appendix and the main text's own
+quoted seed counts.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{cclc}
+\toprule
+$K$ & $n$ (seeds) & Seed set & Ceiling (measured @ $k{=}K$) \\
+\midrule
+8  & 2  & \texttt{wA\_rd\_K8\_frN\_\{s0,s1\}} & $1.000$ \\
+16 & 10 & \texttt{wave0\_rerun s0--s4 + waveA s0/s1/s0c/s1c/s2c} (primary) & $0.995 \pm 0.007$ \\
+24 & 2  & \texttt{wA\_rd\_K24\_frN\_\{s0,s1\}} & $0.938$ \\
+32 & 7  & \texttt{wave0\_rerun s0--s4 + waveA s0/s1} & $0.795 \pm 0.013$ \\
+\bottomrule
+\end{tabular}
+\caption{Table A1a: staircase manifest -- $K$, seed count, seed set, and
+the measured ceiling at $k{=}K$. \texttt{DELTANET\_REALDATA\_DESIGN.md}
+\S17.3/\S17.4.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\textbf{$K=8$ ($n=2$; \texttt{wA\_rd\_K8\_frN\_\{s0,s1\}})}\\[2pt]
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccccccc}
+\toprule
+$k$ & 6 & 7 & 8 & 9 & 10 & 12 & 14 & 15 & 16 & 17 & 18 & 20 \\
+\midrule
+measured & $0.547\pm.016$ & $0.859\pm.016$ & $\mathbf{1.000}$ & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 \\
+ideal-truncated & $0.422\pm.016$ & $0.766\pm.016$ & $\mathbf{1.000}$ & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 \\
+theory $(K-m)/K$ & 0.750 & 0.875 & $\mathbf{1.000}$ & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}}
+
+\vspace{8pt}
+\textbf{$K=16$ ($n=10$, PRIMARY: \texttt{wave0\_rerun s0-s4 + waveA s0/s1/s0c/s1c/s2c})}\\[2pt]
+\resizebox{0.75\textwidth}{!}{%
+\begin{tabular}{lcccccccc}
+\toprule
+$k$ & 8 & 12 & 14 & 15 & 16 & 17 & 18 & 20 \\
+\midrule
+measured & $0.041\pm.023$ & $0.577\pm.055$ & $0.867\pm.027$ & $0.950\pm.018$ & $\mathbf{0.995\pm.007}$ & 0.995 & 0.995 & 0.995 \\
+ideal-truncated & $0.006\pm.008$ & $0.342\pm.064$ & $0.828\pm.046$ & $0.947\pm.021$ & $\mathbf{0.998\pm.005}$ & 0.998 & 0.998 & 0.998 \\
+theory $(K-m)/K$ & 0.500 & 0.750 & 0.875 & 0.938 & $\mathbf{1.000}$ & 1.000 & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}}
+
+\vspace{8pt}
+\textbf{$K=24$ ($n=2$; \texttt{wA\_rd\_K24\_frN\_\{s0,s1\}})}\\[2pt]
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccccccccc}
+\toprule
+$k$ & 8 & 12 & 14 & 15 & 16 & 17 & 18 & 20 & 22 & 23 & 24 & 25 & 26 \\
+\midrule
+measured & 0.000 & 0.047 & 0.135 & 0.214 & 0.286 & 0.417 & 0.484 & $0.698\pm.031$ & $0.865\pm.021$ & 0.906 & $\mathbf{0.938}$ & 0.938 & 0.938 \\
+ideal-truncated & 0.000 & 0.000 & 0.005 & 0.000 & 0.031 & 0.109 & 0.208 & 0.552 & 0.880 & 0.953 & $\mathbf{0.984}$ & 0.984 & 0.984 \\
+theory $(K-m)/K$ & 0.333 & 0.500 & 0.583 & 0.625 & 0.667 & 0.708 & 0.750 & 0.833 & 0.917 & 0.958 & $\mathbf{1.000}$ & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}}
+
+\vspace{8pt}
+\textbf{$K=32$ ($n=7$; \texttt{wave0\_rerun s0-s4 + waveA s0/s1})}\\[2pt]
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccccccccc}
+\toprule
+$k$ & 8 & 12 & 14 & 15 & 16 & 17 & 18 & 20 & 30 & 31 & 32 & 33 & 34 \\
+\midrule
+measured & 0.000 & 0.004 & 0.018 & 0.030 & 0.043 & 0.081 & 0.124 & $0.243\pm.017$ & $0.751\pm.017$ & 0.776 & $\mathbf{0.795\pm.013}$ & 0.795 & 0.795 \\
+ideal-truncated & 0.000 & 0.000 & 0.000 & 0.001 & 0.001 & 0.003 & 0.005 & 0.022 & $0.627\pm.061$ & 0.675 & $\mathbf{0.713\pm.063}$ & 0.713 & 0.713 \\
+theory $(K-m)/K$ & 0.250 & 0.375 & 0.438 & 0.469 & 0.500 & 0.531 & 0.563 & 0.625 & 0.938 & 0.969 & $\mathbf{1.000}$ & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}}
+\caption{Table A1b: the full $h{=}1$ eval-truncation staircase (fixed grid
+$\cup$ $K$-local window), \texttt{recovered\_frac@0.9}, mean $\pm$ std
+across seeds. ``measured'' = $S_T^{raw}$ truncated to rank $k$;
+``ideal-truncated'' = $s_{ideal,effective}$ (the entity-aligned expectation
+from the dumped key/value Grams for this run's own non-orthonormal keys)
+truncated the same way; ``theory'' = the closed-form $(K-m)/K$ formula
+under the orthonormal-key idealization, reference only. Bold = the run's
+own $K$. \texttt{DELTANET\_REALDATA\_DESIGN.md} \S17.4.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{ccccc}
+\toprule
+$K$ & Ceiling reached exactly at & Steepest single-step jump & Jump size & Ranks below $K$ \\
+\midrule
+8  & $k{=}8$ (1.000)  & $k{=}5\to6$   & $+0.375$ & 2--3 \\
+16 & $k{=}16$ (0.995) & $k{=}11\to12$ & $+0.181$ & 4--5 \\
+24 & $k{=}24$ (0.938) & $k{=}16\to17$ & $+0.130$ & 7--8 \\
+32 & $k{=}32$ (0.795) & $k{=}19\to20$ & $+0.066$ & 12--13 \\
+\bottomrule
+\end{tabular}
+\caption{Table A1c: reading the staircase at integer granularity (dense
+re-run, \texttt{--k-grid 1..34}, same runs) -- the ceiling is reached
+exactly at $k{=}K$ at every $K$ tested, and the steepest single-step jump
+always lands several ranks below $K$ (a graded frontier, not a razor
+cliff). \texttt{DELTANET\_REALDATA\_DESIGN.md} \S17.5.}
+\end{table}
+
+\clearpage
+\subsection{Table A2: Wave F, full 18-cell soft-arm intervention table}
+\label{tab:a2-wavef}
+
+Source: \texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md} \S15.1 (``Full table
+-- mean [range] over 3 seeds, per arm $\times$ K''), 18/18 cells complete
+(\texttt{wF\_geo1\_l01}, \texttt{wF\_geo1\_l10}, \texttt{wF\_geo2\_zca}
+$\times$ $K\in\{16,32\}$ $\times$ seeds 0--2, 20{,}000 steps each).
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\textbf{Write-time key/value geometry (trained, final checkpoint)}\\[2pt]
+\begin{tabular}{lcccc}
+\toprule
+Arm & $K$ & key-Gram dev & value-Gram dev & learned-baseline key-Gram dev (arm iii) \\
+\midrule
+F-geo-1, $\lambda{=}0.1$ (\texttt{wF\_geo1\_l01}) & 16 & $1.2337$ [1.2329--1.2344] & $1.2391$ [1.2357--1.2455] & 1.26--1.31 \\
+F-geo-1, $\lambda{=}0.1$ (\texttt{wF\_geo1\_l01}) & 32 & $2.5083$ [2.5071--2.5099] & $2.5126$ [2.5111--2.5147] & 2.71--2.77 \\
+F-geo-1, $\lambda{=}1.0$ (\texttt{wF\_geo1\_l10}) & 16 & $1.2342$ [1.2281--1.2395] & $1.2540$ [1.2437--1.2691] & 1.26--1.31 \\
+F-geo-1, $\lambda{=}1.0$ (\texttt{wF\_geo1\_l10}) & 32 & $2.5163$ [2.5074--2.5333] & $2.5593$ [2.5414--2.5950] & 2.71--2.77 \\
+F-geo-2, ZCA (\texttt{wF\_geo2\_zca}) & 16 & $1.2431$ [1.2411--1.2450] & $1.2383$ [1.2371--1.2402] & 1.26--1.31 \\
+F-geo-2, ZCA (\texttt{wF\_geo2\_zca}) & 32 & $2.5375$ [2.5197--2.5707] & $2.5814$ [2.5141--2.7141] & 2.71--2.77 \\
+\bottomrule
+\end{tabular}
+
+\vspace{10pt}
+\textbf{In-distribution recovery, \texttt{rec@0.9}, M2 ($h{=}1,2,3$)}\\[2pt]
+\begin{tabular}{lccccc}
+\toprule
+Arm & $K$ & $h{=}1$ & $h{=}2$ & $h{=}3$ & learned baseline $h1/h2/h3$ \\
+\midrule
+$\lambda{=}0.1$ & 16 & $0.9960$ [0.9954--0.9967] & $0.9100$ [0.9081--0.9111] & $0.7233$ [0.7158--0.7297] & $\approx 1.00 / 0.87$--$0.90 / 0.64$--$0.70$ \\
+$\lambda{=}0.1$ & 32 & $0.8131$ [0.8111--0.8160] & $0.3639$ [0.3622--0.3668] & $0.1042$ [0.1006--0.1082] & $\approx 0.79 / 0.26$--$0.29 / 0.05$--$0.06$ \\
+$\lambda{=}1.0$ & 16 & $0.9875$ [0.9860--0.9899] & $0.8930$ [0.8861--0.8975] & $0.7051$ [0.6948--0.7212] & $\approx 1.00 / 0.87$--$0.90 / 0.64$--$0.70$ \\
+$\lambda{=}1.0$ & 32 & $0.7970$ [0.7866--0.8037] & $0.3498$ [0.3293--0.3622] & $0.0948$ [0.0860--0.1016] & $\approx 0.79 / 0.26$--$0.29 / 0.05$--$0.06$ \\
+ZCA & 16 & $0.9978$ [0.9976--0.9979] & $0.9120$ [0.9073--0.9207] & $0.7133$ [0.7098--0.7169] & $\approx 1.00 / 0.87$--$0.90 / 0.64$--$0.70$ \\
+ZCA & 32 & $0.8063$ [0.7986--0.8159] & $0.3504$ [0.3314--0.3633] & $0.0948$ [0.0878--0.1000] & $\approx 0.79 / 0.26$--$0.29 / 0.05$--$0.06$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{10pt}
+\textbf{Held-out recovery, \texttt{rec@0.9}, M3 ($h{=}4,5,6,7,21$)}\\[2pt]
+\begin{tabular}{lcccccc}
+\toprule
+Arm & $K$ & $h{=}4$ & $h{=}5$ & $h{=}6$ & $h{=}7$ & $h{=}21$ \\
+\midrule
+$\lambda{=}0.1$ & 16 & $0.4995$ [0.4883--0.5155] & 0.3196 & 0.1920 & 0.1108 & 0.0000 \\
+$\lambda{=}0.1$ & 32 & $0.0232$ [0.0204--0.0258] & 0.0038 & 0.0010 & 0.0000 & 0.0000 \\
+$\lambda{=}1.0$ & 16 & $0.4909$ [0.4652--0.5118] & 0.3238 & 0.1863 & 0.1069 & 0.0000 \\
+$\lambda{=}1.0$ & 32 & $0.0169$ [0.0141--0.0201] & 0.0027 & 0.0006 & 0.0000 & 0.0000 \\
+ZCA & 16 & $0.4874$ [0.4811--0.4979] & 0.3047 & 0.1784 & 0.0948 & 0.0000 \\
+ZCA & 32 & $0.0191$ [0.0173--0.0209] & 0.0028 & 0.0003 & 0.0001 & 0.0000 \\
+\bottomrule
+\end{tabular}
+
+\vspace{10pt}
+\textbf{Per-item alignment gate (finding-5 stack)}\\[2pt]
+\begin{tabular}{lcc}
+\toprule
+Arm & $K{=}16$ alignment-clean seeds & $K{=}32$ alignment-clean seeds \\
+\midrule
+F-geo-1, $\lambda{=}0.1$ & 3/3 & 3/3 \\
+F-geo-1, $\lambda{=}1.0$ & 2/3 (flagged: \texttt{s1}, \texttt{alignment\_cos\_min} 0.047--0.082) & 2/3 (flagged: \texttt{s1}, same seed index) \\
+F-geo-2, ZCA & 3/3 & 3/3 \\
+\bottomrule
+\end{tabular}
+\caption{Table A2: the full Wave F 18-cell table -- key/value Gram
+deviation, in-distribution recovery ($h{=}1,2,3$), held-out recovery
+($h{=}4,5,6,7,21$), and the per-item alignment gate, per arm $\times$ $K$
+(mean [range] over 3 seeds). Key- and value-side salvage tier
+($\sigma_K/\sigma_1 \geq 0.1$) passes universally at all 18 cells; only
+the alignment gate shows the 2-seed exception noted. Verdict against each
+pre-registered bar is in the main text \S\ref{sec:soft-fixes} and
+\S\ref{sec:appendix-tiers}, not reproduced here.
+\texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md} \S15.1.}
+\end{table}
+
+\clearpage
+\subsection{Table A3: F-geo-3 wave -- \texttt{n\_iter=12} vs.\ \texttt{n\_iter=20} escalation}
+\label{tab:a3-fgeo3}
+
+Source: \texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md} \S16.2 (original wave,
+\texttt{n\_iter=12}), \S16.3 (escalation, \texttt{n\_iter=20}), \S16.4
+(verdict), \S16.5 (fallback-irrelevance). Cross-checked directly against
+the raw per-seed JSONs at \texttt{experiment-runs/2026-07-03\_deltanet\_
+rd\_waves/exactness/wavegeo3/} (10 files) -- the $h{=}4$ values for seed 0
+($0.50396728515625 \to 0.50445556640625$ read from
+\texttt{wgeo3\_rdx\_K32\_armgeo3\_s0\_geo3n\{12,20\}.json}'s
+\texttt{M3\_held\_out} block) match the design doc's quoted
+$0.5040\to0.5045$ to full precision -- no discrepancy found.
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\begin{tabular}{clccccccccc}
+\toprule
+\texttt{n\_iter} & $K$ & key-Gram dev & value-Gram dev & $h{=}1$ & $h{=}2$ & $h{=}3$ & $h{=}4$ & $h{=}5$ & $h{=}6$ & $h{=}7$ \\
+\midrule
+12 & 16 & $\sim3\times10^{-7}$ (non-evid.) & $2.1948$ [1.6872--2.6686] & 1.0000 & 1.0000 & $0.9990$ [0.9971--1.0000] & $0.9767$ [0.9525--0.9969] & $0.8967$ [0.8402--0.9534] & $0.7626$ [0.7006--0.8485] & $0.6007$ [0.5497--0.6729] \\
+12 & 32 & $\sim7$--$8\times10^{-7}$ (non-evid.) & $5.9274$ [4.5512--6.7564] & 1.0000 & $0.9999$ [0.9998--1.0000] & $0.9014$ [0.8701--0.9479] & $0.4376$ [0.3890--0.5040] & $0.1485$ [0.1477--0.1493] & $0.0463$ [0.0374--0.0538] & $0.0177$ [0.0093--0.0261] \\
+20 (escalation) & 32 & $\sim5\times10^{-7}$ (non-evid.) & $5.9271$ [4.5514--6.7556] & 1.0000 & $0.9999$ [0.9998--1.0000] & $0.9021$ [0.8721--0.9477] & $0.4368$ [0.3903--0.5045] & $0.1480$ [0.1450--0.1500] & $0.0462$ [0.0373--0.0539] & $0.0171$ [0.0092--0.0245] \\
+\bottomrule
+\end{tabular}
+
+\vspace{4pt}
+{\scriptsize $h{=}21$: $K{=}16$, \texttt{n\_iter=12}: $0.0074$ [0.0048--0.0089]; $K{=}32$, \texttt{n\_iter=12}: $0.0000$ [0.0000--0.0000]; $K{=}32$, \texttt{n\_iter=20}: $0.0000$ [0.0000--0.0000]. $d_{model}{=}256$, $d_{state}{=}64$, $n_{params}{=}12{,}899{,}841$, 20{,}000/20{,}000 steps, zero skipped steps, zero timeouts at all 9 cells.}
+
+\caption{Table A3a: F-geo-3 behavioral results, mean [range] over 3
+seeds, \texttt{rec@0.9}. Key-Gram deviation is architecturally forced to
+$\approx 0$ under \texttt{geo3\_active} and carries zero evidentiary
+weight (non-evidence by construction, \S14.9 item 5) -- every verdict
+rests on the behavioral \texttt{rec@0.9} bars and the admission stack
+below. \texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md} \S16.2/\S16.3.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\begin{tabular}{clcccccccc}
+\toprule
+\texttt{n\_iter} & $K$ & seed & (1) value-salvage & (2) NS no-fallback & fallback steps/20{,}000 (\%) & ckpt fallback & (3) finite loss & (4) task floor \%-improve / $h1@0.9$ & admissible \\
+\midrule
+12 & 16 & 0 & pass, 0.4547 & pass & 0 (0.00\%)   & no  & pass & 99.52\% / 1.0000 & \textbf{yes} \\
+12 & 16 & 1 & pass, 0.3229 & pass & 0 (0.00\%)   & no  & pass & 99.51\% / 1.0000 & \textbf{yes} \\
+12 & 16 & 2 & pass, 0.3821 & pass & 0 (0.00\%)   & no  & pass & 99.47\% / 1.0000 & \textbf{yes} \\
+12 & 32 & 0 & pass, 0.2056 & \textbf{fail} & 56 (0.28\%)  & no  & pass & 99.00\% / 1.0000 & \textbf{no} \\
+12 & 32 & 1 & pass, 0.1317 & \textbf{fail} & 11 (0.055\%) & no  & pass & 98.92\% / 1.0000 & \textbf{no} \\
+12 & 32 & 2 & pass, 0.1132 & \textbf{fail} & 374 (1.87\%) & yes & pass & 98.79\% / 1.0000 & \textbf{no} \\
+20 & 32 & 0 & pass, 0.2056 & \textbf{pass} & 0 (0.00\%)   & no  & pass & 99.00\% / 1.0000 & \textbf{yes} \\
+20 & 32 & 1 & pass, 0.1320 & \textbf{pass} & 0 (0.00\%)   & no  & pass & 98.92\% / 1.0000 & \textbf{yes} \\
+20 & 32 & 2 & pass, 0.1133 & \textbf{pass} & 0 (0.00\%)   & no  & pass & 98.79\% / 1.0000 & \textbf{yes} \\
+\bottomrule
+\end{tabular}
+\caption{Table A3b: the substitute admission stack, per seed (\S14.10
+items 1--4). $K{=}16$: 3/3 admissible at \texttt{n\_iter=12}. $K{=}32$:
+0/3 admissible at \texttt{n\_iter=12} (every seed fails item 2 alone) vs.\
+3/3 admissible at the \texttt{n\_iter=20} escalation (item 2 now clears
+at every seed, zero fallback steps). \texttt{DELTANET\_RD\_EXACTNESS\_
+DESIGN.md} \S16.2/\S16.3.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{cccccc}
+\toprule
+seed & fallback steps (\texttt{n12}) & $h{=}4$ (\texttt{n12}$\to$\texttt{n20}) & $h{=}7$ (\texttt{n12}$\to$\texttt{n20}) & value-Gram dev (\texttt{n12}$\to$\texttt{n20}) & task-floor \%-improve (\texttt{n12}$\to$\texttt{n20}) \\
+\midrule
+0 & 56  & $0.5040\to0.5045$ ($\Delta{+}0.0005$) & $0.0093\to0.0092$ ($\Delta{-}0.0001$) & $4.5512\to4.5514$ & $99.00\%\to99.00\%$ \\
+1 & 11  & $0.4199\to0.4157$ ($\Delta{-}0.0042$) & $0.0179\to0.0177$ ($\Delta{-}0.0002$) & $6.4746\to6.4742$ & $98.92\%\to98.92\%$ \\
+2 & 374 & $0.3890\to0.3903$ ($\Delta{+}0.0013$) & $0.0261\to0.0245$ ($\Delta{-}0.0016$) & $6.7564\to6.7556$ & $98.79\%\to98.79\%$ \\
+\bottomrule
+\end{tabular}
+\caption{Table A3c: the fallback-irrelevance finding -- \texttt{n\_iter=12}
+(0/3 admissible, fallback-contaminated) and \texttt{n\_iter=20} (3/3
+admissible, zero fallback) land within seed-level noise of every other at
+every hop, for every seed, including seed 2 (374/20{,}000 fallback steps,
+the most contaminated run in the wave). The largest single delta is
+$\Delta 0.0042$ on a metric with a 0.39--0.50 range. This is the paper's
+own numerical-identity evidence that the escalation closed a
+premise-cleanliness gap, not a behavioral one.
+\texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md} \S16.5.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{p{2.6cm}p{2.0cm}p{1.6cm}p{1.6cm}p{3.6cm}p{3.6cm}}
+\toprule
+Tier & Cell & Baseline (learned arm) & Bar & Measured (geo3, admissible seeds only) & Verdict \\
+\midrule
+Minimum publishable & $K{=}16$, $h{=}4$ & 0.419--0.465 & \texttt{rec@0.9} $\geq 0.8$ & $0.9767$ mean, 0.9525--0.9969 range (3/3 admissible) & \textbf{HIT} -- 3/3, $\sim2.1\times$ the bar on the low seed alone \\
+Headline demo & $K{=}32$, $h{=}4$ & 0.009 & \texttt{rec@0.9} $\geq 0.5$ & $0.4368$ mean, 0.3903--0.5045 range (3/3 admissible, \texttt{n\_iter=20}) & \textbf{NOT MET} on the mean ($0.4368 < 0.5$, $\sim$0.06 short) -- narrow miss; \texttt{s0} individually clears the bar at 0.5045 \\
+Guard, $K{=}16$ $h{=}1$ & same arm's own $h{=}1$ & $\approx 1.00$ (arm iii) & within $-0.02$ & 1.0000 & \textbf{SATISFIED} \\
+Guard, $K{=}32$ $h{=}1$ & same arm's own $h{=}1$ & $\approx 0.79$ (arm iii) & within $-0.02$ & 1.0000 & \textbf{SATISFIED} -- exceeds baseline by $+0.21$ \\
+\bottomrule
+\end{tabular}
+\caption{Table A3d: F-geo-3 verdict against each pre-registered bar
+(\S5.5). \texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md} \S16.4.}
+\end{table}
+
+\clearpage
+\subsection{Table A4: Wave 2 (Waves C+D) -- corpus rank dynamics, truncation damage, and the full $2\times2$ train$\times$eval grid}
+\label{tab:a4-wave2}
+
+Source: \texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.1--\S19.4. Claim tier
+for this entire table: descriptive+interventional (RD-2), \emph{not}
+premise-conditional causal -- matches \S\ref{sec:appendix-tiers}'s own
+``Wave 2 (corpus generality)'' row exactly, no discrepancy found.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{clcccc}
+\toprule
+Corpus & Layer & $n$ & Effective rank & Stable rank \\
+\midrule
+openr1 & L0 & 51 & $40.62 \pm 1.66$ & $3.49 \pm 0.94$ \\
+openr1 & L1 & 51 & $35.75 \pm 1.62$ & $2.63 \pm 0.29$ \\
+wikitext & L0 & 168 & $37.48 \pm 2.44$ & $3.94 \pm 1.08$ \\
+wikitext & L1 & 168 & $34.85 \pm 0.93$ & $2.55 \pm 0.55$ \\
+\bottomrule
+\end{tabular}
+\caption{Table A4a (Q1): pooled effective/stable rank, final-in-window
+(\texttt{frac}$=1.0$), within-doc only, $d_{state}{=}64$ is the ceiling.
+$n$ is the contamination-filtered pooled window count (openr1: 69.6\% of
+windows cross a document boundary and are excluded; wikitext: 0.0\%).
+\texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.1.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\begin{tabular}{cccccccccc}
+\toprule
+Step & openr1 $n$ & openr1 eff.rank L0 & openr1 eff.rank L1 & openr1 val\_loss & wikitext $n$ & wikitext eff.rank L0 & wikitext eff.rank L1 & wikitext val\_loss \\
+\midrule
+1000 & 9  & 42.93 & 35.28 & 2.693 & 24 & 39.62 & 35.01 & 5.620 \\
+2000 & 6  & 40.76 & 34.59 & 2.460 & 24 & 39.63 & 35.80 & 5.211 \\
+3000 & 3  & 40.34 & 35.46 & 2.220 & 24 & 38.33 & 35.52 & 5.031 \\
+4000 & 15 & 40.16 & 35.56 & 2.182 & 24 & 37.13 & 34.91 & 4.787 \\
+5000 & 6  & 39.69 & 36.40 & 2.207 & 24 & 36.18 & 34.47 & 4.754 \\
+6000 & 6  & 40.13 & 37.19 & 2.082 & 24 & 35.70 & 34.30 & 4.727 \\
+6103 & 6  & 39.77 & 36.13 & 2.067 & 24 & 35.75 & 33.94 & 4.688 \\
+\bottomrule
+\end{tabular}
+\caption{Table A4b (Q4): per-checkpoint pooled effective rank (\texttt{frac}$=1.0$,
+within-doc filter, pooled across 3 seeds) alongside each corpus's home val
+loss. openr1's $n{=}3$ row at step 3000 is noisy (contamination
+filtering) and should not be over-weighted; wikitext holds a stable
+$n{=}24$ throughout. \texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.2.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{ccccccc}
+\toprule
+$k$ & openr1 raw & openr1 balanced & wikitext raw & wikitext balanced & raw $\Delta$(o$-$w) & balanced $\Delta$(o$-$w) \\
+\midrule
+8  & $0.1018\pm0.0046$ & $0.1692\pm0.0440$ & $0.0885\pm0.0067$ & $0.0903\pm0.0398$ & $+0.0133$ & $+0.0788$ \\
+16 & $0.0399\pm0.0035$ & $0.0535\pm0.0379$ & $0.0339\pm0.0026$ & $0.0366\pm0.0169$ & $+0.0061$ & $+0.0169$ \\
+24 & $0.0145\pm0.0039$ & $0.0164\pm0.0131$ & $0.0098\pm0.0008$ & $0.0061\pm0.0129$ & $+0.0047$ & $+0.0103$ \\
+32 & $0.0034\pm0.0024$ & $0.0078\pm0.0245$ & $0.0032\pm0.0019$ & $-0.0083\pm0.0059$ & $+0.0002$ & $+0.0161$ \\
+48 & $-0.0002\pm0.0002$ & $-0.0038\pm0.0052$ & $0.0007\pm0.0004$ & $-0.0001\pm0.0017$ & $-0.0009$ & $-0.0037$ \\
+64 & $-0.0000\pm0.0000$ & $0.0001\pm0.0001$ & $0.0000\pm0.0001$ & $0.0001\pm0.0002$ & $-0.0000$ & $-0.0000$ \\
+\bottomrule
+\end{tabular}
+\caption{Table A4c (Q2, headline): home-corpus comparison, inference-time
+truncation damage vs.\ $k$, mean $\pm$ SD over 3 seeds, nats/token. $k^*$
+(both \texttt{|raw|} and \texttt{|balanced|} $< 0.005$ nats) $= 48$ for
+BOTH corpora. At low-to-moderate $k$ (8, 16, 24), openr1 shows more
+truncation damage than wikitext in all 6 comparisons (3 $k$ values
+$\times$ \{raw, balanced\}). \texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.3.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{ccll}
+\toprule
+$k$ & class & openr1 & wikitext \\
+\midrule
+8  & word   & 0.1267 ($n\!\sim\!1742$) & 0.0961 ($n\!\sim\!3262$) \\
+8  & symbol & 0.0860 ($n\!\sim\!2129$) & 0.0617 ($n\!\sim\!751$) \\
+8  & other  & 0.0572 ($n\!\sim\!225$)  & 0.0280 ($n\!\sim\!83$) \\
+16 & word   & 0.0502 ($n\!\sim\!1742$) & 0.0339 ($n\!\sim\!3262$) \\
+16 & symbol & 0.0353 ($n\!\sim\!2129$) & 0.0345 ($n\!\sim\!751$) \\
+16 & other  & 0.0044 ($n\!\sim\!225$)  & 0.0252 ($n\!\sim\!83$) \\
+\bottomrule
+\end{tabular}
+\caption{Table A4d: symbol/word/other token-class stratification (home
+corpus, $k{=}8$ and $k{=}16$, raw damage) -- checking the MAJOR-5
+symbol-density confound. At $k{=}8$, openr1 damage exceeds wikitext's
+within every token class, including plain \texttt{word} tokens. At
+$k{=}16$ the \texttt{other} class reverses, but its counts
+($n\!\sim\!83$--$225$) are too small to trust the sign flip.
+\texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.3.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{ccccc}
+\toprule
+$k$ & train=openr1/eval=openr1 & train=openr1/eval=wikitext & train=wikitext/eval=openr1 & train=wikitext/eval=wikitext \\
+\midrule
+8  & 0.1018 & 0.0555 & 0.0787 & 0.0885 \\
+16 & 0.0399 & 0.0238 & 0.0346 & 0.0339 \\
+24 & 0.0145 & 0.0084 & $-0.0025$ & 0.0098 \\
+32 & 0.0034 & 0.0021 & $-0.0004$ & 0.0032 \\
+48 & $-0.0002$ & 0.0006 & 0.0010 & 0.0007 \\
+64 & $-0.0000$ & $-0.0001$ & $-0.0000$ & 0.0000 \\
+\bottomrule
+\end{tabular}
+\caption{Table A4e: the full $2\times2$ (train-corpus $\times$
+eval-corpus) truncation-damage grid, \texttt{raw\_mean}, mean over 3
+seeds, nats/token. At every $k$ where damage is non-trivial (8, 16, 24),
+home-trained models show \emph{more} truncation damage than
+cross-domain-trained models scored on the same eval text -- entangling
+Table A4c's headline gap with training competence, not text content
+alone. \texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.3.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{cccc}
+\toprule
+Train corpus & Eval corpus & Val loss & Tier \\
+\midrule
+openr1   & openr1   & $2.0668 \pm 0.0124$ & home \\
+openr1   & wikitext & $8.2944 \pm 0.0536$ & cross \\
+wikitext & openr1   & $11.2216 \pm 0.1792$ & cross \\
+wikitext & wikitext & $4.6881 \pm 0.0070$ & home \\
+\bottomrule
+\end{tabular}
+\caption{Table A4f (Q3): final-checkpoint (step 6103) cross-corpus val
+loss, mean $\pm$ SD over 3 seeds -- sanity read only, contextualizing
+Table A4e's home-vs-cross damage asymmetry; no rank claim is drawn from
+this table. \texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.4.}
+\end{table}
+
+\clearpage
+\subsection{Table A5: compute accounting, all waves in this paper's evidence base}
+\label{tab:a5-compute}
+
+Method: serial sum of each run's own logged \texttt{wall\_s} field (house
+convention). Rows marked with a dagger ($\dagger$) are figures the design
+doc states directly; rows marked with a double dagger ($\ddagger$) were
+computed for this table by summing the \texttt{wall\_s} field directly out
+of the cited raw JSON archive (the same method, applied where the design
+doc itself did not already tabulate a wave-level total) -- cross-checked
+against the F-geo-3 wave, where both methods agree to 3 decimal places
+($1.6688$ computed vs.\ $1.67$ quoted, \S16.10).
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\begin{tabular}{p{3.6cm}p{3.6cm}p{5.6cm}rl}
+\toprule
+Program & Wave & Scope & GPU-h & Source \\
+\midrule
+\multicolumn{5}{l}{\textit{A. Synthetic causal-rank chain (\texttt{DELTANET\_CAUSAL\_RANK\_DESIGN.md})}} \\
+Causal-rank (synthetic) & Wave $-1$ + Wave 0 screening & $d\in\{64,128\}$ screen, 15 runs (2 partial as archived) $\dagger$ & 10.05 & \S12.7 \\
+Causal-rank (synthetic) & B-probe & train-time force-rank calib., fr31/fr32/fr33\_s1 $\dagger$ & 19.87 & \S12.8.6 \\
+Causal-rank (synthetic) & Eval-truncation staircase & 3 retrains + staircases $\dagger$ & 0.92 & \S12.8.6 \\
+Causal-rank (synthetic) & F11 reserve wave & multi-head generality, $H\in\{2,4\}\times3$ seeds, 6 cells $\ddagger$ & 3.66 & \texttt{experiment-runs/2026-07-02\_deltanet\_waves/reservemh/} \\
+\textbf{Subtotal A} & & & \textbf{34.50} & \\
+\midrule
+\multicolumn{5}{l}{\textit{B. Real-data rank necessity (\texttt{DELTANET\_REALDATA\_DESIGN.md})}} \\
+Real-data (RD) & Wave $-1$ (RD) & incl.\ 2 pre-\texttt{svd\_lowrank} eigh-crash attempts $\dagger$ & 2.27 & \S15.3 \\
+Real-data (RD) & Wave 0, original (collapsed) & 10/10 complete $\dagger$ & 1.71 & \S15.3 \\
+Real-data (RD) & Wave 0, rerun (index fix + NCE) & 10/10 complete $\dagger$ & 6.61 & \S15.3 \\
+Real-data (RD) & Wave A & $K\in\{8,16,24,32\}$ screen + $K{=}16$ composition, 11/11 $\dagger$ & 6.39 & \S16.9 \\
+Real-data (RD) & Bprobe (RD) & train-time force-rank $k\in\{K{-}1,K,K{+}1\}$, 3/9 complete + 6 in-flight at archive-pull time $\dagger$ & 12.04 & \S17.10 (archive-pull-time figure; see caveat below) \\
+Real-data (RD) & Deephop (full grid) & $K\in\{8,16,24,32\}\times h_{train}\{1..5\}\times3$ seeds + 2.5$\times$ budget guards, 21 cells $\ddagger$ & 10.60 & \texttt{experiment-runs/2026-07-03\_deltanet\_rd\_waves/deephop/} \\
+Real-data (RD) & Wave C+D (Wave 2) & LM pretrain (6 cells) + truncation grid (6 cells), post-hoc analysis $\ddagger$ & 0.47 & \texttt{experiment-runs/2026-07-04\_lm\_rd\_wave2/\{waveC,waveD\}/AGGREGATE.json} \\
+\textbf{Subtotal B} & & & \textbf{40.09} & \\
+\midrule
+\multicolumn{5}{l}{\textit{C. RD-exactness fix waves (\texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md})}} \\
+RD-exactness & Wave F (soft arms) & F-geo-1 ($\lambda\in\{0.1,1.0\}$) + F-geo-2 (ZCA) $\times K\in\{16,32\}\times3$ seeds, 18 cells $\ddagger$ & 10.20 & \texttt{experiment-runs/2026-07-03\_deltanet\_rd\_waves/exactness/waveF/} \\
+RD-exactness & Arm-iii-$\beta$ fresh reruns & measured-$\beta$ synthesis, 5 cells $\ddagger$ & 0.87 & \texttt{experiment-runs/.../waveF/w1\_iiibeta\_*.json} \\
+RD-exactness & F-geo-3 wave & 9 cells (\texttt{n\_iter=12}$\times$6 + \texttt{n\_iter=20} escalation$\times$3) $\dagger$ & 1.67 & \S16.10 (cross-checked $\ddagger$: 1.6688) \\
+\textbf{Subtotal C} & & & \textbf{12.74} & \\
+\midrule
+\multicolumn{5}{l}{\textit{D. Key-anchoring fix/mechanism program (\texttt{KEY\_ANCHORING\_DESIGN.md}), own 80 GPU-h ceiling}} \\
+Key-anchoring & Rounds 1--5 & initial + confirm + mechanism-tier + constancy-ablation (e) + $K{=}48$ capacity, incl.\ 1 rejected rescore attempt $\dagger$ & 55.83 & \texttt{KEY\_ANCHORING\_DESIGN.md} \S9--\S11; \texttt{NARRATIVE.md} \\
+Key-anchoring & Round 6 & capacity-cliff localization, $d{=}64$, $K\in\{34,38,42,46\}\times3$ seeds, 12 cells $\dagger$ & 3.18 & \texttt{KEY\_ANCHORING\_DESIGN.md} \S12.9 (l.6855); \texttt{NARRATIVE.md} \\
+Key-anchoring & Round 8 & universality test, $d{=}128$, $K\in\{68,76,84,92\}\times3$ seeds, 12 cells $\dagger$ & 7.313 & \texttt{KEY\_ANCHORING\_DESIGN.md} \S13.10 (l.8129/8209) \\
+Key-anchoring & Round 9 & rank-4 coherence dose-response, $d{=}128$, 10 cells $\dagger$ & 6.2742 & \texttt{KEY\_ANCHORING\_DESIGN.md} \S14.12 (l.9597/9709) \\
+Key-anchoring & Round 10 & diffuse coherence dose-response, $d{=}128$, 9 cells $\dagger$ & 5.6330 & \texttt{KEY\_ANCHORING\_DESIGN.md} \S14.13 (l.9828/9887) \\
+\textbf{Subtotal D (program total)} & & & \textbf{78.227} & vs.\ own 80 GPU-h ceiling \\
+\midrule
+\multicolumn{5}{l}{\textit{E. Frozen-bias LM transplant side-chapter (\texttt{FROZEN\_BIAS\_LM\_DESIGN.md}), own separate 135 GPU-h ceiling}} \\
+Frozen-bias (rung-1) & Round 7 & 20 mandatory cells, 2 corpora, 14M-param DeltaNet LM: 5.05 training + 1.6 measurement eval + 0.25 calibration $\dagger$ & 6.90 & \texttt{FROZEN\_BIAS\_LM\_DESIGN.md} VERDICT (l.3153/3261) \\
+\textbf{Subtotal E} & & & \textbf{6.90} & \\
+\midrule
+\textbf{Grand total, programs A--E} & & & \textbf{172.46} & \\
+\bottomrule
+\end{tabular}
+\caption{Table A5: compute accounting, realized GPU-hours per wave, all
+waves in this paper's evidence base. Caveat on the RD Bprobe row: the
+quoted 12.04 GPU-h is the wall\_s sum at the archive-pull timestamp (3 of
+9 \texttt{fr16} runs complete to 20{,}000/20{,}000 steps; the other 6
+\texttt{fr15}/\texttt{fr17} runs were still in flight and later confirmed
+timed out at $\sim$16{,}000--18{,}400/20{,}000 steps per \S17.7's
+\texttt{[FINAL 2026-07-03]} note -- no later re-summed total is recorded
+in the source, so this is the last measured figure on record, not a final
+closed total. Excluded from this table: the much larger 98M/392M-scale
+``fix-at-scale'' extension of \texttt{FROZEN\_BIAS\_LM\_DESIGN.md}
+(a $\sim$281--300 GPU-h ledger, $\sim$130 GPU-h realized as of its own
+latest revision) -- it is not cited anywhere in this paper's main-text
+sections (\S\ref{sec:intro}--\S\ref{sec:reproducibility}) and, per
+\texttt{NARRATIVE.md}'s own framing of the small rung-1 wave already in
+this table, is a separate program one tier removed from this paper's
+evidence base; flagged here rather than silently included or omitted.}
+\end{table}
