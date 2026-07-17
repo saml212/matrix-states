@@ -559,3 +559,182 @@ to Q^T Q = I because the encoder output is degenerate/untrained).
 `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-16_ncr_ortho_write/`
 (SSD mirror). Raws: 24 primary JSONs + 16 axis_c_lock + run/finisher logs + the
 pinned run script `ncr_ortho_write.py` (md5 83b5d7bd…).
+
+---
+
+## §10 POST-FAIL CODE RE-AUDIT (2026-07-17)
+
+Independent, read-only code auditor. The §9 behavioral verdict is FAIL; this
+section answers the one question the verdict cannot: **is the FAIL a MECHANISM
+(the constraint as parametrized is genuinely not stably trainable) or a BUG (an
+implementation defect a fix would reverse)?** Method: static analysis of the
+pinned script (`ncr_ortho_write.py`, md5 `83b5d7bd273e9e83698fed27a9f2ef45` —
+byte-identical to the canonical `matrix-thinking/ncr/ncr_ortho_write.py` and the
+on-box run) + four CPU repros importing the EXACT pinned `newton_schulz_polar`
+and the real training modules (`.venv` torch 2.8.0 / numpy 2.0.2). Repro
+scripts and full logs archived in scratchpad; the load-bearing numbers are
+reproduced inline below.
+
+### §10.0 Verdict (up front): **(C) MECHANISM-CONFIRMED — the code is faithful; no bug.**
+
+`newton_schulz_polar` is a correct NS polar iteration; the pre-scale is
+computed per-forward from the live matrix and is essentially exact; the wiring,
+dtype (pure fp32, no autocast), and gradient path are all correct. The FAIL is
+a genuine **optimization pathology of the hard NS-polar parametrization**, not a
+defect. Specifically: in the tight-spare `d=K+1` regime the encoder's write is
+driven into an **ill-conditioning runaway** (an unconstrained/scale-free
+near-singular direction), where (i) 40 NS iterations no longer orthogonalize the
+output and (ii) the polar-projection backward Jacobian **explodes ~1/σ_min**;
+grad-clipping to norm 1.0 then converts the explosion into task-destroying unit
+steps. At the target scale K=24/32 this ill-conditioned basin is **absorbing**
+(the §9 loss dips then collapses to ~1.0 permanently). Nuance that keeps this
+honest: the orthogonal target itself is NOT infeasible — at K=8 the same ortho
+arm escapes the trap and converges (loss 0.0017), and the free-write K24 arm
+reaches a naturally near-orthogonal operator (cond 1.0) on its own. So the
+recommendation is NOT "abandon orthogonality" but "change the parametrization so
+the near-singular trap cannot form" — the pre-registered §2 fallback.
+
+### §10.1 Checklist item 1 — NS convergence-domain / basin violation (the prime suspect): **REFUTED.**
+
+The cubic NS map on singular values is `σ ← 1.5σ − 0.5σ³`, convergent to 1 only
+for `σ ∈ (0, √3)`. The code pre-scales `X₀ = Z/σ̂` with `σ̂` a DETACHED,
+deterministic ones-init power iteration (`n_power=12`) — computed **per-forward
+from the live matrix**, not stale. Repro 1a (d=33, imposed cond 1…1e6): the
+power-iter estimate is essentially exact, `est/true ∈ [0.9998, 1.0000]`, so the
+post-scale true σ_max is `≤ 1.0002` in every case — **never near √3=1.732**. NS
+cannot diverge from a bad pre-scale here; the basin-violation hypothesis is dead.
+Repro 1b confirms the forward: with the pre-scale, NS at n_iter=40 orthogonalizes
+to `‖QᵀQ−I‖≈0.0000, cond(Q)=1.00` for input cond up to **1e6**, only degrading at
+cond ≥1e7 (err 0.31) / 1e8 (err 1.89) — i.e. NS is correct and robust across the
+entire realistic range.
+
+### §10.2 Item 2 — gradient path through 40 iterations: flows correctly, but EXPLODES as σ_min→0.
+
+There is no detach/straight-through/no_grad on the projection itself (only the
+scalar σ̂ pre-scale is detached, which merely fixes the gradient's scale and
+preserves direction). Gradient reaches the pre-projection encoder params. BUT
+Repro 2 (d=33, one tiny singular value, loss=`sum(Q)`): `‖dL/dZ‖_F ≈ 24` for
+σ_min ≥ 1e-6, then **`4.6e7` at σ_min=1e-8** — the polar-Jacobian `1/(σ_i+σ_j)`
+blowup. Crucially this value is *finite*, so the runner's `isfinite` guard does
+NOT skip it (matches the archived `n_skipped_steps = 0–2`): the explosion is
+**clipped to norm 1.0 and applied** as a unit step in a task-irrelevant
+(near-singular) direction. This is the destabilizer.
+
+### §10.3 Item 3 — numerical precision: clean (not the cause).
+
+The NS loop casts bf16/fp16 inputs up to fp32 (`X = Z if Z.dtype in
+(float32,float64) else Z.float()`) and the training loop (`train_earlyln_cell`)
+runs with NO autocast — the encoder emits fp32, NS runs fp32, `orig_dtype` is
+fp32. 40 iterations in fp32 is fine; precision is not the failure. (The
+`Xn.to(orig_dtype)` round-trip would matter only under bf16 training, which does
+not occur here.)
+
+### §10.4 Item 4 — wiring: correct. Projection is per-write, pre-storage; eval reads the projected operator.
+
+`encode()` applies `newton_schulz_polar` to the encoder output and returns it;
+`z_dump`, `binexp_read`, `eval_cell`, `realistic_ladder_eval` and the spectral
+diagnostics all consume that projected `Z`. Confirmed empirically from the
+archived z-dumps: ortho cells have stored **σ_max = 1.000 exactly** (an NS fixed
+point — proof the projection ran on the stored operator), free cells have σ_max
+3–6 (unprojected). No init-only / wrong-tensor / post-read degeneracy. The
+flag-off path is byte-identical to `NCREarlyLNModel` (free arm σ_max≠1 confirms).
+
+### §10.5 Item 5 — loss interaction: none. No auxiliary/regularizer fights the projection.
+
+The only loss is `cosine_loss` on the projected read; `orthogonality_error` is
+used solely in diagnostics/self-test, never in training. The constraint is
+enforced by projection, not penalty, so there is nothing to fight. (This is
+itself relevant to the fix — see §10.8.)
+
+### §10.6 Item 6 — why the step-0 CPU smoke passed: it could not see a training-drift-only pathology.
+
+Repro 2b: on a random-Gaussian d=33 (what the encoder emits at init) the raw
+σ_min sits ~1e-2 (cond 50–500), NS orthogonalizes to err 0.0000, and grad norm
+is a benign 4–70. Everything the step-0 smoke checks (forward, backward,
+finite grad, `QᵀQ≈I`, ortho-no-worse-than-free at 4 steps) is TRUE at init. The
+failure is a **drift-only** phenomenon: it requires SGD to first push a singular
+value below ~1e-7, which the smoke's 0–4 steps never reach. The §5 in-silico
+polar preview is blind for the same reason — it polar-projects an *already
+well-conditioned converged* free operator ONCE (K32 free is cond~300, K24 free
+cond~1.0), never training THROUGH the projection while the encoder drifts singular.
+
+### §10.7 The mechanism, measured on the archived run and reproduced locally
+
+**(a) The stored ortho operator is itself non-orthogonal / rank-deficient — NS's
+forward did not converge on it.** Direct `‖QᵀQ−I‖` and SVD of the archived
+`z_dump.Z` (the projected operator):
+
+| cell (per-example range) | σ_max(Q) | σ_min(Q) | cond(Q) | eff_rank | scaled ‖QᵀQ−I‖ |
+|---|---|---|---|---|---|
+| ortho_K32_s0 | 1.000 | 0.017–0.035 | 28–59 | 27.7–29.1 | 3.5–4.0 |
+| ortho_K32_s3 | 1.000 | 0.0017–0.0041 | 244–592 | 17.7–18.4 | 10.4–10.7 |
+| ortho_K24_s0 | 1.000 | 0.0014–0.0053 | 189–706 | 13.8–14.3 | 11.7–12.9 |
+| free_K32_s0 (wall) | ~3.0 | ~0.01 | 248–466 | 31.9 | ~1.3 |
+| free_K24_s0 (healthy) | ~6.2 | ~6.0 | **1.0** | **25.0** | 0.08 |
+
+The ortho operator has σ_max pinned to 1 (top mode is an NS fixed point) but a
+**collapsed bottom mode** (σ_min down to 1.4e-3), so it is NOT orthogonal and
+eff_rank fell below K. Back-solving NS growth (`σ≈1.5×/iter` while small): a
+stored σ_min≈2.4e-3 after 40 iters implies the *raw encoder* σ_min was ≈**1e-9**
+relative to σ_max, i.e. **encoder cond ≈1e8** — three-plus orders past the init
+cond≈8500 that n_iter=40 was calibrated for (Repro 1c: n_iter=40 orthogonalizes
+a rank-deficient d=33 down to σ_min≈1e-6, FAILS at 1e-8 → err≈1.0, needs 80).
+By contrast free_K24 reached cond 1.0 / full rank with NO projection — proof the
+orthogonal target is a natural, trainable solution to this task.
+
+**(b) Local reproduction (K=8, d=9, identical pipeline, 4000 CPU steps).** The
+free arm converges normally (loss→0.014, raw-Z cond→1.7). The ortho arm engages
+(loss dips to ~0.17) but is **trapped for ~2000 steps in the ill-conditioning
+runaway** — raw-Z cond driven to **1e5–9.5e7**, σ_min touching **1.4e-7** (step
+1600), σ_max ballooning 5→13.3 — precisely the near-singular regime where NS's
+forward fails and its backward explodes. Then at step ~3000 it *escaped*
+(cond 9.5e7→75) and converged (loss 0.0017). **K=8 shows the trap is metastable
+and escapable at small scale; K=24/32 over 320K steps shows it is absorbing** —
+the §9 dip-then-permanent-collapse is the same trap that K8 happened to climb out
+of but the target-scale cells did not. Note `n_skipped_steps = 0` throughout in
+both the local repro and the archived cells: the failure is clipped-explosion
+destabilization, NOT NaN/Inf.
+
+**Why the encoder drifts singular in the first place.** The cosine read is
+scale-invariant and the pre-scale σ̂ is detached, so the loss exerts **zero
+pressure on σ_max** (it drifts up freely — observed 5→13) and, in the tight-spare
+`d=K+1` geometry, **zero pressure on the (d−K)=1 spare direction's magnitude**
+(the read only queries the K entity keys). That unconstrained spare σ random-walks
+downward; once it crosses ~1e-7 the polar backward explodes, clipping injects a
+task-irrelevant unit step, and conditioning worsens further — a positive-feedback
+runaway with a near-singular absorbing state. This is intrinsic to **hard-polar-
+projecting the full d×d matrix when the task only constrains a K<d subspace and
+the scale is free**; it is not a coding error.
+
+### §10.8 Recommendation (grounded in the mechanism)
+
+Per §4, the pre-registered next move on FAIL is a §2 fallback or a softer
+spectral penalty — NOT more budget. The audit sharpens the choice:
+
+1. **PRIMARY — skew-symmetric group parametrization (§2 fallback: Cayley
+   `Q=(I−W)(I+W)⁻¹` or matrix-exp `Q=expm(W−Wᵀ)` on a learned skew `W`).** This
+   structurally **eliminates the failure mechanism**: it never inverts a
+   near-singular matrix (Cayley inverts `I+W`, always well-conditioned since W
+   skew ⇒ eigenvalues `1±iθ`, |·|≥1), orthogonality is EXACT at every step (not
+   approached by an iteration that can stall), and there is no free scale or
+   unconstrained spare direction to run away. The free_K24 result (a fully
+   orthogonal d×d operator is naturally reached and recovers all depths) and the
+   K8 ortho convergence both show the *target* is trainable — only the *hard-NS
+   route to it* is trapped. Do NOT bump `n_iter` (it worsens the backward
+   explosion) and do NOT just raise budget (the state is absorbing at scale).
+
+2. **Cheap confirmatory test BEFORE committing the fallback (≤0.5 GPU-h, or CPU):**
+   re-run ONE ortho K=24 cell with NS-polar plus a **raw-Z conditioning
+   regularizer** — a σ_min floor / `Z ← Z + εI` damped polar, or a small penalty
+   on `σ_max` growth and `σ_min` collapse of the raw encoder output. If that
+   single change rescues Gate-0 convergence, it *confirms* the ill-conditioning
+   trap is the cause (and is itself a viable, minimal-change fix — the "softer
+   spectral" branch of §2). This is the decisive mechanism-vs-artifact check and
+   costs almost nothing.
+
+**Bottom line for the coordinator:** the FAIL is real and correctly recorded; the
+code is faithful (no bug to fix that would reverse it); proceed to the §2
+skew-symmetric (Cayley / matrix-exp) parametrization, optionally gated by the
+one-cell damped-polar confirmatory test above. The K=32 far-depth wall itself
+(the free arm) is untouched by this — it remains the genuine phenomenon the next
+parametrization must crack.
