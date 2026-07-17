@@ -5,69 +5,58 @@
 % the completed K=32 n_iter=20 escalation cells (same archive directory).
 % ENDING RESOLVED — no open numbers remain in this section.
 
-\subsection{The pre-spend gate}
-\begin{itemize}
-  \item Predicted $K16\ h4{=}1.00$, $K32\ h4{=}0.77$ from measured
-    cross-episode drift ($0.94$ at $K{=}16$, $0.90$ at $K{=}32$) ---
-    training stabilizes keys relative to the untrained-probe reference,
-    resolving the attack's cross-episode-drift risk favorably enough to
-    authorize launch. (The gate was registered on $K{=}16$ only; the
-    $K{=}32$ prediction was explicitly non-gating --- load-bearing for
-    the pre-mortem answer on simulator calibration.)
-\end{itemize}
+The pre-spend gate described in Section~\ref{sec:the-fix} predicted
+$K16\ h4{=}1.00$ and $K32\ h4{=}0.77$ from measured cross-episode drift
+($0.94$ at $K{=}16$, $0.90$ at $K{=}32$): training stabilizes keys
+relative to the untrained-probe reference, and this resolved the attack's
+cross-episode-drift risk favorably enough to authorize launch. The gate
+itself was registered on $K{=}16$ only; the $K{=}32$ prediction was
+explicitly non-gating, which matters below as the pre-mortem answer on
+how well the simulator was calibrated.
 
-\subsection{K=16: minimum-publishable headline --- HIT (Fig.~7 left)}
-\begin{itemize}
-  \item 3/3 admissible seeds. $h{=}4$: $0.95$--$1.00$ vs.\ bar $\geq 0.8$,
-    vs.\ baseline $0.42$--$0.47$. $h{=}7$: $0.55$--$0.67$ vs.\ baseline
-    $0.07$--$0.10$. $h{=}1$ no-sacrifice: $1.0$ everywhere.
-\end{itemize}
+\subsection{K=16: Minimum-Publishable Headline --- Hit}
 
-\subsection{K=32: $\sim$45$\times$, fully admissible, bar narrowly missed
---- and the miss is attributed (Fig.~7 right)}
-\begin{itemize}
-  \item \textbf{Move 1 --- admissibility CLEARED.} The original
-    \texttt{n\_iter=12} cells were 0/3 admissible solely on the
-    Newton-Schulz fallback criterion (56/20{,}000 steps $= 0.28\%$ eigh
-    fallback --- disqualifying under item 2 of the substitute stack, per
-    pre-registration). The audit-verified \texttt{n\_iter=20} escalation
-    completed: ALL 3 seeds fully admissible --- ZERO fallback steps,
-    every substitute-stack criterion passed. The improvement is claimable
-    at full evidentiary tier: $h{=}4$: $0.009 \to 0.390/0.416/0.504$
-    ($\sim$45$\times$); ID $h{=}2$: $1.0$ vs.\ baseline $0.26$; $h{=}3$:
-    $0.87$--$0.95$ vs.\ $0.05$. Admission-stack difference drops to a
-    footnote (both stacks + realized pass rates still named).
-  \item \textbf{Move 2 --- headline bar ($\geq 0.5$) NOT met; honest
-    narrow miss, reported exactly.} $h{=}4 = 0.504/0.416/0.390$, mean
-    $0.44$; 1/3 seeds at the line. Never rounded up, never restated as
-    ``approximately met.''
-  \item \textbf{Move 3 --- the miss is ATTRIBUTED.} Trained cross-episode
-    key drift at $K{=}32$ measured $0.9037 < 0.95$ = the pre-registered
-    HIGH band (pinned before the wave ran) $\Rightarrow$ outcome F:
-    ``stable-not-just-orthogonal geometry is the bottleneck'' --- the
-    mechanism the adversarial round (finding F1) named and measured in
-    advance. Within-episode orthogonality is delivered ($\mathrm{resid}
-    \approx 0$ by construction); cross-episode key IDENTITY is the
-    residual requirement (per-identity $v_{\mathrm{eff}}$ cannot chase an
-    episode-conditional key). Follow-on --- cross-episode key
-    anchoring/stabilization (the direction named in the design's own
-    outcome-F row) --- \textbf{has since run to completion across four
-    waves; see the dedicated sub-section below, not future work.}
-  \item \textbf{Fallback-irrelevance finding (report alongside).} The
-    \texttt{n\_iter=20} cells (zero fallbacks) are numerically IDENTICAL
-    to the \texttt{n\_iter=12} cells (56 fallbacks): $0.504/0.416/0.390$
-    vs.\ $0.39$--$0.50$. The 56 ``corrupted'' steps changed nothing ---
-    the residual gap is drift, not solver noise. This both validates the
-    admission criterion as conservative (not explanatory) and rules out
-    solver health as a competing account of the bar miss.
-  \item Frame sentence for the section (and the paper): \emph{the fix
-    moves the frontier decisively at $K{=}16$ (bar hit 3/3), moves it
-    $\sim$45$\times$ at $K{=}32$ without clearing the pre-registered bar,
-    and the residual gap is attributed to a pre-measured second
-    mechanism} --- a complete causal chain, no loose ends.
-\end{itemize}
+Every one of 3/3 seeds is admissible. Held-out four-hop recovery reaches
+$0.95$--$1.00$ against the pre-registered bar $\geq0.8$ and the baseline
+$0.42$--$0.47$; $h{=}7$ reaches $0.55$--$0.67$ against a baseline of
+$0.07$--$0.10$; the $h{=}1$ no-sacrifice guard holds at $1.0$ everywhere
+(Figure~\ref{fig:fgeo3-headline}, left).
 
-% Data: experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/
+\subsection{K=32: \texorpdfstring{$\sim$45$\times$}{~45x}, Fully
+Admissible, Bar Narrowly Missed --- and the Miss Is Attributed}
+
+This is the paper's central honest disclosure, and we report it in the
+order the evidence resolved it, not the order that reads best.
+\textbf{Admissibility.} The original \texttt{n\_iter=12} cells were 0/3
+admissible, disqualified solely on the Newton-Schulz fallback criterion
+($56/20{,}000$ steps $=0.28\%$ eigh fallback, per the substitute stack of
+Section~\ref{sec:the-fix}). The audit-verified \texttt{n\_iter=20}
+escalation completed with all 3 seeds fully admissible --- zero fallback
+steps, every substitute-stack criterion passed --- so the improvement
+below is claimable at full evidentiary tier: $h{=}4$ moves
+$0.009\to0.390/0.416/0.504$, a $\sim$45$\times$ improvement; $h{=}2$
+reaches $1.0$ against a baseline of $0.26$; $h{=}3$ reaches
+$0.87$--$0.95$ against $0.05$. \textbf{The headline bar
+($\geq0.5$) is not met.} $h{=}4 = 0.504/0.416/0.390$, mean $0.44$, with
+only $1/3$ seeds at the line. We report this exactly, never rounded up
+and never restated as ``approximately met.'' \textbf{The miss is
+attributed, not left unexplained.} Trained cross-episode key drift at
+$K{=}32$ measures $0.9037$, inside the pre-registered high-drift band
+($<0.95$) that an earlier adversarial round named and measured
+\emph{before} this wave ran --- the mechanism the design's own outcome-F
+row predicted. Within-episode orthogonality is delivered by construction
+(residual $\approx0$); cross-episode key \emph{identity} is the residual
+requirement, since a per-identity $v_{\mathrm{eff}}$ cannot chase an
+episode-conditional key. This is not left as future work: the direct
+follow-on --- cross-episode key anchoring --- has since run to completion
+across four waves, reported below. A companion finding rules out a
+competing account of the miss: the \texttt{n\_iter=20} cells (zero
+fallbacks) are numerically identical to the \texttt{n\_iter=12} cells (56
+fallbacks), $0.504/0.416/0.390$ vs.\ $0.39$--$0.50$. The 56
+``corrupted'' steps changed nothing, which both validates the admission
+criterion as conservative rather than explanatory and rules out solver
+noise as a competing account of the residual gap.
+
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.98\textwidth]{figures/fig07_fgeo3_headline.pdf}
@@ -85,127 +74,71 @@
   \label{fig:fgeo3-headline}
 \end{figure*}
 
-\subsection{What does NOT move: $h{=}21$}
-\begin{itemize}
-  \item Literal-depth composition STILL COLLAPSES under F-geo-3 ---
-    orthogonality fixes write-time interference between bindings, not the
-    separate iteration-compounding mechanism
-    (\S\ref{sec:phenomenon}'s depth-amplification law).
-  \item Name explicitly as the fix's own scope boundary, not a gap in the
-    evidence.
-\end{itemize}
+\subsection{What Does Not Move: h=21}
 
-\subsection{The key-anchoring program's results (completed, Fig.~10,
-Fig.~11) --- not a forward-reference}
-\begin{itemize}
-  \item This sub-section reports, in order, the four things the
-    outcome-F follow-on program (\S\ref{sec:the-fix}) established. It
-    closes what an earlier stage of this project left as its single most
-    open thread; see \S\ref{sec:the-fix} for the full arc and gating
-    history and Fig.~10/Fig.~11 for the figures.
-  \item \textbf{(1) The behavioral gain, independently replicated.} $K{=}32$
-    $h{=}4$ recovery lifts from a freshly-measured baseline $0.4105$ to
-    $0.61$--$0.71$ across 9 seed-runs, 3 distinct seed sets, 2 architecture
-    variants (global-$\lambda$ candidate (d), per-entity-$\lambda$
-    candidate (d$'$)) --- upgraded from ``reproduced'' to ``independently
-    replicated'' because 6 of the 9 runs used genuinely fresh seeds never
-    drawn anywhere in this program before.
-  \item \textbf{(2) The mechanism rejection (Outcome C), confirmed twice.}
-    A per-entity engagement instrument reads $<$14--41\% engagement at
-    every $K{=}32$ leg, both architecture variants, immune to the specific
-    objections (anchor-norm assumption, $\lambda$-degeneracy,
-    power-manufactured engagement) that forced a rescue attempt's own
-    rejection.
-  \item \textbf{(3) The confirmed explanation (constancy suffices, by
-    ablation).} A frozen, never-trained anchor table (random or
-    frame-potential init) at the same blend weight matches or exceeds the
-    learned table's own gain ($0.67$--$0.76$ vs.\ $0.61$--$0.71$); a
-    negative-median $r_e$ reading in the pure-random arm confirms the
-    engagement instrument correctly reports ``nothing to align to.'' This
-    is CONFIRMED-BY-ABLATION: a falsifiable prediction was registered
-    before the confirming data existed, and it held.
-  \item \textbf{(4) The measured capacity boundary.} Extending the
-    identical design to $K{=}48$ ($K/d{=}0.75$): fully admissible (3/3),
-    both named explanatory channels (drift-space closure $\sim$81\% of the
-    gap; value-Gram relief $0.626\times$ the reference) measurably active,
-    bar still missed 0/3 seeds (mean $0.0215$ vs.\ $0.024434$). The
-    capacity curve completes as a cliff ($\sim$1.00 $\to$ $\sim$0.65 $\to$
-    $\sim$0.02 at $K/d{=}0.25/0.5/0.75$), not a smooth decline, while the
-    theoretical ceiling declines only gently over the same range.
-  \item \textbf{(5) The boundary, located, then dissolved, then its
-    leading confound exonerated (Fig.~cliff, Fig.~dose) --- three further
-    waves completed after (4).} A dedicated localization wave fits the
-    cliff's midpoint to $x_0{=}0.5455$ (95\% seed-level bootstrap CI
-    $[0.5385,0.5513]$, width $0.0127$, $w{=}0.0597$) at
-    $d_{\mathrm{state}}{=}64$, a $\sim$20$\times$ tightening over the
-    prior 0.25-wide two-anchor bracket, from six points including four new
-    intermediate loads ($K{=}34,38,42,46$). Re-running the identical
-    $K/d$ window at $d_{\mathrm{state}}{=}128$ ($K{=}68,76,84,92$) shows
-    $h4{=}1.0$ at all four loads, all seeds, 12/12 cells --- the
-    transition is not shifted, it exits the measured window entirely
-    (CONFIRM-SHIFTED, strong form). The leading confound between the two
-    scales --- anchor-table coherence, forced upward by the Welch bound
-    only when entity count exceeds $d_{\mathrm{state}}$ --- is tested
-    directly: holding $d_{\mathrm{state}}{=}128$, $K{=}68$ fixed and
-    injecting controlled, frozen coherence up to $0.40$ (exceeding
-    $d{=}64$'s own realized training band, $0.373$--$0.385$) under a
-    concentrated rank-4 structure produces $h4{=}1.0$ at every dose,
-    10/10 cells, no exception --- the strongest exoneration this design
-    can produce for that structure. Neither of the two most naturally
-    testable single-variable accounts ($K/d$ ratio; scalar rank-4
-    coherence) is sufficient; overlap structure (diffuse injection,
-    PI-gated) and raw state capacity remain live, unadjudicated
-    candidates.
-  \item \textbf{(6) A fourth completed wave tests the raw-state-capacity
-    candidate directly and finds SUPER-LINEAR, not ratio-invariant,
-    growth.} Re-fitting the identical localization procedure at
-    $d_{\mathrm{state}}{=}80$ and $d_{\mathrm{state}}{=}96$ locates
-    $d{=}80$'s transition at $x_0{=}0.6779$ (95\% CI $[0.6683,0.6867]$,
-    clean fit, $n{=}5$ seeds/$K$) --- entirely excluding the
-    pre-registered ratio-invariant band $[0.4745,0.6165]$ centered on
-    $d{=}64$'s own $x_0{=}0.5455$. \textbf{At $d_{\mathrm{state}}{=}96$, a
-    wider grid ($K{=}72,78,84,90$) initially flagged 11 of 12 new cells
-    inadmissible; an independently-audited repro instrument diagnosed a
-    tolerance miscalibration in the convergence gate (all 4,608 flagged
-    episodes resolve by $n_{\mathrm{iter}}{\leq}28$ against a production
-    $n_{\mathrm{iter}}{=}20$), and the admission flag alone --- never the
-    $h4$ measurement --- was recalibrated, unlocking the full grid at
-    zero new GPU spend.} The re-fit on the complete, unlocked grid
-    ($K{\in}\{69,72,78,84,90\}$, $n{=}3$/$K$) finds NO cliff anywhere
-    through $K/d{=}0.9375$, but a non-monotonic curve
-    ($h4$ means $0.9592/0.9216/0.9326/0.9581/1.0000$: a dip at
-    $K{=}72/78$, partial recovery at $K{=}84$, an exact ceiling at
-    $K{=}90$ in these archived seeds --- a fresh-seed pool-margin
-    diagnostic does not replicate the exact-ceiling reading and finds
-    both cells inadmissible instead, \S\ref{sec:discussion}) that the
-    sigmoid fit cannot localize --- 100\% of 4,000
-    bootstrap resamples land at the fit's own degenerate parameter
-    bounds. This rules out fixed-ratio invariance as cleanly as the
-    $d{=}128$ wave ruled out ``the cliff never moves''; neither the
-    absolute-slack band ($[0.718,0.739]$) nor the power-law band
-    ($[0.768,0.837]$) is confirmed or excluded --- the precise functional
-    form, and the exact $d_{\mathrm{state}}{=}96$ transition point, remain
-    open, now for a scatter/power reason rather than a data-availability
-    one. Seed escalation at the noisiest group ($K{=}72$, per-seed range
-    $0.8426$--$0.9904$) is the registered next step, not launched by this
-    wave.
-  \item State plainly, as the paper's own honesty discipline requires: the
-    behavioral gain is real and its cause is now known (constancy,
-    confirmed by ablation); the originally-hypothesized entity-alignment
-    mechanism is rejected; the fix's regime is bounded at
-    $K/d{\leq}0.5$; that boundary is now precisely located and shown to
-    dissolve with scale; the leading single-variable account of that
-    dissolution is directly tested and exonerated, not merely assumed;
-    and the raw-state-capacity candidate left open by that exoneration is
-    itself now directly tested, ruling out simple ratio-invariance while
-    leaving its exact functional form for a not-yet-launched follow-up.
-    No unexplained residual remains on this thread except the two
-    explicitly named, not-yet-fully-adjudicated mechanistic candidates.
-\end{itemize}
+Literal-depth composition still collapses under F-geo-3: orthogonality
+fixes write-time interference between bindings, not the separate,
+iteration-compounding mechanism of Section~\ref{sec:phenomenon}'s
+depth-amplification law. We name this as the fix's own scope boundary, a
+mechanism explicitly scoped out, not a gap in the evidence.
 
-% Data: experiment-runs/2026-07-05_keyanchor_wave/,
-% 2026-07-05_keyanchor_confirm/, 2026-07-06_keyanchor_mech/,
-% 2026-07-07_keyanchor_e/
+\subsection{The Key-Anchoring Program's Results}
+
+Section~\ref{sec:the-fix} introduces the anchoring follow-on and its
+headline; here we report the numbers behind it, in the order the four
+waves established them. \textbf{(1) The behavioral gain, independently
+replicated.} $K{=}32$ $h{=}4$ recovery lifts from a freshly-measured
+baseline of $0.4105$ to $0.61$--$0.71$ across 9 seed-runs spanning 3
+distinct seed sets and 2 architecture variants (global-$\lambda$
+candidate~(d), per-entity-$\lambda$ candidate~(d$'$)) --- upgraded from
+``reproduced'' to ``independently replicated'' because 6 of the 9 runs
+used genuinely fresh seeds never drawn anywhere in this program before.
+\textbf{(2) The mechanism rejection (Outcome C), confirmed twice.} A
+purpose-built per-entity engagement instrument
+(\texttt{engaged\_frac\_v3}, median $r_e$) reads under $14$--$41\%$
+engagement at every $K{=}32$ leg, both architecture variants, confirmed
+across two independent mechanism-tier waves at increasing evidentiary
+rigor (unit-anchor-norm measured directly rather than assumed; a formal
+dip-test ruling out masked bimodality; an effect-size floor ruling out
+power-manufactured engagement) and immune to a specific rescue attempt
+(a $\lambda$-scaled threshold re-derivation) that was itself
+independently attacked and rejected. \textbf{(3) The actual explanation,
+confirmed by ablation.} A frozen, never-trained anchor table (random
+init or frame-potential init, both tested) at the same blend weight
+matches or exceeds the learned table's own gain ($0.67$--$0.76$ vs.\
+$0.61$--$0.71$), with a negative-median $r_e$ reading in the random-init
+arm confirming the instrument correctly reports ``nothing to align to.''
+This is confirmed by ablation, not merely suggested by it: the
+prediction that a frozen table should match the gain if constancy alone
+is the channel was registered before the confirming data existed, and it
+held. \textbf{(4) The measured capacity boundary.} Extending the
+identical design to $K{=}48$ ($K/d{=}0.75$), candidate~(d) is fully
+admissible (3/3 seeds) and both of its own named explanatory channels
+--- drift-space closure ($\sim$81\% of the gap to ceiling) and value-Gram
+relief ($0.626\times$ the reference's deviation) --- are measurably
+active, yet the bar is still missed 0/3 seeds (mean $0.0215$ vs.\
+$0.024434$). The resulting three-point curve
+($\sim1.00\to\sim0.65\to\sim0.02$ at $K/d{=}0.25/0.5/0.75$,
+Figure~\ref{fig:capacity-curve}) is a cliff, not a smooth decline, while
+the theoretical $\lambda{=}1$ ceiling declines only gently over the same
+range ($0.97\to0.94\to0.90$): binding survives everywhere ($h{=}1$ guard
+$1.0000$ at every $K$), and it is composition that collapses. This
+cliff's precise location, its dissolution at $d_{\mathrm{state}}{=}128$,
+the direct exoneration of anchor-table coherence as its cause, and the
+super-linear (not ratio-invariant) growth of load tolerance with
+$d_{\mathrm{state}}$ are a localization program of their own, reported in
+full in Section~\ref{sec:phenomenon}'s $K{=}48$ rider
+(Section~\ref{sec:k48-rider}) together with the still-open
+$d_{\mathrm{state}}{=}96$ non-monotonic reading rather than re-derived
+here.
+
+State plainly, as the paper's own honesty discipline requires: the
+behavioral $K{=}32$ gain is real and its cause is now known (constancy,
+confirmed by ablation); the entity-alignment hypothesis originally
+proposed for it is rejected; and the fix's regime is bounded at
+$K/d\leq0.5$. This item, open at an earlier stage of this project, is now
+closed.
+
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.98\textwidth]{figures/fig10_anchoring_wave_arc.pdf}
@@ -235,8 +168,6 @@ Fig.~11) --- not a forward-reference}
   \label{fig:anchoring-arc}
 \end{figure*}
 
-% Data: experiment-runs/2026-07-06_keyanchor_mech/ (K=16/32),
-% 2026-07-07_keyanchor_k48/ (K=48)
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.8\linewidth]{figures/fig11_capacity_curve.pdf}
@@ -258,6 +189,17 @@ Fig.~11) --- not a forward-reference}
   $\sim$81\% of the gap) and value-Gram relief ($0.626\times$ the
   reference's deviation) --- both real, neither sufficient.
   \textbf{Inset:} $h{=}1$ in-distribution guard, flat at $1.0000$ across
-  all three $K$ --- binding survives, composition collapses.}
+  all three $K$ --- binding survives, composition collapses. The
+  transition's precise location and its behavior with scale are the
+  subject of Section~\ref{sec:k48-rider}.}
   \label{fig:capacity-curve}
 \end{figure}
+
+Frame sentence for the section, and for the paper's central demonstration
+as a whole: the fix moves the frontier decisively at $K{=}16$ (bar hit,
+3/3), moves it $\sim$45$\times$ at $K{=}32$ without clearing the
+pre-registered bar, and the residual gap is attributed to a pre-measured
+second mechanism whose own follow-on fix is itself now fully
+characterized --- a complete causal chain, with the boundary of what
+remains open (Section~\ref{sec:discussion}) stated as precisely as the
+boundary of what is resolved.

@@ -506,7 +506,18 @@ Key-anchoring & Round 10 & diffuse coherence dose-response, $d{=}128$, 9 cells $
 Frozen-bias (rung-1) & Round 7 & 20 mandatory cells, 2 corpora, 14M-param DeltaNet LM: 5.05 training + 1.6 measurement eval + 0.25 calibration $\dagger$ & 6.90 & \texttt{FROZEN\_BIAS\_LM\_DESIGN.md} VERDICT (l.3153/3261) \\
 \textbf{Subtotal E} & & & \textbf{6.90} & \\
 \midrule
-\textbf{Grand total, programs A--E} & & & \textbf{172.46} & \\
+\multicolumn{5}{l}{\textit{F. Scale-transfer ladder + production-model measurement (\texttt{SCALE\_TRANSFER\_DESIGN.md}), own separate 300 GPU-h ceiling}} \\
+Scale-transfer & Track A & steps-to-criterion, archived-checkpoint analysis only, 0 new GPU $\dagger$ & 0.00 & \S3.8 \\
+Scale-transfer & Track B (\texttt{TRACKB\_REDESIGN.md}) & geo3-in-LM installation attempt: Wave $-1$ + Wave 1 (18 cells) + probe; Cells 3/4 and Wave 2 never launched (stability gate refusal, $63\times$ over bar) $\dagger$ & 1.5--2.0 & \texttt{TRACKB\_REDESIGN.md} \S14 \\
+Scale-transfer & Track C, rung-1 ($\approx$98M) & 6 training + mixcontrol + probe, harvest 2026-07-04 $\ddagger$ & 27.44 & \S5.9 \\
+Scale-transfer & Track C, rung-1ext (98M mix de-confounder) & 6 training + probe, harvest 2026-07-05 $\ddagger$ & 27.29 & \S5.10 Addendum \\
+Scale-transfer & Track C, rung-2 ($\approx$392M) & training + mixcontrol + probe, harvest 2026-07-05 $\ddagger$ & 129.80 & \S5.10 \\
+Scale-transfer & Track C, rung-3 (1.31B) & training (self-terminated $\approx$84.7\% of budget, \S\ref{sec:discussion} item 1) + probe, harvest 2026-07-07 $\ddagger$ & 122.50 & \S5.11 \\
+Scale-transfer & Track D, Phase 1 & RWKV-7/Falcon-Mamba-7B/Qwen2.5-1.5B frozen-forward measurement only, no backward pass $\dagger$ & 0.90 & \S6.8 \\
+\textbf{Subtotal F (component sum} $\ddagger$\textbf{)} & & & \textbf{$\approx$309.4--309.9} & \\
+\textbf{Subtotal F (design doc's own stated program total} $\dagger$\textbf{)} & & & \textbf{312.23} & \S5.11 (vs.\ its own 300 GPU-h ceiling, over by 12.23, disclosed) \\
+\midrule
+\textbf{Grand total, programs A--F} & & & \textbf{$\approx$484.7} & using the design doc's own \S5.11-stated Program~F total \\
 \bottomrule
 \end{tabular}
 \caption{Table A5: compute accounting, realized GPU-hours per wave, all
@@ -517,12 +528,33 @@ quoted 12.04 GPU-h is the wall\_s sum at the archive-pull timestamp (3 of
 timed out at $\sim$16{,}000--18{,}400/20{,}000 steps per \S17.7's
 \texttt{[FINAL 2026-07-03]} note -- no later re-summed total is recorded
 in the source, so this is the last measured figure on record, not a final
-closed total. Excluded from this table: the much larger 98M/392M-scale
-``fix-at-scale'' extension of \texttt{FROZEN\_BIAS\_LM\_DESIGN.md}
-(a $\sim$281--300 GPU-h ledger, $\sim$130 GPU-h realized as of its own
-latest revision) -- it is not cited anywhere in this paper's main-text
-sections (\S\ref{sec:intro}--\S\ref{sec:reproducibility}) and, per
-\texttt{NARRATIVE.md}'s own framing of the small rung-1 wave already in
-this table, is a separate program one tier removed from this paper's
-evidence base; flagged here rather than silently included or omitted.}
+closed total. Caveat on Program F: \texttt{SCALE\_TRANSFER\_DESIGN.md}'s
+$\S7$ 300 GPU-h ceiling and $\S5.11$ ``program ledger: 312.23 GPU-h
+realized'' figure cover all four of its own tracks (A--D) together, not
+Track~C alone; our own component sum ($\approx$309.4--309.9, summing the
+per-rung/per-track figures the design doc states at each harvest
+subsection) lands $\approx$2.3--2.8 GPU-h below that stated total, most
+plausibly Track~C's own Wave-$-1$ calibration cost, which is not
+separately itemized in any harvest subsection we could locate --
+disclosed as an unreconciled gap rather than silently rounded away; the
+grand total above uses the design doc's own stated 312.23 figure, the
+more conservative (larger) of the two. Excluded from this table: the
+much larger 98M/392M-scale ``fix-at-scale'' extension of
+\texttt{FROZEN\_BIAS\_LM\_DESIGN.md} (own separate 300 GPU-h ceiling,
+$\approx$130.2 GPU-h realized, landed 2026-07-10) -- this is a different
+program from Program~F above: it trains its own 98M/392M checkpoints
+under the Section~\ref{sec:the-fix}--\ref{sec:results} frozen-anchor fix
+to test whether that fix's write-geometry effect transfers to a
+from-scratch LM pretraining setting, versus Program~F's Track~C, which
+measures the untouched \emph{baseline} attractor's scaling with no fix
+applied. Its resolved verdict (PARTIAL at both scales, the destabilizing
+14M sign persisting at 98M/392M) is now cited in
+Section~\ref{sec:discussion}, item~6 -- unlike the RD Bprobe caveat above,
+this is no longer an uncited exclusion, but its own $\approx$130.2 GPU-h
+ledger remains outside this table's total because the great majority of
+that program's own spend (calibration, pilots, the parked rung-2 gate
+review) supports claims outside this paper's own evidence base, per
+\texttt{NARRATIVE.md}'s own framing of the small rung-1 wave already
+included as Program~E above; flagged here rather than silently included
+or omitted.}
 \end{table}

@@ -5,65 +5,96 @@
 % NARRATIVE.md \S3 "\S3 Setup and Theory"
 
 \subsection{Architecture}
-\begin{itemize}
-  \item Vanilla single-head ($H{=}1$), single-layer DeltaNet,
-    \texttt{chunk\_delta\_rule} (production \texttt{fla-org} kernel), the
-    standard delta rule $S_t = S_{t-1}(I - \beta_t k_t k_t^\top) + \beta_t
-    v_t k_t^\top$.
-  \item $H{=}1$/single-layer is a deliberate gate-simplicity choice
-    (closes the multi-head/multi-layer pigeonhole escape cleanly) --- NOT
-    evidence the phenomenon is $H{=}1$-specific. Forward-reference:
-    ReserveMH (6/6 cells, every head independently recruits full rank
-    $K{=}32$ at $H\in\{2,4\}$, no cross-head distribution) lifts the
-    $H{=}1$ qualifier on the SYNTHETIC task; not yet re-run on the
-    real-data exactness frontier (state as a limitation,
-    \S\ref{sec:discussion}).
-\end{itemize}
 
-\subsection{The provable bound}
-\begin{itemize}
-  \item Pinned linear-unbind readout: $\mathrm{pred} = S_T \cdot k_j$,
-    cosine-scored at $\tau{=}0.9$, \textbf{never argmax} (the
-    Nichani/Lee/Bietti-motivated design choice --- under argmax a rank-1
-    matrix recovers $\approx d$ associations, silently defeating any
-    necessity claim).
-  \item Exact recovery of $K$ independent bindings $\Rightarrow
-    \mathrm{rank}(S_T) \geq K$. Clean premise: learned $\beta_j \neq 0$
-    suffices (need not equal 1); cosine scoring is invariant to a positive
-    per-item scalar. State the proof sketch as a short proposition +
-    2--3 line derivation (full form: \texttt{DELTANET\_CAUSAL\_RANK\_
-    DESIGN.md} \S4.1).
-  \item Two escapes closed by construction: position-decomposition
-    (single $d\times d$ state, no $P{=}1$ slotting) and the
-    architecture-specific reincarnations (multi-head via $H{=}1$ primary
-    gate; multi-layer via readout-reads-only-final-layer).
-\end{itemize}
+Every experiment in this paper uses the same vehicle: a vanilla,
+single-head ($H{=}1$), single-layer DeltaNet built on \texttt{fla-org}'s
+production \texttt{chunk\_delta\_rule} kernel, with the standard delta
+rule $S_t = S_{t-1}(I - \beta_t k_t k_t^\top) + \beta_t v_t k_t^\top$
+governing how the $d\times d$ fast-weight state $S_t$ is written at every
+step. $H{=}1$ and single-layer are a deliberate gate-simplicity choice,
+not a claim that the phenomenon is $H{=}1$-specific: they close the
+multi-head/multi-layer pigeonhole escape (rank distributed invisibly
+across heads or layers) cleanly, at the cost of leaving the general case
+untested here. Where that cost is already partially paid, we say so
+rather than assume it: ReserveMH shows every head independently recruits
+full rank $K{=}32$ at $H\in\{2,4\}$ with no cross-head distribution
+(6/6 cells), lifting the $H{=}1$ qualifier on the synthetic necessity
+task, but this generality check has not yet been re-run on the real-data
+exactness frontier that is this paper's main subject --- carried forward
+as a limitation in Section~\ref{sec:discussion}.
 
-\subsection{Method: the pre-registration discipline (light touch)}
-\begin{itemize}
-  \item One paragraph, paired with a CONCRETE example, not asserted in
-    the abstract: every claim below was pre-registered (hypothesis +
-    success bar stated before data), attacked by an independent reviewer
-    round, and --- for the constructive fix --- gated on a predicted
-    outcome from a committed simulator before any Wave 1 GPU spend.
-  \item \textbf{Concrete instance 1 (cite here, not just assert):} a
-    mini-audit caught a target-INDEX bug in the real-data grammar
-    (\texttt{forward()} gathered $\pi^{h+1}(a)$ instead of the queried
-    $\pi^h(a)$) that made the binding task unsatisfiable as originally
-    specced. The resulting ``$\mathrm{rec@0.9}{=}1.000$'' was a
-    value-collapse artifact (entity-subspace rank $\approx 1.0$, value
-    salvage $\approx 0.000$, 0/10 seeds premise-valid) --- caught by the
-    premise-gate instruments, never written up as a finding, fixed with a
-    pre-registered anti-collapse loss $L_{\mathrm{train}} = L_{\cos} +
-    \lambda_{\mathrm{nce}} \cdot L_{\mathrm{nce}}$ (in-episode InfoNCE,
-    $\lambda_{\mathrm{nce}}{=}1.0$, $T{=}0.1$, fixed not tuned) chosen
-    because collapse is a zero-gradient stationary point under the NCE
-    term.
-  \item \textbf{Two distinct ``primary $K$'' values, disambiguated once
-    here:} $K{=}16$ is the causal-necessity program's primary cell
-    (chosen because $K{=}32$ already showed a real, non-budget
-    sub-exactness plateau at $0.78$--$0.80$ recovery at the \S14.7 gate);
-    $K{=}32$ is the exactness-mechanism/fix program's headline cell
-    (chosen BECAUSE it is that anomaly, sitting at $K{=}d_{\mathrm{state}}
-    /2$). Both choices principled and pre-registered.
-\end{itemize}
+\subsection{The Provable Bound}
+
+Every readout in this paper is pinned to the same linear-unbind form,
+$\mathrm{pred} = S_T \cdot k_j$, scored by cosine similarity against the
+target value at threshold $\tau{=}0.9$, and \emph{never} by argmax over a
+codebook. This choice is not incidental: \citet{nichani2025factual} show
+that under discrete argmax decoding a rank-1 state can recover
+$\approx d$ associations, which would silently defeat any rank-necessity
+claim built on this architecture. Pinning the readout to exact,
+continuous recovery is what makes the following bound non-vacuous.
+
+\begin{proposition}
+\label{prop:rank-necessity}
+Let $S_T\in\R^{d\times d}$ be a fast-weight state and
+$\{(k_j,v_j)\}_{j=1}^{K}$ a set of $K$ bindings with $\{v_j\}$ linearly
+independent. If a linear-unbind readout exactly recovers every binding,
+i.e.\ $S_T k_j = c_j v_j$ for some $c_j\neq0$, then $\mathrm{rank}(S_T)
+\geq K$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Cosine scoring is invariant to a positive per-item scalar, so exact
+recovery at $\tau{=}1$ only requires $S_T k_j$ to lie on the ray through
+$v_j$ --- a learned $\beta_j\neq0$ suffices, it need not equal $1$. The
+image of $S_T$ therefore contains $\{c_jv_j\}_{j=1}^K$, and since
+$\{v_j\}$ are linearly independent and every $c_j\neq0$, so are
+$\{c_jv_j\}$. A $K$-dimensional linearly independent set lying in
+$\mathrm{im}(S_T)$ forces $\dim\,\mathrm{im}(S_T) = \mathrm{rank}(S_T)
+\geq K$.
+\end{proof}
+
+Two escapes are closed by construction rather than left to the reader's
+trust. First, position-decomposition: the state is a single $d\times d$
+matrix, not a stack of $P$ independently addressable slots, so the bound
+cannot be satisfied cheaply by parking each binding in its own rank-1
+slot (a $P{=}1$ hard bottleneck, verified elsewhere in this project's
+own gradient-based blank-out tests). Second, the architecture-specific
+reincarnations of the same escape are closed by the setup itself:
+multi-head distribution is closed by the $H{=}1$ primary gate above, and
+multi-layer distribution is closed by construction --- the readout reads
+only the final layer's state.
+
+\subsection{Method: the Pre-Registration Discipline}
+
+Every claim in this paper was pre-registered --- hypothesis and success
+bar stated before data collection --- attacked by an independent
+reviewer round, and, for the constructive fix
+(Section~\ref{sec:the-fix}), gated on a predicted outcome from a
+committed simulator before any Wave~1 GPU spend. We do not narrate this
+discipline as a virtue in the abstract; we cite the specific findings it
+produced wherever they did real work. A concrete instance: a mini-audit
+caught a target-index bug in the real-data grammar (\texttt{forward()}
+gathered $\pi^{h+1}(a)$ instead of the queried $\pi^h(a)$) that made the
+binding task unsatisfiable as originally specified. The resulting
+$\mathrm{rec@0.9}{=}1.000$ was not a positive result but a
+value-collapse artifact --- entity-subspace rank $\approx1.0$, value
+salvage $\approx0.000$, 0/10 seeds premise-valid --- caught by the
+premise-gate instruments before it was ever written up as a finding, and
+fixed with a pre-registered anti-collapse loss $L_{\mathrm{train}} =
+L_{\cos} + \lambda_{\mathrm{nce}}\cdot L_{\mathrm{nce}}$ (in-episode
+InfoNCE, $\lambda_{\mathrm{nce}}{=}1.0$, $T{=}0.1$, fixed not tuned),
+chosen because collapse is a zero-gradient stationary point under the
+NCE term. A second concrete instance, in the fix's own gating diagnostic,
+appears in Section~\ref{sec:the-fix}.
+
+Two distinct cells recur throughout this paper as ``the'' primary $K$,
+and we disambiguate them once here rather than let context carry the
+distinction. $K{=}16$ is the causal-necessity program's primary cell,
+chosen because the unconstrained baseline's own $K{=}32$ rerun already
+showed a real, non-budget sub-exactness plateau at
+$\mathrm{rec@0.9}{=}0.78$--$0.80$ (Section~\ref{sec:phenomenon}).
+$K{=}32$ is, precisely because it is that anomaly --- sitting at
+$K{=}d_{\mathrm{state}}/2$ --- the exactness-mechanism and fix program's
+headline cell. Both choices are principled and were pre-registered before
+the waves that used them.

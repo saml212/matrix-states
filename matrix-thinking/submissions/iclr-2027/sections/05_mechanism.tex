@@ -5,28 +5,30 @@
 % EXPERIMENT_LOG.md "Wave 1 ATTRIBUTION VERDICT" 2026-07-04.
 
 \subsection{Design}
-\begin{itemize}
-  \item Hold grammar/model/loss FIXED, vary ONLY the embedding source
-    feeding $k_{\mathrm{eff}}$: learned (baseline, arm iii), frozen
-    orthonormal (i), frozen real GPT-2 span embeddings (ii), Gram-matched
-    frozen non-orthonormal control (iv).
-  \item Claim tier: ``causal, premise-conditional.'' Bundled-vs-geometry-
-    only distinction is load-bearing: frozen-vs-learned (i/ii/iv vs.\ iii)
-    bundles geometry AND trainable-param count; (i)-vs-(iv) is the
-    GEOMETRY-ONLY contrast (conditional on iv's re-verification gate).
-\end{itemize}
 
-\subsection{Result: every geometry converges to the same attractor (Fig.~4)}
-\begin{itemize}
-  \item Arms i/ii/iv ALL converge to the learned baseline's $k_{\mathrm{eff}}$
-    geometry: gram dev $2.71$--$2.92$ at $K{=}32$ vs.\ learned
-    $2.71$--$2.77$.
-  \item Raw embedding geometry is causally IRRELEVANT --- the trained
-    $W_k$/conv path maps every input geometry onto the SAME
-    non-orthonormal write-geometry basin.
-\end{itemize}
+Section~\ref{sec:phenomenon} establishes that per-binding exactness, not
+recruited rank, is what degrades with $K$ on real text. To find the cause
+we hold grammar, model, and loss fixed and vary only the embedding source
+feeding the write-time key $k_{\mathrm{eff}}$: learned (the baseline,
+arm~iii), frozen orthonormal (arm~i), frozen real GPT-2 span embeddings
+(arm~ii), and a Gram-matched frozen non-orthonormal control (arm~iv). The
+resulting claim tier is causal but premise-conditional, and the two
+comparisons it licenses are not the same claim: frozen-vs-learned
+(arms~i/ii/iv vs.\ iii) bundles geometry \emph{and} trainable-parameter
+count together, while arm~i vs.\ arm~iv is the geometry-only contrast,
+conditional on arm~iv's own re-verification gate.
 
-% Data: experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wave1/
+\subsection{Result: Every Geometry Converges to the Same Attractor}
+
+Every one of arms~i, ii, and iv converges to the learned baseline's own
+$k_{\mathrm{eff}}$ geometry: key-Gram deviation lands at $2.71$--$2.92$ at
+$K{=}32$ against the learned arm's own $2.71$--$2.77$
+(Figure~\ref{fig:embedding-attractor}). Raw embedding geometry is
+therefore causally irrelevant to the write-time key population that
+forms --- the trained $W_k$/convolution path maps every tested input
+geometry onto the same non-orthonormal write-geometry basin, regardless
+of what geometry it started from.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.8\linewidth]{figures/fig04_embedding_source_attractor.pdf}
@@ -40,54 +42,53 @@
   \label{fig:embedding-attractor}
 \end{figure}
 
-\subsection{Complementary evidence: measured-$\beta$ reconstruction}
-\begin{itemize}
-  \item Closed-form crosstalk reconstruction, measured $\beta$: residual
-    $0.0038$ ($K{=}16$) / $0.0041$ ($K{=}32$) vs.\ $0.148/0.377$ under the
-    wrong-regime $\beta{=}1$ idealization.
-  \item ``Geometry $+\beta$'' is essentially the complete state-formation
-    account --- \textbf{at the weaker, non-causal explanatory tier}: Test
-    A (idealization adequacy) earns NO explanatory claim; Test B
-    (predicted-vs-measured frontier match, e.g.\ $K{=}32$: 0.726 predicted
-    vs.\ 0.789 measured) earns ``structural, deterministic reproduction,''
-    explicitly NOT a causal claim. State this tier distinction crisply ---
-    exactly the kind of blur a reviewer will probe.
-\end{itemize}
+\subsection{Complementary Evidence: Measured-\texorpdfstring{$\beta$}{beta}
+Reconstruction}
 
-\subsection{The existence proof: i-strong (Fig.~5)}
-\begin{itemize}
-  \item Non-trainable, hand-built, per-identity $k_{\mathrm{eff}}$ pin,
-    bypassing $W_k$/conv entirely.
-  \item Gram dev $0.000$; $\mathrm{rec@0.9} = 1.00/1.00/1.00$ at
-    $h{=}1/2/3$, $K{=}32$ --- matches the SYNTHETIC harness exactly.
-  \item Claim tier: ``diagnostic tie-breaker,'' NEVER a standalone causal
-    headline (two-variable by design: embedding source AND projection
-    bypass, bundled).
-  \item The paper's turning point: from ``here is a gap'' to ``here is
-    what would close it.'' The architecture and the delta rule's own
-    algebra CAN represent and use the perfect solution; ordinary training
-    does not find it.
-\end{itemize}
+A closed-form crosstalk reconstruction using the measured, per-run
+$\beta$ (rather than the idealized $\beta{=}1$) leaves a small residual:
+$0.0038$ at $K{=}16$ and $0.0041$ at $K{=}32$, against $0.148$/$0.377$
+under the wrong-regime $\beta{=}1$ idealization. ``Geometry $+\,\beta$''
+is thus essentially the complete state-formation account, but only at the
+weaker, non-causal explanatory tier: the idealization-adequacy test earns
+no explanatory claim on its own, while the predicted-vs-measured frontier
+match (e.g.\ $K{=}32$: $0.726$ predicted vs.\ $0.789$ measured) earns
+``structural, deterministic reproduction'' --- explicitly not a causal
+claim, and we hold that distinction crisply rather than let it blur.
 
-\subsection{The 2$\times$2 existence proof: orthogonality and stability are
-each necessary, jointly sufficient (Fig.~5)}
-\begin{itemize}
-  \item A 2$\times$2 grid cutting the same archive along two independent
-    geometric axes (orthogonal $\times$ stable), $K{=}32$: stable+orthogonal
-    (i-strong, pool-restricted to $32{\leq}d_{\mathrm{state}}$) $h{=}4$
-    $1.0000$, $h{=}7$ $1.0000$; stable+not-orthogonal (frozen-embedding arms
-    i/iv) $h{=}4$ $0.0075$--$0.0114$, $h{=}7$ ${\approx}0.0000$;
-    not-stable+orthogonal (bare geo3 alone) $h{=}4$ $0.44$ mean, $h{=}7$
-    $0.018$ mean; not-stable+not-orthogonal (fully-learned baseline)
-    $h{=}4$ $0.009$, $h{=}7$ ${\approx}0.0000$.
-  \item Neither axis alone clears the $\sim$0.01 floor; orthogonality alone
-    recovers most of the gap ($44$--$56\times$) but plateaus at $0.44$;
-    adding stability is not a partial improvement over that $0.44$, it is a
-    discontinuous jump to $1.00$ --- the INTERACTION, not either main
-    effect, is the figure's point.
-\end{itemize}
+\subsection{The Existence Proof: i-strong}
 
-% Data: experiment-runs/2026-07-03_deltanet_rd_waves/exactness/{wave1,wavegeo3}/
+A non-trainable, hand-built, per-identity $k_{\mathrm{eff}}$ pin that
+bypasses the learned $W_k$/convolution path entirely reaches key-Gram
+deviation $0.000$ and $\mathrm{rec@0.9}{=}1.00/1.00/1.00$ at
+$h{=}1/2/3$, $K{=}32$ --- matching the synthetic harness exactly. This
+result is a diagnostic tie-breaker, never a standalone causal headline,
+because it is two-variable by design (embedding source and projection
+bypass are bundled together). But as a tie-breaker it is the paper's own
+turning point: from ``here is a gap'' to ``here is what would close it.''
+The architecture and the delta rule's own algebra can represent and use
+the perfect solution; ordinary training does not find it.
+
+\subsection{The \texorpdfstring{$2\times2$}{2x2} Existence Proof:
+Orthogonality and Stability Are Each Necessary, Jointly Sufficient}
+
+Cutting the same archive along two independent geometric axes ---
+orthogonal vs.\ not, stable (context-free) vs.\ not (episode-conditional)
+--- at $K{=}32$ gives a $2\times2$ grid (Figure~\ref{fig:existence-2x2}).
+Stable-and-orthogonal (i-strong, pool-restricted to
+$32{\leq}d_{\mathrm{state}}$) reaches $h{=}4$ recovery $1.0000$ and
+$h{=}7$ recovery $1.0000$. Stable-but-not-orthogonal (the frozen-embedding
+arms i/iv) manages only $h{=}4$ $0.0075$--$0.0114$ and $h{=}7$
+$\approx0.0000$. Not-stable-but-orthogonal (bare geo3 alone, introduced
+in Section~\ref{sec:the-fix}) reaches $h{=}4$ mean $0.44$ and $h{=}7$
+mean $0.018$. Not-stable-and-not-orthogonal (the fully-learned baseline)
+manages $h{=}4$ $0.009$ and $h{=}7$ $\approx0.0000$. Neither axis alone
+clears the $\sim$0.01 floor: orthogonality alone recovers most of the gap
+($44$--$56\times$) but plateaus at $0.44$; adding stability on top is not
+a partial improvement over that $0.44$, it is a discontinuous jump to
+$1.00$. It is this interaction, not either main effect, that the figure
+exists to show.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.9\linewidth]{figures/fig05_2x2_existence_proof.pdf}
@@ -111,87 +112,27 @@ each necessary, jointly sufficient (Fig.~5)}
   \label{fig:existence-2x2}
 \end{figure}
 
-\subsection{Closing this section: whether SGD can reach the ``jointly
-sufficient'' corner itself --- the key-anchoring program's complete arc
-(\S\ref{sec:the-fix}, \S\ref{sec:results}, Fig.~10, Fig.~11)}
-\begin{itemize}
-  \item The 2$\times$2's ``jointly sufficient'' corner was, until this
-    program ran, demonstrated only by the hand-built i-strong pin. The
-    natural question --- can a LEARNED mechanism reach that corner via
-    SGD? --- was tested to completion across four waves, and the answer is
-    now final: \textbf{no, not via the hypothesized channel, but the
-    program found something arguably more interesting.}
-  \item \textbf{The behavioral gain is real and independently replicated.}
-    A learned, per-entity cross-episode key anchor lifts $K{=}32$ $h{=}4$
-    held-out recovery from a freshly-measured baseline $0.4105$ to
-    $0.61$--$0.71$ (9 seed-runs across 3 distinct seed sets, 2 architecture
-    variants).
-  \item \textbf{The hypothesized entity-alignment mechanism is REJECTED
-    (Outcome C).} A purpose-built per-entity engagement instrument
-    (\texttt{engaged\_frac\_v3}, median $r_e$) shows fewer than
-    $14$--$41\%$ of entities individually engage at every measured leg,
-    confirmed across two independent mechanism-tier waves at increasing
-    evidentiary rigor (unit-anchor-norm measured directly, a formal
-    dip-test ruling out masked bimodality, an effect-size floor ruling out
-    power-manufactured engagement), immune to a specific rescue attempt
-    (a $\lambda$-scaled threshold re-derivation) that was itself
-    independently attacked and rejected.
-  \item \textbf{The actual explanation was found and CONFIRMED BY
-    ABLATION.} A frozen, never-trained anchor table (random init or
-    frame-potential init, both tested) at the same blend weight matches or
-    exceeds the learned table's own gain ($0.67$--$0.76$ vs.\
-    $0.61$--$0.71$), with a negative-median $r_e$ reading in the
-    random-init arm confirming the instrument correctly reports ``nothing
-    to align to.'' Constancy in the blend arithmetic --- not learned
-    entity-specific content --- is the active ingredient; SGD's only
-    demonstrated contribution is tuning the blend weight.
-  \item \textbf{This fix's own regime is now bounded, not open-ended ---
-    and the boundary is now LOCATED, then shown to DISSOLVE with scale
-    (Fig.~cliff).} Extending the identical design to $K{=}48$ ($K/d{=}0.75$)
-    shows both named explanatory channels measurably active yet the fix
-    still misses its own bar 0/3 seeds --- the capacity curve completes as
-    a cliff ($\sim$1.00 $\to$ $\sim$0.65 $\to$ $\sim$0.02 at
-    $K/d{=}0.25/0.5/0.75$), not a smooth decline, while the theoretical
-    ceiling itself declines only gently over the same range. A dedicated
-    follow-on localizes this transition's midpoint to $x_0{=}0.5455$ (95\%
-    CI $[0.5385,0.5513]$) at $d_{\mathrm{state}}{=}64$, then shows it is
-    NOT a universal property of $K/d$: the identical ratio window at
-    $d_{\mathrm{state}}{=}128$ is flat at $h4{=}1.0$ across all four
-    matched loads, 12/12 cells --- the transition exits the window
-    entirely rather than merely shifting. Directly injecting controlled,
-    frozen anchor-table coherence (the leading confound between the two
-    scales, forced by the Welch bound only when entity count exceeds
-    $d_{\mathrm{state}}$) up to and beyond $d{=}64$'s own realized training
-    band, under a concentrated rank-4 structure, produces no cliff at any
-    dose (Fig.~dose) --- exonerating scalar coherence as a sufficient
-    account and leaving overlap structure and raw state capacity as the
-    two live, untested candidates (\S\ref{sec:discussion}). \textbf{The
-    raw-state-capacity candidate has since been tested directly and load
-    tolerance turns out to grow SUPER-LINEARLY in $d_{\mathrm{state}}$,
-    not at a fixed $K/d$ ratio:} re-fitting the transition at
-    $d_{\mathrm{state}}{=}80$ places it at $x_0{=}0.6779$ (95\% CI
-    $[0.6683,0.6867]$), cleanly excluding the ratio-invariant band around
-    $0.5455$; at $d_{\mathrm{state}}{=}96$ the FULL unlocked grid
-    ($K{\in}\{69,72,78,84,90\}$, $n{=}3$/$K$ --- 11 of 12 new cells were
-    initially flagged inadmissible by a since-diagnosed tolerance
-    miscalibration in the convergence gate, not a real capacity wall; all
-    4,608 flagged episodes resolve by $n_{\mathrm{iter}}{\leq}28$, and only
-    the admission flag was recalibrated) shows NO cliff through
-    $K/d{=}0.9375$ but a non-monotonic curve
-    ($0.9592/0.9216/0.9326/0.9581/1.0000$) that the sigmoid fit cannot
-    localize (100\% bootstrap-degenerate). The exact functional form and
-    the precise $d{=}96$ transition point remain open --- neither the
-    absolute-slack band $[0.718,0.739]$ nor the power-law band
-    $[0.768,0.837]$ is confirmed or excluded; seed escalation at the
-    noisiest group ($K{=}72$) is the registered next step
-    (\S\ref{sec:discussion}).
-  \item \textbf{State this precisely, not as a substitution:} the 2$\times$2's
-    ``jointly sufficient'' corner still rests on the hand-built i-strong
-    pin for a \emph{causal} demonstration at $K{=}32$; the \emph{practical},
-    SGD-adjacent route tested to reach that corner does not use the
-    hypothesized mechanism at all, works via a simpler (constancy-only)
-    route instead, and that alternate route's own working regime is now
-    known (holds at $K/d{\leq}0.5$, fails at $K/d{=}0.75$). Both facts
-    belong in the paper, clearly separated, neither substituting for the
-    other.
-\end{itemize}
+\subsection{Whether SGD Can Reach the Jointly-Sufficient Corner Itself}
+
+Until this point, the ``jointly sufficient'' corner of
+Figure~\ref{fig:existence-2x2} was demonstrated only by the hand-built
+i-strong pin. The natural next question --- can a \emph{learned}
+mechanism reach that corner via SGD? --- is not left open here: we test
+it to completion across four waves in Sections~\ref{sec:the-fix} and
+\ref{sec:results}, and the short answer is no, not via the hypothesized
+channel, but the program found something arguably more interesting. A
+learned, per-entity cross-episode key anchor does lift $K{=}32$ $h{=}4$
+recovery substantially and reproducibly; the entity-alignment mechanism
+hypothesized to explain that gain is rejected by a purpose-built
+engagement instrument; the actual explanation, confirmed by a
+pre-registered ablation, is that constancy in the blend arithmetic alone
+suffices, with no learned entity-specific content required; and this
+alternate mechanism's own operating regime is bounded, working at
+$K/d\leq0.5$ and failing at $K/d{=}0.75$. We state this precisely rather
+than as a substitution: the $2\times2$'s jointly-sufficient corner still
+rests on the hand-built i-strong pin for a \emph{causal} demonstration at
+$K{=}32$, while the \emph{practical}, SGD-adjacent route tested to reach
+that corner does not use the hypothesized mechanism at all and works via
+a simpler, constancy-only route instead. Both facts belong in the paper,
+kept separate, neither substituting for the other; the full arc, with its
+numbers, is in Sections~\ref{sec:the-fix} and \ref{sec:results}.

@@ -4,128 +4,94 @@
 % Full grounding: DELTANET_RD_EXACTNESS_DESIGN.md \S14 (esp. \S14.0, \S14.1,
 % \S14.6, \S14.10).
 
-\subsection{Motivation (the two facts, not engineering for its own sake)}
-\begin{itemize}
-  \item (1) The exact solution exists and composes perfectly (i-strong,
-    \S\ref{sec:mechanism}).
-  \item (2) SGD does not find it under any soft push tried
-    (\S\ref{sec:soft-fixes}).
-\end{itemize}
+Two facts motivate what follows, not engineering for its own sake: the
+exact solution exists and composes perfectly (i-strong,
+Section~\ref{sec:mechanism}), and SGD does not find it under any soft
+push tried (Section~\ref{sec:soft-fixes}). If a soft penalty cannot move
+the write-time key population out of its attractor, the natural next
+step is to make orthogonality structural rather than encouraged.
 
 \subsection{Design}
-\begin{itemize}
-  \item Cubic Newton-Schulz / Bj\"orck-Bowie iteration at the
-    $k_{\mathrm{eff}}$ site: $X_{t+1} = 1.5 X_t - 0.5 (X_t X_t^\top) X_t$,
-    converges quadratically to the nearest orthonormal-row matrix given
-    operator norm $\leq 1$ at $t{=}0$ (guaranteed by $\sqrt{K}$
-    pre-scaling given the existing unit-row-norm invariant).
-  \item REJECTED: Gram-Schmidt (order-dependent --- would reintroduce
-    exactly mechanism (g)'s write-history asymmetry one level up); QR
-    (order-dependent for the same underlying reason, AND backward-unstable
-    near collinear input --- the exact regime an undertrained embedding
-    table produces).
-  \item Chosen properties: order-equivariant (permuting input rows
-    permutes iterates identically --- no row privileged), differentiable
-    through ordinary matmuls (no LinAlg-specific backward formula).
-\end{itemize}
 
-\subsection{The gating discipline (concrete instance 2, per \S\ref{sec:setup})}
-\begin{itemize}
-  \item Two-round independent attack found a load-bearing failure mode
-    the design missed: cross-episode key-identity DRIFT ---
-    orthogonalizing correctly WITHIN an episode does not guarantee the
-    SAME key across episodes of the same entity.
-  \item Became a pre-registered Wave $-1$ gating diagnostic with its own
-    committed simulator (\texttt{geo3\_simulator.py}, importable,
-    CPU-smoke-tested) and launch-read rule.
-  \item Wave 1 GPU spend authorized ONLY after the simulator predicted the
-    $K{=}16$ bar would clear: predicted $K16\ h4{=}1.00$, $K32\ h4{=}0.77$
-    from measured drift $0.94/0.90$.
-  \item Framing rule for the actual prose: pair every process claim with
-    the SPECIFIC finding it caught (as above) --- never narrate ``we used
-    a rigorous review process'' in the abstract.
-\end{itemize}
+We insert a cubic Newton-Schulz / Bj\"orck-Bowie iteration at the
+$k_{\mathrm{eff}}$ site, $X_{t+1} = 1.5X_t - 0.5(X_tX_t^\top)X_t$, which
+converges quadratically to the nearest orthonormal-row matrix given
+operator norm $\leq1$ at $t{=}0$ --- guaranteed here by $\sqrt{K}$
+pre-scaling against the existing unit-row-norm invariant. We rejected two
+natural alternatives on explicit grounds: Gram-Schmidt is order-dependent
+and would reintroduce, one level up, exactly the write-history asymmetry
+this mechanism is meant to remove; QR is order-dependent for the same
+reason and additionally backward-unstable near collinear input --- the
+exact regime an undertrained embedding table produces. Newton-Schulz is
+order-equivariant (permuting the input rows permutes the iterates
+identically, so no row is privileged) and differentiable through ordinary
+matrix multiplications, requiring no linear-algebra-specific backward
+formula.
 
-\subsection{The substitute admission stack (now footnote-tier, but shown,
-not asserted)}
-\begin{itemize}
-  \item F-geo-3 makes the standard key-Gram/alignment premise-validity
-    instruments TAUTOLOGICAL by construction (orthogonality $\equiv$
-    true, alignment $\equiv 1.0$).
-  \item Substitute, pre-registered BEFORE any F-geo-3 data existed: value-
-    side salvage tier + Newton-Schulz convergence WITHOUT eigh fallback +
-    finite loss + a task-performance floor ($\geq$50\% loss improvement
-    AND $h{=}1$ ID $\mathrm{rec@0.9} \geq 0.5$).
-  \item \textbf{Discharge status (resolved):} with the $K{=}32$
-    \texttt{n\_iter=20} escalation cells passing EVERY substitute
-    criterion including zero fallback steps (and $K{=}16$ 3/3 from the
-    start), this caveat drops from headline asterisk to footnote --- but
-    the footnote still names both admission stacks and both realized pass
-    rates wherever geo3 and non-geo3 seed counts appear side by side, per
-    the pre-registration's own requirement. The fallback-irrelevance
-    finding (\S\ref{sec:results}) shows the one criterion that ever
-    disqualified a seed was conservative, not explanatory.
-\end{itemize}
+\subsection{The Gating Discipline}
 
-\subsection{The direct follow-on to the outcome-F residual --- designed,
-attacked, built, run to completion across four waves, and now CLOSED
-(Fig.~10, Fig.~11)}
-\begin{itemize}
-  \item \textbf{This is no longer future work.} The outcome-F residual
-    (\S\ref{sec:results}: cross-episode key drift $0.9037$ in the
-    registered HIGH band is the $K{=}32$ bar-miss cause) motivated a
-    trainable, per-entity anchor table blended into the key before geo3's
-    Newton-Schulz pass. The full arc, in the order it happened:
-  \item \textbf{(1) Behavioral gain, launched twice, then independently
-    replicated.} Initial + confirmatory waves produced a real, seed-stable
-    $K{=}32$ $h{=}4$ gain (freshly-measured baseline $0.4105 \to
-    0.556$--$0.665$). A mechanism-tier wave (6 genuinely fresh seeds, 2
-    architecture variants) reconfirmed the gain at $0.6141$--$0.7141$ ---
-    9 total seed-runs across 3 distinct seed sets license
-    ``independently replicated,'' not merely ``reproduced.''
-  \item \textbf{(2) The hypothesized mechanism was tested and REJECTED
-    (Outcome C).} The confirmatory wave's own per-entity engagement
-    readout showed $<$14\% engagement, not Outcome A. A same-day rescue
-    attempt (a $\lambda$-scaled engagement-threshold re-derivation) was
-    independently attacked and rejected --- reported as attempted and
-    rejected, not deleted. The mechanism-tier wave reconfirmed Outcome C at
-    a strictly stronger evidentiary bar (unit-anchor-norm measured, not
-    assumed, at $1.06$--$1.16$; a formal dip-test rules out a masked
-    bimodal split; an effect-size floor rules out power-manufactured
-    engagement) and registered a falsifiable alternative account BEFORE
-    the confirming data existed: ``cross-episode stability comes from the
-    mere presence of an episode-constant blend term, not learned
-    alignment.''
-  \item \textbf{(3) That prediction was tested and HELD ---
-    CONFIRMED-BY-ABLATION.} Candidate (e): two frozen, never-trained
-    anchor tables (pure-random-init and frame-potential-init) at the same
-    fixed blend weight ($\lambda{=}0.58$) both match or slightly exceed
-    the learned table's own $K{=}32$ mean ($0.7274$/$0.7413$ vs.\ $(d)$'s
-    $0.6669$; no frozen seed falls below $(d)$'s own minimum). The $r_e$
-    negative control passes at the strongest null in the design's history
-    (median $r_e$ negative, $-0.13$ to $-0.24$, for the pure-random arm,
-    which cannot mechanically align to anything). Constancy alone
-    suffices; ``learned anchoring'' is superseded by a frozen random
-    key-bias at matched blend weight, no training loop required.
-  \item \textbf{(4) The fix's operating regime was then measured and
-    bounded, not left open-ended.} A capacity-curve extension to $K{=}48$
-    ($K/d{=}0.75$): candidate (d) fully admissible (3/3 seeds), both named
-    explanatory channels (drift-space closure, $\sim$81\% of the gap;
-    value-Gram relief, $0.626\times$ the reference) measurably active, bar
-    still missed 0/3 seeds (mean $0.0215$ vs.\ $0.024434$). The
-    three-point curve ($\sim$1.00 $\to$ $\sim$0.65 $\to$ $\sim$0.02 at
-    $K/d{=}0.25/0.5/0.75$) is a cliff, not a smooth decline, while the
-    theoretical $\lambda{=}1$ ceiling declines only gently over the same
-    range ($0.97 \to 0.94 \to 0.90$).
-  \item \textbf{Program status: COMPLETE.} Five waves plus one rejected
-    rescore attempt, $\approx$55.83/80 GPU-h against its own budget cap, no
-    further waves scheduled. The one genuinely open follow-on this program
-    itself named (value-crowding at $K/d{=}0.75$) is a NEW, unregistered
-    direction requiring its own fresh design/attack/build/audit cycle ---
-    it is not a continuation of this design.
-  \item Frame sentence for this section: \emph{a rejected hypothesis and a
-    confirmed-by-ablation alternative are both reported, not just the
-    flattering one --- and the alternative's own operating regime is now
-    bounded, closing what was, at an earlier stage of this project, this
-    paper's single most open thread.}
-\end{itemize}
+A two-round independent attack found a load-bearing failure mode the
+original design missed: cross-episode key-\emph{identity} drift.
+Orthogonalizing correctly \emph{within} an episode does not guarantee the
+\emph{same} key is produced across separate episodes of the same entity.
+This became a pre-registered Wave~$-1$ gating diagnostic with its own
+committed, CPU-smoke-tested simulator (\texttt{geo3\_simulator.py}) and a
+launch-read rule: Wave~1 GPU spend was authorized only after the
+simulator, fed measured cross-episode key drift of $0.94$ at $K{=}16$
+and $0.90$ at $K{=}32$, predicted $K16\ h4{=}1.00$ and $K32\
+h4{=}0.77$. This is a second concrete instance of the pre-registration
+discipline named in Section~\ref{sec:setup}: the process is worth
+narrating only insofar as it is paired with the specific finding it
+caught, and here it caught a failure mode the design itself had missed.
+
+\subsection{The Substitute Admission Stack}
+
+F-geo-3 makes the standard key-Gram/alignment premise-validity
+instruments tautological by construction --- orthogonality is true and
+alignment is $1.0$ by construction, not by measurement. A substitute
+criterion, pre-registered before any F-geo-3 data existed, applies
+instead: value-side salvage, Newton-Schulz convergence without
+\texttt{eigh} fallback, finite loss, and a task-performance floor
+($\geq$50\% loss improvement and $h{=}1$ in-distribution
+$\mathrm{rec@0.9}\geq0.5$). With the $K{=}32$ \texttt{n\_iter=20}
+escalation cells (Section~\ref{sec:results}) passing every substitute
+criterion including zero fallback steps, and $K{=}16$ passing 3/3 from
+the start, this caveat drops from headline asterisk to footnote --- but
+the footnote still names both admission stacks and both realized pass
+rates wherever geo3 and non-geo3 seed counts appear side by side, per
+the pre-registration's own requirement. The fallback-irrelevance finding
+of Section~\ref{sec:results} shows the one criterion that ever
+disqualified a seed was conservative, not explanatory.
+
+\subsection{The Anchoring Follow-On}
+
+Section~\ref{sec:results} shows that F-geo-3's own $K{=}32$ result is a
+$\sim$45$\times$ improvement that narrowly misses its pre-registered bar,
+and attributes the miss to a second, distinct mechanism: cross-episode
+key drift measured at $0.9037$, inside the pre-registered high-drift
+band. That residual motivates a natural follow-on question, which we
+test to completion rather than leave open: can SGD supply cross-episode
+key \emph{stability} itself, via a learned, per-entity key anchor blended
+into the key before geo3's Newton-Schulz pass? We ran this program across
+four waves plus one rejected rescore attempt, $\approx$55.83 of its own
+80 GPU-h budget, with no further waves scheduled. The headline, in one
+sentence: the resulting behavioral gain is real and independently
+replicated, the entity-alignment mechanism hypothesized to explain it is
+rejected by a purpose-built engagement instrument, the actual explanation
+is confirmed by a pre-registered ablation (a frozen, never-trained anchor
+table at the same blend weight matches or exceeds the learned table's own
+gain --- constancy in the blend arithmetic, not entity-specific learned
+content, is the active ingredient), and the fix's operating regime is
+then measured directly rather than left open-ended, holding at
+$K/d\leq0.5$ and failing at $K/d{=}0.75$ where the capacity curve
+completes as a cliff rather than a smooth decline. The one open follow-on
+this program itself named --- value-crowding at $K/d{=}0.75$ --- is a new,
+unregistered direction requiring its own design/attack/build/audit cycle,
+not a continuation of this one. The full numbers, gating history, and
+figures for this arc are reported together in
+Section~\ref{sec:results} and Section~\ref{sec:phenomenon}'s $K{=}48$
+rider, rather than split across two places: a rejected hypothesis and a
+confirmed-by-ablation alternative are both reported, not just the
+flattering one, and the alternative's own operating regime is now
+bounded, closing what was, at an earlier stage of this project, this
+paper's single most open thread.

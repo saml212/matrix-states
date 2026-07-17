@@ -1,121 +1,132 @@
 \section{Related Work}
 \label{sec:related-work}
 
-% Full map with justification text: NARRATIVE.md \S5. Keep this section
-% LIGHT — sharper distinctions (esp. vs. M2RNN, DeltaProduct) are deferred
+% Full map with justification text: NARRATIVE.md \S5. Kept LIGHT per that
+% plan — sharper distinctions (esp. vs. M2RNN, DeltaProduct) are deferred
 % to forward-references from \S\ref{sec:mechanism}/\S\ref{sec:the-fix}
 % where they are actually load-bearing.
 
-\begin{itemize}
-  \item \textbf{Descriptive rank measurement (the primary foil).}
-    \citet{nazari2026rank}; \citet{sun2026staterank}.
-    Same effective-rank instrument, uncontrolled $K$, no necessity
-    theorem, no causal intervention. We are the mirror image: controlled
-    $K$, provable LOWER bound, causal (train-time + eval-time)
-    intervention, on the exact architecture family they measure.
-  \item \textbf{\citet{nichani2025factual} (ICLR 2025
-    Spotlight).} Closest prior theoretical construction --- rank-$m$
-    existence proof under DISCRETE ARGMAX decoding (rank-1 recovers
-    $\approx d$ associations under argmax). Motivates why our readout is
-    pinned to exact-continuous cosine recovery, never argmax.
-  \item \textbf{\citet{schlag2021linear} (ICML 2021).}
-    Origin of ``linear-attention state as associative memory'' ---
-    fast-weight-programmer lineage.
-  \item \textbf{DeltaNet / Gated DeltaNet production lineage
-    (\texttt{fla-org} kernel used directly) and DeltaProduct
-    \citep{siems2025deltaproduct}.} DeltaProduct's ``rank'' is the PER-STEP
-    TRANSITION matrix $A_t = I - \beta_t k_t k_t^\top$ --- a DIFFERENT
-    object from the STATE's own rank $\mathrm{rank}(S_t)$ measured here.
-    State this distinction in one explicit sentence (flagged in the source
-    design doc as the single most likely reviewer confusion). Also:
-    \citet{grazzi2025negative} (negative-eigenvalue state tracking)
-    for the eigenvalue sign/phase framing relevant to the $h{=}21$
-    depth-amplification discussion.
-  \item \textbf{\citet{barnfield2026sharp}.} Capacity thresholds
-    for STATIC rank-constrained associative memories (no recurrence, no
-    training dynamics). Our delta: the training-time force-rank ablation
-    on a time-varying, streamed state, plus held-out-hop composition.
-  \item \textbf{Based \citep{arora2024simple} (Thm F.1) and
-    Zoology \citep{arora2023zoology}.} Based bounds state SIZE
-    (decoding-agnostic); justify explicitly why RANK, not size, is the
-    binding resource under a pinned linear-unbind readout. Zoology: the
-    standard synthetic associative-recall (MQAR) benchmark family our
-    probe grammar resembles.
-  \item \textbf{M\textsuperscript{2}RNN \citep{mishra2026m2rnn}.} Closest
-    prior-art paper --- matrix-valued recurrent state, permutation-group
-    (S$_3$) composition trained at seq-len 128, evaluated near-perfectly
-    (${\geq}99.5\%$ accuracy) at 512. Their own comparison table has a
-    plain vector-state GRU matching the matrix model on this exact task
-    (also ${\geq}99.5\%$ at 512; rank not shown load-bearing --- GRU only
-    loses on general LM perplexity, a different axis); their Theorem 1
-    (``the recurrence can represent all tasks representable by
-    non-linear vector-valued RNNs'') is representational, not necessity ---
-    no lower bound on vector-valued models and no causal rank
-    intervention. Lead with what their own results concede, then state the
-    three-way mirror. \textbf{Citation specifics independently re-verified
-    against the fetched paper text for this submission} (both sub-claims
-    confirmed verbatim; see \texttt{refs.bib} note).
-  \item \textbf{Superposition / distributed representation literature.}
-    \citet{elhage2022superposition} for the general framing;
-    contrast with our EXACT-recovery requirement (superposition results
-    typically assume favorable/sparse readout, which our provable bound
-    closes off). \citet{plate1995holographic} (Holographic Reduced
-    Representations), \citet{frady2020resonator} (Resonator Networks) ---
-    VSA/HRR capacity tradition, scope explicitly as a DIFFERENT notion of
-    capacity (SNR/bundling) from this paper's exact-rank framing.
-  \item \textbf{\citet{okpekpe2025revisiting} --- the credible
-    rival causal account, engaged head-on.} Their claim: Transformers and
-    SSMs differ in optimization dynamics, not expressive power ---
-    MQAR-style failures in Mamba/Hyena are gated by a narrow
-    learning-rate window, not a hard capacity ceiling, and disappear under
-    a fine LR grid. A hostile reading of this paper's own capacity cliff
-    (\S\ref{sec:phenomenon}, $x_0{=}0.5455$) is that it too is an
-    optimization artifact. \textbf{Rebuttal:} this paper's causal chain
-    runs through forced-rank construction and eval-time SVD truncation on
-    an already-trained matrix, not through any learning-rate axis ---
-    the recovery ceiling lands exactly at $k{=}K$ regardless of how the
-    checkpoint was optimized, a structural claim their account does not
-    make or predict.
-  \item \textbf{Frozen-QK \citep{dong2025frozenqk} --- nearest neighbor for the
-    frozen-anchor-table mechanism (\S\ref{sec:mechanism},
-    \S\ref{sec:the-fix}), distinguished on three axes.} That work fully
-    freezes an entire softmax transformer's Q/K projections at init;
-    induction heads still form, but at a real loss cost ($\approx$10\%
-    WikiText PPL regression). This paper's frozen anchor table differs:
-    (a) additive, not full-freeze --- a tuned-weight blend into an
-    otherwise fully-trained key path, not a projection replacement;
-    (b) the blend's own gain is loss-neutral by construction (the same
-    architecture with the table zeroed is the baseline); (c) it targets a
-    bounded recurrent fast-weight state, not unbounded-context softmax
-    attention --- the question (does a fixed-size state retain more) has
-    no analog in Frozen-QK's setting.
-  \item \textbf{VLA \citep{pandey2026vla} --- the geometric rival account for
-    the capacity cliff, engaged against the dose-response exoneration
-    (\S\ref{sec:dose-response}).} VLA's stabilized architecture
-    (Kalman/variational update, spectral-norm-1 write direction) pushes a
-    sharp MQAR-recall cliff outward, framing capacity as tied to key
-    linear independence / state-matrix rank --- a geometric account, in
-    tension with this paper's own direct coherence-injection result
-    ($h4{=}1.0$ at every dose up to and beyond $d{=}64$'s realized
-    coherence band, 10/10 cells). \textbf{The tension is stated, not
-    buried:} VLA studies single-hop recall under an architectural
-    stabilization; this paper studies relational binding plus multi-hop
-    composition via a direct causal manipulation of coherence at matched
-    load. It remains possible both accounts describe the same underlying
-    fact from different angles (a rank-deficient key population is also,
-    definitionally, capacity-constrained at fixed $d_{\mathrm{state}}$)
-    --- this paper does not claim to have resolved which framing is more
-    fundamental, only that its own causal dose-response manipulation did
-    not find coherence-as-such to be the lever.
-  \item \textbf{Our own prior, unpublished internal work (anonymized for
-    review).} Not external work --- immediate lineage, released as part of
-    this submission's own anonymized supplementary artifact rather than
-    cited as a public reference. A from-scratch, bespoke-attention-encoder
-    version of the identical rank-recruitment result, including the
-    depth-amplification law imported directly (internal notes \S3) and an
-    earlier negative result on a discrete-decoding readout that motivated
-    the exact-continuous readout choice used throughout this paper. State
-    explicitly: this paper TRANSFERS that result to a production
-    architecture and, new here, discovers and fixes the exactness gap the
-    synthetic construction never exposed.
-\end{itemize}
+\textbf{Descriptive rank measurement, the primary foil.} A recent wave of
+work measures the effective rank of the fixed-size state maintained by
+fast-weight linear-attention models on real, pretrained language, and
+finds it bounded by sequence length \citep{nazari2026rank,
+sun2026staterank}. Both papers use the same effective-rank instrument we
+do, but leave $K$ uncontrolled, offer no necessity theorem, and run no
+causal intervention. This paper is close to a mirror image of that
+program on the same architecture family: controlled $K$, a provable lower
+bound, and causal (both train-time and eval-time) intervention.
+
+\textbf{Theoretical constructions.} The closest prior theoretical result
+is \citet{nichani2025factual} (ICLR 2025 Spotlight), a rank-$m$ existence
+proof under discrete argmax decoding, where a rank-1 state can recover
+$\approx d$ associations. This is precisely what motivates pinning our
+own readout to exact, continuous cosine recovery rather than argmax
+(Section~\ref{sec:setup}) --- the argmax result would otherwise silently
+defeat any necessity claim built on this architecture.
+\citet{schlag2021linear} originates the ``linear-attention state as
+associative memory'' framing this paper inherits, in the fast-weight-programmer
+lineage. \citet{barnfield2026sharp} derive capacity thresholds for static,
+rank-constrained associative memories with no recurrence and no training
+dynamics; our contribution relative to that work is the training-time
+force-rank ablation on a time-varying, streamed state, together with
+held-out-hop composition. \citet{arora2024simple} (Based, Thm.\ F.1) and
+the associated Zoology benchmark suite \citep{arora2023zoology} bound
+state \emph{size} in a decoding-agnostic sense; under our pinned
+linear-unbind readout, rank rather than size is the binding resource, and
+our synthetic probe grammar is a close relative of Zoology's
+associative-recall (MQAR) family.
+
+\textbf{Architecture family.} We use \texttt{fla-org}'s production
+DeltaNet / Gated-DeltaNet kernel directly. DeltaProduct
+\citep{siems2025deltaproduct} extends the same lineage with a
+per-step transition matrix $A_t = I - \beta_t k_t k_t^\top$ whose own
+``rank'' is a different object from the state's rank $\mathrm{rank}(S_t)$
+measured throughout this paper --- the single most likely point of
+reviewer confusion, and worth stating explicitly rather than leaving
+implicit. \citet{grazzi2025negative} study negative-eigenvalue state
+tracking, whose eigenvalue sign/phase framing is relevant to this paper's
+own $h{=}21$ depth-amplification discussion (Section~\ref{sec:phenomenon}).
+
+\textbf{Superposition and distributed-representation capacity.}
+\citet{elhage2022superposition}'s framing of superposition, and the
+VSA/HRR capacity tradition of \citet{plate1995holographic} (Holographic
+Reduced Representations) and \citet{frady2020resonator} (Resonator
+Networks), all study a different notion of capacity --- SNR and bundling
+under a favorable, typically sparse readout --- than the exact-recovery
+requirement this paper's provable bound closes off. We scope the
+contrast explicitly rather than let the terms collide.
+
+\textbf{M\textsuperscript{2}RNN, the closest prior-art paper}
+\citep{mishra2026m2rnn}. M\textsuperscript{2}RNN trains a matrix-valued
+recurrent state on permutation-group ($S_3$) composition at sequence
+length 128 and evaluates near-perfectly ($\geq99.5\%$ accuracy) at 512.
+Leading with what their own results concede: their comparison table
+already has a plain vector-state GRU matching the matrix model on this
+exact task (also $\geq99.5\%$ at 512 --- rank is not shown load-bearing
+there; the GRU only loses on general LM perplexity, a different axis),
+and their Theorem~1 (the recurrence can represent all tasks representable
+by non-linear vector-valued RNNs) is a representational claim, not a
+necessity one --- it proves no lower bound against vector-valued models
+and runs no causal rank intervention. This paper is the three-way mirror:
+a provable lower bound (not just a representation result), a causal
+intervention (not just an evaluation), and a controlled $K$ (not just a
+fixed task). Both sub-claims above were independently re-verified against
+the fetched paper text for this submission (see \texttt{refs.bib}).
+
+\textbf{A credible rival causal account, engaged directly}
+\citep{okpekpe2025revisiting}. That paper argues Transformers and SSMs
+differ in optimization dynamics rather than expressive power --- MQAR-style
+failures in Mamba and Hyena are gated by a narrow learning-rate window,
+not a hard capacity ceiling, and disappear under a finer LR grid. A
+hostile reading of this paper's own capacity cliff
+(Section~\ref{sec:phenomenon}, $x_0{=}0.5455$) is that it, too, is an
+optimization artifact rather than a structural one. We do not think it
+is, and the reason is architectural, not rhetorical: our causal chain
+runs through forced-rank construction and eval-time SVD truncation on an
+\emph{already-trained} checkpoint, never through a learning-rate axis, and
+the recovery ceiling lands exactly at $k{=}K$ regardless of how that
+checkpoint was optimized --- a structural claim their account does not
+make or predict.
+
+\textbf{Frozen-QK, the nearest neighbor for the frozen-anchor-table
+mechanism} \citep{dong2025frozenqk} (Sections~\ref{sec:mechanism},
+\ref{sec:the-fix}). That work fully freezes an entire softmax
+transformer's Q/K projections at initialization; induction heads still
+form, but at a real cost ($\approx$10\% WikiText perplexity regression).
+Our frozen anchor table differs on three axes: it is additive, not a
+full-freeze --- a tuned-weight blend into an otherwise fully-trained key
+path, not a projection replacement; its own gain is loss-neutral by
+construction, since the same architecture with the table zeroed out is
+the baseline; and it targets a bounded recurrent fast-weight state, not
+unbounded-context softmax attention, so the question it answers (does a
+fixed-size state retain more) has no direct analog in Frozen-QK's
+setting.
+
+\textbf{VLA, the geometric rival account for the capacity cliff}
+\citep{pandey2026vla} (Section~\ref{sec:dose-response}). VLA's stabilized
+architecture (a Kalman/variational update with a spectral-norm-1 write
+direction) pushes a sharp MQAR-recall cliff outward, framing capacity as
+tied to key linear independence and state-matrix rank --- a geometric
+account in tension with our own direct coherence-injection result, which
+finds $h4{=}1.0$ at every dose tested up to and beyond $d{=}64$'s realized
+coherence band (10/10 cells). We state the tension rather than bury it:
+VLA studies single-hop recall under an architectural stabilization, while
+this paper studies relational binding and multi-hop composition under a
+direct causal manipulation of coherence at matched load. It remains
+possible both accounts describe the same underlying fact from different
+angles --- a rank-deficient key population is, definitionally, also
+capacity-constrained at fixed $d_{\mathrm{state}}$ --- and we do not
+claim to have resolved which framing is more fundamental, only that our
+own causal dose-response manipulation did not find coherence-as-such to
+be the lever.
+
+\textbf{Immediate lineage.} This paper transfers and extends our own
+prior, unpublished internal work, released as part of this submission's
+anonymized supplementary artifact rather than cited as a public
+reference: a from-scratch, bespoke-attention-encoder version of the
+identical rank-recruitment result, including the depth-amplification law
+imported directly, and an earlier negative result on a discrete-decoding
+readout that motivated the exact-continuous readout choice used
+throughout this paper. What is new here is the transfer of that result to
+a production architecture and, novel to this paper, the discovery and
+fix of the exactness gap the synthetic construction never exposed.

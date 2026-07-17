@@ -4,31 +4,30 @@
 % Full grounding: DELTANET_RD_EXACTNESS_DESIGN.md \S15 (18/18 cells);
 % EXPERIMENT_LOG.md "Exactness Wave F (soft arms)" 2026-07-04.
 
-\subsection{Two pre-registered interventions, one registered shot each}
-\begin{itemize}
-  \item F-geo-1: $L_{\mathrm{orth}}$ penalty, $\lambda \in \{0.1, 1.0\}$.
-  \item F-geo-2: population-level ZCA whitening.
-  \item Both ran to completion with NO further tuning (anti-Goodhart cap
-    honored) --- state explicitly so it doesn't read as ``we could have
-    tried harder.''
-\end{itemize}
+Having attributed the write-time non-orthonormality to a training-time
+attractor rather than to input geometry, we ask whether a soft,
+differentiable push away from that attractor is enough to escape it. Two
+pre-registered interventions get one registered shot each, with no
+further tuning after launch (the anti-Goodhart cap honored throughout, so
+this reads as a genuine test rather than ``we could have tried harder''):
+F-geo-1, an orthogonality penalty $L_{\mathrm{orth}}$ at
+$\lambda\in\{0.1,1.0\}$, and F-geo-2, population-level ZCA whitening.
 
-\subsection{Result: one attractor, three approach angles (Fig.~6)}
-\begin{itemize}
-  \item ALL land in the SAME narrow basin: gram dev $2.51$--$2.57$ at
-    $K{=}32$ vs.\ baseline $2.71$--$2.77$ (a 3--8\% cleanup), regardless of
-    mechanism (weak soft push / strong soft push / population-level
-    decorrelation) or $\lambda$ (10$\times$ change bought nothing --- the
-    penalty saturates).
-  \item Every pre-registered bar MISSED: headline ($K{=}32,h{=}4 \geq
-    0.5$) $\to$ measured $0.014$--$0.026$ ($\sim$20--25$\times$ below);
-    minimum publishable ($K{=}16,h{=}4 \geq 0.8$) $\to$ measured
-    $0.465$--$0.516$ ($\sim$1.6--1.7$\times$ above achieved).
-  \item $h{=}1$ no-sacrifice guard SATISFIED everywhere --- the
-    interventions do what they promise, just not enough of it.
-\end{itemize}
+\subsection{Result: One Attractor, Three Approach Angles}
 
-% Data: experiment-runs/2026-07-03_deltanet_rd_waves/exactness/waveF/
+All three interventions land in the same narrow basin
+(Figure~\ref{fig:soft-fixes-epsilon-h}): key-Gram deviation of
+$2.51$--$2.57$ at $K{=}32$ against the baseline's $2.71$--$2.77$, a
+$3$--$8\%$ cleanup regardless of mechanism --- weak soft push, strong soft
+push, or population-level decorrelation --- or of $\lambda$ (a
+$10\times$ change buys nothing; the penalty saturates). Every
+pre-registered bar is missed: the headline bar ($K{=}32,h{=}4\geq0.5$)
+lands at a measured $0.014$--$0.026$, $\sim$20--25$\times$ below it; the
+minimum-publishable bar ($K{=}16,h{=}4\geq0.8$) lands at
+$0.465$--$0.516$, still $\sim$1.6--1.7$\times$ above what was achieved.
+The $h{=}1$ no-sacrifice guard is satisfied everywhere --- these
+interventions do what they promise, just not enough of it.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.75\linewidth]{figures/fig06_soft_fixes_epsilon_h_law.pdf}
@@ -43,82 +42,65 @@
   \label{fig:soft-fixes-epsilon-h}
 \end{figure}
 
-\subsection{The proportionality reading: real, but geometrically shrinking}
-\begin{itemize}
-  \item Gram cleanup at $K{=}32$: 3--8\% real (every one of 9 seeds below
-    baseline band). Recovery gain shrinks at every hop: $h{=}2$: $+0.07$
-    to $+0.10$; $h{=}3$: $+0.04$ to $+0.05$; $h{=}4$: only $+0.005$ to
-    $+0.017$.
-  \item Exactly the shape the $\varepsilon^h$ compounding law
-    (\S\ref{sec:phenomenon}) predicts --- a modest, real reduction in
-    per-binding $\varepsilon$ produces a shrinking-in-reverse benefit as
-    $h$ grows.
-\end{itemize}
+\subsection{The Proportionality Reading: Real, but Geometrically
+Shrinking}
 
-\subsection{Approach angles 4/5 (architectural robustness 2$\times$2 at
-the 14M LM rung): not a qk-norm artifact; gating shows a
-trend-not-confirmed amplification}
-% Grounding: EXPERIMENT_LOG.md 2026-07-09 "ATTRACTOR-ROBUSTNESS 2x2"
-% entries (build audit with the corrected same-corpus noise floors; n=1
-% screening harvest; n=3 escalation harvest). Archives:
-% experiment-runs/2026-07-09_attrrob_2x2_harvest/ and
-% experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/.
-% Note the pre-registered escalation rule and its outcome: the n=1
-% trigger fired on the gating axis (+6.16 = 2.75 sigma) but the n=3
-% escalation did NOT confirm (+4.31 = 1.92 sigma < the 2-sigma bar
-% 4.489) -- any use of these numbers must carry the
-% trend-not-confirmed framing, never an amplification claim.
-\begin{itemize}
-  \item Setting shift, stated explicitly: unlike angles 1--3 (train-time
-    soft pushes on the synthetic task above), angles 4/5 are an
-    architectural-robustness 2$\times$2 (qk-l2-norm $\times$
-    Gated-DeltaNet-style decay) at the 14M real-data LM rung of the
-    scale ladder, read with the same-corpus gram-deviation probe
-    against corrected same-corpus cross-seed noise floors
-    (openr1-mix-ext $2.244$, wikitext-mix-ext $2.217$); an $n{=}1$
-    screening plus a pre-registered $n{=}3$ escalation on the one axis
-    whose screening delta exceeded the $2\sigma$ trigger.
-  \item The attractor PERSISTS in all four cells: same-corpus
-    gram-deviation $18.2$--$25.2$, every cell $\geq 8\sigma$ above zero
-    deviation in floor units --- neither axis removes it.
-  \item \textbf{qk-norm EXONERATED ($n{=}3$-solid).} Every run in this
-    program already used the community-standard qk-l2-norm mitigation;
-    turning it OFF is a within-noise null: $\Delta = -0.103 =
-    0.05\sigma$ vs.\ the corrected same-corpus floor. The attractor is
-    cross-key POPULATION geometry, not the single-vector
-    eigenvalue-stability axis qk-norm conditions --- the direct data
-    answer to ``is this just the known qk-norm issue in disguise.''
-  \item \textbf{Gating: a direction-consistent amplification trend that
-    did NOT meet the pre-registered confirmation bar --- reported as a
-    trend, never as a claim.} The $n{=}1$ screening fired the
-    escalation trigger ($+6.16 = 2.75\sigma$); at $n{=}3$ the effect
-    shrank to $+4.31 = 1.92\sigma$, below the pre-registered $2\sigma$
-    bar ($4.489$), with all three paired seeds positive (exploratory
-    Welch $p{=}0.062$). Directionally, gated arms carry MORE deviation
-    while training to LOWER loss in every seed ($3.515$ vs.\ $3.682$
-    final train loss) --- a healthier-looking checkpoint carrying the
-    pathology no better (trend-level: worse), consistent with this
-    section's one-attractor reading and in no tension with angles
-    1--3.
-  \item Consequence for \S\ref{sec:discussion}'s limitations: this
-    PARTIALLY discharges the single-architecture-family item ---
-    qk-norm is exonerated at $n{=}3$ and the Gated-DeltaNet-style
-    decay direction now has a trend-level answer at 14M; DeltaProduct
-    and production-scale gated configs remain untested.
-\end{itemize}
+The Gram cleanup at $K{=}32$ is real, not noise --- every one of 9 seeds
+lands below the baseline band --- but the recovery gain it buys shrinks
+at every hop: $+0.07$ to $+0.10$ at $h{=}2$, $+0.04$ to $+0.05$ at
+$h{=}3$, only $+0.005$ to $+0.017$ at $h{=}4$. This is exactly the shape
+the $\varepsilon^h$ compounding law of Section~\ref{sec:phenomenon}
+predicts: a modest, real reduction in per-binding $\varepsilon$ produces
+a benefit that shrinks in reverse as composition depth $h$ grows.
 
-\subsection{Honest conclusion (pre-registered negative branch, not a failed pilot)}
-\begin{itemize}
-  \item Verbatim framing to carry into the paper: ``a dominant mechanism
-    whose matching fix does NOT move the frontier is itself a publishable
-    finding.''
-  \item Demonstration-claim tier verdict: FALSE for all three arms, stated
-    plainly. Weaker true claim earned: a genuine, causal
-    (premise-conditional) but small write-geometry cleanup, recovery
-    moving proportionally in the predicted direction.
-  \item F-geo-1's key-Gram number is compromised as premise-evidence
-    (directly optimized by $L_{\mathrm{orth}}$) --- the verdict rests on
-    behavioral $\mathrm{rec@0.9}$ bars only for those two arms. F-geo-2
-    (ZCA) has no such carve-out and lands in the same basin anyway ---
-    itself evidence the carve-out isn't hiding a different outcome.
-\end{itemize}
+\subsection{Architectural Robustness: Not a qk-Norm Artifact, and a
+Gating Trend That Does Not Confirm}
+
+Two further approach angles test a different axis: not train-time soft
+pushes on the synthetic task, but an architectural-robustness
+$2\times2$ (qk-l2-norm $\times$ Gated-DeltaNet-style decay) run at the
+14M-parameter real-data LM rung of the scale ladder
+(Section~\ref{sec:discussion}), read with the same-corpus key-Gram-deviation
+probe against corrected same-corpus cross-seed noise floors
+(openr1-mix-ext $2.244$, wikitext-mix-ext $2.217$): an $n{=}1$ screening
+pass, followed by a pre-registered $n{=}3$ escalation on whichever axis's
+screening delta exceeded the $2\sigma$ trigger. The attractor persists in
+all four cells (same-corpus Gram deviation $18.2$--$25.2$, every cell
+$\geq8\sigma$ above zero deviation in floor units) --- neither axis
+removes it. qk-norm is exonerated at $n{=}3$-solid strength: every run in
+this program already used the community-standard qk-l2-norm mitigation,
+and turning it off is a within-noise null ($\Delta{=}{-}0.103{=}0.05\sigma$
+against the corrected floor) --- the attractor is cross-key population
+geometry, not the single-vector eigenvalue-stability axis qk-norm
+conditions, which directly answers whether this is the known qk-norm
+issue in disguise (it is not). Gated-DeltaNet-style decay shows a
+direction-consistent amplification trend that did \emph{not} meet its own
+pre-registered confirmation bar: the $n{=}1$ screening triggered escalation
+at $+6.16{=}2.75\sigma$, but the $n{=}3$ escalation shrank to
+$+4.31{=}1.92\sigma$, below the pre-registered $2\sigma$ bar of $4.489$
+(all three paired seeds positive, exploratory Welch $p{=}0.062$) ---
+reported as a trend, never a claim. Directionally, gated arms carry
+\emph{more} deviation while training to \emph{lower} loss in every seed
+($3.515$ vs.\ $3.682$ final train loss): a healthier-looking checkpoint
+carries the pathology no better, if anything trend-level worse,
+consistent with this section's one-attractor reading. Together these two
+angles partially discharge the single-architecture-family limitation
+named in Section~\ref{sec:discussion}: qk-norm is exonerated at $n{=}3$
+and the Gated-DeltaNet-style decay direction now has a trend-level
+answer at 14M, though DeltaProduct and production-scale gated
+configurations remain untested.
+
+\subsection{Honest Conclusion}
+
+This is a pre-registered negative branch, not a failed pilot: a dominant
+mechanism whose matching fix does not move the frontier is itself a
+publishable finding. The demonstration-claim tier verdict is false for
+all three soft arms, stated plainly; the weaker true claim earned is a
+genuine, causal (premise-conditional) but small write-geometry cleanup,
+with recovery moving proportionally in the predicted direction.
+F-geo-1's own key-Gram number is compromised as premise-evidence, since
+it is directly optimized by $L_{\mathrm{orth}}$, so its verdict rests on
+behavioral $\mathrm{rec@0.9}$ bars alone; F-geo-2 (ZCA) carries no such
+optimization carve-out and lands in the same basin anyway --- itself
+evidence the carve-out is not hiding a different outcome for the other
+two arms.

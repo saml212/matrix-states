@@ -1,100 +1,80 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-\begin{itemize}
-  \item Restate the thesis in the paper's own final voice: capacity and
-    exactness are separable, measurable, and separately fixable
-    properties of a fast-weight architecture's learned state --- this
-    paper is the first to show the gap exists on real text, name its
-    cause (a two-part necessary-and-sufficient mechanism: within-episode
-    orthogonality and cross-episode key stability), demonstrate a
-    mechanism-matched fix for the first part, and fully characterize a
-    completed attempt at the second part: a real fix whose actual
-    mechanism differs from its hypothesized one, confirmed by ablation,
-    with its working regime measured and bounded.
-  \item Close the causal chain explicitly: bar hit at $K{=}16$ (3/3);
-    $\sim$45$\times$ at $K{=}32$ at full admissibility with the narrow
-    bar miss attributed to outcome F; independently corroborated by the
-    2$\times$2. \textbf{The named follow-on (learned cross-episode key
-    anchoring) ran to completion across four waves, not future work:} a
-    real, independently-replicated $K{=}32$ $h{=}4$ gain
-    ($0.41 \to 0.61$--$0.71$) whose hypothesized entity-alignment
-    mechanism is rejected (Outcome C, confirmed twice, immune to a
-    rejected rescue attempt), whose actual mechanism is confirmed by
-    ablation (a frozen random table matches or beats the learned one ---
-    constancy, not alignment, is the active ingredient), and whose
-    operating regime is now measured (works at $K/d{\leq}0.5$, fails at
-    $K/d{=}0.75$, both explanatory channels active-but-insufficient at
-    the miss, a cliff not a smooth decline). \textbf{That cliff is now a
-    complete three-act finding, not left as a single observed boundary:}
-    LOCATED to $x_0{=}0.5455$ (95\% CI $[0.5385,0.5513]$) at
-    $d_{\mathrm{state}}{=}64$; shown to DISSOLVE, not merely shift, at
-    $d_{\mathrm{state}}{=}128$ across the identical $K/d$ window
-    ($h4{=}1.0$, 12/12 cells); and its leading single-variable confound
-    (anchor-table coherence) directly tested and EXONERATED by injecting
-    controlled, frozen coherence past $d{=}64$'s own realized band under a
-    concentrated structure ($h4{=}1.0$, 10/10 cells, no exception). No
-    loose ends on the mechanism --- the behavioral result, the rejected
-    hypothesis, the confirmed explanation, the capacity boundary, its
-    precise location, its dissolution with scale, and the honest
-    non-resolution of what \emph{does} drive it (overlap structure vs.\
-    raw state capacity, both still live) are reported as the seven
-    separate things they are. \textbf{The raw-state-capacity candidate has
-    since been tested directly at two further $d_{\mathrm{state}}$'s and
-    the result is super-linear, not ratio-invariant:} re-fitting the same
-    transition at $d_{\mathrm{state}}{=}80$ locates it at
-    $x_0{=}0.6779$ (95\% CI $[0.6683,0.6867]$), cleanly outside the
-    pre-registered ratio-invariant band $[0.4745,0.6165]$. \textbf{At
-    $d_{\mathrm{state}}{=}96$, a wide-grid follow-up was built, hit a
-    tolerance-miscalibration snag in its own admission gate (diagnosed and
-    fixed by an independently-audited repro instrument --- all 4,608
-    flagged episodes resolve by a modest iteration bump, so only the flag,
-    never the measurement, was recalibrated), and the resulting complete
-    grid ($K{\in}\{69,72,78,84,90\}$) finds NO cliff through
-    $K/d{=}0.9375$, but a non-monotonic curve that a sigmoid cannot
-    localize (100\% bootstrap-degenerate).} This rules out ``the cliff
-    sits at a fixed $K/d$ fraction'' as cleanly as the $d{=}128$
-    dissolution ruled out ``the cliff never moves,'' but the exact
-    functional form of the growth (and the precise
-    $d_{\mathrm{state}}{=}96$ transition point) remains open --- neither
-    the absolute-slack nor the power-law rival band is confirmed or
-    excluded; seed escalation at the noisiest measured group ($K{=}72$)
-    is the registered next step, not launched.
-  \item \textbf{Closing note on scale.} The phenomenon this paper studies
-    is not confined to the scale it is studied at: a controlled
-    14M$\to$98M$\to$392M$\to$1.31B ladder, on a single held-fixed data
-    mix, shows the write-geometry deviation climbing monotonically across
-    all four points (span-fraction $0.248 \to 0.344 \to 0.389 \to
-    0.455$), a \textbf{pure-scale, now-complete} finding --- a positive
-    result in its own right: the failure mode this paper studies is real,
-    persists rather than being washed out by scale, and is now precisely
-    characterized through 1.31B parameters. \textbf{Disclosure:} the
-    1.31B rung self-terminated at a designed internal timeout at
-    $\approx$84.7\% of its token-matched budget (steps
-    $155{,}081/155{,}028$ of $183{,}105$, a clean shutdown, not a crash,
-    with no optimizer-state resume available); a plateau check at the
-    final four logged checkpoints shows the span-fraction reading flat to
-    mildly declining ($-0.003$ over the last 25k steps, against the
-    $+0.066$ rung-2$\to$rung-3 increment it would be revising), so the
-    harvested 155k-step reading is not sensitive to the shortfall. A
-    substantially larger version of the same signature is present in
-    deployed production fixed-state models,
-    not yet attributable to the same mechanism. A companion attempt to
-    install the demonstrated fix mechanism itself inside a
-    free-running-text setting (Track B) is, independently, blocked twice
-    on numerical-stability grounds --- named honestly as a current
-    boundary, not smoothed over.
-  \item Close on the honest scope: one architecture family, small scale
-    for the core causal chapters (partially addressed by the pure-scale
-    ladder above), the $K{=}32$ headline bar honestly missed (narrowly,
-    with a named cause), one mechanism ($h{=}21$ depth-compounding) left
-    explicitly unfixed, and the anchoring follow-on's own fix bounded to
-    $K/d{\leq}0.5$ rather than open-ended.
-  \item DO NOT end on a generalization claim beyond what \S\ref{sec:discussion}
-    licenses --- the closing paragraph is the highest-risk overclaiming
-    surface in the whole paper. In particular, do not let the anchoring
-    arc's resolution read as bigger than it is: it closes one named
-    residual (cross-episode key stability) with a simpler-than-expected
-    mechanism, it does not extend the fix past $K/d{=}0.5$, and it does
-    not touch $h{=}21$ or full-scale transfer.
-\end{itemize}
+Capacity and exactness are separable, measurable, and separately fixable
+properties of a fast-weight architecture's learned state. This paper is
+the first to show that the gap between them exists on real text
+(Section~\ref{sec:phenomenon}), to name its cause --- a two-part
+necessary-and-sufficient mechanism, within-episode orthogonality and
+cross-episode key stability (Section~\ref{sec:mechanism}) --- to
+demonstrate a mechanism-matched structural fix for the first part
+(Sections~\ref{sec:the-fix}--\ref{sec:results}), and to fully
+characterize a completed attempt at the second: a real fix whose actual
+mechanism differs from its hypothesized one, confirmed by ablation, with
+its working regime measured and bounded rather than left open-ended.
+
+The causal chain closes without loose ends. The bar is hit at $K{=}16$
+(3/3 seeds); at $K{=}32$ the fix improves recovery $\sim$45$\times$ at
+full admissibility, narrowly missing its headline bar for a cause
+identified in advance (outcome F, cross-episode key drift) and
+independently corroborated by the $2\times2$ existence proof
+(Figure~\ref{fig:existence-2x2}). The named follow-on this residual
+motivated --- learned cross-episode key anchoring --- ran to completion
+across four waves, not future work: a real, independently-replicated
+$K{=}32$ $h{=}4$ gain ($0.41\to0.61$--$0.71$) whose hypothesized
+entity-alignment mechanism is rejected, whose actual mechanism is
+confirmed by ablation (a frozen random table matches or beats the
+learned one --- constancy, not alignment, is the active ingredient), and
+whose operating regime is now measured: it holds at $K/d\leq0.5$ and
+fails at $K/d{=}0.75$, where both explanatory channels are active but
+insufficient and the capacity curve is a cliff, not a smooth decline.
+That cliff is itself a complete, located finding
+(Section~\ref{sec:k48-rider}): pinned to $x_0{=}0.5455$ at
+$d_{\mathrm{state}}{=}64$, shown to dissolve rather than merely shift at
+$d_{\mathrm{state}}{=}128$, its leading single-variable confound
+(anchor-table coherence) directly exonerated by dose-response injection,
+and the resulting open question --- is load tolerance ratio-invariant or
+does it grow super-linearly with $d_{\mathrm{state}}$? --- answered in
+favor of super-linear growth ($x_0(80){=}0.6779$, excluding the
+pre-registered ratio-invariant band), with the precise functional form
+and the $d_{\mathrm{state}}{=}96$ transition point left as the paper's
+own explicitly registered next step rather than assumed.
+
+\textbf{Closing note on scale.} The phenomenon this paper studies is not
+confined to the scale it is studied at: a controlled
+$14\mathrm{M}\to98\mathrm{M}\to392\mathrm{M}\to1.31\mathrm{B}$ ladder, on
+a single held-fixed data mix, shows the write-geometry deviation climbing
+monotonically across all four points (span-fraction
+$0.248\to0.344\to0.389\to0.455$) --- a positive result in its own right,
+now precisely characterized through 1.31B parameters, with the one
+disclosed shortfall (the fourth rung's designed early termination at
+$\approx$84.7\% of budget) shown not to be load-bearing for the reading
+(Section~\ref{sec:discussion}, item~1). A substantially larger version of
+the same signature is present in deployed production fixed-state models,
+not yet attributable to the same mechanism without a sharper instrument;
+and a separate wave testing whether this paper's own fix transfers to a
+real small-LM pretraining setting at 98M and 392M finds it does not ---
+the destabilizing sign measured at 14M persists, attenuated, rather than
+reversing (Section~\ref{sec:discussion}, item~6). A companion attempt to
+install the fix mechanism itself inside a free-running-text setting is,
+independently, blocked twice on numerical-stability grounds --- named
+honestly as a current boundary, not smoothed over.
+
+We close on the honest scope, not beyond it: one architecture family
+(partially discharged by a robustness $2\times2$, Section~\ref{sec:soft-fixes});
+small parameter scale for the core causal chapters (partially addressed
+by the pure-scale ladder above, never for compositional recovery); the
+$K{=}32$ headline bar honestly missed, narrowly, with a named and now
+fully-resolved cause; one mechanism, $h{=}21$ depth-compounding, left
+explicitly unfixed; the anchoring follow-on's own fix bounded to
+$K/d\leq0.5$ rather than open-ended; and an attempt to connect this
+paper's findings to natural in-context reasoning that five separate
+harvests bound but do not resolve (Section~\ref{sec:discussion}, item~8).
+The anchoring arc's resolution should not read as bigger than it is: it
+closes one named residual, cross-episode key stability, with a
+simpler-than-expected mechanism; it does not extend the fix past
+$K/d{=}0.5$; and it does not touch $h{=}21$ or full-scale compositional
+transfer. Rank is recruited reliably wherever we tested it. Exactness is
+not, its causes are now named and measured rather than assumed, and one
+of its two named causes now has a working fix with a precisely measured
+edge.

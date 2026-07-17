@@ -2,492 +2,280 @@
 \label{sec:discussion}
 
 % Full content: NARRATIVE.md \S6. State every item undiluted --- this is
-% the section a reviewer checks first for overclaiming.
+% the section a reviewer checks first for overclaiming. Granular
+% per-cell/instrument-forensics detail for every item below is pushed to
+% Appendix~\ref{sec:appendix-tables} with a pointer rather than
+% reproduced inline; nothing here is a new number not already stated,
+% cited, or pointed to elsewhere in the paper.
 
 \begin{enumerate}
-  \item \textbf{Small scale.} $d_{\mathrm{model}}$ in the low hundreds,
-    $d_{\mathrm{state}}{=}64$, sub-1M--low-single-digit-M parameters (the
-    core causal chapters). \textbf{Partial evidence, not a resolution:} a
-    controlled 14M$\to$98M$\to$392M$\to$1.31B scaling ladder (Tier 2,
-    geometry-only, a clean 4-point read on a single held-fixed corpus mix,
-    Fig.~9 Panel A) finds the write-geometry attractor does NOT dissolve
-    with scale --- it WORSENS monotonically through the full ladder
-    (span-fraction $0.248 \to 0.344 \to 0.389 \to 0.455$), a
-    \textbf{pure-scale} claim, now COMPLETE at four points rather than an
-    open 3-point trend. \textbf{Disclosure, stated plainly:} the
-    1.31B-parameter rung self-terminated at its own internal timeout at
-    step $155{,}081/155{,}028$ of a planned $183{,}105$ ($\approx$84.7\%
-    of the token-matched budget) --- a clean, designed shutdown (loss
-    curves clean throughout, zero skipped steps), not a crash, and not
-    recoverable by resuming (no optimizer-state checkpointing existed for
-    this run). The harvested reading is neutralized against this shortfall
-    by a dedicated plateau check at four late checkpoints
-    (steps $130\text{k}$--$155\text{k}$): span-fraction is flat, mildly
-    \emph{declining} over that window ($0.4584 \to 0.4554$, $-0.003$),
-    linearly extrapolating to $\approx$0.452 at the full $183{,}105$-step
-    budget --- two orders of magnitude smaller than the $+0.066$
-    rung-2$\to$rung-3 increment it would be correcting, and in the
-    direction that would slightly shrink, not grow, the reading. Harvesting
-    at the 155k checkpoint (rather than a $\approx$144 GPU-h cold restart,
-    for which no state exists to resume from) was the adjudicated choice
-    on this basis. This item's core claim (untested at production scale
-    for compositional recovery, not just geometry) stands regardless of
-    that reading.
-  \item \textbf{Single architecture family --- now PARTIALLY discharged
-    by a dedicated robustness 2$\times$2 (\S\ref{sec:soft-fixes},
-    approach angles 4/5).} Vanilla, single-head, single-layer DeltaNet
-    for the core causal chapters. A qk-norm $\times$ gating 2$\times$2
-    at the 14M LM rung shows the attractor persists in all four cells
-    (same-corpus gram-deviation $18.2$--$25.2$, every cell $\geq
-    8\sigma$ above zero deviation in corrected-floor units
-    $2.244$/$2.217$): qk-norm-off is a within-noise null at $n{=}3$
-    ($\Delta = -0.103 = 0.05\sigma$) --- the attractor is not an
-    artifact of the community-standard qk-norm mitigation --- and
-    Gated-DeltaNet-style decay shows a direction-consistent
-    amplification trend in all three paired seeds that did NOT meet
-    the pre-registered $2\sigma$ confirmation bar ($+4.31 =
-    1.92\sigma$, exploratory Welch $p{=}0.062$; a trend, not a claim).
-    Still untested: DeltaProduct's multi-Householder generalization,
-    gating at production scale, and the full Qwen3-Next config.
-    $H{=}1$/single-layer was a deliberate gate-simplicity
-    decision, not evidence of $H{=}1$-specificity (ReserveMH's
-    generality result was run on the SYNTHETIC task only).
-  \item \textbf{$h{=}21$ literal-depth decay remains unexplained and
-    unfixed.} F-geo-3 demonstrably does not touch it --- a named,
-    scoped-out mechanism (iteration-compounding), not folded into ``the
-    fix works.''
-  \item \textbf{The $K{=}32$ headline bar is not met, and its named
-    follow-on has now run to completion with a fully resolved, if more
-    complex than hoped, result.} The fix is fully admissible at BOTH $K$
-    ($K{=}16$ 3/3; $K{=}32$ 3/3 on the \texttt{n\_iter=20} escalation,
-    zero fallback steps), but the pre-registered $\geq 0.5$ headline bar
-    at $K{=}32$ is narrowly missed: $h{=}4 = 0.504/0.416/0.390$, mean
-    $0.44$, 1/3 seeds at the line. The miss is attributed to outcome F
-    (trained cross-episode key drift $0.9037$ in the pre-registered HIGH
-    band). \textbf{The learned anchor-table follow-on designed to close
-    that residual (\S\ref{sec:the-fix}) has now run to completion across
-    four waves,} not future work: it lifts $K{=}32$ $h{=}4$ recovery from
-    a freshly-measured $0.4105$ baseline to $0.61$--$0.71$ (independently
-    replicated, 9 seed-runs across 3 seed sets, 2 architecture variants);
-    its own per-entity engagement instrument reads under 14--41\%
-    engagement at every leg, confirming Outcome C (``mechanism not
-    engaged'') at increasing rigor across two waves, immune to a rejected
-    rescue attempt. \textbf{The actual explanation was then found and
-    confirmed by ablation:} a frozen, never-trained anchor table (random
-    or frame-potential init) at the same blend weight matches or exceeds
-    the learned table's own gain --- constancy in the blend arithmetic,
-    not entity-specific learned content, is the active ingredient; SGD's
-    only demonstrated role is tuning the blend weight. \textbf{The fix's
-    operating regime is now measured, not open-ended:} a capacity-curve
-    extension to $K{=}48$ ($K/d{=}0.75$) shows the identical fix fully
-    admissible, both of its own named explanatory channels measurably
-    active, and the bar still missed 0/3 seeds --- the curve is a cliff
-    ($\sim$1.00 $\to$ $\sim$0.65 $\to$ $\sim$0.02), not a smooth decline.
-    State plainly: the behavioral $K{=}32$ $h{=}4$ gain is real and its
-    cause is now known (constancy, confirmed by ablation); the
-    entity-alignment hypothesis originally proposed for it is rejected;
-    and the fix's regime is bounded at $K/d{\leq}0.5$. This item, open at
-    an earlier stage of this project, is now closed.
-  \item \textbf{The $K\approx d/2$ structural boundary is now a LOCATED
-    cliff (Fig.~cliff), and its own dissolution and leading confound are
-    both now measured, not merely observed.} The completed capacity-curve
-    extension (item 4 above) turned this into a measured three-point curve
-    at $d_{\mathrm{state}}{=}64$; a dedicated localization wave has since
-    sharpened this to a fitted transition midpoint $x_0{=}0.5455$ (95\%
-    seed-level bootstrap CI $[0.5385,0.5513]$, width $0.0127$,
-    $w{=}0.0597$), a $\sim$20$\times$ tightening of the prior 0.25-wide
-    bracket, fit to six points including four new intermediate loads
-    ($K{=}34,38,42,46$). \textbf{The cliff is dimension-dependent, not a
-    universal property of $K/d$:} re-running the identical $K/d$ window
-    at $d_{\mathrm{state}}{=}128$ ($K{=}68,76,84,92$, the same ratios)
-    shows $h{=}4$ at $1.0$ for all four loads, all seeds, $12/12$ cells ---
-    the transition does not merely shift, it exits the measured window
-    entirely (CONFIRM-SHIFTED, strong form). \textbf{The leading
-    single-variable account of that dissolution --- anchor-table
-    coherence, forced upward by the Welch bound whenever $n{>}d$ (as at
-    $d{=}64$) and removed when $n{\leq}d$ (as at $d{=}128$) --- is directly
-    tested and EXONERATED for a concentrated (rank-4) injection
-    structure.} Holding $d_{\mathrm{state}}{=}128$, $K{=}68$ fixed and
-    injecting controlled, frozen coherence up to $0.40$ (exceeding
-    $d{=}64$'s own realized final-checkpoint training band,
-    $0.373$--$0.385$) produces $h4{=}1.0$ at every dose, 10/10 cells, no
-    exception (Fig.~dose). Neither of the two most naturally testable
-    scalar accounts (K/d ratio; scalar rank-4 coherence) is sufficient on
-    its own. \textbf{Two candidates survive, adjudicated by neither wave:}
-    overlap STRUCTURE (a diffuse, \texttt{subspace\_rank=48} injection is
-    a registered, PI-gated, not-yet-run co-primary arm --- this is not
-    silently dropped, it is the paper's own open follow-on) and ABSOLUTE
-    STATE CAPACITY ($d_{\mathrm{state}}$ grew $4\times$ while $K$ only grew
-    $\sim$2$\times$ across the two waves, a confound no wave here holds
-    fixed). \textbf{A dedicated follow-up wave has since tested the
-    ABSOLUTE-CAPACITY candidate directly, by re-fitting the transition at
-    two further $d_{\mathrm{state}}$'s, and REFUTES pure ratio-invariance:
-    the transition's own load tolerance grows SUPER-LINEARLY in $d$, not
-    at a fixed $K/d$ ratio.} Against a pre-registered ratio-invariant band
-    $[0.4745, 0.6165]$ (centered on $d{=}64$'s own $x_0{=}0.5455$), the
-    identical fitting procedure at $d_{\mathrm{state}}{=}80$ locates the
-    transition at $x_0{=}0.6779$ (95\% CI $[0.6683,0.6867]$, clean,
-    non-degenerate fit, $n{=}5$ seeds/$K$ after a seed escalation tightened
-    an initial $n{=}3$ read of $x_0{=}0.6756$) --- entirely above the band,
-    a real, disclosed exclusion. \textbf{A wider $d_{\mathrm{state}}{=}96$
-    grid ($K{=}72,78,84,90$) was then run to attempt the same localization,
-    and 11 of the 12 new cells were flagged \emph{inadmissible} by the
-    standard convergence gate --- a wide-grid instrument-rigor episode
-    with its own resolution, disclosed in full rather than silently
-    dropped.} A dedicated, independently-audited repro instrument diagnosed
-    the flag as a TOLERANCE MISCALIBRATION in the admission gate itself,
-    not a real capacity wall: every diagnostic precondition passed cleanly
-    (reconstruction gate, zero pool-membership violations across 4,608
-    episodes, 36 reproduced events, zero live/offline disagreements), and
-    the verdict-bearing test found \textbf{all 4,608 flagged episodes
-    resolve by $n_{\mathrm{iter}}{\leq}28$} against a production setting of
-    $n_{\mathrm{iter}}{=}20$ --- including the worst-case late-training
-    population, where the near-miss residuals actually WORSEN over
-    training (13--27/128 anomalous rows at an early checkpoint, maxima
-    $0.07$--$0.43$, growing to 128/128 anomalous rows with maxima up to
-    $1.43$ by the final checkpoint) yet still resolve fully within the
-    modest iteration bump; a byte-identical determinism replay (12/12)
-    independently ruled out a nondeterminism explanation. On this evidence
-    the admission FLAG alone --- never the $h4$ measurement, which was
-    always a valid training-time reading --- was recalibrated for the 11
-    cells sharing the repro's own verified failure signature, unlocking
-    the full grid at zero new GPU spend. \textbf{The re-fit on the
-    complete, unlocked $d{=}96$ grid ($K{\in}\{69,72,78,84,90\}$,
-    $n{=}3$ seeds/$K$) finds NO cliff anywhere in the tested window (through
-    $K/d{=}0.9375$), but the curve is non-monotonic, not flat-at-ceiling:}
-    per-$K$ means $0.9592/0.9216/0.9326/0.9581/1.0000$ dip through
-    $K{=}72/78$, partially recover at $K{=}84$, and reach an apparent
-    exact ceiling ($1.0000$, all 3 archived seeds) at $K{=}90$, the widest
-    load tested --- a reading a later diagnostic (below) did not replicate
-    at a fresh, independent seed. The
-    sigmoid fit is degenerate at its own parameter bounds ($x_0{=}0.9$,
-    $L{=}1.2$, both pinned at their upper bound), and every one of 4,000
-    bootstrap resamples lands in the same degenerate regime (100\%) ---
-    \textbf{$x_0(96)$ does not localize, from genuine per-seed scatter
-    rather than a data gap} (the unlock closed the data gap cleanly, 5/5
-    $K$'s populated at $n{=}3$). Of the two simplest rival functional
-    forms, an absolute-slack account ($x_0 \propto d_{\mathrm{state}}{-}\text{const}$,
-    band $[0.718,0.739]$) and a power-law account (band $[0.768,0.837]$),
-    \textbf{neither is confirmed or excluded by this wave} --- the
-    scaling-law progression is $x_0{=}0.5455$ ($d{=}64$) $\to$
-    $x_0{=}0.6779$ ($d{=}80$) $\to$ unresolved ($d{=}96$), for a different
-    reason than the earlier data-gap failure: the data now exists, but is
-    too noisy at $n{=}3$ seeds/$K$ for a monotonic-sigmoid model to
-    resolve (the noisiest group, $K{=}72$, spans $0.8426$--$0.9904$, a
-    range wider than the entire gap between the two rival bands). Seed
-    escalation at $K{=}72$ is the registered next step, not launched by
-    this wave. The open question is
-    therefore sharper than before: not ``does
-    it break past $d/2$'' (yes, precisely located) nor ``does the break
-    persist at larger $d$'' (no, it dissolves) but ``what mechanism
-    distinguishes a table forced non-orthogonal by the Welch bound from
-    one that is not, if not scalar coherence magnitude alone.'' The
-    design's own named, not-yet-tested candidate is value-crowding (more
-    entities packed into the same fixed value dimensionality reducing
-    per-entity value-recovery headroom independent of key-side
-    conditioning), which would require a fresh design to test, alongside
-    the structure/capacity candidates above. \textbf{A dedicated
-    pool-margin diagnostic, designed to test whether $K{=}84$'s own dip
-    below $K{=}90$ reflects a genuine non-monotonicity or an eval-time
-    artifact of overlapping entity pools, instead surfaced instrument
-    sensitivity at both the admission-gate and the ceiling-measurement
-    level, and is reported in full rather than treated as a clean
-    adjudication.} Re-running $K{=}84$ and $K{=}90$ at fresh, independent
-    seeds with a margin-restricted eval variant at the already-escalated
-    $n_{\mathrm{iter}}{=}28$ admission setting returned
-    \textbf{DEGENERATE\_CELL}: neither cell landed an admissible reading,
-    so the diagnostic's own two adjudication triggers never fired. Three
-    findings are escalated as disclosed, descriptive-only observations:
-    \textbf{(a)} $K{=}84$ now fails a DIFFERENT admission leg than the
-    original grid's own failure mode --- value-salvage $0.093{<}0.10$ with
-    otherwise-clean convergence (zero fallback steps), where the original
-    $n_{\mathrm{iter}}{=}20$ population instead failed on convergence with
-    value-salvage passing ($0.102$--$0.126$); the failing leg SWAPPED, not
-    merely repeated. \textbf{(b)} $K{=}90$ remains fallback-inadmissible
-    even at $n_{\mathrm{iter}}{=}28$ --- the $n_{\mathrm{iter}}$-sufficiency
-    frontier that resolved the original 11-cell miscalibration is itself a
-    function of $K/d$, not a fixed instrument constant. \textbf{(c)} at
-    this fresh, independent seed, $K{=}90$'s own $h4$ measured $0.9725$,
-    not the exact $1.0000$ above --- the archived exact-ceiling reading did
-    NOT replicate under these conditions --- while $K{=}84$'s own
-    pool-restriction shift ($+0.0330$) is $\approx$12$\times$ the measured
-    noise floor ($0.0028$), indicating the pool-margin mechanism this
-    diagnostic targeted is real in direction (restriction RAISES $h4$)
-    even though the verdict machinery correctly refuses to promote an
-    inadmissible cell's reading to a finding. \textbf{Net:} the NO-CLIFF
-    finding through $K/d{=}0.9375$ above stands (a claim about the absence
-    of a monotonic decline in the tested window, not about the exact value
-    at any one $K$), but the $d{=}96$ near-ceiling regime's own fine
-    structure is now known to be instrument-sensitive at two independent
-    levels (the admission frontier moves with $K/d$; a real but
-    not-yet-isolated pool-margin effect) --- registered for a
-    design-level follow-up, not self-launched by this wave.
-  \item \textbf{Scale-transfer to a full pretrained LLM checkpoint is now
-    PARTIALLY measured, and the fix mechanism's transfer to free-running
-    text is separately tested and blocked.} Wave 2 establishes the
-    truncation-damage phenomenon generalizes to naturalistic LM
-    pretraining at small scale (Fig.~8; descriptive+interventional tier
-    only).
-    Beyond that: (a) \textbf{the controlled 14M$\to$98M$\to$392M
-    $\to$1.31B parameter ladder is now COMPLETE, a positive headline
-    result in its own right}: on a single held-fixed data mix, the
-    write-geometry attractor does not dissolve --- it WORSENS
-    monotonically across all four points (span-fraction $0.248 \to 0.344
-    \to 0.389 \to 0.455$), a \textbf{pure-scale} finding (Fig.~9 Panel A),
-    confirming the failure mode is real, persists (rather than being a
-    small-model artifact scale would eventually wash out), and is now
-    precisely characterized through 1.31B parameters --- not yet extended
-    to compositional recovery at scale. The fourth rung's own training run
-    self-terminated at $\approx$84.7\% of its token-matched budget (a
-    disclosed, designed timeout, not a crash); a dedicated plateau check
-    at the final four logged checkpoints shows the reading flat-to-mildly-
-    declining ($-0.003$ span-fraction over the last $25$k steps, against a
-    $+0.066$ rung-2$\to$rung-3 increment), so the harvested value is not
-    sensitive to the shortfall. (b) a much larger version
-    of the SAME non-orthonormal write-geometry signature is measurable
-    directly in production-scale pretrained fixed-state models (RWKV-7
-    1.5B, Falcon-Mamba-7B; Fig.~9 Panel B); (c) but a matched
-    no-fixed-state negative control (Qwen2.5-1.5B) shows the SAME
-    magnitude, so (b) is explicitly NOT attributable to the delta-rule
-    write mechanism specifically at this measurement tier; and (d) a
-    companion attempt to install the SAME fix mechanism inside a
-    free-running-text LM (Track B) is blocked before any interaction
-    claim can be tested --- a duplicate-key numerical-stability smoke
-    overshoots its bar by 63$\times$ with a probative positive control,
-    compounding the original $\beta$-uniformity gate refusal; the
-    selectivity-only readout that DID complete is INCONCLUSIVE (a split
-    verdict across corpora). Net honest statement: the phenomenon
-    persists where it can be controlled for and now scales purely with
-    parameter count (a), a phenomenologically similar signature exists at
-    production scale (b) but causal attribution there remains open and
-    confounded (c), and the fix itself has not yet been shown to transfer
-    to a free-running-text setting at all (d).
 
-    % Data: experiment-runs/2026-07-04_lm_rd_wave2/{waveC,waveD}/
-    \begin{figure}[t]
-      \centering
-      \includegraphics[width=0.75\linewidth]{figures/fig08_wave2_corpus_generality.pdf}
-      \caption{Wave 2: the phenomenon is not an artifact of the
-      synthetic probe grammar. Truncation-damage-vs-$k$ curves
-      (nats/token), reasoning (OpenR1-Math) vs.\ narrative (WikiText)
-      corpora at $k\in\{8,16,24,32,48,64\}$: openr1 is consistently more
-      truncation-sensitive at low-to-moderate $k$, both corpora
-      converging to the same noise floor at $k^*{=}48$. Two named
-      confounds apply (symbol density; home- vs.\ cross-domain
-      competence) --- this figure is descriptive/interventional support
-      (RD-2 tier), explicitly not premise-conditional causal.}
-      \label{fig:wave2-corpus}
-    \end{figure}
+\item \textbf{Small scale, partially addressed by a now-complete
+scaling ladder.} The core causal chapters
+(Sections~\ref{sec:phenomenon}--\ref{sec:results}) run at
+$d_{\mathrm{model}}$ in the low hundreds, $d_{\mathrm{state}}{=}64$, and
+sub-1M-to-low-single-digit-million parameters. A controlled
+$14\mathrm{M}\to98\mathrm{M}\to392\mathrm{M}\to1.31\mathrm{B}$ scaling
+ladder, held to a single fixed corpus mix and measuring the write-geometry
+attractor only (not compositional recovery), is now complete at all four
+points (Figure~\ref{fig:trackc-trackd}, Panel~A) and finds the attractor
+does \emph{not} dissolve with scale --- it worsens monotonically,
+span-fraction $0.248\to0.344\to0.389\to0.455$. Disclosure: the
+1.31B-parameter rung self-terminated at its own internal timeout at step
+$155{,}081/155{,}028$ of a planned $183{,}105$ ($\approx$84.7\% of the
+token-matched budget) --- a clean, designed shutdown, not a crash, and not
+resumable (no optimizer-state checkpointing existed for this run). A
+dedicated plateau check at the final four logged checkpoints
+($130\mathrm{k}$--$155\mathrm{k}$ steps) shows the reading flat, mildly
+\emph{declining} over that window ($0.4584\to0.4554$, $-0.003$),
+extrapolating to $\approx0.452$ at the full budget --- two orders of
+magnitude smaller than the $+0.066$ rung-2$\to$rung-3 increment it would
+be correcting, and in the direction that would shrink, not grow, the
+reading. Harvesting at 155k rather than a $\approx$144 GPU-h cold restart
+(for which no resumable state exists) was the adjudicated choice on this
+basis. This item's core claim --- untested at production scale for
+\emph{compositional recovery}, not just geometry --- stands regardless.
 
-    % Data: Panel A -- experiment-runs/2026-07-04_trackc_rung1/,
-    % 2026-07-05_trackc_rung2/, 2026-07-05_wave1ext/,
-    % 2026-07-06_trajectory_probes/, and the rung-3 (1.31B) result under
-    % experiment-runs/*trackc_rung3*/. Panel B --
-    % experiment-runs/2026-07-04_track_d/
-    \begin{figure*}[t]
-      \centering
-      \includegraphics[width=0.98\textwidth]{figures/fig09_trackc_ladder_and_trackd.pdf}
-      \caption{The attractor persists with scale, and a larger version
-      of it exists at production scale, unattributed. \textbf{Panel A}
-      (Track C pure-scale ladder): pooled chunk-level key-Gram deviation
-      (span-fraction) across a controlled
-      $14\mathrm{M}\to98\mathrm{M}\to392\mathrm{M}\to1.31\mathrm{B}$
-      parameter ladder on a single held-fixed data mix --- $0.248$,
-      $0.344$, $0.389$, $0.455$ --- monotonically increasing.
-      \textbf{Panel B} (Track D Phase 1): the same Gram-deviation
-      statistic measured in three production-scale pretrained
-      checkpoints: RWKV-7 1.5B ($43.5$--$44.0$), Falcon-Mamba-7B
-      ($49.9$--$50.2$), and a no-fixed-state negative control, Qwen2.5-1.5B
-      ($46.0$--$48.5$) --- all three cluster together, RWKV-7 and the
-      negative control statistically indistinguishable; the signature is
-      measurably present and larger at production scale, but not
-      attributable to the delta-rule family specifically without a
-      sharper instrument.}
-      \label{fig:trackc-trackd}
-    \end{figure*}
-  \item \textbf{The admission-stack asymmetry, now footnote-level.}
-    Because F-geo-3 makes the standard instruments tautological, a
-    substitute pre-registered criterion applies to its seeds. With every
-    substitute criterion passed at both $K$ (including zero fallback
-    steps on the escalation cells), this drops from headline asterisk to
-    footnote --- but still name both stacks and both realized pass rates
-    wherever geo3 and non-geo3 seed counts appear side by side, because
-    the two stacks filter different failure modes and their relative
-    selectivity was never empirically equated.
-  \item \textbf{The 2$\times$2's ``stable'' cells lean on existence-tier
-    or bundled arms --- no longer an open dependency, a closed, mixed
-    answer.} The 2$\times$2 (Fig.~5) that demonstrates orthogonality and
-    stability are jointly necessary uses i-strong (pool-restricted to
-    $32{\leq}d_{\mathrm{state}}$) for the ``both together'' cell and
-    frozen-embedding arms for the ``stable, not orthogonal'' cells. The
-    key-anchoring program (\S\ref{sec:the-fix}) was built specifically to
-    test whether a full-vocabulary, gradient-discovered anchor mechanism
-    can reach the ``jointly sufficient'' regime, and it has run to
-    completion across four waves with a final, closed answer: the wave
-    produces a real $K{=}32$ $h{=}4$ behavioral gain
-    ($0.4105 \to 0.61$--$0.71$) but NOT via the hypothesized
-    entity-alignment channel (Outcome C, confirmed twice); the gain's
-    actual cause is confirmed by ablation to be constancy in the blend
-    arithmetic, not learned content; and this alternate mechanism's own
-    regime is bounded (works at $K/d{\leq}0.5$, fails at $K/d{=}0.75$).
-    So: the 2$\times$2's ``jointly sufficient'' corner still rests on the
-    hand-built i-strong pin for a \emph{causal} demonstration at $K{=}32$;
-    the \emph{practical}, SGD-adjacent route tested to reach that corner
-    does not use the hypothesized mechanism, works via a simpler
-    (constancy-only) route instead, and that alternate route's own
-    working regime is now known. A closed, three-part answer, stated as
-    such.
-  \item \textbf{The key-anchoring program is now fully complete, and its
-    complete arc is part of this paper's evidence base.} Every claim
-    above about ``the residual mechanism'' (outcome F, the 2$\times$2)
-    still rests on the outcome-F attribution and the 2$\times$2, not on
-    the anchoring program's numbers, for the causal MECHANISM claim about
-    why F-geo-3 misses its $K{=}32$ bar. What the anchoring program
-    contributes, now completely: a real, independently-replicated
-    $K{=}32$ $h{=}4$ behavioral improvement; a rejected entity-alignment
-    hypothesis (Outcome C, confirmed twice); a confirmed alternate
-    explanation (constancy suffices, by ablation); a measured capacity
-    boundary ($K/d{\leq}0.5$ works, $K/d{=}0.75$ does not); and a
-    demonstrated instance of this project's own gating discipline both
-    catching an attempted post-hoc rescue of a null result AND
-    pre-registering and then confirming a falsifiable account of a
-    surprising positive result. Report all of this, not just the
-    flattering parts.
-  \item \textbf{An attempt to connect this paper's causal capacity and
-    geometry findings to natural in-context multi-hop reasoning ran into
-    an instrument-validity problem, caught by the instrument's own
-    pre-registered gates rather than silently reported as a finding ---
-    itself evidence for, not against, this project's gating discipline.}
-    A held-out-hop probe applied directly to this paper's own checkpoints
-    (the frozen-bias intervention arms as the geometry leg, the
-    14M--392M scale ladder as the scale leg) returned
-    $\mathrm{recovered\_frac@0.9}{=}0.0$ at every one of 78 cells and
-    every tested hop depth: the probe's own pre-registered Stage-0 sanity
-    floor and alignment premises fail categorically, not marginally,
-    routing the result to PROBE-INVALID rather than a licensed REFUTE
-    (the design's own explicit rule: an instrument that cannot clear its
-    own sanity floor does not get to report a negative result). A
-    follow-up isolated whether this was a surface-form artifact of the
-    original query-marker template: two structurally different
-    natural-language reformulations --- one dropping the reserved marker
-    entirely, one substituting an order-of-magnitude more corpus-common
-    relation-verb family --- were run through the identical gate and
-    failed IDENTICALLY (categorical failure at all 4 gate cells, the same
-    shape as the original 78-cell result). \textbf{Two structurally
-    different query formats failing the same way is the single most
-    informative null this instrument can produce: it exonerates surface
-    form as the cause and mechanically promotes a task-familiarization
-    instrument (continued training on the probe's own query distribution
-    before re-evaluating) as the next, already-designed step.} Realized
-    cost of both probe-invalid harvests combined was small (${\approx}0.30$
-    GPU-h against a ${\approx}24.2$ GPU-h ceiling); a disclosed process gap
-    let the first harvest run to completion past its own already-failed
-    gate (fixed and verified holding on the second harvest, which halted
-    correctly before any full-grid spend). \textbf{The promoted
-    task-familiarization instrument has since run to completion and closes
-    the arc: a THIRD, structurally different instrument, at a third
-    training regime, lands on the identical categorical floor.} Continuing
-    training on the probe's own bind/query structure for 5,000 steps (6
-    cells: 2 corpora $\times$ 3 seeds) and re-evaluating the SAME
-    $d_{\mathrm{state}}$-space geometric readout at 5 checkpoints each
-    returns $\mathrm{recovered\_frac@0.9}{=}0.0000$ at every one of 30/30
-    (cell, checkpoint) readings --- the identical floor the marker and
-    natural-language templates found, now after genuine task-directed
-    training rather than zero-shot. \textbf{A real dissociation, built into
-    the design deliberately, is worth reporting alongside the null:} a
-    second, independent readout computed through a completely different
-    pathway (vocab-space cross-entropy through the LM head, $L_{\mathrm{query}}$,
-    never trained on the geometric quantity the gate measures) falls
-    substantially and uniformly across all 6 cells (21.8--46.4\%, mean
-    35.9\%) over the same 5,000 steps the geometric readout stays flat at
-    exactly 0.0000 --- partial, genuine task engagement co-occurring with a
-    categorically invalid geometric readout, not a training failure. The
-    pre-registered $<$50\% pin for licensing the strong ``readout invalid
-    despite complete task learning'' claim is not met in any of the 6
-    cells (closest miss 46.4\%), so this is reported as
-    PARTIAL-TASK-LEARNING-BELOW-PIN, not the strong claim. \textbf{This
-    dissociation motivated promoting the vocab-space readout itself to a
-    primary, independent behavioral-contrast instrument (no geometric
-    readout at all)}, run as a fourth wave on the SAME familiarized
-    checkpoints (12 new cells: $\{\mathrm{per\_token},\mathrm{global}\}
-    \times$ 2 corpora $\times$ 3 seeds, plus the 6 reused OFF cells as
-    baseline). Applying the pre-registered killer-prediction rule at all 4
-    (corpus, arm) contrasts $\times$ 5 checkpoints: 3 of 4 contrasts are
-    UNRESOLVED --- an underpowered null at $n{=}3$ seeds, exactly the
-    outcome a pre-registered power check flagged as the single most likely
-    result (the detectable $|\Delta|$ floor, $\approx$1.5--1.7 loss units,
-    is the same order of magnitude as the OFF arm's own entire 5,000-step
-    familiarization effect, $\approx$1.69). The 4th contrast
-    (wikitext$\times$per\_token) was determinate at $n{=}3$ and TRANSIENT:
-    $\Delta(K{=}32,c{=}2500){=}{-}0.4999$, 95\% CI $[-0.6241,-0.3758]$ ---
-    the arm's loss HIGHER, not lower, than the untreated baseline at that
-    checkpoint, resolving back toward the baseline by $c{=}5000$
-    ($\Delta{=}{-}0.7949$, CI straddles zero). \textbf{A dedicated
-    $3{\times}$ seed-extension wave has since tested this specific reading
-    directly, and it did NOT replicate.} Nine new, fully independent seeds
-    at the same anchor cell give mean $\Delta{=}{-}0.0746$, 95\% CI
-    $[-0.5060,+0.3569]$ --- spanning zero --- but the wave's own
-    pre-registered batch-effect gate, evaluated before any pooling,
-    flagged the two cohorts non-exchangeable (OFF-arm variance ratio
-    $4.47{>}4.0$ between the archived $n{=}3$ and the new $n{=}9$; the
-    cohort means were close and did not flag) and correctly routed the
-    combined $n{=}12$ reading OUTSIDE the pre-registered 4-outcome
-    decision partition rather than silently pooling it: the registered
-    outcome is \textbf{BATCH-EFFECT-FLAGGED}, not TRANSIENT-CONFIRMED or
-    TRANSIENT-REFUTED. As an explicitly non-decision-grade diagnostic only
-    (shown to make the gate's own bite legible, never as a competing
-    verdict), the naive $n{=}12$ pool reads mean $-0.1809$, CI
-    $[-0.5090,+0.1472]$ --- also spanning zero. Every determinate reading
-    found across all 20 primary checkpoints in the original wave was
-    negative-direction; none was positive. The gate's own trigger is
-    itself disclosed as an honest instrument finding: two independent
-    pretraining campaigns (the archived cohort and the extension cohort)
-    differ measurably in their OFF-arm evaluation variance at this cell,
-    not merely their means.
-    \textbf{Because the tested intervention is the arm's entire causal
-    package} (the original pretraining-era weight divergence plus the same
-    frozen-bias blend continuing to fire on every familiarization step,
-    inseparable in what these checkpoints are, not an isolated
-    familiarization-only contrast), this bounds rather than resolves the
-    keystone causal question: does the frozen-bias key-bias intervention
-    change in-context multi-hop acquisition?
-    % Terminology guard (FROZEN_BIAS_LM_DESIGN.md \S13.13 attack-round-1
-    % verdict, cross-cutting item; \S13.15 Rev-1 micro-attack clearance):
-    % never phrase this question as "key-geometry stabilization." The
-    % deployed per-token arm (lambda=0.58) is val-loss-neutral and its
-    % own 14M training-mediated geometry read moved span-fraction
-    % +0.1955/+0.2273 (both CIs exclude zero) in the DESTABILIZING
-    % direction; the never-scaled global-vector arm is the variant that
-    % stabilized (-0.3319/-0.2308). The fix-at-scale wave
-    % (FROZEN_BIAS_LM_DESIGN.md \S13) adjudicates both arms at 98M/392M.
-    (A framing caution this paper owes the reader: the deployed
-    per-token arm is val-loss-neutral, and its own 14M geometry
-    evidence moves span-fraction in the \emph{destabilizing} direction
-    ($+0.1955$/$+0.2273$, both CIs excluding zero), while the
-    never-scaled global-vector variant is the arm that stabilized ---
-    both arms' geometry effects are under adjudication at scale. The
-    question is therefore about the intervention's whole causal
-    package, not a presumed stabilization mechanism.) Neither a PERSISTENT/
-    LATE-EMERGENT reading (the only registered path to ``yes'') nor a
-    CONVERGED-EQUIVALENT reading (the only registered path to a confident
-    ``no'') occurred at any of the 4 contrasts --- this is a
-    measurement-power result, not a mechanism result. \textbf{Net, honest
-    statement:} the $d_{\mathrm{state}}$-space geometric readout construct
-    is dead across all three surface forms and training regimes tested
-    (marker zero-shot, natural-language zero-shot, task-familiarized) ---
-    still routed to PROBE-INVALID, never REFUTE, per this project's own
-    standing rule; separately, the promoted vocab-space behavioral
-    instrument bounds any causal effect of the arm's whole causal package
-    at under 1.5--1.7 loss units at this seed budget, and the one
-    originally-determinate signal (the $n{=}3$ TRANSIENT reading) did not
-    survive a $3{\times}$ seed extension --- the extension's own
-    pre-registered safety gate correctly refused to pool it into a
-    decision-grade verdict rather than reporting a false REFUTE. The
-    keystone causal question is therefore bounded, not resolved, by FIVE
-    harvests: the reasoning-link causal effect of the arm's whole causal
-    package remains a multiply-bounded null (underpowered at $n{=}3$
-    across three contrasts; measurement-integrity-flagged, neither
-    confirmed nor refuted, at the fourth). No claim about in-context
-    reasoning, positive or negative, is licensed by any of the five
-    harvests.
+\item \textbf{Single architecture family, partially discharged.}
+Section~\ref{sec:soft-fixes}'s architectural-robustness $2\times2$ shows
+the attractor persists under both qk-l2-norm ablation (exonerated at
+$n{=}3$, a within-noise null) and Gated-DeltaNet-style decay (a
+direction-consistent trend that does not meet its own $2\sigma$
+confirmation bar). DeltaProduct's multi-Householder generalization,
+gating at production scale, and the full Qwen3-Next configuration remain
+untested. $H{=}1$/single-layer (Section~\ref{sec:setup}) was a
+deliberate gate-simplicity decision; ReserveMH's generality result lifts
+that qualifier only on the synthetic task, not yet on the real-data
+exactness frontier.
+
+\item \textbf{The $h{=}21$ literal-depth decay remains unexplained and
+unfixed.} F-geo-3 demonstrably does not touch it
+(Section~\ref{sec:results}) --- a named, scoped-out mechanism
+(iteration-compounding), never folded into ``the fix works.''
+
+\item \textbf{The $K{=}32$ headline bar is not met, and its named
+follow-on is fully resolved.} Section~\ref{sec:results} reports this
+without softening: $h{=}4{=}0.504/0.416/0.390$, mean $0.44$, 1/3 seeds at
+the line, attributed to trained cross-episode key drift ($0.9037$, inside
+the pre-registered high band). The anchoring follow-on this residual
+motivated ran to completion across four waves
+(Sections~\ref{sec:the-fix}--\ref{sec:results}): a real,
+independently-replicated $K{=}32$ $h{=}4$ gain ($0.4105\to0.61$--$0.71$),
+a rejected entity-alignment hypothesis (Outcome C, confirmed twice,
+immune to a rejected rescue attempt), a confirmed-by-ablation alternate
+mechanism (a frozen, never-trained table matches or exceeds the learned
+table's own gain --- constancy, not learned content, is the active
+ingredient), and a measured, bounded operating regime ($K/d\leq0.5$
+holds, $K/d{=}0.75$ fails as a cliff, not a smooth decline). This item,
+open at an earlier stage of this project, is now closed. One
+footnote-tier bookkeeping note travels with every seed count in this
+arc: because F-geo-3 makes the standard key-Gram/alignment premise
+instruments tautological by construction, its seeds are admitted by a
+different, pre-registered substitute stack than the rest of the paper;
+both stacks and both realized pass rates are named wherever geo3 and
+non-geo3 seed counts appear side by side (full stack in
+Section~\ref{sec:the-fix}).
+
+\item \textbf{The $K\approx d/2$ structural boundary: located, shown to
+dissolve, and its leading confound exonerated.} Section~\ref{sec:k48-rider}
+carries this analysis in full --- the transition midpoint at
+$d_{\mathrm{state}}{=}64$ ($x_0{=}0.5455$, 95\% CI $[0.5385,0.5513]$),
+its dissolution at $d_{\mathrm{state}}{=}128$ across the identical $K/d$
+window (12/12 cells at $h4{=}1.0$), the direct exoneration of
+anchor-table coherence via controlled dose-response injection at both a
+concentrated and a diffuse structure, and the super-linear (not
+ratio-invariant) growth of load tolerance with $d_{\mathrm{state}}$
+($x_0(80){=}0.6779$, excluding the pre-registered ratio-invariant band).
+We do not re-derive that material here. What remains genuinely open,
+stated plainly: the exact functional form of the super-linear growth
+(neither an absolute-slack band $[0.718,0.739]$ nor a power-law band
+$[0.768,0.837]$ is confirmed or excluded) and the precise
+$d_{\mathrm{state}}{=}96$ transition point, where a full unlocked grid
+finds no cliff through $K/d{=}0.9375$ but a non-monotonic curve too noisy
+at $n{=}3$ seeds/$K$ for the sigmoid fit to localize (100\% of bootstrap
+resamples degenerate); a dedicated pool-margin follow-up returned
+degenerate readings at fresh seeds rather than a clean adjudication,
+disclosed as an instrument-sensitivity finding, not a result (full
+per-cell trail: Appendix~\ref{sec:appendix-tables}). Value-crowding ---
+more entities packed into the same fixed value dimensionality, reducing
+per-entity value-recovery headroom independent of key-side conditioning
+--- is named as the design's own candidate explanation for what
+distinguishes a Welch-bound-forced non-orthogonal table from one that is
+not; it is not yet tested, and we do not let it read as more established
+than that. Seed escalation at the noisiest measured group ($K{=}72$,
+per-seed range $0.8426$--$0.9904$) is the registered next step, not
+launched by this paper's own evidence base.
+
+\item \textbf{Scale-transfer: corpus generality, the ladder above, a
+production-scale signature with attribution left open, an installation
+attempt blocked, and a separate fix-transfer wave now resolved.} A
+smaller-scale check comes first: the truncation-damage phenomenon of
+Section~\ref{sec:phenomenon} is not an artifact of the synthetic probe
+grammar, and generalizes to naturalistic LM pretraining already at small
+scale (Figure~\ref{fig:wave2-corpus}; descriptive+interventional tier
+only, not premise-conditional causal). Beyond item~1's pure-scale ladder,
+three further pieces of evidence bound how far this paper's findings
+travel. First (Figure~\ref{fig:trackc-trackd}, Panel~B), a much
+larger version of the same non-orthonormal write-geometry signature is
+directly measurable in production-scale pretrained fixed-state models ---
+RWKV-7 1.5B ($43.5$--$44.0$) and Falcon-Mamba-7B ($49.9$--$50.2$) --- but
+a matched no-fixed-state negative control, Qwen2.5-1.5B
+($46.0$--$48.5$), shows the same magnitude, so this signature is not yet
+attributable to the delta-rule write mechanism specifically without a
+sharper instrument. Second, a companion attempt to install the F-geo-3
+fix mechanism itself inside a free-running-text LM (Track~B) is blocked
+before any interaction claim can be tested: a duplicate-key
+numerical-stability smoke overshoots its bar by $63\times$ with a
+probative positive control, compounding the original $\beta$-uniformity
+gate refusal; the selectivity-only readout that did complete is
+inconclusive (a split verdict across corpora). Third, and distinct from
+both: the separate constancy-suffices fix from
+Sections~\ref{sec:the-fix}--\ref{sec:results} (the frozen/learned
+key-anchor blend) was independently tested for transfer into a real,
+from-scratch small-LM pretraining setting at 14M
+parameters, then re-tested directly at 98M and 392M (28/28 cells,
+zero gaps). At 14M, the deployed per\_token arm ($\lambda{=}0.58$) moves
+write-geometry span-fraction in the \emph{destabilizing} direction
+($+0.1955$/$+0.2273$, both CIs excluding zero), while an exploratory,
+never-scaled global-vector variant stabilizes it
+($-0.3319$/$-0.2308$). At scale, the deployed arm's destabilizing sign
+\emph{persists}, attenuated: $+0.1133$ (openr1) and $+0.1011$
+(wikitext) at 98M, $+0.0189$ (wikitext) at 392M, with 392M-openr1 alone
+landing null ($+0.0065$, CI includes zero); no cell reverses to the
+mechanism-predicted direction. The global-vector arm's 14M stabilization
+does not survive transfer: it attenuates to near-zero at 98M
+($-0.0580$/$-0.0338$) and sign-flips on WikiText at 392M
+($-0.0124$/$+0.0190$). Val-loss neutrality passes in every tested cell at
+every scale --- the free-of-cost half of the 14M result transfers; the
+geometry half does not. (The 98M/392M magnitude comparison is descriptive
+only: 392M ran a reduced 20{,}000-step budget against 98M's
+Track-C-matched 67{,}547, confounding cross-scale magnitude with token
+count by design; within-scale readings are the registered claims.) This
+fix-transfer wave is a separate program from item~1's pure-scale
+attractor ladder --- it trains its own 98M/392M checkpoints under a
+frozen-bias intervention rather than measuring the untouched baseline ---
+and its own compute is accounted separately in
+Appendix~\ref{sec:appendix-tables}.
+
+% Data: experiment-runs/2026-07-04_lm_rd_wave2/{waveC,waveD}/
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.75\linewidth]{figures/fig08_wave2_corpus_generality.pdf}
+  \caption{Wave 2: the phenomenon is not an artifact of the
+  synthetic probe grammar. Truncation-damage-vs-$k$ curves
+  (nats/token), reasoning (OpenR1-Math) vs.\ narrative (WikiText)
+  corpora at $k\in\{8,16,24,32,48,64\}$: openr1 is consistently more
+  truncation-sensitive at low-to-moderate $k$, both corpora
+  converging to the same noise floor at $k^*{=}48$. Two named
+  confounds apply (symbol density; home- vs.\ cross-domain
+  competence) --- this figure is descriptive/interventional support
+  (RD-2 tier), explicitly not premise-conditional causal.}
+  \label{fig:wave2-corpus}
+\end{figure}
+
+% Data: Panel A -- experiment-runs/2026-07-04_trackc_rung1/,
+% 2026-07-05_trackc_rung2/, 2026-07-05_wave1ext/,
+% 2026-07-06_trajectory_probes/, and the rung-3 (1.31B) result under
+% experiment-runs/*trackc_rung3*/. Panel B --
+% experiment-runs/2026-07-04_track_d/
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figures/fig09_trackc_ladder_and_trackd.pdf}
+  \caption{The attractor persists with scale, and a larger version
+  of it exists at production scale, unattributed. \textbf{Panel A}
+  (Track C pure-scale ladder): pooled chunk-level key-Gram deviation
+  (span-fraction) across a controlled
+  $14\mathrm{M}\to98\mathrm{M}\to392\mathrm{M}\to1.31\mathrm{B}$
+  parameter ladder on a single held-fixed data mix --- $0.248$,
+  $0.344$, $0.389$, $0.455$ --- monotonically increasing.
+  \textbf{Panel B} (Track D Phase 1): the same Gram-deviation
+  statistic measured in three production-scale pretrained
+  checkpoints: RWKV-7 1.5B ($43.5$--$44.0$), Falcon-Mamba-7B
+  ($49.9$--$50.2$), and a no-fixed-state negative control, Qwen2.5-1.5B
+  ($46.0$--$48.5$) --- all three cluster together, RWKV-7 and the
+  negative control statistically indistinguishable; the signature is
+  measurably present and larger at production scale, but not
+  attributable to the delta-rule family specifically without a
+  sharper instrument.}
+  \label{fig:trackc-trackd}
+\end{figure*}
+
+\item \textbf{Whether SGD reaches the $2\times2$'s jointly-sufficient
+corner: a closed, three-part answer, not an open dependency.} The
+``both together'' cell of Figure~\ref{fig:existence-2x2} rests on the
+hand-built i-strong pin, a causal existence proof, not one SGD is shown
+to reach on its own. The anchoring program (Sections~\ref{sec:the-fix}--\ref{sec:results})
+was built specifically to test whether a learned mechanism can reach that
+corner, and the answer is now closed rather than open: SGD reaches a real
+behavioral gain, but not via the hypothesized entity-alignment channel,
+and the actual channel (constancy in the blend arithmetic) is confirmed
+by ablation with its own working regime now bounded. The practical route
+and the causal existence proof are both true and neither substitutes for
+the other; Section~\ref{sec:mechanism}'s closing subsection states this
+precisely.
+
+\item \textbf{An attempt to connect this paper's causal findings to
+natural in-context multi-hop reasoning is bounded, not resolved, by five
+harvests --- caught by the instrument's own pre-registered gates, not
+silently reported as a finding.} A held-out-hop probe applied directly to
+this paper's own checkpoints (the frozen-bias arms as the geometry leg,
+the 14M--392M ladder as the scale leg) returned
+$\mathrm{recovered\_frac@0.9}{=}0.0$ at every one of 78 cells and every
+tested hop depth: the probe's own Stage-0 sanity floor fails
+categorically, routing the result to PROBE-INVALID rather than a
+licensed REFUTE, per this project's own rule that an instrument failing
+its own sanity floor does not get to report a negative result. Two
+structurally different natural-language reformulations of the query ---
+one dropping the reserved marker, one substituting a far more
+corpus-common relation-verb family --- failed identically, exonerating
+surface form and promoting a task-familiarization instrument: continued
+training on the probe's own bind/query structure (5{,}000 steps, 6
+cells) followed by re-evaluation at 5 checkpoints returned the same
+$0.0000$ floor at all 30/30 readings. A genuine dissociation makes this
+more than a dead probe, not less: an independent vocab-space
+cross-entropy readout, never trained on the geometric quantity the gate
+measures, falls $21.8$--$46.4\%$ (mean $35.9\%$) over the same
+5{,}000 steps the geometric readout stays flat at exactly zero --- real
+task engagement co-occurring with a categorically invalid geometric
+readout (the pre-registered $<$50\% pin for the strong ``invalid despite
+learning'' claim is not met, closest miss $46.4\%$, reported as
+PARTIAL-TASK-LEARNING-BELOW-PIN). This motivated promoting the
+vocab-space readout to a primary, independent instrument in its own
+right (12 new cells, 4 (corpus, arm) contrasts $\times$ 5 checkpoints).
+Applying the pre-registered killer-prediction rule: 3 of 4 contrasts are
+UNRESOLVED, an underpowered null at $n{=}3$ (the detectable-effect floor,
+$\approx$1.5--1.7 loss units, is the same order of magnitude as the OFF
+arm's own entire familiarization effect, $\approx$1.69) --- exactly the
+outcome a pre-registered power check flagged as most likely. The 4th
+contrast (wikitext $\times$ per\_token) was determinate at $n{=}3$ and
+TRANSIENT ($\Delta{=}{-}0.4999$, CI $[-0.6241,-0.3758]$ at $c{=}2500$,
+resolving toward baseline by $c{=}5000$), but a dedicated $3\times$
+seed-extension wave testing this specific reading directly did not
+replicate it (9 new seeds, mean $\Delta{=}{-}0.0746$, CI spanning zero)
+--- and its own pre-registered batch-effect gate correctly flagged the
+two cohorts non-exchangeable (OFF-arm variance ratio $4.47{>}4.0$) and
+routed the combined reading to BATCH-EFFECT-FLAGGED rather than silently
+pooling it into a confirmed or refuted verdict. Every determinate reading
+found across all 20 primary checkpoints in the original wave was
+negative-direction; none was positive. Because the tested intervention
+is the arm's entire causal package (pretraining-era weight divergence
+plus the frozen-bias blend firing on every familiarization step,
+inseparable in what these checkpoints are), this bounds rather than
+resolves the keystone question: does the frozen-bias key-bias
+intervention change in-context multi-hop acquisition? A framing caution
+this paper owes the reader, resolved by item~6 above: the deployed
+per\_token arm's own geometry evidence moves in the \emph{destabilizing}
+direction at every scale tested, so this question is about the
+intervention's whole causal package, never a presumed stabilization
+mechanism. Net, honest statement: the $d_{\mathrm{state}}$-space
+geometric-readout construct is dead across all three surface forms and
+training regimes tested, still routed to PROBE-INVALID, never REFUTE;
+the promoted vocab-space instrument bounds any causal effect of the
+arm's whole causal package at under 1.5--1.7 loss units at this seed
+budget; and the one originally-determinate signal did not survive a
+$3\times$ seed extension, whose own safety gate correctly refused to
+pool it into a decision-grade verdict. No claim about in-context
+reasoning, positive or negative, is licensed by any of the five
+harvests.
+
 \end{enumerate}
