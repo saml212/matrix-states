@@ -5046,3 +5046,13 @@ steps than the make-or-break's LR 3e-4 / 20K — "most favorable conditions" so 
 FAIL can't be dismissed as under-training), pure synthetic, small ~2 GPU-h
 ceiling, BLIND. On complete: does teacher-force learn in-dist (answer_acc ≫
 chance)? + what does mean_cos show? → localizes WRITE vs READ/setup → §G3-B10.
+
+### §G3-B9-LAUNCH: teacher-force diagnostic LIVE (2026-07-18 04:30 UTC)
+tmux `ncr_g3b9_tf_g2` GPU2, cell `g3b9_tf_diag`, runner md5 29531d0c (box==local),
+`--teacher-force-operator --lr 1e-3 --steps 8000` (generous "most favorable" config
+vs the make-or-break's 3e-4/20K), batch32/eval64, ceiling 2.0 GPU-h (+timeout 8000s),
+BLIND, out /home/nvidia/results_gate3_wave1/g3b9_tf_diag.json. Clean start (step 1,
+read-ablation exact-zero PASSED pre-train, 0 errors). teacher-force applies to
+full_graft ONLY (backbone_only stays the o≡0 null). Expected done ~06:30 UTC. ON
+COMPLETE → blind assess §G3-B10: does full_graft+teacher-force learn in-dist
+(answer_acc ≫ 0.042)? + mean_cos → localizes WRITE-blocker vs READ/setup-broken.
