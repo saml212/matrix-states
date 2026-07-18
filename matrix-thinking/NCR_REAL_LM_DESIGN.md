@@ -5746,3 +5746,50 @@ ladder. NULL/FAIL → route the PRE-REGISTERED ablations (--teacher-force /
 convergence budget (20.5M) with CE-only indirect signal, so a deep-h NULL may
 be write-learning-UNDERPOWERED, NOT "NCR can't write" — do NOT over-read a
 null.** Stratify deep-h by h%K (h=5≡h=29 mod 24; audit (e)).
+
+## §G3-B16 MAKE-OR-BREAK VERDICT (blind Opus judge + coordinator cross-check, 2026-07-18)
+
+**VERDICT: UNINTERPRETABLE (precondition fail — both arms at the answer-marginal
+floor).** Clean COMPLETED run (20000/20000 steps, 1.10 GPU-h, 0 errors). Blind
+Opus judge assessed the raw JSON against the frozen §G3-B5/§G3-B7 rule; coordinator
+cross-checked the load-bearing numbers directly from the raw JSON — CONFIRMED:
+- PRECONDITION (metric-b answer_accuracy, in-dist h∈{1,2,3}): full_graft mean
+  **0.036458** vs backbone_only mean **0.036458** — **IDENTICAL**, both ≈ the
+  answer-marginal floor (chance 1/107=0.0094; all cells 0.016–0.094 = binomial
+  noise). Read NOT demonstrably load-bearing → **precondition FAILS**.
+- PRIMARY (metric-a recovered_frac@0.9, deep ladder): **0.0 in all 18 (arm×depth)
+  cells**, mean_cos ≈ 0 everywhere (−0.049..+0.034). Zero deep-composition signal
+  (moot given precondition, but a clean FAIL-branch had it mattered).
+- read_ablation exact-zero verified pre+post (max_abs_diff 0.0) — the null is a
+  true frozen null; the result is NOT a harness artifact.
+
+**HONEST READ — what this IS and ISN'T:**
+- NOT a harness bug. §G3-B13 PROVED the harness end-to-end (teacher-force
+  answer_acc 1.0 to h=61). The read + decode work when handed the operator.
+- NOT "NCR can't write." The isolated failure is WRITE-LEARNING: the encoder
+  did not learn to write a useful composing operator from context in 20K steps
+  of CE-only indirect signal. The Opus pre-launch audit (§G3-B15 audit (g))
+  PRE-FLAGGED this exact risk: 20K×batch32 = 640K docs is **~32× UNDER** the
+  free-write toy's 20.5M convergence budget, AND the toy used a DIRECT cosine
+  read-loss while the graft has only indirect CE signal to the encoder.
+- FAINT signal that the encoder is trying: full_graft final LM loss **3.91** vs
+  backbone_only **4.31** (~0.39 nats lower) — the read reduces sequence loss but
+  does NOT convert to answer_accuracy (still at floor) ⇒ the encoder found a
+  weakly-useful-but-not-composing use for o. Under-trained, not inert.
+
+**DIAGNOSIS: write-learning is signal-starved (indirect CE) and budget-starved
+(32× under toy). Teacher-force isolates the gap to the WRITE specifically.**
+
+**NEXT (pre-registered FAIL-branch route — the direct-read-supervision arm):**
+NOT n=3 of the same config (a clean identical-floor is not a seed fluke; re-running
+underpowered only re-confirms the null). Instead the highest-leverage pre-registered
+ablation: **add a DIRECT read-supervision auxiliary loss** (cosine/recovery on the
+read output o vs the true answer-entity target — the dense signal the toy used to
+converge), optionally + more steps/curriculum. This converts the encoder's
+gradient from indirect-CE to direct, matching the regime that made the standalone
+free-write toy reach rec 1.0 all depths. Still a valid capability demo: the
+encoder does its own writing; the aux loss is a disclosed training aid; at
+inference NO teacher-forcing. If the encoder learns to write under direct
+supervision → the capability holds; if not → a deeper (real) negative. This is a
+code change (new loss term + flag) → build → audit → launch, mirroring the
+§G3-B12 fix arc.
