@@ -5017,3 +5017,32 @@ instrument taps the correct tensor (negative-control it), check task/curriculum
 difficulty at K=24, lr/warmup/horizon, and the read-injection bottleneck. Do NOT
 escalate "NCR can't train" to PI on this run — the data does not license that
 attribution.
+
+## §G3-B9 TEACHER-FORCE DIAGNOSTIC BUILD + coordinator validation (Fable, 2026-07-18)
+
+Post-§G3-B8 (UNINTERPRETABLE, whole model didn't learn a PURE-synthetic K=24
+task). Build agent added two runner edits then deferred (monitor-thrash, same
+as prior); coordinator took over + VALIDATED the code directly:
+- **mean_cos instrument (resolves §G3-B8's flagged ambiguity):** new
+  `cosine_and_recovered_frac()` returns (recovered_frac@0.9, mean_cos) from ONE
+  shared cosine tensor — re-derives graft.recovered_frac_at_09's IDENTICAL
+  target (target = key_adapter(hidden at the answer entity's own bind-clause KEY
+  position)) byte-for-byte, so the two metrics CANNOT silently disagree. Now a
+  high mean_cos with rec@0.9=0 ⇒ threshold discarded real signal; near-zero
+  mean_cos ⇒ read carries nothing. VALIDATED: consistent-by-construction.
+- **--teacher-force-operator training+eval mode:** `if teacher_force: Z =
+  integ.teacher_force_operator(keys_v,values_v)` — VALIDATED the runner imports
+  NCRIntegration from the audited smoke module (`import ncr_lm_wave1_smoke as
+  graft; NCRIntegration = graft.NCRIntegration`, lines 144/155), so
+  teacher_force_operator (smoke:282, the audited closed-form op fit that
+  bypasses the encoder, §G3-B3 smoke item 10: encoder zero-grad, residual
+  7.3e-6) resolves correctly — no crash on that path. Isolates: teacher-force
+  LEARNS in-dist ⇒ WRITE-learning (encoder tokens→operator) is the blocker;
+  STAYS at chance ⇒ read-injection/task-setup broken.
+- Audited two-arm path (ncr_lm_forward) untouched; smoke file md5 unchanged.
+
+**PLAN:** launch a GENEROUS-config teacher-force diagnostic (higher LR + more
+steps than the make-or-break's LR 3e-4 / 20K — "most favorable conditions" so a
+FAIL can't be dismissed as under-training), pure synthetic, small ~2 GPU-h
+ceiling, BLIND. On complete: does teacher-force learn in-dist (answer_acc ≫
+chance)? + what does mean_cos show? → localizes WRITE vs READ/setup → §G3-B10.

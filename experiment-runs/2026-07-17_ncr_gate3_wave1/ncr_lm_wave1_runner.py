@@ -238,18 +238,32 @@ def stop_requested(stop_file: str) -> bool:
 # ncr_lm_wave1_smoke.py calls; this wrapper does NOT edit that audited
 # function, so its wiring stays byte-identical to what sec G3-B4 reviewed).
 # ---------------------------------------------------------------------------
-def ncr_lm_forward_ablatable(backbone, ncr_head, integ: NCRIntegration, batch: dict, read_ablate: bool):
+def ncr_lm_forward_ablatable(backbone, ncr_head, integ: NCRIntegration, batch: dict, read_ablate: bool,
+                              teacher_force: bool = False):
     """Returns (logits, o_raw, o_injected, hidden, Z, keys_v, values_v).
     read_ablate=False (full_graft): o_injected is o_raw (same tensor, real
     gradient flows through it to the write pathway).
     read_ablate=True (backbone_only): o_injected = torch.zeros_like(o_raw) --
     a FRESH tensor with NO autograd edge to o_raw's own graph, so the write
     adapters/encoder receive ZERO gradient and the read contributes EXACTLY
-    zero to the logits (verified by assert_read_ablation_is_exact_zero)."""
+    zero to the logits (verified by assert_read_ablation_is_exact_zero).
+
+    teacher_force=True (sec G3-B9 diagnostic, ported from ncr_lm_wave1_smoke.
+    ncr_lm_forward's own audited teacher_force branch, smoke item 10): Z is
+    built by integ.teacher_force_operator(keys_v, values_v) -- a closed-form
+    least-squares fit on DETACHED key/value-adapter outputs -- instead of
+    ncr_head.encode(keys_v, values_v). ncr_head's parameters therefore NEVER
+    enter the autograd graph in this branch (asserted explicitly in the
+    training loop, not merely assumed here). read_ablate and teacher_force
+    compose orthogonally: read_ablate still controls o_injected independently
+    of where Z came from (backbone_only zeros o_injected regardless)."""
     input_ids = batch["doc"][:, :-1]
     hidden = backbone(input_ids, return_hidden=True)
     keys_v, values_v = integ.extract_kv(hidden, batch["key_pos"], batch["val_pos"])
-    Z = ncr_head.encode(keys_v, values_v)
+    if teacher_force:
+        Z = integ.teacher_force_operator(keys_v, values_v)
+    else:
+        Z = ncr_head.encode(keys_v, values_v)
     q_key = integ.query_key(hidden, batch["query_key_col"])
     o_raw = nm.binexp_read(Z, q_key.unsqueeze(1), h=batch["hop"])["o"].squeeze(1)
     o_injected = torch.zeros_like(o_raw) if read_ablate else o_raw
@@ -276,6 +290,38 @@ def assert_read_ablation_is_exact_zero(backbone, ncr_head, integ: NCRIntegration
         f"sec G3-B5's attribution rule does not hold")
     del o_raw
     return max_diff
+
+
+# ---------------------------------------------------------------------------
+# mean_cos diagnostic (sec G3-B9, in response to sec G3-B8's own flagged
+# instrument-ambiguity: "recovered=0 in-dist consistent with didn't-learn OR
+# o_raw-recovery-instrument-mis-wired"). recovered_frac@0.9 is a THRESHOLDED
+# view of read quality (cos>=0.9 or nothing); this exposes the RAW mean
+# cosine alongside it so the two failure modes are visually distinguishable:
+# high mean_cos with rec@0.9=0 => the threshold discarded real (sub-0.9, but
+# non-trivial) signal; near-zero mean_cos => the read genuinely carries
+# nothing. Re-derives the IDENTICAL target/cosine computation
+# graft.recovered_frac_at_09 (ncr_lm_wave1_smoke.py, AUDITED, build-time
+# interpretation (i): target = key_adapter(hidden at the ANSWER entity's OWN
+# bind-clause KEY position)) uses internally, byte-for-byte -- duplicated
+# here (not edited into that audited file, keeping its md5/audit status
+# untouched, per the build brief's "do NOT disturb the audited two-arm
+# path") solely to obtain the raw per-row cosine tensor that function
+# computes but does not expose (it only returns the thresholded fraction).
+# recovered_frac@0.9 and mean_cos below are therefore ALWAYS derived from
+# the SAME cosine tensor -- guaranteed consistent by construction, not two
+# independently-invented metrics that could silently disagree.
+# ---------------------------------------------------------------------------
+def cosine_and_recovered_frac(integ: NCRIntegration, hidden: torch.Tensor, o: torch.Tensor,
+                               key_pos: torch.Tensor, tgt_slot: torch.Tensor) -> tuple[float, float]:
+    """Returns (recovered_frac@0.9, mean_cos) from ONE shared cosine tensor.
+    See the module comment immediately above for why this duplicates (not
+    reimplements-differently) graft.recovered_frac_at_09's own target."""
+    answer_key_pos = torch.gather(key_pos, 1, tgt_slot.unsqueeze(1)).squeeze(1)   # (B,)
+    idx = answer_key_pos.view(-1, 1, 1).expand(-1, 1, hidden.shape[-1])
+    target = integ.key_adapter(torch.gather(hidden, 1, idx).squeeze(1).float())
+    cos = F.cosine_similarity(o, target, dim=-1)
+    return (cos >= 0.9).float().mean().item(), cos.mean().item()
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +372,7 @@ EVAL_SEED_OFFSET = 999_983
 
 @torch.no_grad()
 def eval_arm_at_hops(arm: dict, pools, cfg, hops: tuple, batch_size: int, device: str,
-                      base_seed: int, read_ablate: bool) -> dict:
+                      base_seed: int, read_ablate: bool, teacher_force: bool = False) -> dict:
     backbone, ncr_head, integ = arm["backbone"], arm["ncr"], arm["integ"]
     backbone.eval(); ncr_head.eval(); integ.eval()
     out = {}
@@ -334,25 +380,37 @@ def eval_arm_at_hops(arm: dict, pools, cfg, hops: tuple, batch_size: int, device
         gen = torch.Generator(device=device).manual_seed(base_seed + EVAL_SEED_OFFSET + h)
         batch = build_task1_document(cfg, pools, gen, batch_size, h, device)
         logits, o_raw, o_inj, hidden, Z, keys_v, values_v = ncr_lm_forward_ablatable(
-            backbone, ncr_head, integ, batch, read_ablate=read_ablate)
-        rf = recovered_frac_at_09(integ, hidden, o_raw, batch["key_pos"], batch["tgt_slot"])
+            backbone, ncr_head, integ, batch, read_ablate=read_ablate, teacher_force=teacher_force)
+        rf, mean_cos = cosine_and_recovered_frac(integ, hidden, o_raw, batch["key_pos"], batch["tgt_slot"])
         acc = (logits.argmax(dim=-1) == batch["answer_token"]).float().mean().item()
-        out[f"h={h}"] = {"recovered_frac@0.9": float(rf), "answer_accuracy": float(acc), "n": batch_size}
+        out[f"h={h}"] = {"recovered_frac@0.9": float(rf), "mean_cos": float(mean_cos),
+                          "answer_accuracy": float(acc), "n": batch_size}
     rf_vals = [v["recovered_frac@0.9"] for v in out.values()]
+    cos_vals = [v["mean_cos"] for v in out.values()]
     acc_vals = [v["answer_accuracy"] for v in out.values()]
     out["mean_recovered_frac@0.9"] = float(sum(rf_vals) / len(rf_vals))
+    out["mean_mean_cos"] = float(sum(cos_vals) / len(cos_vals))
     out["mean_answer_accuracy"] = float(sum(acc_vals) / len(acc_vals))
     backbone.train(); ncr_head.train(); integ.train()
     return out
 
 
-def eval_both_arms(arms: dict, pools, cfg, batch_size: int, device: str, seed: int) -> dict:
+def eval_both_arms(arms: dict, pools, cfg, batch_size: int, device: str, seed: int,
+                    teacher_force: bool = False) -> dict:
+    """teacher_force (sec G3-B9) is applied to the full_graft arm ONLY --
+    backbone_only's o_raw always uses the normal ncr_head.encode() path
+    regardless of this flag, preserving its role as the untrained,
+    frozen-at-init encoder null baseline (sec G3-B5's own definition of
+    what backbone_only's o_raw metric means); swapping in a teacher-forced
+    fit for backbone_only too would change that baseline's meaning without
+    being asked for, and its o_raw never touches the loss either way."""
     result = {}
     for arm_name, read_ablate in (("full_graft", False), ("backbone_only", True)):
         arm = arms[arm_name]
+        tf_this_arm = teacher_force and arm_name == "full_graft"
         result[arm_name] = {
-            "in_dist": eval_arm_at_hops(arm, pools, cfg, TRAIN_HOPS, batch_size, device, seed, read_ablate),
-            "deep": eval_arm_at_hops(arm, pools, cfg, DEEP_LADDER, batch_size, device, seed, read_ablate),
+            "in_dist": eval_arm_at_hops(arm, pools, cfg, TRAIN_HOPS, batch_size, device, seed, read_ablate, tf_this_arm),
+            "deep": eval_arm_at_hops(arm, pools, cfg, DEEP_LADDER, batch_size, device, seed, read_ablate, tf_this_arm),
         }
     return result
 
@@ -365,6 +423,14 @@ def build_attribution(eval_result: dict) -> dict:
                    for h in TRAIN_HOPS}
     deep_gap = {f"h={h}": fg["deep"][f"h={h}"]["recovered_frac@0.9"] - bo["deep"][f"h={h}"]["recovered_frac@0.9"]
                 for h in DEEP_LADDER}
+    # sec G3-B9 diagnostic addition (additive only, does not alter any
+    # existing key above): the SAME gap construction but on mean_cos instead
+    # of the thresholded recovered_frac@0.9, so a blind assessor can see
+    # whether the read carries graded signal even when rec@0.9 floors at 0.
+    in_dist_cos_gap = {f"h={h}": fg["in_dist"][f"h={h}"]["mean_cos"] - bo["in_dist"][f"h={h}"]["mean_cos"]
+                        for h in TRAIN_HOPS}
+    deep_cos_gap = {f"h={h}": fg["deep"][f"h={h}"]["mean_cos"] - bo["deep"][f"h={h}"]["mean_cos"]
+                    for h in DEEP_LADDER}
     return {
         "frozen_rule_text": ATTRIBUTION_RULE_TEXT,
         "primary_signal_definition": (
@@ -376,6 +442,8 @@ def build_attribution(eval_result: dict) -> dict:
         "recovered_frac_gap_in_dist": in_dist_gap,
         "recovered_frac_gap_deep": deep_gap,
         "primary_signal_deepest_gap_h61": deep_gap["h=61"],
+        "mean_cos_gap_in_dist": in_dist_cos_gap,     # sec G3-B9 diagnostic addition
+        "mean_cos_gap_deep": deep_cos_gap,           # sec G3-B9 diagnostic addition
         "attribution_precondition_metric": "answer_accuracy (argmax(logits)==answer_token), NOT recovered_frac@0.9 "
                                             "-- this is what the frozen rule text's own prose names",
         "answer_accuracy_in_dist": {"full_graft": {h: fg["in_dist"][h]["answer_accuracy"] for h in fg["in_dist"] if h.startswith("h=")},
@@ -465,7 +533,7 @@ def restore_arms_and_opts(ckpt: dict, vocab_size_total: int, lr: float, device: 
 def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size: int,
                       lr: float, warmup_steps: int, ceiling_gpuh: float, seed: int,
                       device: str, out_path: str, ckpt_path: str, stop_file: str,
-                      ckpt_every: int, eval_every: int) -> dict:
+                      ckpt_every: int, eval_every: int, teacher_force_operator: bool = False) -> dict:
     if os.path.exists(out_path):
         with open(out_path) as f:
             prev = json.load(f)
@@ -501,7 +569,7 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
                     vocab_size_total=vocab_size_total, seed=seed, batch_size=batch_size,
                     eval_batch_size=eval_batch_size, lr=lr, warmup_steps=warmup_steps,
                     train_hops=list(TRAIN_HOPS), deep_ladder=list(DEEP_LADDER),
-                    ceiling_gpuh=ceiling_gpuh),
+                    ceiling_gpuh=ceiling_gpuh, teacher_force_operator=teacher_force_operator),
         params=dict(per_arm=n_params["full_graft"],
                     backbone=sum(p.numel() for p in arms["full_graft"]["backbone"].parameters()),
                     ncr_head=sum(p.numel() for p in arms["full_graft"]["ncr"].parameters()),
@@ -527,6 +595,12 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
     loss_hist = {"full_graft": [], "backbone_only": []}
     n_skipped = {"full_graft": 0, "backbone_only": 0}
     final_status = "COMPLETED"
+    # sec G3-B9: counts PASSED per-step encoder-zero-grad assertions (full_graft
+    # arm only, see the training loop below) -- NOT restored across a resume
+    # (fresh per-process, same convention as n_skipped above), so it reports
+    # checks passed IN THIS PROCESS's run only.
+    teacher_force_ncr_zero_grad_checks = 0
+    rec["teacher_force_check"] = {"active": teacher_force_operator, "ncr_zero_grad_checks_passed": 0}
 
     for step in range(start_step + 1, steps + 1):
         cur_lr = get_lr(step, max_lr=lr, warmup_steps=warmup_steps, total_steps=steps)
@@ -539,11 +613,31 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
             arm, opt = arms[arm_name], opts[arm_name]
             for g in opt.param_groups:
                 g["lr"] = cur_lr
+            # sec G3-B9: teacher_force applies to full_graft ONLY (see
+            # eval_both_arms's own docstring for the identical rationale --
+            # backbone_only's o_raw stays the untrained-encoder null baseline
+            # regardless of this flag, and never touches its own loss anyway).
+            tf_this_arm = teacher_force_operator and arm_name == "full_graft"
             logits, o_raw, o_inj, hidden, Z, keys_v, values_v = ncr_lm_forward_ablatable(
-                arm["backbone"], arm["ncr"], arm["integ"], batch, read_ablate=read_ablate)
+                arm["backbone"], arm["ncr"], arm["integ"], batch, read_ablate=read_ablate,
+                teacher_force=tf_this_arm)
             loss = F.cross_entropy(logits, batch["answer_token"])
             opt.zero_grad()
             loss.backward()
+            if tf_this_arm:
+                # sec G3-B9 isolation proof, ported from ncr_lm_wave1_smoke.py smoke
+                # item 10's construction-time check into this training loop, run
+                # EVERY step this mode is active (not merely once): teacher-forcing
+                # bypasses ncr_head.encode() entirely (see ncr_lm_forward_ablatable),
+                # so ncr_head's parameters must receive EXACTLY zero gradient. Loud
+                # AssertionError on violation -- CLAUDE.md: structural correctness
+                # checks need exact thresholds, never silently trusted.
+                ncr_untouched = all(p.grad is None for p in arm["ncr"].parameters())
+                assert ncr_untouched, (
+                    f"--teacher-force-operator step {step}: ncr_head (BindingEncoder) received a "
+                    f"non-None gradient -- teacher-force isolation broken, the encoder pathway is "
+                    f"not actually bypassed")
+                teacher_force_ncr_zero_grad_checks += 1
             all_params = list(arm["backbone"].parameters()) + list(arm["ncr"].parameters()) + list(arm["integ"].parameters())
             finite = all(p.grad is None or torch.isfinite(p.grad).all() for p in all_params)
             if finite:
@@ -567,13 +661,15 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
             save_checkpoint(ckpt_path, step, arms, opts, data_gen, time.time() - t0, cell_id)
 
         if step % eval_every == 0 or step == steps:
-            eval_result = eval_both_arms(arms, pools, cfg, eval_batch_size, device, seed)
+            eval_result = eval_both_arms(arms, pools, cfg, eval_batch_size, device, seed,
+                                          teacher_force=teacher_force_operator)
             rec["arms"] = eval_result
             rec["attribution"] = build_attribution(eval_result)
             rec["step"] = step
             rec["elapsed_s"] = time.time() - t0
             rec["loss_history"] = loss_hist
             rec["n_skipped_steps"] = n_skipped
+            rec["teacher_force_check"]["ncr_zero_grad_checks_passed"] = teacher_force_ncr_zero_grad_checks
             atomic_write_json(out_path, rec)
             print(f"[{cell_id}] eval computed at step {step} -> {out_path} updated "
                   f"(values withheld from stdout, blind discipline sec G3-B6)", flush=True)
@@ -587,12 +683,14 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
         if elapsed > ceiling_s:
             final_status = "ABORTED-BUDGET"
             save_checkpoint(ckpt_path, step, arms, opts, data_gen, elapsed, cell_id)
-            eval_result = eval_both_arms(arms, pools, cfg, eval_batch_size, device, seed)
+            eval_result = eval_both_arms(arms, pools, cfg, eval_batch_size, device, seed,
+                                          teacher_force=teacher_force_operator)
             rec["arms"] = eval_result
             rec["attribution"] = build_attribution(eval_result)
             rec["step"] = step
             rec["loss_history"] = loss_hist
             rec["n_skipped_steps"] = n_skipped
+            rec["teacher_force_check"]["ncr_zero_grad_checks_passed"] = teacher_force_ncr_zero_grad_checks
             break
 
     # Post-train read-ablation re-check (paranoia: prove the invariant held
@@ -828,15 +926,68 @@ def run_runner_smoke(device: str, outdir: str) -> int:
     if not ok_d:
         failures.append("D:whole-cell-skip")
 
+    # --- sub-test E: --teacher-force-operator diagnostic mode (sec G3-B9) ---
+    cid_e = "runner_smoke_teacher_force"
+    rc_e1, rec_e1, wall_e1 = invoke("calibration", cid_e, 100, 5.0, extra=("--teacher-force-operator",))
+
+    def _mean_cos_present(rec) -> bool:
+        if rec is None or "arms" not in rec:
+            return False
+        try:
+            return all("mean_cos" in rec["arms"][arm][band][f"h={h}"]
+                       for arm in ("full_graft", "backbone_only")
+                       for band, hops in (("in_dist", TRAIN_HOPS), ("deep", DEEP_LADDER))
+                       for h in hops)
+        except (KeyError, TypeError):
+            return False
+
+    ok_e1 = (rc_e1 == 0 and rec_e1 is not None and rec_e1.get("status") == "COMPLETED"
+             and rec_e1.get("step") == 100
+             and rec_e1.get("config", {}).get("teacher_force_operator") is True
+             and rec_e1.get("teacher_force_check", {}).get("active") is True
+             and rec_e1.get("teacher_force_check", {}).get("ncr_zero_grad_checks_passed", 0) > 0
+             and _mean_cos_present(rec_e1))
+    print(f"[runner-smoke E1: --teacher-force-operator, 100-step run -- COMPLETED without the "
+          f"encoder-zero-grad AssertionError firing (checks_passed>0), mean_cos present at every "
+          f"arm/band/h] {'PASS' if ok_e1 else 'FAIL'} "
+          f"(checks_passed={rec_e1.get('teacher_force_check', {}).get('ncr_zero_grad_checks_passed') if rec_e1 else None}, "
+          f"wall={wall_e1:.1f}s)", flush=True)
+    if not ok_e1:
+        failures.append("E1:teacher-force-run")
+
+    # checkpoint/resume under teacher-force: delete results JSON (keep ckpt), re-invoke to a
+    # higher step target with the SAME flag -- must RESUME (not restart), and the per-process
+    # encoder-zero-grad check count must be > 0 again post-resume (proving the assertion re-ran
+    # in the fresh process, not silently skipped).
+    out_path_e = os.path.join(outdir, f"{cid_e}.json")
+    if os.path.exists(out_path_e):
+        os.remove(out_path_e)
+    rc_e2, rec_e2, wall_e2 = invoke("calibration", cid_e, 200, 5.0, extra=("--teacher-force-operator",))
+    resumed_e = False
+    if rec_e2 is not None:
+        fg_hist_e = rec_e2.get("loss_history", {}).get("full_graft", [])
+        first_logged_step_e = fg_hist_e[0][0] if fg_hist_e else None
+        resumed_e = first_logged_step_e is not None and first_logged_step_e > 100
+    ok_e2 = (rc_e2 == 0 and rec_e2 is not None and rec_e2.get("status") == "COMPLETED"
+             and rec_e2.get("step") == 200 and resumed_e
+             and rec_e2.get("teacher_force_check", {}).get("ncr_zero_grad_checks_passed", 0) > 0
+             and _mean_cos_present(rec_e2))
+    print(f"[runner-smoke E2: --teacher-force-operator checkpoint/resume -- must RESUME from 100 to "
+          f"200 (not restart), encoder-zero-grad checks keep passing post-resume, mean_cos still "
+          f"present] {'PASS' if ok_e2 else 'FAIL'} (resumed={resumed_e}, wall={wall_e2:.1f}s)", flush=True)
+    if not ok_e2:
+        failures.append("E2:teacher-force-resume")
+
     summary = dict(runner_tag=RUNNER_TAG, mode="smoke", failures=failures,
-                    sub_results=dict(A=rec_a, B_first=rec_b1, B_second=rec_b2, C=rec_c, D=rec_d),
+                    sub_results=dict(A=rec_a, B_first=rec_b1, B_second=rec_b2, C=rec_c, D=rec_d,
+                                      E1=rec_e1, E2=rec_e2),
                     finished_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
     atomic_write_json(os.path.join(outdir, "runner_smoke_summary.json"), summary)
     print("=" * 70, flush=True)
     if failures:
         print(f"RUNNER SMOKE: {len(failures)} FAILURE(S): {failures}", file=sys.stderr, flush=True)
     else:
-        print("RUNNER SMOKE: ALL 4 SUB-TESTS PASSED", flush=True)
+        print("RUNNER SMOKE: ALL 6 SUB-TESTS PASSED", flush=True)
     print("=" * 70, flush=True)
     return 1 if failures else 0
 
@@ -866,6 +1017,19 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--ckpt-dir", default=None)
     ap.add_argument("--stop-file", default=None)
+    ap.add_argument("--teacher-force-operator", action="store_true",
+                     help="sec G3-B9 diagnostic mode (--mode calibration only): replace the "
+                          "ncr_head-encoded operator Z with the closed-form least-squares "
+                          "teacher-forced fit (ncr_lm_wave1_smoke.py's own audited "
+                          "teacher_force_operator, smoke item 10) in BOTH the training loss and "
+                          "eval, for the full_graft arm ONLY -- backbone_only is unaffected (its "
+                          "read stays exact-zero and its o_raw stays the untrained-encoder null "
+                          "baseline regardless of this flag). Isolates write-learning (the "
+                          "encoder) from read/inject/backbone-learning: LEARNS in-distribution "
+                          "under this flag => the encoder (write side) is the blocker; STAYS at "
+                          "chance => the read-injection or task/loss setup is broken. The encoder "
+                          "is asserted to receive EXACTLY zero gradient every step this is active "
+                          "(loud AssertionError on violation, never silently trusted).")
     args = ap.parse_args()
 
     print("=" * 70)
@@ -902,7 +1066,8 @@ def main():
         eval_batch_size=args.eval_batch_size, lr=args.lr, warmup_steps=args.warmup_steps,
         ceiling_gpuh=args.ceiling_gpuh, seed=args.seed, device=args.device,
         out_path=args.out, ckpt_path=ckpt_path, stop_file=stop_file,
-        ckpt_every=args.ckpt_every, eval_every=args.eval_every)
+        ckpt_every=args.ckpt_every, eval_every=args.eval_every,
+        teacher_force_operator=args.teacher_force_operator)
     return 0
 
 
