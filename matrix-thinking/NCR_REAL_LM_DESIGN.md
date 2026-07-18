@@ -5056,3 +5056,147 @@ read-ablation exact-zero PASSED pre-train, 0 errors). teacher-force applies to
 full_graft ONLY (backbone_only stays the o≡0 null). Expected done ~06:30 UTC. ON
 COMPLETE → blind assess §G3-B10: does full_graft+teacher-force learn in-dist
 (answer_acc ≫ 0.042)? + mean_cos → localizes WRITE-blocker vs READ/setup-broken.
+
+## §G3-B10 TEACHER-FORCE DIAGNOSTIC VERDICT (blind assess, 2026-07-18)
+
+Blind assessor reading the raw `g3b9_tf_diag.json` (archived to
+`experiment-runs/2026-07-17_ncr_gate3_wave1/g3b9_tf_diag.json` + `g3b9_tf_run.log`
+in this pull). No expectations carried in.
+
+**FINAL READING: READ/setup-broken, NOT a WRITE-blocker.** Handed the TRUE
+operator directly (encoder fully bypassed), the model still does **not** learn
+the in-distribution task above chance, does not beat the read-ablated (o≡0)
+null, and its read vector carries no measurable cosine signal toward the
+correct target. The final loss is *worse* than the prior (non-teacher-forced)
+run's plateau despite strictly more favorable training conditions. If the
+write-encoder were the sole blocker, a perfect operator should have let the
+read+decode path solve in-distribution composition — it did not.
+
+### Integrity — CLEAN
+- `status="COMPLETED"`, `step=8000`, `steps_target=8000` (100%, not truncated).
+- Both arms present with complete `in_dist`/`deep` eval blocks, n=64/cell.
+- `read_ablation_check`: pre_train and post_train `max_abs_diff=0.0`,
+  `verified_exact_zero=true` both times — backbone_only is a genuine frozen
+  o≡0 null, confirmed at both ends of training.
+- `teacher_force_check`: `active=true`, `ncr_zero_grad_checks_passed=8000` —
+  matches the full 8000-step run; the encoder-zero-grad assertion (teacher-force
+  actually bypassing the encoder, per §G3-B9's smoke-audited
+  `teacher_force_operator`) passed every single step, none failed.
+- `run.log`: 0 Traceback, 0 OOM/CUDA-error, 0 generic "error" hits. Log shows
+  read-ablation exact-zero PASSED both pre-train and post-train, and a clean
+  `COMPLETED at step 8000/8000 in 6714s` terminal line. `gpu_h=1.865` (under the
+  2.0 ceiling). `n_skipped_steps={0,0}`. Minor: `git_commit="UNKNOWN"`
+  (runner didn't stamp commit) — not fatal, matches the same non-fatal gap
+  noted in §G3-B8.
+
+### Q1 — Does teacher-force LEARN in-distribution? NO.
+Chance = 1/24 = 0.041667. Per-hop SE (n=64) = 0.0250; in-dist pooled SE
+(n=192) = 0.0144.
+
+| band | hop | full_graft (teacher-forced) | z vs chance | backbone_only (o≡0 null) | z vs chance |
+|------|-----|------|------|------|------|
+| in-dist | h=1 | 0.01563 | −1.04 | 0.06250 | +0.83 |
+| in-dist | h=2 | 0.04688 | +0.21 | 0.00000 | −1.67 |
+| in-dist | h=3 | 0.01563 | −1.04 | 0.04688 | +0.21 |
+| **in-dist MEAN** | | **0.02604** | **−1.08** | **0.03646** | **−0.36** |
+
+full_graft's in-dist mean (0.02604) is **not materially above chance** — it
+sits 1.08 SE *below* chance, i.e. statistically indistinguishable from (or
+under) pure guessing. It is also **not** materially above backbone_only's own
+mean (0.03646): gap = full − backbone = **−0.01042** (full is actually the
+*lower* of the two), SE of the difference = 0.0204, z = **−0.51** (n.s., wrong
+sign from what a "read works" story would predict). Handing the model the
+correct operator produced no detectable in-distribution learning and did not
+distinguish it from the read-ablated null.
+
+Deep ladder, for completeness (pooled SE, n=384, both arms): full_graft mean
+0.01302 (z=−2.81), backbone_only mean 0.01042 (z=−3.06) — both **significantly
+below** the naive 1/24 chance level (an anomaly not seen in-dist; flagged, not
+resolved — plausibly a non-uniform deep-eval answer/mode-collapse effect
+independent of teacher-forcing, since both arms show it equally).
+
+### Q2 — mean_cos: does the read carry any signal at all? NO (noise-level).
+d_ncr=25 ⇒ expected cosine SD for two independent random unit vectors ≈
+1/√25 = **0.20**. All observed |mean_cos| values are ≤ ~1.1× that null SD:
+
+| band | hop | full_graft mean_cos | backbone_only mean_cos |
+|------|-----|------|------|
+| in-dist | h=1 | 0.2198 | 0.0868 |
+| in-dist | h=2 | 0.0420 | −0.0793 |
+| in-dist | h=3 | −0.0838 | 0.0847 |
+| **in-dist MEAN** | | **0.0593** | **0.0307** |
+| deep | h=5 | −0.0163 | 0.0903 |
+| deep | h=12 | −0.0624 | −0.0856 |
+| deep | h=20 | −0.0046 | −0.0952 |
+| deep | h=29 | −0.0326 | 0.0632 |
+| deep | h=40 | 0.0116 | −0.0596 |
+| deep | h=61 | −0.0093 | 0.0749 |
+| **deep MEAN** | | **−0.0189** | **−0.0020** |
+
+The largest single value (full_graft h=1, 0.2198) is only ~1.1 null-SD above
+zero — unremarkable against 9 cells tested, and not corroborated by any
+neighboring hop. Every other cell in both arms sits well within one null SD of
+zero. Per §G3-B9's shared-tensor instrument (mean_cos and recovered_frac@0.9
+derived from the identical target, so they cannot silently disagree): a high
+mean_cos with recovered_frac@0.9=0 would mean "real sub-threshold signal
+hidden by the 0.9 bar." That is **not** what's observed — mean_cos is
+noise-level everywhere, so recovered_frac@0.9=0 reflects a read that carries
+**no signal**, not a good-but-under-threshold one.
+
+### Q3 — recovered_frac@0.9 (completeness)
+**0.0 for both arms, at every hop, in-dist and deep** — hard floor, consistent
+with the mean_cos noise-level reading above (Q2).
+
+### Q4 — Loss
+Final (step 8000): full_graft = **4.6164**, backbone_only = **4.6737**.
+Last-20-step mean: full_graft 4.6554, backbone_only 4.6269. Trajectory: both
+arms fall from ~10.95 (step 1, ≈ln(50259)=10.82, uniform-over-full-vocab) to
+~4.6–4.9 by step 50–100, then are **flat/oscillating in the 4.5–4.9 band for
+the remaining ~7900 steps** — no further improvement despite LR still at 1e-3
+through warmup and a long cosine decay tail.
+
+- vs **ln(24) = 3.178**: final loss (4.616) is **~1.44 nats WORSE** (higher)
+  than uniform guessing over the 24-way answer alphabet — the model has not
+  even collapsed onto the correct answer set, let alone the correct mapping.
+- vs the **prior run's ~3.9 plateau** (§G3-B8, non-teacher-forced,
+  lr=3e-4/20K): this run's ~4.62–4.66 plateau is **~0.7–0.75 nats WORSE**,
+  despite strictly more favorable conditions (perfect operator via
+  teacher-force, 3.3× higher LR, and a run that reaches its plateau within the
+  first ~100 of 8000 steps). More favorable training conditions produced a
+  *worse* converged loss, not a better one — a red flag against "just the
+  write-encoder was undertrained."
+
+### Localization: READ/setup-broken (not WRITE-blocker)
+Per the frozen isolation logic (§G3-B9): teacher-force LEARNS in-dist ⇒
+write-encoder was the blocker; teacher-force STAYS at chance ⇒
+read-injection/task-setup is broken even with a perfect operator. The data
+lands unambiguously in the second bucket:
+- In-dist answer_accuracy is at/below chance (z=−1.08) and statistically
+  indistinguishable from the o≡0 ablated-read null (z=−0.51, wrong sign).
+- mean_cos at every hop, both bands, is noise-level (≤~1.1 null-SD) —
+  independent confirmation the read vector carries no recoverable signal
+  toward the correct target, not merely "real but sub-0.9" signal.
+- Loss is *worse* than a prior, less-favorable run, not better — inconsistent
+  with "the only missing piece was a correctly-trained operator."
+
+This rules out "the head is fine, only the encoder (tokens→operator) needs to
+learn" as the explanation, because the encoder is entirely bypassed here and
+performance still doesn't clear chance. The likelier fault sits in the
+injection/read/decode path itself or in the loss/task wiring around it (e.g.
+the injected operator not reaching the tensor the decode head actually reads,
+a target/label misalignment, or a basis/scale mismatch between
+`teacher_force_operator`'s closed-form fit and what the read consumes) — the
+blind numbers alone cannot distinguish between these specific code-level
+causes; that requires a follow-up code audit, not another training run.
+
+### Caveats
+- n=1 seed, n=64/cell — per-cell z-scores are noisy individually; the
+  cross-cutting pattern (in-dist at/below chance in both arms, mean_cos
+  noise-level in both arms at all 9 hops, loss worse than a prior weaker
+  config) is what carries the conclusion, not any single cell.
+- The deep-ladder both-arms-below-chance anomaly (z=−2.81 / −3.06) is flagged
+  but unexplained by this run — orthogonal to the WRITE-vs-READ question since
+  it appears equally in both arms.
+- This diagnostic isolates WRITE-vs-READ; it does not itself identify which
+  specific line/tensor in the read/injection/loss path is broken. That is the
+  natural next step, gated on this verdict per §G3-B9's plan.
