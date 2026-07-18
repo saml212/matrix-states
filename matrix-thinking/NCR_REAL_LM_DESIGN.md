@@ -5200,3 +5200,200 @@ causes; that requires a follow-up code audit, not another training run.
 - This diagnostic isolates WRITE-vs-READ; it does not itself identify which
   specific line/tensor in the read/injection/loss path is broken. That is the
   natural next step, gated on this verdict per §G3-B9's plan.
+
+## §G3-B11 INTEGRATION HARNESS DEBUG (2026-07-18)
+
+Static code audit + faithful CPU repros of the §G3-B10 teacher-force null
+(the "natural next step" §G3-B10 gated). No GPU, no training. Faithful repro
+uses the REAL `ncr_models.binexp_read` and a byte-exact copy of the
+`NCRIntegration` adapter/teacher-force/inject ops (the DeltaNet backbone has
+no local CPU path — `fla` is box-only — but the bug lives entirely
+DOWNSTREAM of the backbone, driven here with random stand-in `hidden`).
+Repro: `scratchpad/ncr_repro.py` (this session).
+
+**BOTTOM LINE — the §G3-B10 diagnostic is MIS-SPECIFIED; its own premise
+("handed the TRUE operator directly") is FALSE.** The loss/label/position/
+head wiring is all CORRECT (suspects 1,2,4,5 CLEARED). The failure is a
+structural READ-path defect (suspect 3, BUG-FOUND): the teacher-forced
+operator `Z` is fit to the BIND-clause key reps but the read applies it to
+the QUERY key rep — a *different* contextualized hidden of the same token —
+so `Z` is not "perfect" for the read's actual input. Even a perfectly-fit
+`Z` yields a garbage read. Three compounding defects (frozen value-adapter,
+key/value two-space composition break, and a mis-based recovery instrument)
+independently sabotage the diagnostic. The "loss WORSE than ln(24)" premise
+is a MISREADING: 4.62 ≈ ln(107) (the answer-token marginal over the 107-name
+train pool), the correct plateau for a task-blind model — NOT a malformed
+loss.
+
+### Per-suspect verdict
+
+**Suspect 1 — loss on wrong token/span/label. CLEARED.** Traced end to end:
+- `build_task1_document` (smoke `ncr_lm_wave1_smoke.py:369-395`): `doc =
+  [bind tokens (T_bind) | query_window (query_len) | answer_token (1)]`
+  (line 384). `answer_token = entity_ids[tgt_slot]` = the entity at
+  `π^h(a_slot)` (line 381) — the CORRECT h-hop answer, a real GPT-2 name
+  token id in [0, 50256].
+- Forward drops the answer token: `input_ids = doc[:, :-1]`
+  (`runner.py:260`), length `T_bind+query_len`, last col = `query_mark_col
+  = T_bind+query_len-1` = the `<Q>` position (`smoke.py:389`).
+- Logits are taken at `query_mark_col` ONLY (`inject_and_logits_last`,
+  `smoke.py:292-306`); loss = `F.cross_entropy(logits, answer_token)`
+  (`runner.py:624`) — a single answer position, NOT averaged over the
+  sequence. Label/logit alignment is standard next-token (predict answer at
+  `<Q>` from hidden at `<Q>`). No off-by-one. The loss target is well-formed.
+
+**Suspect 2 — read injection never reaches decode. CLEARED.** `o →
+read_injector(25→768) → ADDED to hidden[:, query_mark_col] → tied head`
+(`smoke.py:303-306`). Verified against the backbone: `return_hidden=True`
+returns the POST-`norm_f` hidden (`lm_pretrain_rd.py:1306-1308`) and the LM
+head is `F.linear(x, self.embed.weight)` — TIED, no bias (`:1310`). So
+`inject_and_logits_last` using `backbone.embed.weight` reproduces the
+model's own head EXACTLY, and the injection perturbs the exact pre-logit
+vector whose logits feed CE, at the exact position CE scores. Gradient flows
+to `read_injector` (repro TEST A: `|grad|=7.6`). Injection reaches the
+decode.
+
+**Suspect 3 — operator/read basis or scale mismatch. BUG-FOUND (ROOT
+CAUSE).** Four distinct defects, all demonstrated:
+
+- **(3a) THE root cause — the teacher operator is fit to the wrong keys.**
+  `teacher_force_operator` (`smoke.py:282-290`) builds `Z` s.t. `Z @
+  keys_v[i] = values_v[i]`, where `keys_v = key_adapter(hidden @ BIND KEY
+  positions)` (`extract_kv`, `smoke.py:259-270`). But the read computes `o =
+  binexp_read(Z, q_key, h)` with `q_key = key_adapter(hidden @ query_key_col)`
+  (`query_key`, `smoke.py:272-280`; called at `runner.py:267-268`). `q_key`
+  and `keys_v[a_slot]` are `key_adapter` of the SAME token (`entity_{a_slot}`)
+  at DIFFERENT positions/contexts of a causal backbone → different vectors.
+  `Z` is "perfect" only for the bind keys it was fit on, never for the query
+  key it is actually applied to.
+  Repro TEST B (real `binexp_read`, h=1): `cos(o, ideal answer value rep)` =
+  **1.000** when `q_key == keys_v[a_slot]` exactly, but **0.59 / 0.23 / 0.10**
+  as the query rep drifts from the bind rep by 0.3/1.0/2.0×noise. The
+  isolated-harness assumption `query_keys = keys.clone()` (`smoke_4`,
+  `smoke.py:536`) is SILENTLY VIOLATED in the LM graft — nothing in the
+  CE-at-`<Q>`-only objective ties `q_key` to `keys_v[a_slot]`. This directly
+  falsifies §G3-B10's "handed the TRUE operator" premise: the read was never
+  handed a usable operator.
+
+- **(3b) value_adapter is FROZEN under teacher-force (gradient starvation).**
+  `teacher_force_operator` detaches BOTH inputs (`k, v = keys_v.detach(),
+  values_v.detach()`, `smoke.py:288`). `values_v`'s only consumer is that
+  detached fit → `value_adapter` receives EXACTLY zero gradient; `key_adapter`
+  gets gradient ONLY via the query path (its bind-side use is also detached).
+  Repro TEST A: `value_adapter.grad = None`, `key_adapter.grad = 108`
+  (query-path only). So "teacher-force isolates and lets the READ side train"
+  is false — the read's output basis (value-adapter space) is frozen at random
+  init, and `Z` is a NON-STATIONARY target rebuilt every step from drifting
+  detached reps. read_injector chases a moving code.
+
+- **(3c) key/value are separate spaces → deep composition (h≥2) is
+  impossible.** `key_adapter` and `value_adapter` are DISTINCT maps
+  (`smoke.py:251-252`). `Z` maps key-space→value-space, so `Z^h q` for h≥2
+  chains a value-space vector back through a key→value operator — undefined
+  unless `value_adapter ≈ key_adapter`, which nothing enforces. Repro TEST D
+  (single K-cycle, real `binexp_read`): `cos(o, true h-hop answer)` =
+  **+1.000 (h=1), −0.58 (h=2), −0.26 (h=3)**. The O(log h) deep-composition
+  read — the ENTIRE point of NCR — cannot function with two adapters, even
+  with perfectly matched keys.
+
+- **(3d) the recovery INSTRUMENT is mis-based → reads ~0 even for a perfect
+  read.** `recovered_frac_at_09` / `cosine_and_recovered_frac`
+  (`smoke.py:417-427`, `runner.py:315-324`) compare `o` (which lives in
+  VALUE-adapter space) to `target = key_adapter(hidden @ answer KEY position)`
+  (`smoke.py:425`, `runner.py:322`) — a DIFFERENT linear image. Repro TEST C:
+  a PERFECT read (`o` == the answer's value rep) scores `mean_cos = 0.05`,
+  `recovered_frac@0.9 = 0.0`. So §G3-B10 Q2's "mean_cos noise-level → read
+  carries no signal" is PARTLY an instrument artifact: this instrument CANNOT
+  register a working read. It does not independently confirm the read is dead.
+
+**Suspect 4 — answer alphabet / vocab / invalid label. CLEARED (and it
+explains the numbers).** The label is a genuine single-token GPT-2 name id,
+in-range for `vocab_size_total = 50259`; logits are over the full 50259
+vocab. The "below chance" (0.026 vs 1/24=0.042) and "loss worse than ln(24)"
+observations are BOTH explained by task-blind marginal collapse, not a
+malformed label:
+- With 213 verified names and `heldout_frac=0.5`, `n_train_names = 213 −
+  round(213·0.5) = 213 − 106 = 107` (the training answer pool,
+  `use_heldout_entities=False`). **ln(107) = 4.673.** Observed plateau ≈
+  **4.62**. The model converged to the ANSWER-TOKEN MARGINAL over the whole
+  107-name pool.
+- `ln(24) = 3.178` is the WRONG floor: the model has no mechanism to restrict
+  its output to the 24 in-document entities (it isn't told the answer is one
+  of the present entities), so spreading mass over all 107 pool names is the
+  correct task-blind optimum and is NECESSARILY "worse than ln(24)."
+- Same reason accuracy is BELOW the 1/24 in-doc chance: argmax lands on a
+  globally-frequent name (~1/107 hit rate on the specific answer), not on one
+  of the 24 in-doc entities. A correctly-wired loss on a signal-free read
+  produces exactly this. "Worse than ln(24)" is therefore NOT evidence of a
+  broken loss.
+
+**Suspect 5 — position/masking in the DeltaNet backbone. CLEARED as a
+cause, with a load-bearing caveat.** The `<Q>` position carries the full
+prefix via the recurrent state; taps (`key_pos`, `val_pos`, `query_key_col`,
+`query_mark_col`) are all in-range and correct (verified against
+`grammar_rd.sample_batch_rd`'s `item_pos = arange(K)·clause_len+buf_len+2`,
+`grammar_rd.py:452`). CAVEAT (not a bug — intended asymmetry): the hop depth
+`h` NEVER appears in the surface form — the query window is `[buf, query_key,
+rel, <Q>]` with the SAME relation verb for all h (R2-7 congruence pin,
+`grammar_rd.py:20-23`, `:474-478`); `h` enters ONLY out-of-band via
+`batch["hop"]` into `binexp_read`. So `backbone_only` sees IDENTICAL input
+for h∈{1,2,3} but must predict three different answers → it CANNOT beat the
+marginal by construction. This is by design (it makes the read the only
+h-aware pathway, hence "load-bearing"), and it is WHY both arms sit at
+chance: backbone_only can't (no h), and full_graft's read doesn't work
+(3a–3c).
+
+**Suspect 6 — shared upstream bug failing both arms. RESOLVED (not a single
+loss/label bug).** Both arms plateau at the ln(107) marginal for DIFFERENT
+reasons that share one consequence: `backbone_only` lacks `h` (suspect 5
+caveat); `full_graft`'s teacher-forced read carries no answer signal (3a–3c).
+Loss/label/head are correct (suspects 1,2,4). There is no shared malformed
+tensor — there is a shared OUTCOME (marginal collapse) with two causes.
+
+### Root-cause ranking (what to fix, in order)
+
+1. **(3a) query-key ↔ bind-key correspondence** — the decisive falsifier of
+   the "perfect operator" premise. `Z` must be applied to a query vector that
+   lives in the space it was fit on. Minimal diagnostic fix (to make the
+   teacher-force test VALID): derive both `keys_v` and `q_key` from a
+   CONTEXT-FREE source so the query key and its matching bind key are
+   identical by construction — e.g. adapt the raw token EMBEDDING
+   (`backbone.embed(entity_id)`) instead of the post-backbone contextualized
+   `hidden`, OR (stronger, closes the whole graft) add an auxiliary alignment
+   loss pulling `q_key → keys_v[a_slot]`. Until `q_key ≈ keys_v[a_slot]`, NO
+   operator — learned or teacher-forced — can produce a correct read.
+2. **(3c) single key/value space for composition** — tie/share ONE adapter
+   for keys and values (or map values back to key space before re-application)
+   so `Z: space→space` and `Z^h` chains. Without this, only h=1 could ever
+   work; the deep ladder (h∈{5..61}) is structurally impossible.
+3. **(3b) value_adapter gradient under teacher-force** — secondary: with (3a)
+   fixed, a frozen-but-consistent value space is decodable by `read_injector`;
+   but for a non-teacher-forced graft the detach means the write basis never
+   co-trains. If keys/values are unified per (3c), this largely dissolves.
+4. **(3d) recovery instrument** — compare `o` to a target in `o`'s OWN space
+   (the value/composition space), not `key_adapter(answer KEY)`. Required
+   before any future recovered_frac/mean_cos reading can be trusted; the
+   §G3-B10 "read carries no signal" conclusion should be treated as
+   INSTRUMENT-UNCONFIRMED.
+
+### Disposition
+
+The integration is **cheaply fixable at the DIAGNOSTIC level** — the
+teacher-force run does not license "READ/setup broken" (§G3-B10) because it
+never handed the read a usable operator (3a) and its signal instrument is
+blind (3d). But the graft has a **genuine structural gap** (query↔bind key
+correspondence + single-space composition) that must be fixed before ANY
+"NCR can/can't train inside an LM" claim. A re-run is required to test
+sufficiency (static analysis cannot prove convergence); the necessary fixes
+are (3a)+(3c). Recommend: re-run the teacher-force diagnostic ONLY after
+(3a) makes `q_key ≈ keys_v[a_slot]` by construction and (3c) unifies the
+key/value space — and re-base the recovery instrument (3d) first so its read
+is interpretable.
+
+**Confidence.** HIGH that (3a)–(3d) are real and are the operative defects
+(all four reproduced with the real `binexp_read` + exact `NCRIntegration`
+ops; loss reframe is exact arithmetic: ln(107)=4.673 vs observed 4.62).
+HIGH that the §G3-B10 diagnostic is mis-specified and does NOT establish
+"read path broken." MODERATE-HIGH that (3a)+(3c) are NECESSARY fixes;
+SUFFICIENCY (does the full graft then learn in-dist?) is unprovable
+statically and needs the re-run.
