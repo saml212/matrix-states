@@ -5676,3 +5676,33 @@ no prior clean make-or-break verdict; §G3-B8 was the bug; KILL_LIST entries are
 the retired bolt-on matrix-CODI rank work). Adjudicate before launch. (2) ONE
 Opus adversarial audit of the non-TF re-run config + any single-adapter
 write-path interaction + resource/placement. STATUS: gated, NOT yet launched.
+
+### §G3-B14 NOVELTY RE-GATE — DISCHARGED (coordinator adjudication, 2026-07-18)
+
+Triple sweep complete (2 external Sonnet, web-verified live; 1 internal by
+coordinator). **VERDICT: CLEAR / differentiable — NOT scooped. Gate discharged
+for the make-or-break launch.**
+- **By-mechanism: CLEAR.** No verified 2023–2026 work combines (a) an
+  in-context-WRITTEN matrix operator from a learned encoder, (b) EXACT
+  repeated-squaring composition, (c) O(log h) reads from a fixed constant-size
+  state, trained end-to-end. Nearest split the mechanism: log-depth over the
+  TOKEN SEQUENCE (Log-Linear Attention 2506.04761 ICLR'26; PSM/Yau 2506.10918)
+  or sequentially-composed structured transitions (MuonSSM 2606.30461;
+  DeltaProduct 2502.10297; PD-SSM 2509.22284).
+- **By-task: PARTIAL-OVERLAP (differentiable), not scooped.** Every neighbor
+  overlaps ≤2 of the 5 defining components. New near-neighbors to CITE +
+  differentiate: Wang/Nichani/Bietti 2505.23683 (COLT'25, O(log k) via
+  transformer LAYERS — add to standing prior-art, same lineage as the cited
+  Nichani-Lee-Bietti 2412.06538); recurrent-depth LOOPING depth-generalization
+  (Kohli 2604.07822, Chen 2603.21676); KLA 2602.10743 (A5 via Bayesian scan).
+- **Internal-archive: CLEAR.** No prior CLEAN make-or-break verdict (the only
+  one, §G3-B8, was the two-adapter bug); KILL_LIST entries are the retired
+  bolt-on matrix-CODI rank work, not this.
+- **DIFFERENTIATOR (state at launch/in paper):** in a real 98M+ LM the model
+  LEARNS to WRITE the composing operators itself from in-context bindings into
+  a fixed constant-size matrix state, and reads exact composed answers at
+  unseen hop-depths via O(log h) repeated-squaring — vs O(log k)-via-LAYERS,
+  depth-gen-via-LOOPING, or composition-via-Bayesian-scan.
+- **Non-blocking flags (full-text recheck IF the paper cites specifics):** Yau
+  2506.10918's "S5 train 4-18/test 180" numbers (abstract didn't confirm);
+  MLP-LDRU 2605.26035 (second structural analog).
