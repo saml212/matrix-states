@@ -5397,3 +5397,193 @@ HIGH that the §G3-B10 diagnostic is mis-specified and does NOT establish
 "read path broken." MODERATE-HIGH that (3a)+(3c) are NECESSARY fixes;
 SUFFICIENCY (does the full graft then learn in-dist?) is unprovable
 statically and needs the re-run.
+
+## §G3-B12 SINGLE-SPACE READ FIX BUILD (Fable build agent, 2026-07-18)
+
+Implements the coordinator-designed fix for §G3-B11's (3a)+(3c)+(3d)
+structural read-path defects. BUILD + full real-CUDA SMOKE only — STOP
+before the sanity launch (coordinator audits + runs the sanity cell).
+Independent pre-run static audit dispatched (fresh agent, adversarial) —
+PASS on all 10 checked dimensions, one non-diff-logic pre-launch hazard
+flagged (old-schema checkpoint collision, mitigated below).
+
+### The exact diff (both files, edited in place)
+
+`experiment-runs/2026-07-17_ncr_gate3_wave1/{ncr_lm_wave1_smoke.py,
+ncr_lm_wave1_runner.py}`. The mechanism change, verbatim:
+
+1. **ONE shared `entity_adapter` on RAW (context-free) token embeddings.**
+   `NCRIntegration.__init__` (smoke.py) — the separate `key_adapter` +
+   `value_adapter` (each `Linear(768,25,bias=False)`) are REPLACED by a
+   single `entity_adapter = Linear(768,25,bias=False)`. It is applied to
+   `backbone.embed(entity_token_id)` — the backbone's OWN raw token
+   embedding table, a plain lookup upstream of every DeltaNet layer,
+   context-free by construction — for the KEY role, the VALUE role, AND the
+   QUERY role. `extract_kv(token_ids, key_pos, val_pos, embed)` and
+   `query_key(token_ids, query_key_col, embed)` now take the RAW
+   `input_ids` (int64, `= batch["doc"][:, :-1]`, the exact tensor fed to
+   the backbone) + `backbone.embed`, NOT the post-backbone contextualized
+   `hidden`. Consequences, both closed: (a) Z: entity-space→entity-space is
+   an ENDOMORPHISM so `Z^h` composes for any h (closes 3c); (b) the query's
+   key vector for entity e is BIT-IDENTICAL to the bind key vector for e —
+   same embedding row → same one Linear instance → same output, no context
+   dependence — closing 3a exactly (`q_key == keys_v[a_slot]`, not merely
+   ≈). `hidden` is still computed (unavoidable backbone forward) and STILL
+   used for the read-INJECTION tap (RULING 2, unchanged: `o` is added into
+   the contextualized hidden at the `<Q>` mark before the tied head — a
+   separate design axis from where the KEYS come from, out of this fix's
+   scope).
+2. **Multi-subword entity reduction — NOT APPLICABLE BY CONSTRUCTION**
+   (build brief asked to pick+document a reduction). `grammar_rd.py`'s
+   `build_entity_pools`/`_verify_words` VERIFIES every entity candidate is
+   single-token under GPT-2 BPE at build time and REJECTS any multi-token
+   candidate outright (`EntityPools.train_name_ids`: "single-token-
+   verified"). So `backbone.embed(entity_token_id)` is always exactly ONE
+   embedding row per entity — there is no multi-subword case to reduce.
+   Documented in `NCRIntegration`'s docstring as "not applicable by
+   construction," not a silent assumption. (No STOP-and-report was needed:
+   the flagged ambiguity does not arise for this task/tokenizer.)
+3. **teacher_force_operator — mechanism UNCHANGED** (3 code lines byte-
+   identical: `detach` both inputs, `pinv`, `transpose`). It still bypasses
+   `ncr_head`'s BindingEncoder entirely (zero-grad, verified live). The
+   only change is the space of its inputs: with the single shared adapter,
+   the keys/values it is fit against and the query it is applied to now
+   live in ONE consistent entity space.
+4. **Recovery instrument re-based (closes 3d).** `recovered_frac_at_09`
+   (smoke.py) and `cosine_and_recovered_frac` (runner.py) now compare `o`
+   to `entity_adapter(embed(true answer_token))` — o's OWN (single, shared)
+   space — instead of the old `key_adapter(hidden at answer KEY position)`
+   (a different linear image). `answer_token` is the true h-hop answer
+   entity's own token id (`build_task1_document`'s `gather(entity_ids,
+   tgt_slot)`), so no position-gather through `hidden` is needed.
+5. **Two-arm structure + audited safety preserved.** `full_graft` vs
+   `backbone_only` (o≡0 via `torch.zeros_like`), the read-ablation
+   EXACT-zero assertion, and the teacher-force per-step encoder-zero-grad
+   assertion are all UNTOUCHED (the change only affects keys/values/query
+   extraction, never `o_injected` or the ablation edge). Param count drops
+   `3·768·25 → 2·768·25` (one adapter removed): NCRIntegration linear/add
+   now **38,400** params (entity_adapter 19,200 + read_injector 19,200),
+   was 57,600. Total NCR-related addition to the 97,618,176-param backbone:
+   173,209 + 38,400 = **211,609 (+0.217%)**.
+
+### Smoke results (real CUDA, GPU 2, box `youthful-indigo-turkey`,
+`/home/nvidia/ncr_g3b12_fix/`, fresh dir to avoid the old-schema ckpt
+collision the audit flagged; production not disturbed, all 8 GPUs stayed
+100% util)
+
+**`ncr_lm_wave1_smoke.py` — ALL 15 ITEMS PASSED (wall 15.3s):**
+- smoke 0c: NCRIntegration param count `38,400` == expected (the new
+  single-adapter formula), confirming one adapter removed.
+- smoke 7 (full graft, real grammar_rd Task-1 doc, h=2, CE-only, joint
+  fwd/bwd/opt): finite grads through backbone(158)+ncr(47)+integ(2),
+  loss_ce=11.05, peak_mem 2.03 GB.
+- smoke 10 (teacher-force isolation): `Z` fit residual **1.64e-07**,
+  `ncr_untouched=True` (encoder ZERO grad), backbone/**entity_adapter**/
+  read_injector all train — isolation property holds under the single
+  adapter.
+- **smoke 9b — the (3d)-fix's OWN self-check (NEW):** a synthetic perfect
+  read `o := entity_adapter(embed(answer_token))` scored through the REAL
+  `recovered_frac_at_09` → **recovered_frac@0.9 = 1.000000**. The OLD
+  instrument (§G3-B11 repro TEST C) scored a perfect read at
+  mean_cos=0.05 / rec@0.9=0.0. The re-base is verified live, not just
+  reasoned about. (smoke 9 also confirms the metric COMPUTES on a real
+  untrained eval batch: rf=0.0 at init, as expected.)
+
+**`ncr_lm_wave1_runner.py --mode smoke` — ALL 6 SUB-TESTS PASSED:**
+- A (full 300-step two-arm run), B (checkpoint/resume 100→300, resumed not
+  restarted), C (ceiling ABORT-BUDGET at step 3), D (whole-cell skip-if-
+  COMPLETED), E1/E2 (teacher-force run + resume). **Read-ablation exact-zero
+  check PASSED pre+post at EVERY subprocess (`max_abs_diff=0.00e+00`).**
+  **Teacher-force encoder-zero-grad assertion passed every step
+  (checks_passed=100 in E1, again post-resume in E2).**
+
+**Diagnostic signal (teacher-force smoke, 200 steps, NOT a verdict — the
+coordinator's sanity cell is the verdict):** under a teacher-forced
+(perfect) operator the `full_graft` read now recovers the answer entity at
+**mean_cos = 1.000 in-dist (h=1,2,3)** and the mean_cos GAP over the frozen
+`backbone_only` baseline is **≈1.0 at EVERY deep depth through h=61**
+(h=5:1.06, h=12:0.95, h=20:0.99, h=29:0.98, h=40:0.98, h=61:0.97);
+recovered_frac gap ≈1.0 at nearly every depth. This is exactly the deep-
+composition read §G3-B11 said was structurally impossible with two adapters
+(repro TEST D: cos +1.0/−0.58/−0.26 at h=1/2/3) — it now composes because Z
+is an endomorphism, and the re-based instrument registers it. **CAVEAT
+(honest):** `answer_accuracy` is still 0.0 in-dist at 200 smoke steps — the
+read is correct in ENTITY-ADAPTER space (cos=1.0 with the re-based target),
+but the `read_injector → tied-LM-head` DECODE pathway is untrained at 200
+steps, so the correct read does not yet land the right vocab logit. The
+smoke proves the READ is fixed (composes + instrument registers); it does
+NOT prove the full graft solves the task end-to-end — that is precisely
+what the coordinator's sanity launch (below) tests.
+
+### New md5s (box == local, byte-identical, VERIFIED)
+
+| File | md5 (was, §G3-B11 HEAD) | md5 (now, §G3-B12) |
+|---|---|---|
+| `ncr_lm_wave1_smoke.py` | `6521ea5adf9208f7724561efc1b76296` | `bc105af69661e488ff95f5046e2bcd8a` |
+| `ncr_lm_wave1_runner.py` | `29531d0c36e76e305514af631c130d8f` | `a411a87de08e4bc46bc80854fcb5b37f` |
+
+Base dependencies UNCHANGED, box==local re-verified this build:
+`ncr_models.py` `6d7b30a592bee11f6c2135165801742d`, `ncr_earlyln_scale.py`
+`3a87fcc92bb8341203c5e8c1f039a0af`, `lm_pretrain_rd.py`
+`34addd9d8cc6a3df5a367d0f18a2ee0e`, `grammar_rd.py`
+`b7eeca0f6fc56210ef9c633fe719b540`.
+
+### Independent pre-run audit (fresh adversarial agent) — one non-blocking
+pre-launch hazard
+
+Static audit PASSED all 10 dimensions (shapes/dtype, gather-index
+correctness vs `sample_batch_rd`, the `q_key==keys_v[a_slot]` bit-identity,
+re-based-target correctness, teacher-force unchanged, read-ablation
+unaffected, param formula, 9b non-circularity, dead-refs, full-file
+consistency). ONE real finding, NOT in the diff's logic: the state_dict key
+rename (`key_adapter`+`value_adapter` → `entity_adapter`) breaks resume-
+compat with the pre-fix on-box artifacts `wave1_calib_K24_s0.*` (ABORTED-
+BUDGET, step 19026) and `g3b9_tf_diag.*` (COMPLETED) that sit at exactly the
+default `--cell-id`/`--out`/`--ckpt-dir` paths. `restore_arms_and_opts`
+would raise an uncaught RuntimeError on `integ.load_state_dict` against an
+old checkpoint. **MITIGATION (applied):** the sanity cell below uses a FRESH
+`--cell-id`/`--out`/`--ckpt-dir` (`_g3b12` suffix / fresh dir); the smoke
+itself already ran in the fresh `/home/nvidia/ncr_g3b12_fix/` dir. No old
+artifact is touched.
+
+### PROPOSED SANITY LAUNCH (STOP HERE — coordinator runs it, ~1–2 GPU-h)
+
+A SHORT teacher-force calibration to confirm the graft now LEARNS in-dist
+end-to-end (the sufficiency test §G3-B11 said needs a re-run — does the
+read_injector→head decode actually train given the now-correct,
+now-composing read). Fresh paths, one free GPU (pick least-loaded via
+`nvidia-smi`), do NOT disturb production:
+
+```
+# on box, from /home/nvidia/ncr_g3b12_fix/ , inside a tmux session:
+CUDA_VISIBLE_DEVICES=<free-gpu> /home/nvidia/tdenv/bin/python3 \
+  ncr_lm_wave1_runner.py --mode calibration --device cuda \
+  --teacher-force-operator \
+  --cell-id sanity_g3b12_tf_s0 --steps 3000 \
+  --batch-size 32 --eval-batch-size 64 --warmup-steps 200 \
+  --lr 3e-4 --ckpt-every 500 --eval-every 250 --ceiling-gpuh 2.0 \
+  --out results/sanity_g3b12_tf_s0.json \
+  --ckpt-dir results/sanity_g3b12_ckpts
+```
+
+Interpretation (coordinator, blind): with the perfect operator handed in,
+watch `full_graft` **answer_accuracy** in-dist (h∈{1,2,3}) climb above the
+`backbone_only` baseline (the read is load-bearing) AND `recovered_frac@0.9`
+hold ≈1.0 in-dist and deep (the read composes). If accuracy trains up → the
+graft LEARNS in-dist and the encoder (free-write, non-teacher-forced) arm is
+the next test. If accuracy stays at chance despite mean_cos=1.0 reads → the
+read_injector→head decode is the remaining blocker (a read-inject / P=1-
+bottleneck question, not a composition question). Either way is now
+INTERPRETABLE — the read is no longer the confound.
+
+### Readiness verdict
+
+**READY for the coordinator's audit + sanity launch.** Both files build,
+all 15 smoke items + all 6 runner sub-tests PASS on real CUDA, the (3a)/
+(3c)/(3d) defects are closed and each fix has its own live PASS (endomorphic
+composition to h=61 under teacher-force; `q_key==keys_v[a_slot]` by
+construction; the re-based instrument scores a perfect read at cos=1.0 via
+smoke 9b), audited-safety invariants (read-ablation exact-zero, teacher-force
+zero-grad) hold post-fix, md5s pinned box==local, and the one audit-flagged
+pre-launch hazard (old-schema ckpt collision) is mitigated by fresh paths.
+STOPPING before launch per the build brief.

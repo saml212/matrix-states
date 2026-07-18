@@ -1,0 +1,304 @@
+{
+ "cell_id": "runner_smoke_teacher_force",
+ "runner_tag": "ncr_gate3_wave1_runner_v1",
+ "mode": "calibration",
+ "status": "COMPLETED",
+ "step": 200,
+ "steps_target": 200,
+ "config": {
+  "K": 24,
+  "d_ncr": 25,
+  "h_ncr": 64,
+  "backbone": {
+   "d_model": 768,
+   "d_state": 64,
+   "n_layers": 12,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "vocab_size_total": 50259,
+  "seed": 0,
+  "batch_size": 8,
+  "eval_batch_size": 16,
+  "lr": 0.0003,
+  "warmup_steps": 10,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   5,
+   12,
+   20,
+   29,
+   40,
+   61
+  ],
+  "ceiling_gpuh": 5.0,
+  "teacher_force_operator": true
+ },
+ "params": {
+  "per_arm": 97831321,
+  "backbone": 97619712,
+  "ncr_head": 173209,
+  "integ": 38400
+ },
+ "git_commit": "UNKNOWN",
+ "host": "brev-ukptqsu65",
+ "device": "cuda",
+ "torch_version": "2.12.1+cu130",
+ "started_utc": "2026-07-18T07:25:02Z",
+ "read_ablation_check": {
+  "pre_train_max_abs_diff": 0.0,
+  "pre_train_verified_exact_zero": true,
+  "post_train_max_abs_diff": 0.0,
+  "post_train_verified_exact_zero": true
+ },
+ "teacher_force_check": {
+  "active": true,
+  "ncr_zero_grad_checks_passed": 100
+ },
+ "arms": {
+  "full_graft": {
+   "in_dist": {
+    "h=1": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 1.0,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=2": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 1.0,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=3": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 0.9999999403953552,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "mean_recovered_frac@0.9": 1.0,
+    "mean_mean_cos": 0.999999980131785,
+    "mean_answer_accuracy": 0.0
+   },
+   "deep": {
+    "h=5": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 1.0,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=12": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 1.0,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=20": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 1.0,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=29": {
+     "recovered_frac@0.9": 0.9375,
+     "mean_cos": 0.9449154138565063,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=40": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 1.0,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=61": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 0.9999995231628418,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "mean_recovered_frac@0.9": 0.9895833333333334,
+    "mean_mean_cos": 0.9908191561698914,
+    "mean_answer_accuracy": 0.0
+   }
+  },
+  "backbone_only": {
+   "in_dist": {
+    "h=1": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.01806754060089588,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=2": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.043000299483537674,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=3": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.02373766526579857,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.016223474716146786,
+    "mean_answer_accuracy": 0.0
+   },
+   "deep": {
+    "h=5": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.06145162880420685,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=12": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.04839211702346802,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=20": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.009424671530723572,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=29": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.03841424733400345,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=40": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.015717893838882446,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "h=61": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.025699662044644356,
+     "answer_accuracy": 0.0,
+     "n": 16
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.00010525528341531754,
+    "mean_answer_accuracy": 0.0
+   }
+  }
+ },
+ "attribution": {
+  "frozen_rule_text": "sec G3-B5 (COORDINATOR ADJUDICATION of the sec G3-B4 audit, 2026-07-17): a Phase-1 Gate-0 in-distribution-recovery FAIL may be attributed to \"the NCR head can't train through a real LM\" ONLY IF the backbone-only arm does NOT itself solve the task in-distribution (i.e., its answer accuracy is materially below the full graft's -- the NCR read is demonstrably load-bearing). If backbone-only already solves it, the calibration is UNINTERPRETABLE and the graft must be re-bottlenecked (e.g. read-only decode / harder P=1 bottleneck) BEFORE main-wave GPU. PASS (NCR head trains AND is load-bearing) = full-graft recovers deep composition (recovered_frac@0.9 >= the sec 6.2 Gate-0 bar at deep h) AND materially exceeds backbone-only there. PRIMARY interpretable signal = the recovery GAP (full-graft - backbone-only), at DEEP composition depth.",
+  "primary_signal_definition": "recovered_frac@0.9 GAP (full_graft.o_raw - backbone_only.o_raw), at DEEP composition depth (h in {5,12,20,29,40,61}). backbone_only.o_raw's write/encode pathway receives NO gradient (read-ablated -- see read_ablation_check), so it is a frozen-at-init NULL baseline for the recovery metric, not a trained comparison.",
+  "recovered_frac_gap_in_dist": {
+   "h=1": 1.0,
+   "h=2": 1.0,
+   "h=3": 1.0
+  },
+  "recovered_frac_gap_deep": {
+   "h=5": 1.0,
+   "h=12": 1.0,
+   "h=20": 1.0,
+   "h=29": 0.9375,
+   "h=40": 1.0,
+   "h=61": 1.0
+  },
+  "primary_signal_deepest_gap_h61": 1.0,
+  "mean_cos_gap_in_dist": {
+   "h=1": 0.9819324593991041,
+   "h=2": 1.0430002994835377,
+   "h=3": 1.0237376056611538
+  },
+  "mean_cos_gap_deep": {
+   "h=5": 1.0614516288042068,
+   "h=12": 0.951607882976532,
+   "h=20": 0.9905753284692764,
+   "h=29": 0.9833296611905098,
+   "h=40": 0.9842821061611176,
+   "h=61": 0.9742998611181974
+  },
+  "attribution_precondition_metric": "answer_accuracy (argmax(logits)==answer_token), NOT recovered_frac@0.9 -- this is what the frozen rule text's own prose names",
+  "answer_accuracy_in_dist": {
+   "full_graft": {
+    "h=1": 0.0,
+    "h=2": 0.0,
+    "h=3": 0.0
+   },
+   "backbone_only": {
+    "h=1": 0.0,
+    "h=2": 0.0,
+    "h=3": 0.0
+   }
+  },
+  "answer_accuracy_deep": {
+   "full_graft": {
+    "h=5": 0.0,
+    "h=12": 0.0,
+    "h=20": 0.0,
+    "h=29": 0.0,
+    "h=40": 0.0,
+    "h=61": 0.0
+   },
+   "backbone_only": {
+    "h=5": 0.0,
+    "h=12": 0.0,
+    "h=20": 0.0,
+    "h=29": 0.0,
+    "h=40": 0.0,
+    "h=61": 0.0
+   }
+  }
+ },
+ "elapsed_s": 162.28093361854553,
+ "loss_history": {
+  "full_graft": [
+   [
+    125,
+    4.507575988769531
+   ],
+   [
+    150,
+    4.4773406982421875
+   ],
+   [
+    175,
+    4.605201721191406
+   ],
+   [
+    200,
+    4.802053928375244
+   ]
+  ],
+  "backbone_only": [
+   [
+    125,
+    4.632845878601074
+   ],
+   [
+    150,
+    4.60811710357666
+   ],
+   [
+    175,
+    4.611127853393555
+   ],
+   [
+    200,
+    4.839988708496094
+   ]
+  ]
+ },
+ "n_skipped_steps": {
+  "full_graft": 0,
+  "backbone_only": 0
+ },
+ "gpu_h": 0.04507803711626265,
+ "finished_utc": "2026-07-18T07:26:28Z"
+}

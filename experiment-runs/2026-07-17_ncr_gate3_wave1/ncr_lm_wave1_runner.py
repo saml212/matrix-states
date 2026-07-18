@@ -256,15 +256,23 @@ def ncr_lm_forward_ablatable(backbone, ncr_head, integ: NCRIntegration, batch: d
     enter the autograd graph in this branch (asserted explicitly in the
     training loop, not merely assumed here). read_ablate and teacher_force
     compose orthogonally: read_ablate still controls o_injected independently
-    of where Z came from (backbone_only zeros o_injected regardless)."""
+    of where Z came from (backbone_only zeros o_injected regardless).
+
+    sec G3-B12 (ported from ncr_lm_wave1_smoke.ncr_lm_forward's own fix):
+    keys_v/values_v/q_key are now extracted from RAW `input_ids` through
+    `backbone.embed` + the single shared `integ.entity_adapter` (was
+    contextualized `hidden` through separate key_adapter/value_adapter) --
+    see graft.NCRIntegration.extract_kv/query_key docstrings for the exact
+    mechanism. `hidden` is still computed (unavoidable backbone forward) and
+    still used for read-injection's own tap point (RULING 2, unaffected)."""
     input_ids = batch["doc"][:, :-1]
     hidden = backbone(input_ids, return_hidden=True)
-    keys_v, values_v = integ.extract_kv(hidden, batch["key_pos"], batch["val_pos"])
+    keys_v, values_v = integ.extract_kv(input_ids, batch["key_pos"], batch["val_pos"], backbone.embed)
     if teacher_force:
         Z = integ.teacher_force_operator(keys_v, values_v)
     else:
         Z = ncr_head.encode(keys_v, values_v)
-    q_key = integ.query_key(hidden, batch["query_key_col"])
+    q_key = integ.query_key(input_ids, batch["query_key_col"], backbone.embed)
     o_raw = nm.binexp_read(Z, q_key.unsqueeze(1), h=batch["hop"])["o"].squeeze(1)
     o_injected = torch.zeros_like(o_raw) if read_ablate else o_raw
     logits = integ.inject_and_logits_last(hidden, o_injected, batch["query_mark_col"], backbone.embed.weight)
@@ -301,25 +309,28 @@ def assert_read_ablation_is_exact_zero(backbone, ncr_head, integ: NCRIntegration
 # high mean_cos with rec@0.9=0 => the threshold discarded real (sub-0.9, but
 # non-trivial) signal; near-zero mean_cos => the read genuinely carries
 # nothing. Re-derives the IDENTICAL target/cosine computation
-# graft.recovered_frac_at_09 (ncr_lm_wave1_smoke.py, AUDITED, build-time
-# interpretation (i): target = key_adapter(hidden at the ANSWER entity's OWN
-# bind-clause KEY position)) uses internally, byte-for-byte -- duplicated
-# here (not edited into that audited file, keeping its md5/audit status
-# untouched, per the build brief's "do NOT disturb the audited two-arm
-# path") solely to obtain the raw per-row cosine tensor that function
-# computes but does not expose (it only returns the thresholded fraction).
-# recovered_frac@0.9 and mean_cos below are therefore ALWAYS derived from
-# the SAME cosine tensor -- guaranteed consistent by construction, not two
-# independently-invented metrics that could silently disagree.
+# graft.recovered_frac_at_09 (ncr_lm_wave1_smoke.py, AUDITED, sec G3-B12
+# RE-BASED: target = entity_adapter(RAW embed(answer_token)), o's OWN
+# space -- was key_adapter(hidden at the ANSWER entity's OWN bind-clause KEY
+# position), sec G3-B11 defect 3d) uses internally, byte-for-byte --
+# duplicated here (not edited into that audited file, keeping its md5/audit
+# status untouched, per the build brief's "do NOT disturb the audited
+# two-arm path") solely to obtain the raw per-row cosine tensor that
+# function computes but does not expose (it only returns the thresholded
+# fraction). recovered_frac@0.9 and mean_cos below are therefore ALWAYS
+# derived from the SAME cosine tensor -- guaranteed consistent by
+# construction, not two independently-invented metrics that could silently
+# disagree.
 # ---------------------------------------------------------------------------
-def cosine_and_recovered_frac(integ: NCRIntegration, hidden: torch.Tensor, o: torch.Tensor,
-                               key_pos: torch.Tensor, tgt_slot: torch.Tensor) -> tuple[float, float]:
+def cosine_and_recovered_frac(integ: NCRIntegration, embed: torch.nn.Embedding, o: torch.Tensor,
+                               answer_token: torch.Tensor) -> tuple[float, float]:
     """Returns (recovered_frac@0.9, mean_cos) from ONE shared cosine tensor.
     See the module comment immediately above for why this duplicates (not
-    reimplements-differently) graft.recovered_frac_at_09's own target."""
-    answer_key_pos = torch.gather(key_pos, 1, tgt_slot.unsqueeze(1)).squeeze(1)   # (B,)
-    idx = answer_key_pos.view(-1, 1, 1).expand(-1, 1, hidden.shape[-1])
-    target = integ.key_adapter(torch.gather(hidden, 1, idx).squeeze(1).float())
+    reimplements-differently) graft.recovered_frac_at_09's own (sec G3-B12
+    re-based) target. answer_token: (B,) int64, the true answer entity's OWN
+    token id (batch["answer_token"]) -- embed(answer_token) is context-free,
+    no position-gather through `hidden` needed any more."""
+    target = integ.entity_adapter(embed(answer_token).float())
     cos = F.cosine_similarity(o, target, dim=-1)
     return (cos >= 0.9).float().mean().item(), cos.mean().item()
 
@@ -381,7 +392,7 @@ def eval_arm_at_hops(arm: dict, pools, cfg, hops: tuple, batch_size: int, device
         batch = build_task1_document(cfg, pools, gen, batch_size, h, device)
         logits, o_raw, o_inj, hidden, Z, keys_v, values_v = ncr_lm_forward_ablatable(
             backbone, ncr_head, integ, batch, read_ablate=read_ablate, teacher_force=teacher_force)
-        rf, mean_cos = cosine_and_recovered_frac(integ, hidden, o_raw, batch["key_pos"], batch["tgt_slot"])
+        rf, mean_cos = cosine_and_recovered_frac(integ, backbone.embed, o_raw, batch["answer_token"])
         acc = (logits.argmax(dim=-1) == batch["answer_token"]).float().mean().item()
         out[f"h={h}"] = {"recovered_frac@0.9": float(rf), "mean_cos": float(mean_cos),
                           "answer_accuracy": float(acc), "n": batch_size}

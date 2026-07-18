@@ -6,6 +6,25 @@ ratified `NCRIntegration` wiring below -- this is the SECOND-EVER attempt to
 run the NCR head inside a real LM, now with a real, gradient-trainable
 write/read graft (not a smoke-only random-tensor placeholder).
 
+sec G3-B12 SINGLE-SPACE READ FIX (2026-07-18/19, coordinator-designed,
+this build applies it): sec G3-B11's static audit + faithful CPU repro found
+the sec G3-B3 graft below structurally CANNOT compose (defect 3c: two
+separate key_adapter/value_adapter Linear(768,25) modules make Z a
+key-space->value-space map, so Z^h for h>=2 chains a value vector through a
+key->value map -- undefined) and was never handed a usable read input
+(defect 3a: the teacher-forced operator was fit to bind-clause keys from
+CONTEXTUALIZED hidden, but read against a DIFFERENT contextualized hidden of
+the query window -- a different vector for the same entity). THE FIX (every
+site below tagged "sec G3-B12"): ONE shared `entity_adapter` applied to the
+RAW, context-free `backbone.embed(entity_token_id)` for the key, value, AND
+query roles -- Z becomes an entity-space ENDOMORPHISM (closes 3c) and the
+query's key vector is BIT-IDENTICAL to the matching bind key by construction
+(closes 3a). The recovery instrument (defect 3d) is re-based to compare `o`
+against `entity_adapter(embed(true answer token))` -- o's own space. See
+each tagged docstring/comment below for the exact mechanism; see
+NCR_REAL_LM_DESIGN.md sec G3-B12 for the full record (diff, smoke results,
+new md5).
+
 ============================================================================
 WHAT IS SPEC-FAITHFUL BELOW vs. WHAT IS A BUILD-TIME INTERPRETATION (every
 non-literal-text choice is commented in-place, per the same discipline sec
@@ -32,19 +51,20 @@ inline; unchanged from sec G3-B1 except where noted):
     (ncr_earlyln_scale.NCREarlyLNModel.forward) is not needed here and is
     NOT used by this build (ncr_head.encode() is called directly instead,
     the same precedent sec G3-B1's own smoke_6 already established).
-  - Write adapter shapes (sec G3-B2 RULING 1): "a learned Linear(d_model=768
-    -> encoder-input-dim) applied to the post-norm hidden at each
-    bind-clause's KEY and VALUE token positions... at their ACTUAL
-    signature... One Linear per role (key, value)." Inspected directly
-    (matrix-thinking/chapter2/model_v4.py BindingEncoder.__init__:
-    `self.in_proj = nn.Linear(2*d, h)`, `forward(self, keys, values)` with
-    keys/values: (B,K,d)) -- encoder-input-dim IS d_ncr=25 exactly (the
-    SAME d that parameterizes Z: (B,d,d)). NOT ambiguous: key_adapter =
-    Linear(768,25,bias=False), value_adapter = Linear(768,25,bias=False)
-    -- IDENTICAL shapes to sec G3-B1's own placeholder (that placeholder's
-    shape guess turns out to have been the ratified one; what changes here
-    is everything DOWNSTREAM of the shape -- real data, real objective,
-    real eval metric, ablation flags).
+  - Write adapter shape (sec G3-B2 RULING 1, AMENDED by sec G3-B12): "a
+    learned Linear(d_model=768 -> encoder-input-dim)... at their ACTUAL
+    signature." Inspected directly (matrix-thinking/chapter2/model_v4.py
+    BindingEncoder.__init__: `self.in_proj = nn.Linear(2*d, h)`,
+    `forward(self, keys, values)` with keys/values: (B,K,d)) --
+    encoder-input-dim IS d_ncr=25 exactly (the SAME d that parameterizes Z:
+    (B,d,d)). RULING 1's LITERAL text said "One Linear per role (key,
+    value)" (two adapters, sec G3-B3's original build) -- sec G3-B11 found
+    this makes Z a key-space->value-space map, structurally unable to
+    compose (Z^h undefined for h>=2). Sec G3-B12 AMENDS this to ONE shared
+    `entity_adapter = Linear(768,25,bias=False)` applied to the RAW
+    `backbone.embed(entity_token_id)` for key, value, AND query roles --
+    still Linear(768,25), just ONE instance instead of two, and applied to
+    a context-free embedding instead of the contextualized hidden.
   - Read injection (sec G3-B2 RULING 2): "o in R^{d_ncr} ... -> a learned
     Linear(d_ncr -> 768), ADDED to the query-position post-norm hidden
     before the SHARED LM head (design sec 2.1's option (a))." Implemented
@@ -76,26 +96,32 @@ inline; unchanged from sec G3-B1 except where noted):
 
 BUILD-TIME INTERPRETATION (not literal design text; disclosed, not
 fabricated as ratified):
-  (i) recovered_frac@0.9's EVAL-ONLY target vector. The design names this
-      metric throughout (sec 7 etc.) but, in every OTHER place it is used,
-      the comparison target is an "ideal"/ground-truth composed vector from
-      an isolated synthetic harness with a fixed probe-vector table -- no
-      such external table exists for this real-LM, free-write construction
-      (sec N2.1 retires the NS-polar/ideal-Z pipeline entirely). This build
-      uses the SELF-CONSISTENT target already implicit in ncr_models.py's
-      OWN synthetic-task convention (NCRModel/NCREarlyLNModel are queried
-      with `query_keys` living in the SAME embedding space as `keys` --
-      see ncr_earlyln_scale.py smoke's `query_keys = keys.clone()`):
-      target = key_adapter(hidden at the ANSWER entity's OWN bind-clause
-      KEY position). recovered_frac@0.9 = frac of eval queries where
-      cosine(o, target) >= 0.9. This is a genuine build-time choice (an
-      alternative table-based definition, mirroring probe_head_rd.py's
-      `build_probe_target_table`, was considered and rejected: it would
-      impose an EXTERNAL target the CE-only training objective has no
-      reason to align `o` with, making the metric read near-zero
-      regardless of whether the graft is working -- the self-consistent
-      target is trainable-through, by construction, via the SAME key
-      adapter the read's own query vector uses).
+  (i) recovered_frac@0.9's EVAL-ONLY target vector, RE-BASED by sec G3-B12
+      (defect 3d). The design names this metric throughout (sec 7 etc.) but,
+      in every OTHER place it is used, the comparison target is an
+      "ideal"/ground-truth composed vector from an isolated synthetic
+      harness with a fixed probe-vector table -- no such external table
+      exists for this real-LM, free-write construction (sec N2.1 retires the
+      NS-polar/ideal-Z pipeline entirely). This build uses the
+      SELF-CONSISTENT target already implicit in ncr_models.py's OWN
+      synthetic-task convention (NCRModel/NCREarlyLNModel are queried with
+      `query_keys` living in the SAME embedding space as `keys` -- see
+      ncr_earlyln_scale.py smoke's `query_keys = keys.clone()`). ORIGINAL
+      (sec G3-B3): target = key_adapter(hidden at the ANSWER entity's OWN
+      bind-clause KEY position) -- sec G3-B11 TEST C found this compares `o`
+      (value-adapter space) against a DIFFERENT linear image, so even a
+      PERFECT read scored mean_cos=0.05/recovered_frac@0.9=0.0 (defect 3d).
+      NOW (sec G3-B12): target = entity_adapter(RAW embed(answer_token)) --
+      o's OWN (single, shared) space; a perfect read now scores cos=1.0 by
+      construction (verified live by smoke item 9b below, the (3d)-fix's
+      own self-check). recovered_frac@0.9 = frac of eval queries where
+      cosine(o, target) >= 0.9. The alternative table-based definition
+      (mirroring probe_head_rd.py's `build_probe_target_table`) is still
+      rejected for the same reason as before: it would impose an EXTERNAL
+      target the CE-only training objective has no reason to align `o`
+      with -- the self-consistent target stays trainable-through, by
+      construction, via the SAME entity_adapter the read's own query vector
+      uses.
   (ii) `--teacher-force-operator`'s exact mechanism (sec G3-B2's
       FAIL-informativeness ablation-flag list, "teacher-forced-operator
       control mode that isolates read-vs-write"). Implemented as a
@@ -107,7 +133,8 @@ fabricated as ratified):
       generically-consistent, minimum-norm system). This bypasses
       `ncr_head`'s own BindingEncoder ENTIRELY (its parameters never enter
       the graph) while leaving the read (binexp_read), injection, and
-      LM-head pathway, PLUS the query-side key_adapter use, fully
+      LM-head pathway, PLUS the query-side entity_adapter use (sec G3-B12
+      renamed key_adapter -> entity_adapter, same isolation property), fully
       trainable -- isolating "can read+inject+head consume a
       perfect-for-the-current-adapters operator" from "can the encoder
       learn a good operator." Smoke item 10 below verifies BOTH the
@@ -237,8 +264,32 @@ def _build_read_injector(d_ncr: int, d_model: int, vocab_size: int, kind: str) -
 
 
 class NCRIntegration(nn.Module):
-    """The RATIFIED write/read wiring (sec G3-B2 RULINGs 1-2), plus the
-    pre-wired ablation-arm flags (sec G3-B2's FAIL-informativeness list).
+    """sec G3-B12 SINGLE-SPACE READ FIX (2026-07-18/19): the RATIFIED
+    write/read wiring (sec G3-B2 RULINGs 1-2) with the sec G3-B11 (3a)+(3c)
+    structural defects closed. WAS: TWO separate adapters (key_adapter,
+    value_adapter: both Linear(768,25)) applied to the CONTEXTUALIZED
+    post-norm `hidden` -- Z mapped key-space -> value-space (3c: Z^h for
+    h>=2 chains a value vector through a key->value map, undefined), and
+    the query's key vector (key_adapter of the QUERY-window's contextualized
+    hidden) was a DIFFERENT vector from the bind-clause key it was fit
+    against (3a: `Z` was never handed a usable read input; sec G3-B11 repro
+    TEST B/D). NOW: ONE shared `entity_adapter` applied to the RAW
+    (context-free) `backbone.embed(entity_token_id)` for the key role, the
+    value role, AND the query role. Consequences: (a) Z: entity-space ->
+    entity-space is an ENDOMORPHISM, so Z^h composes for any h (closes 3c);
+    (b) the query's key vector for entity e is BIT-IDENTICAL to the bind
+    key vector for e (same raw embedding row -> same Linear -> same output,
+    no dependence on sequence position/context) (closes 3a) -- see
+    query_key()'s docstring for the exact identity this buys.
+    grammar_rd.py's `build_entity_pools`/`_verify_words` VERIFIES every
+    entity candidate is single-token under GPT-2 BPE at build time
+    (rejecting multi-token candidates outright, `EntityPools.train_name_ids`
+    docstring: "single-token-verified") -- so THIS task has NO multi-subword
+    entity case to reduce; `backbone.embed(entity_token_id)` is always
+    exactly one embedding row per entity, never a reduction over several.
+    (Documented per the build brief's requirement to pick+document a
+    reduction convention -- the convention here is "not applicable by
+    construction," not a silent assumption.)
     Default construction (adapter='linear', read_inject='add') is the ONLY
     arm this build's full-pipeline smoke (items 7-10) exercises; 'mlp'/
     'mlp_logits' are construction+shape verified only (item 11)."""
@@ -248,42 +299,63 @@ class NCRIntegration(nn.Module):
         super().__init__()
         self.d_model, self.d_ncr, self.vocab_size = d_model, d_ncr, vocab_size
         self.adapter_kind, self.read_inject_kind = adapter, read_inject
-        self.key_adapter = _build_adapter(d_model, d_ncr, adapter)      # RULING 1
-        self.value_adapter = _build_adapter(d_model, d_ncr, adapter)    # RULING 1
-        self.read_injector = _build_read_injector(d_ncr, d_model, vocab_size, read_inject)  # RULING 2
+        self.entity_adapter = _build_adapter(d_model, d_ncr, adapter)   # sec G3-B12: ONE shared adapter
+                                                                          # (was key_adapter + value_adapter)
+        self.read_injector = _build_read_injector(d_ncr, d_model, vocab_size, read_inject)  # RULING 2, unchanged
 
     def config(self) -> dict:
         return dict(d_model=self.d_model, d_ncr=self.d_ncr, vocab_size=self.vocab_size,
                     adapter=self.adapter_kind, read_inject=self.read_inject_kind)
 
-    def extract_kv(self, hidden: torch.Tensor, key_pos: torch.Tensor, val_pos: torch.Tensor):
-        """hidden: (B,T,d_model) backbone post-norm_f hidden (sec 2.2's tap
-        point). key_pos/val_pos: (B,K) bind-clause KEY/VALUE token
-        positions (grammar_rd.sample_batch_rd's own item_pos/item_pos-2).
-        Returns (keys,values): (B,K,d_ncr), fp32 at the NCR head's own
-        boundary (sec 8 item 2/m1's fix)."""
-        B, K = key_pos.shape
-        idx_k = key_pos.unsqueeze(-1).expand(-1, -1, hidden.shape[-1])
-        idx_v = val_pos.unsqueeze(-1).expand(-1, -1, hidden.shape[-1])
-        h_key = torch.gather(hidden, 1, idx_k).float()
-        h_val = torch.gather(hidden, 1, idx_v).float()
-        return self.key_adapter(h_key), self.value_adapter(h_val)
+    def extract_kv(self, token_ids: torch.Tensor, key_pos: torch.Tensor, val_pos: torch.Tensor,
+                    embed: nn.Embedding):
+        """sec G3-B12 fix. token_ids: (B,T) int64 RAW input ids -- the EXACT
+        tensor fed to the backbone (`batch['doc'][:, :-1]`), context-free by
+        construction (an index tensor, never touched by the DeltaNet
+        layers). key_pos/val_pos: (B,K) bind-clause KEY/VALUE token
+        positions (grammar_rd.sample_batch_rd's own item_pos/item_pos-2,
+        UNCHANGED from sec G3-B3 -- only what gets read AT those positions
+        changed, from contextualized `hidden` to the raw token id feeding
+        `embed`). embed: backbone.embed (nn.Embedding(vocab_size,d_model)),
+        the backbone's OWN raw token embedding table -- a plain lookup,
+        upstream of every DeltaNet layer, so its output for a given token id
+        is IDENTICAL regardless of surrounding context. Returns
+        (keys,values): (B,K,d_ncr), fp32, BOTH through the SAME
+        entity_adapter -- Z fit from these lives in ONE space (closes 3c)."""
+        key_ids = torch.gather(token_ids, 1, key_pos)      # (B,K) int64 entity token ids
+        val_ids = torch.gather(token_ids, 1, val_pos)       # (B,K) int64 entity token ids
+        keys = self.entity_adapter(embed(key_ids).float())
+        values = self.entity_adapter(embed(val_ids).float())
+        return keys, values
 
-    def query_key(self, hidden: torch.Tensor, query_key_col: int) -> torch.Tensor:
-        """key_adapter applied at the query window's OWN KEY position (the
-        binexp_read `q` input) -- mirrors ncr_models.py's own
-        query_keys-in-the-same-space-as-keys convention (module docstring
-        item (i)). query_key_col: fixed python int column (grammar_rd's
-        template offsets are batch-uniform, sample_batch_rd's own item_pos
-        construction is `torch.arange(K)*clause_len + ...`, identical for
-        every row -- no gather needed). Returns (B, d_ncr), fp32."""
-        return self.key_adapter(hidden[:, query_key_col, :].float())
+    def query_key(self, token_ids: torch.Tensor, query_key_col: int, embed: nn.Embedding) -> torch.Tensor:
+        """sec G3-B12 fix. entity_adapter(embed(raw query-key entity token))
+        -- query_key_col: fixed python int column (grammar_rd's template
+        offsets are batch-uniform -- unchanged from sec G3-B3). The query's
+        KEY token at this column is, by grammar_rd.sample_batch_rd's own
+        construction, `entity_ids[b, a_slot[b]]` -- i.e. it is ALWAYS one of
+        this episode's own K bind-clause entities (a_slot in [0,K) by
+        construction, sec 14.2). Since `embed` is context-free and
+        `entity_adapter` is the SAME nn.Linear instance extract_kv's KEY
+        role uses, `query_key(e)` is BIT-IDENTICAL (not merely close) to
+        `keys_v[a_slot]` from extract_kv on the SAME batch -- closes defect
+        3a (sec G3-B11: 'until q_key ~= keys_v[a_slot], no operator can
+        produce a correct read'; here q_key == keys_v[a_slot] exactly).
+        Returns (B, d_ncr), fp32."""
+        q_ids = token_ids[:, query_key_col]      # (B,) int64
+        return self.entity_adapter(embed(q_ids).float())
 
     def teacher_force_operator(self, keys_v: torch.Tensor, values_v: torch.Tensor) -> torch.Tensor:
-        """Build-time interpretation (ii): closed-form least-squares Z s.t.
-        Z @ keys_v[i] = values_v[i] (i in 0..K-1), from DETACHED adapter
-        outputs -- bypasses ncr_head's own BindingEncoder entirely (no
-        gradient reaches it), isolating read/inject/head from write-quality.
+        """Build-time interpretation (ii), UNCHANGED mechanism -- closed-form
+        least-squares Z s.t. Z @ keys_v[i] = values_v[i] (i in 0..K-1), from
+        DETACHED adapter outputs -- bypasses ncr_head's own BindingEncoder
+        entirely (no gradient reaches it), isolating read/inject/head from
+        write-quality. sec G3-B12 consequence (not a mechanism change): with
+        the single shared entity_adapter, keys_v/values_v now live in the
+        SAME space Z's query-side application (query_key) also lives in, so
+        this closed-form Z is fit to, and applied against, one consistent
+        space -- previously (3a/3c) it was fit on bind-space vectors but
+        applied to a different query vector in a different (value) space.
         keys_v/values_v: (B,K,d_ncr). Returns Z: (B,d_ncr,d_ncr)."""
         k, v = keys_v.detach(), values_v.detach()
         z_t = torch.linalg.pinv(k) @ v            # (B,d,K) @ (B,K,d) -> (B,d,d) == Z^T
@@ -399,30 +471,45 @@ def ncr_lm_forward(backbone: DeltaNetLM, ncr_head: els.NCREarlyLNModel, integ: N
                     batch: dict, teacher_force: bool = False):
     """The FULL graft: backbone -> write-adapter -> encoder (or teacher-
     forced operator) -> binexp_read -> read-inject -> LM-head. Returns
-    (logits_at_query, o, Z, keys_v, values_v)."""
+    (logits_at_query, o, Z, keys_v, values_v). sec G3-B12: key/value/query
+    extraction now reads RAW token ids (`input_ids`) through
+    `backbone.embed` + the single `entity_adapter`, NOT the contextualized
+    `hidden` -- `hidden` is still computed (the backbone forward pass is
+    unavoidable) and is STILL used for read-injection (RULING 2, unchanged:
+    the read is added into the contextualized hidden at the query mark
+    before the LM head -- that tap point is a separate design choice from
+    where the bind/query KEYS come from, and is not part of this fix)."""
     input_ids = batch["doc"][:, :-1]                                   # (B, T_bind+query_len); drop the answer token
     assert input_ids.shape[1] - 1 == batch["query_mark_col"], "query_mark_col must be input's last column"
-    hidden = backbone(input_ids, return_hidden=True)                   # (B,T,768), sec 2.2 tap point
-    keys_v, values_v = integ.extract_kv(hidden, batch["key_pos"], batch["val_pos"])
+    hidden = backbone(input_ids, return_hidden=True)                   # (B,T,768), sec 2.2 tap point (read-inject only, post-fix)
+    keys_v, values_v = integ.extract_kv(input_ids, batch["key_pos"], batch["val_pos"], backbone.embed)
     if teacher_force:
         Z = integ.teacher_force_operator(keys_v, values_v)             # ncr_head.encode NEVER called
     else:
         Z = ncr_head.encode(keys_v, values_v)                          # (B,d_ncr,d_ncr)
-    q_key = integ.query_key(hidden, batch["query_key_col"])            # (B,d_ncr)
+    q_key = integ.query_key(input_ids, batch["query_key_col"], backbone.embed)   # (B,d_ncr)
     o = nm.binexp_read(Z, q_key.unsqueeze(1), h=batch["hop"])["o"].squeeze(1)   # (B,d_ncr), O(log h) exact
     logits = integ.inject_and_logits_last(hidden, o, batch["query_mark_col"], backbone.embed.weight)
     return logits, o, Z, keys_v, values_v
 
 
-def recovered_frac_at_09(integ: NCRIntegration, hidden: torch.Tensor, o: torch.Tensor,
-                          key_pos: torch.Tensor, tgt_slot: torch.Tensor) -> float:
-    """Build-time interpretation (i): target = key_adapter(hidden at the
-    ANSWER entity's OWN bind-clause KEY position). recovered_frac@0.9 =
-    frac of rows with cosine(o, target) >= 0.9. EVAL-ONLY (never in the
-    training loss, per the ratified objective)."""
-    answer_key_pos = torch.gather(key_pos, 1, tgt_slot.unsqueeze(1)).squeeze(1)   # (B,)
-    idx = answer_key_pos.view(-1, 1, 1).expand(-1, 1, hidden.shape[-1])
-    target = integ.key_adapter(torch.gather(hidden, 1, idx).squeeze(1).float())
+def recovered_frac_at_09(integ: NCRIntegration, embed: nn.Embedding, o: torch.Tensor,
+                          answer_token: torch.Tensor) -> float:
+    """sec G3-B12 RE-BASE (was build-time interpretation (i), defect 3d):
+    target = entity_adapter(RAW embed(answer_token)) -- o's OWN (now single,
+    shared) space, not a different linear image. `answer_token` IS the
+    answer entity's own token id (`build_task1_document`'s
+    `torch.gather(entity_ids, 1, tgt_slot)`), so no position-gather through
+    `hidden` is needed any more -- the target is the SAME
+    embed->entity_adapter pipeline every key/value/query vector goes
+    through, for the literal correct-answer entity. A perfect read (o ==
+    this target) now scores cos=1.0 by construction (sec G3-B11's repro
+    TEST C found the OLD instrument scored a perfect read at mean_cos=0.05,
+    recovered_frac@0.9=0.0 -- this fix is verified against that same
+    failure mode by the smoke suite's new self-check, see smoke_9).
+    recovered_frac@0.9 = frac of rows with cosine(o, target) >= 0.9.
+    EVAL-ONLY (never in the training loss, per the ratified objective)."""
+    target = integ.entity_adapter(embed(answer_token).float())
     cos = F.cosine_similarity(o, target, dim=-1)
     return (cos >= 0.9).float().mean().item()
 
@@ -459,13 +546,17 @@ def smoke_0_param_counts():
 
     integ = NCRIntegration(RUNG1_BACKBONE["d_model"], D_NCR, VOCAB_SIZE, adapter="linear", read_inject="add")
     n_integ = sum(p.numel() for p in integ.parameters())
-    expected_integ = 2 * RUNG1_BACKBONE["d_model"] * D_NCR + D_NCR * RUNG1_BACKBONE["d_model"]
+    # sec G3-B12: ONE shared entity_adapter (was key_adapter + value_adapter,
+    # two separate Linear(768,25)) -- param count drops from 3*d_model*d_ncr
+    # to 2*d_model*d_ncr (entity_adapter + read_injector).
+    expected_integ = RUNG1_BACKBONE["d_model"] * D_NCR + D_NCR * RUNG1_BACKBONE["d_model"]
     integ_ok = n_integ == expected_integ
-    _report("smoke 0c: NCRIntegration (linear/add, the ratified default) param count exact, "
-            "DISCLOSED SEPARATELY from the 173,209-param NCR head (sec G3-B1 gap 1's open question)",
+    _report("smoke 0c: NCRIntegration (linear/add, sec G3-B12 single-shared-adapter fix) param count "
+            "exact, DISCLOSED SEPARATELY from the 173,209-param NCR head (sec G3-B1 gap 1's open question)",
             integ_ok, f"measured={n_integ:,} expected={expected_integ:,} "
-            f"(key+value adapters {2*RUNG1_BACKBONE['d_model']*D_NCR:,} + "
-            f"read_injector {D_NCR*RUNG1_BACKBONE['d_model']:,})")
+            f"(entity_adapter {RUNG1_BACKBONE['d_model']*D_NCR:,} + "
+            f"read_injector {D_NCR*RUNG1_BACKBONE['d_model']:,}; "
+            f"was {3*RUNG1_BACKBONE['d_model']*D_NCR:,} pre-fix with two adapters)")
     del backbone, ncr, integ
     return backbone_ok and ncr_ok and integ_ok
 
@@ -712,9 +803,12 @@ def smoke_8_full_graft_checkpoint_resume(device: str, pools, cfg, backbone_from_
 
 def smoke_9_eval_batch_recovered_frac(device: str, pools, cfg, backbone, integ):
     """An eval batch (no_grad) at a HELD-OUT depth (h=5, not in Task-1's
-    train range {1,2,3}) computing recovered_frac@0.9 (build-time
-    interpretation (i) in the module docstring) -- the EVAL metric, never
-    part of the training loss above."""
+    train range {1,2,3}) computing recovered_frac@0.9 (sec G3-B12 RE-BASED
+    instrument) -- the EVAL metric, never part of the training loss above.
+    (hidden is no longer computed separately here for the instrument -- the
+    re-based target reads embed(answer_token) directly, not a position in
+    `hidden`; ncr_lm_forward's own internal backbone forward pass is the
+    only one this function needs.)"""
     torch.manual_seed(9)
     ncr = build_ncr_head().to(device)
     backbone.eval(); ncr.eval(); integ.eval()
@@ -722,10 +816,8 @@ def smoke_9_eval_batch_recovered_frac(device: str, pools, cfg, backbone, integ):
     B = 16
     batch = build_task1_document(cfg, pools, gen, B, EVAL_HELDOUT_HOP, device)
     with torch.no_grad():
-        input_ids = batch["doc"][:, :-1]
-        hidden = backbone(input_ids, return_hidden=True)
         logits, o, Z, keys_v, values_v = ncr_lm_forward(backbone, ncr, integ, batch, teacher_force=False)
-        rf = recovered_frac_at_09(integ, hidden, o, batch["key_pos"], batch["tgt_slot"])
+        rf = recovered_frac_at_09(integ, backbone.embed, o, batch["answer_token"])
         answer_logprob = F.log_softmax(logits, dim=-1).gather(
             1, batch["answer_token"].unsqueeze(1)).squeeze(1).mean().item()
     ok = (0.0 <= rf <= 1.0 and torch.isfinite(logits).all().item() and torch.isfinite(o).all().item())
@@ -734,6 +826,30 @@ def smoke_9_eval_batch_recovered_frac(device: str, pools, cfg, backbone, integ):
             f"recovered_frac@0.9={rf:.4f} mean_answer_logprob={answer_logprob:.4f} B={B} "
             f"(untrained model at init -- rf near-0 is EXPECTED, this item proves the metric "
             f"COMPUTES, not that the graft has converged)")
+
+    # sec G3-B12's OWN self-check (defect 3d's fix, verified directly): feed
+    # recovered_frac_at_09 a SYNTHETIC "perfect read" -- o := the target
+    # itself (entity_adapter(embed(answer_token))) -- and require the
+    # RE-BASED instrument register cos~=1 / recovered_frac@0.9~=1. Sec
+    # G3-B11 repro TEST C found the OLD instrument scored a perfect read at
+    # mean_cos=0.05, recovered_frac@0.9=0.0 (comparing across DIFFERENT
+    # linear images); this proves the NEW instrument does not have that
+    # defect -- it is a genuine build+run-time proof, not merely reasoned
+    # about statically.
+    with torch.no_grad():
+        # o_perfect IS the re-based target itself -- exercises the REAL
+        # recovered_frac_at_09 (not a reimplementation): if the function's
+        # internal target computation matches what produced o_perfect,
+        # cosine(o_perfect, target) must be exactly 1.0 (mod fp32 rounding).
+        o_perfect = integ.entity_adapter(backbone.embed(batch["answer_token"]).float())
+        rf_perfect = recovered_frac_at_09(integ, backbone.embed, o_perfect, batch["answer_token"])
+    ok_perfect = rf_perfect >= 0.999
+    _report("smoke 9b (sec G3-B12 SELF-CHECK, the (3d)-fix's own test): a SYNTHETIC perfect read "
+            "(o := entity_adapter(embed(answer_token)), i.e. o's own re-based target) scores "
+            "recovered_frac@0.9~=1 through the REAL recovered_frac_at_09 -- sec G3-B11 TEST C found "
+            "the OLD (key_adapter-of-contextual-hidden) instrument scored a perfect read at "
+            "mean_cos=0.05/rec@0.9=0.0 (comparing across two DIFFERENT linear images)",
+            ok_perfect, f"recovered_frac@0.9={rf_perfect:.6f} (expect ~=1.0) B={B}")
     del ncr
     torch.cuda.empty_cache() if device == "cuda" else None
 
@@ -761,18 +877,22 @@ def smoke_10_teacher_force_operator_isolation(device: str, pools, cfg, vocab_siz
 
     ncr_untouched = all(p.grad is None for p in ncr.parameters())
     backbone_trained = any(p.grad is not None and p.grad.abs().sum().item() > 0 for p in backbone.parameters())
-    key_adapter_trained = any(p.grad is not None and p.grad.abs().sum().item() > 0
-                              for p in integ.key_adapter.parameters())
+    # sec G3-B12: entity_adapter (was key_adapter) still gets gradient ONLY
+    # via the query path (extract_kv's bind-side keys_v/values_v are
+    # detached inside teacher_force_operator) -- identical reasoning to the
+    # pre-fix key_adapter check, just renamed to the single shared module.
+    entity_adapter_trained = any(p.grad is not None and p.grad.abs().sum().item() > 0
+                                 for p in integ.entity_adapter.parameters())
     read_injector_trained = any(p.grad is not None and p.grad.abs().sum().item() > 0
                                 for p in integ.read_injector.parameters())
     ok = (fit_residual < 1e-2 and torch.isfinite(loss).item() and ncr_untouched
-          and backbone_trained and key_adapter_trained and read_injector_trained)
+          and backbone_trained and entity_adapter_trained and read_injector_trained)
     _report("smoke 10: --teacher-force-operator -- closed-form Z fit residual small, ncr_head "
-            "(encoder) receives ZERO gradient (isolation proof), backbone/key_adapter/read_injector "
+            "(encoder) receives ZERO gradient (isolation proof), backbone/entity_adapter/read_injector "
             "DO train", ok,
             f"fit_residual_max={fit_residual:.2e} loss_ce={loss.item():.4f} "
             f"ncr_untouched={ncr_untouched} backbone_trained={backbone_trained} "
-            f"key_adapter_trained={key_adapter_trained} read_injector_trained={read_injector_trained}")
+            f"entity_adapter_trained={entity_adapter_trained} read_injector_trained={read_injector_trained}")
     del backbone, ncr, integ, opt, logits, loss
     torch.cuda.empty_cache() if device == "cuda" else None
 
@@ -782,19 +902,26 @@ def smoke_11_ablation_flags_construct(device: str):
     ablation flags (--adapter mlp, --read-inject mlp_logits) -- proves the
     escape hatches are not broken, WITHOUT spending GPU time on a full
     backbone+CE+backward pass through them this wave (per the build
-    brief: 'pre-wire... do not run them'). Runs regardless of --device."""
+    brief: 'pre-wire... do not run them'). Runs regardless of --device.
+    sec G3-B12: extract_kv/query_key now take RAW token ids + an embed
+    table (not a contextualized `hidden` tensor) -- a throwaway
+    nn.Embedding stands in for backbone.embed here, matching the real
+    call sites' signature exactly (CPU-fast, no real backbone needed for a
+    shape+finite-only check)."""
     torch.manual_seed(12)
     d_model, d_ncr, vocab = RUNG1_BACKBONE["d_model"], D_NCR, VOCAB_SIZE
     ok_all = True
     details = []
+    fake_embed = nn.Embedding(vocab, d_model)     # stand-in for backbone.embed
     for adapter_kind, inject_kind in (("mlp", "add"), ("linear", "mlp_logits"), ("mlp", "mlp_logits")):
         integ = NCRIntegration(d_model, d_ncr, vocab, adapter=adapter_kind, read_inject=inject_kind)
         B, K, T = 3, K_NCR, 40
-        hidden = torch.randn(B, T, d_model)
+        token_ids = torch.randint(0, vocab, (B, T))
+        hidden = torch.randn(B, T, d_model)                 # still needed for read-inject's own tap
         key_pos = torch.arange(K).unsqueeze(0).expand(B, K)
         val_pos = key_pos + 1
-        keys_v, values_v = integ.extract_kv(hidden, key_pos, val_pos)
-        q_key = integ.query_key(hidden, query_key_col=5)
+        keys_v, values_v = integ.extract_kv(token_ids, key_pos, val_pos, fake_embed)
+        q_key = integ.query_key(token_ids, query_key_col=5, embed=fake_embed)
         o = torch.randn(B, d_ncr)
         lm_head = torch.randn(vocab, d_model)
         logits = integ.inject_and_logits_last(hidden, o, query_col=T - 1, lm_head_weight=lm_head)
