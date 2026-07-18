@@ -5793,3 +5793,229 @@ inference NO teacher-forcing. If the encoder learns to write under direct
 supervision → the capability holds; if not → a deeper (real) negative. This is a
 code change (new loss term + flag) → build → audit → launch, mirroring the
 §G3-B12 fix arc.
+
+## §G3-B17 DIRECT-READ-SUPERVISION BUILD (Fable build agent, 2026-07-19)
+
+Implements the coordinator-designed fix for §G3-B16's diagnosed
+WRITE-LEARNING gap. BUILD + full real-CUDA SMOKE only — STOP before any GPU
+launch (coordinator audits + launches). No git commit/push (per the build
+brief).
+
+### The exact diff — `ncr_lm_wave1_runner.py` ONLY
+
+`experiment-runs/2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_runner.py` is the
+ONLY file edited. `ncr_lm_wave1_smoke.py` is UNTOUCHED (md5 unchanged,
+`bc105af6…`, re-verified) — the aux loss is purely a training-loop
+addition (compute_arm_losses/aux_read_supervision_loss live in the runner);
+nothing in the audited graft module (`NCRIntegration`, `ncr_lm_forward`,
+`recovered_frac_at_09`) needed to change, consistent with this build arc's
+own standing discipline of never re-touching already-audited files when a
+fix doesn't require it.
+
+1. **NEW flag `--aux-read-loss-weight FLOAT`, default `0.0` (OFF).**
+   Threaded through `main()` → `run_two_arm_cell(..., aux_read_loss_weight=
+   0.0)` → recorded in `rec["config"]["aux_read_loss_weight"]` (a training
+   config field, not an eval metric — same treatment as
+   `teacher_force_operator`).
+2. **NEW `aux_read_supervision_loss(integ, embed, o, answer_token)`**
+   (runner.py, after `cosine_and_recovered_frac`): `target_o =
+   integ.entity_adapter(embed(answer_token).float()).detach()`; `cos =
+   F.cosine_similarity(o, target_o, dim=-1)`; returns `(1.0 -
+   cos).mean()`. Same re-based target `cosine_and_recovered_frac`/
+   `graft.recovered_frac_at_09` use (§G3-B12's single shared
+   `entity_adapter` applied to the RAW, context-free
+   `backbone.embed(answer_token)`) — duplicated, not reimplemented
+   differently — with ONE change: `.detach()` on the target. Cosine form
+   (`mean(1 - cos)`), matching the standalone free-write toy's own
+   converged read-loss, per the build brief — NOT MSE (disclosed
+   rationale in the function's own docstring: cosine is scale-invariant to
+   `o`/target magnitude, matching how `recovered_frac@0.9` itself
+   thresholds on cosine, not L2 distance; an MSE term would also pressure
+   `o`'s norm toward the target's norm, a property `binexp_read`'s own
+   repeated-squaring composition has no reason to preserve at every h).
+3. **NEW `compute_arm_losses(arm, batch, read_ablate, teacher_force,
+   aux_read_loss_weight, is_full_graft)`** — the ONE shared per-arm
+   forward+loss computation now used by BOTH the training loop
+   (`run_two_arm_cell`) and this build's own real-CUDA smoke
+   (`ncr_lm_wave1_aux_smoke.py`), so the smoke exercises the actual
+   training code path rather than a hand-copied reimplementation. Returns
+   `(total_loss, ce_loss, aux_loss_or_None, o_raw)`. **Gating (both
+   required, item 1 of the design):** `aux_loss` is computed, and added
+   into `total_loss`, ONLY when `is_full_graft` AND `aux_read_loss_weight
+   > 0.0`. `backbone_only` is called with `is_full_graft=False` at its
+   ONE call site in the training loop — this holds regardless of the
+   weight value (verified directly by aux-smoke (a)/(d), not merely
+   assumed from the gate's code). When the gate is closed, `total_loss IS
+   ce_loss` — the SAME tensor object, not a fresh one — so the
+   computation graph and backward pass are byte-identical to
+   pre-§G3-B17 behavior; no aux op is constructed at all at the default.
+4. **Training loop (`run_two_arm_cell`, per-arm inner loop):** replaced
+   `logits, o_raw, … = ncr_lm_forward_ablatable(...); loss =
+   F.cross_entropy(...)` with a single call to `compute_arm_losses(...)`;
+   `total_loss.backward()` (was `loss.backward()`); everything downstream
+   (teacher-force zero-grad assertion, gradient-finite check, clip+step,
+   `n_skipped`) is UNCHANGED, operating on `total_loss`/`ce_loss` in place
+   of the old `loss`. `step_losses[arm_name] = ce_loss.item()` (CE only,
+   unchanged meaning/key — `loss_hist`/checkpoint/resume schema
+   untouched); `aux_loss.item()` goes into a NEW `step_aux_losses` dict,
+   populated only for `full_graft` when the flag is ON.
+5. **Logging (item 4 of the design):** the per-`LOG_EVERY` training-step
+   print line gains an optional `  full_graft_aux_loss=X.XXXX` suffix when
+   `step_aux_losses` is non-empty (absent entirely at the default) — a
+   TRAINING loss, explicitly permitted by the module's own BLIND
+   DISCIPLINE section (only EVAL metrics are withheld from stdout). No
+   eval-path code changed — `eval_arm_at_hops`/`eval_both_arms`/
+   `build_attribution`/`recovered_frac@0.9`/`answer_accuracy` are
+   untouched, so the aux loss never touches any eval metric or the
+   attribution JSON.
+6. **Two-arm structure, read-ablation exact-zero, checkpoint/resume, the
+   §G3-B12 single `entity_adapter`: all UNTOUCHED** — the diff never edits
+   `ncr_lm_forward_ablatable`, `assert_read_ablation_is_exact_zero`,
+   `build_two_arms`, `save_checkpoint`/`load_checkpoint`/
+   `restore_arms_and_opts`, or `NCRIntegration` itself.
+
+### Ambiguity check (per the build brief) — RESOLVED, not blocking
+
+*"How are the training-hop h and answer_token available at the loss site,
+and should the aux supervise at the single training h or multiple?"* Not
+ambiguous once the existing per-step batch construction is read: each
+training step already samples ONE hop value uniformly from `TRAIN_HOPS =
+(1,2,3)` (`idx = torch.randint(0, len(TRAIN_HOPS), …)`) and builds ONE
+batch at that hop via `build_task1_document`, which returns
+`batch["hop"]` (the scalar h) and `batch["answer_token"]` (the (B,) true
+answer-entity token ids for that h) — both already consumed by the
+existing CE loss and by `ncr_lm_forward_ablatable`'s own `binexp_read(Z,
+q_key, h=batch["hop"])` call. The aux loss reads the SAME `o_raw` and
+`batch["answer_token"]` already in scope at the training-step call site —
+no new data-plumbing, no design choice about "single vs multiple hops per
+step" was needed: it inherits the loop's own existing single-hop-per-step
+structure. Across many steps, uniform hop sampling means the aux loss
+supervises across all three training hops in expectation, exactly the way
+the existing CE loss already does — no behavior invented, no STOP
+required.
+
+### Smoke — real CUDA, GPU 2 (box `youthful-indigo-turkey`,
+`/home/nvidia/ncr_g3b17_aux_fix/`, a FRESH directory — did not touch
+`/home/nvidia/ncr_g3b12_fix/`'s live `mob_g3b14_s0`/`sanity_g3b12_tf_s0`
+artifacts). `nvidia-smi` checked before AND during: GPU2 45.0GB→49.0GB
+used of 81.6GB (all 8 GPUs stayed 99-100% util, production undisturbed);
+this smoke's own peak was **2.76 GB** (`torch.cuda.reset_peak_memory_stats`
+scoped to this process only). New standalone script
+`ncr_lm_wave1_aux_smoke.py` (real-CUDA, `--smoke` no-op flag matching
+`ncr_lm_wave1_smoke.py`'s own pre-train-gate-hook convention), calling
+`ncr_lm_wave1_runner`'s OWN `compute_arm_losses`/`aux_read_supervision_loss`
+directly — not a reimplementation. Wall clock **62.1s**. Raw:
+`experiment-runs/2026-07-17_ncr_gate3_wave1/g3b17_aux_smoke_results/
+{aux_smoke.json,aux_smoke.log}` (archived, both <10KB, committed here per
+the repo's small-file archive policy).
+
+**ALL 4 SUB-TESTS PASSED:**
+- **(a) flag OFF (weight=0.0):** `total_loss is ce_loss` — Python object
+  identity, not mere numeric equality — proving no aux op is constructed
+  at the default; `aux_loss is None`. Also checked `backbone_only` called
+  with `aux_read_loss_weight=1.0` but `is_full_graft=False`: SAME result
+  (`total_loss is ce_loss`, `aux_loss is None`) — arm-gating alone, not
+  weight-gating, is what protects it, verified directly rather than
+  assumed.
+- **(b) flag ON (weight=1.0), full_graft arm, 100 steps on a REPEATED
+  fixed batch** (batch=8, h=2, real 98M backbone + NCR head + integ, real
+  AdamW optimizer + grad-clip-1.0, mirroring `run_two_arm_cell`'s own
+  per-step mechanics): forward/backward finite EVERY step
+  (`all_finite=True`); grad reached `ncr_head` (the BindingEncoder/write
+  encoder) EVERY step (`encoder_grad_every_step=True`, 47/47 encoder
+  params with grad each step); **aux_loss DECREASED** — `mean(first 10)
+  0.9658 → mean(last 10) 0.7946`, monotonically decreasing over the final
+  ~80 steps to a plateau at 0.7944 (from a peak of 1.094 around step
+  ~15-20) — i.e. mean cosine(o, target) rose from ~0.03-0.07 (noise-level,
+  matching CE-only's own untrained-read floor) to ~0.206 within this cheap
+  100-step/one-batch probe. Not full convergence (this is a short,
+  deliberately-aggressive-LR overfit-one-batch PROBE, disclosed as such,
+  not a production-representative rate) but a clean, monotone,
+  non-trivial DECREASE — the signal is learnable, which is what this
+  sub-test exists to prove. (`ce_loss` on the same repeated batch fell
+  11.26→0.0000 — expected memorization of one fixed 8-doc batch under
+  joint backbone+ncr+integ training at an aggressive probe LR, not itself
+  part of the pass/fail criterion.)
+- **(c) target detached — ISOLATED fresh-tensor proof:** an independent
+  leaf `o` (no graph tie to `entity_adapter`/`embed`) backward through
+  `aux_read_supervision_loss` populated `o.grad` but left
+  `embed.weight.grad` AND every `entity_adapter` parameter's `.grad`
+  EXACTLY `None` — the decisive proof that `.detach()` on the target
+  actually cuts the graph (an undetached target would have populated both,
+  since its own `entity_adapter(embed(answer_token))` call would sit on
+  the same backward path).
+- **(d) backbone_only arm unaffected:** with `--aux-read-loss-weight 1.0`
+  passed, `compute_arm_losses(..., is_full_graft=False)` still returns
+  `total_loss is ce_loss` / `aux_loss is None` (CE-only, as designed); AND
+  a regression check — the runner's own `assert_read_ablation_is_exact_zero`
+  still PASSES on this arm (`max_abs_diff=0.00e+00`) — this build did not
+  disturb that invariant.
+
+### New md5s (box == local, byte-identical, VERIFIED)
+
+| File | md5 (was, §G3-B12 HEAD) | md5 (now, §G3-B17) |
+|---|---|---|
+| `ncr_lm_wave1_runner.py` | `a411a87de08e4bc46bc80854fcb5b37f` | `a07d58f6aa2736059a79e1817a5d4d78` |
+| `ncr_lm_wave1_smoke.py` | `bc105af69661e488ff95f5046e2bcd8a` | `bc105af69661e488ff95f5046e2bcd8a` (UNCHANGED) |
+| `ncr_lm_wave1_aux_smoke.py` (NEW file) | — | `201761a7582fe43e726ff4fe9f1b24b0` |
+
+### PROPOSED LAUNCH (STOP HERE — coordinator audits + runs it)
+
+The §G3-B14 config, verbatim, plus `--aux-read-loss-weight 1.0`. Same
+non-TF (encoder writes Z itself — no teacher-forcing at inference, per the
+build brief's own "still a valid capability demo" framing), both arms,
+BLIND, fresh cell-id/paths inside the `ncr_g3b12_fix` tree (per the build
+brief) to avoid any collision with the live `mob_g3b14_s0`/
+`sanity_g3b12_tf_s0` artifacts still resident there:
+
+```bash
+# on box, from /home/nvidia/ncr_g3b12_fix/ (runner md5 a07d58f6 —
+# COPY the updated runner.py there first, verify md5 box==local before
+# launch), inside a self-healing supervisor tmux session (mirrors
+# run_mob_g3b14.sh's own terminal-status-gated while-loop):
+cat > run_mob_g3b17.sh <<'EOF'
+#!/bin/bash
+cd /home/nvidia/ncr_g3b12_fix
+while true; do
+  CUDA_VISIBLE_DEVICES=<least-loaded, nvidia-smi first> /home/nvidia/tdenv/bin/python3 \
+    ncr_lm_wave1_runner.py --mode calibration --device cuda \
+    --cell-id mob_g3b17_s0 --steps 20000 \
+    --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 \
+    --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 5.0 --seed 0 \
+    --aux-read-loss-weight 1.0 \
+    --out results/mob_g3b17_s0.json --ckpt-dir results/mob_g3b17_s0_ckpts \
+    2>&1 | tee -a results/mob_g3b17_s0.log
+  if grep -qE '"status":[[:space:]]*"(COMPLETED|ABORTED)' results/mob_g3b17_s0.json 2>/dev/null; then
+    echo "SUPERVISOR: terminal status reached, exiting"; break
+  fi
+  echo "SUPERVISOR: non-terminal exit, restart in 15s"; sleep 15
+done
+EOF
+chmod +x run_mob_g3b17.sh
+tmux new-session -d -s ncr_mob_g3b17_s0 "./run_mob_g3b17.sh"
+```
+
+~4.7h wall / ~4.9 GPU-h (identical timing profile to §G3-B15, the aux loss
+adds one cosine-similarity + one extra Linear forward per full_graft step,
+not a new backbone pass). **Attribution rule: the SAME frozen §G3-B5/§G3-B7
+rule, unchanged** — PRECONDITION (metric-b answer_accuracy, backbone_only
+materially below full_graft) → PRIMARY (metric-a recovered_frac@0.9 GAP at
+deep ladder). n=1 first-signal (10-50 GPU-h band once launched — per
+CLAUDE.md's ceremony tiers, a pre-launch resource/placement red-team is
+due in addition to this build's own audit, mirroring §G3-B7's own
+memory-fit gate). The aux_loss value itself should also be watched
+(operational telemetry, BLIND-safe per item 5 above) — a healthy run
+should show it trending down over the 20K steps, matching aux-smoke (b)'s
+own short-horizon signal.
+
+### Readiness verdict
+
+**READY for the coordinator's audit + launch.** The flag is OFF-default
+and verified byte-identical to pre-§G3-B17 behavior via Python object
+identity (not just numeric equality); ON-behavior is verified finite,
+decreasing, and encoder-grad-reaching on real CUDA; the detach property is
+proven by an isolated fresh-tensor test, not reasoned about statically;
+`backbone_only` is verified unaffected by both arm-gating AND a
+regression-check of the read-ablation exact-zero invariant;
+`ncr_lm_wave1_smoke.py` is untouched (md5-verified); new md5s pinned
+box==local. STOPPING before launch per the build brief.

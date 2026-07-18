@@ -110,6 +110,36 @@ answer_accuracy, and the attribution GAP are NEVER printed -- only written
 to --out. No PASS/FAIL/WIN/PARTIAL/NULL string appears anywhere in this
 file.
 
+============================================================================
+sec G3-B17 DIRECT-READ-SUPERVISION AUX LOSS (2026-07-19, coordinator-designed
+fix for the sec G3-B16 WRITE-LEARNING gap: the make-or-break came back
+UNINTERPRETABLE -- both arms floored at the answer-marginal after 20K steps
+of CE-only INDIRECT signal to the encoder, ~32x under the standalone
+free-write toy's own convergence budget, AND missing the toy's own DIRECT
+cosine read-loss that let it converge)
+============================================================================
+NEW flag --aux-read-loss-weight (default 0.0 = OFF, reproduces the EXACT
+pre-G3-B17 CE-only loss path -- no aux tensor is even constructed at that
+default, see compute_arm_losses's own docstring for the byte-identical
+guarantee). full_graft ARM ONLY -- backbone_only's o_raw is the untrained,
+frozen-at-init null baseline sec G3-B5's attribution rule depends on;
+training it toward a target would corrupt that control, so it stays
+CE-only regardless of this flag's value. When weight > 0.0: total_loss =
+ce_loss + weight * aux_loss, where aux_loss = mean(1 - cosine_similarity(
+o_raw, target_o)) and target_o = entity_adapter(embed(answer_token))
+.detach() -- the SAME re-based target recovered_frac_at_09/
+cosine_and_recovered_frac use (ncr_lm_wave1_smoke.py ~512, this file's own
+cosine_and_recovered_frac above), computed WITH grad enabled on the o-path
+and explicitly DETACHED on the target-path (trains the encoder/read toward
+the target, never the target's own entity_adapter/embed call -- see
+aux_read_supervision_loss's docstring for why detach matters). See
+aux_read_supervision_loss() and compute_arm_losses() below --
+compute_arm_losses is the ONE shared per-arm forward+loss computation both
+the training loop (run_two_arm_cell) and this build's own real-CUDA smoke
+(ncr_lm_wave1_aux_smoke.py) call, so the smoke exercises the actual
+training code path, not a hand-copied reimplementation that could drift
+from it.
+
 Run (box only -- chunk_delta_rule has no CPU path):
   python3 ncr_lm_wave1_runner.py --mode phase0-timing --device cuda \
       --out results/phase0_timing.json
@@ -336,6 +366,73 @@ def cosine_and_recovered_frac(integ: NCRIntegration, embed: torch.nn.Embedding, 
 
 
 # ---------------------------------------------------------------------------
+# sec G3-B17 direct-read-supervision aux loss (fixes the sec G3-B16-diagnosed
+# WRITE-LEARNING gap: CE-only indirect signal never taught the encoder to
+# write a composing operator in 20K steps; the standalone free-write toy
+# that DID converge used exactly this direct cosine read-loss + 32x more
+# data). See the module docstring's "sec G3-B17" section for the full
+# rationale.
+# ---------------------------------------------------------------------------
+def aux_read_supervision_loss(integ: NCRIntegration, embed: torch.nn.Embedding, o: torch.Tensor,
+                               answer_token: torch.Tensor) -> torch.Tensor:
+    """Dense direct supervision on the read output `o` (binexp_read's own
+    output, BEFORE any read-ablation override -- callers pass o_raw) toward
+    the TRUE h-hop answer entity's re-based target -- the SAME target
+    cosine_and_recovered_frac/graft.recovered_frac_at_09 use (o's own
+    entity-adapter space, sec G3-B12), duplicated here (not reimplemented
+    differently) with ONE deliberate change: the target is explicitly
+    `.detach()`-ed. Cosine form (mean(1 - cos)), matching the standalone
+    free-write toy's own converged read-loss -- NOT MSE (cosine is
+    scale-invariant to o/target magnitude, matching how recovered_frac@0.9
+    itself thresholds on cosine, not L2 distance -- an MSE term would also
+    pressure `o`'s NORM toward the target's norm, a property binexp_read's
+    own repeated-squaring composition has no reason to preserve at every h).
+
+    Grad flow (why detach matters): `o` depends on Z (<- ncr_head.encode <-
+    keys_v/values_v <- integ.entity_adapter) and q_key (<- integ.entity_adapter)
+    -- so backward THROUGH o already reaches the encoder AND entity_adapter.
+    `target_o` is built through the SAME entity_adapter + embed applied to
+    the answer token; withOUT detach, backward would ALSO flow through the
+    target's own entity_adapter/embed call, training entity_adapter to chase
+    a target that is itself moving under the same update (a self-referential
+    optimum -- e.g. entity_adapter could collapse all its outputs toward one
+    point to trivially satisfy cos=1 everywhere). detach() removes that
+    side entirely -- the ONLY path this loss can travel to reach any
+    parameter is through `o`, i.e. through the read itself, which is the
+    read-supervision this loss is FOR (see the aux-smoke's own sub-test (c),
+    an isolated fresh-tensor proof that embed/entity_adapter get NO gradient
+    via the target path). Never called for backbone_only (o_raw there is an
+    untrained, read-ablated null with no gradient use for its own arm's loss
+    either way -- see the module docstring's sec G3-B17 section)."""
+    target_o = integ.entity_adapter(embed(answer_token).float()).detach()
+    cos = F.cosine_similarity(o, target_o, dim=-1)
+    return (1.0 - cos).mean()
+
+
+def compute_arm_losses(arm: dict, batch: dict, read_ablate: bool, teacher_force: bool,
+                        aux_read_loss_weight: float, is_full_graft: bool):
+    """sec G3-B17: the ONE shared per-arm forward+loss computation used by
+    BOTH the training loop (run_two_arm_cell) and this build's own real-CUDA
+    aux-loss smoke (ncr_lm_wave1_aux_smoke.py) -- so the smoke exercises the
+    EXACT training code path, not a hand-copied reimplementation that could
+    silently drift from it. Returns (total_loss, ce_loss, aux_loss_or_None,
+    o_raw). aux_read_loss_weight <= 0.0 OR is_full_graft=False: aux_loss is
+    None and total_loss IS ce_loss (the identical tensor object, not a
+    fresh one) -- no aux op is constructed at all, so the flag-OFF path is
+    BYTE-IDENTICAL to pre-G3-B17 behavior (same computation graph, same
+    loss value, same backward pass)."""
+    logits, o_raw, o_inj, hidden, Z, keys_v, values_v = ncr_lm_forward_ablatable(
+        arm["backbone"], arm["ncr"], arm["integ"], batch, read_ablate=read_ablate, teacher_force=teacher_force)
+    ce_loss = F.cross_entropy(logits, batch["answer_token"])
+    aux_loss = None
+    total_loss = ce_loss
+    if is_full_graft and aux_read_loss_weight > 0.0:
+        aux_loss = aux_read_supervision_loss(arm["integ"], arm["backbone"].embed, o_raw, batch["answer_token"])
+        total_loss = ce_loss + aux_read_loss_weight * aux_loss
+    return total_loss, ce_loss, aux_loss, o_raw
+
+
+# ---------------------------------------------------------------------------
 # Two-arm construction -- BIT-IDENTICAL initial weights (same seed reset
 # immediately before each arm's construction, same class/order of
 # submodule creation) so the ONLY difference between arms across the whole
@@ -544,7 +641,8 @@ def restore_arms_and_opts(ckpt: dict, vocab_size_total: int, lr: float, device: 
 def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size: int,
                       lr: float, warmup_steps: int, ceiling_gpuh: float, seed: int,
                       device: str, out_path: str, ckpt_path: str, stop_file: str,
-                      ckpt_every: int, eval_every: int, teacher_force_operator: bool = False) -> dict:
+                      ckpt_every: int, eval_every: int, teacher_force_operator: bool = False,
+                      aux_read_loss_weight: float = 0.0) -> dict:
     if os.path.exists(out_path):
         with open(out_path) as f:
             prev = json.load(f)
@@ -580,7 +678,8 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
                     vocab_size_total=vocab_size_total, seed=seed, batch_size=batch_size,
                     eval_batch_size=eval_batch_size, lr=lr, warmup_steps=warmup_steps,
                     train_hops=list(TRAIN_HOPS), deep_ladder=list(DEEP_LADDER),
-                    ceiling_gpuh=ceiling_gpuh, teacher_force_operator=teacher_force_operator),
+                    ceiling_gpuh=ceiling_gpuh, teacher_force_operator=teacher_force_operator,
+                    aux_read_loss_weight=aux_read_loss_weight),
         params=dict(per_arm=n_params["full_graft"],
                     backbone=sum(p.numel() for p in arms["full_graft"]["backbone"].parameters()),
                     ncr_head=sum(p.numel() for p in arms["full_graft"]["ncr"].parameters()),
@@ -620,6 +719,7 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
         batch = build_task1_document(cfg, pools, data_gen, batch_size, hop_value, device)
 
         step_losses = {}
+        step_aux_losses = {}   # sec G3-B17: full_graft only, populated only when aux_read_loss_weight > 0.0
         for arm_name, read_ablate in (("full_graft", False), ("backbone_only", True)):
             arm, opt = arms[arm_name], opts[arm_name]
             for g in opt.param_groups:
@@ -629,12 +729,13 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
             # backbone_only's o_raw stays the untrained-encoder null baseline
             # regardless of this flag, and never touches its own loss anyway).
             tf_this_arm = teacher_force_operator and arm_name == "full_graft"
-            logits, o_raw, o_inj, hidden, Z, keys_v, values_v = ncr_lm_forward_ablatable(
-                arm["backbone"], arm["ncr"], arm["integ"], batch, read_ablate=read_ablate,
-                teacher_force=tf_this_arm)
-            loss = F.cross_entropy(logits, batch["answer_token"])
+            # sec G3-B17: aux_read_loss_weight applies to full_graft ONLY, same
+            # scoping/rationale as teacher_force above -- see compute_arm_losses's
+            # own docstring for the byte-identical-when-OFF guarantee.
+            total_loss, ce_loss, aux_loss, o_raw = compute_arm_losses(
+                arm, batch, read_ablate, tf_this_arm, aux_read_loss_weight, arm_name == "full_graft")
             opt.zero_grad()
-            loss.backward()
+            total_loss.backward()
             if tf_this_arm:
                 # sec G3-B9 isolation proof, ported from ncr_lm_wave1_smoke.py smoke
                 # item 10's construction-time check into this training loop, run
@@ -656,17 +757,25 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
                 opt.step()
             else:
                 n_skipped[arm_name] += 1
-            step_losses[arm_name] = loss.item()
+            step_losses[arm_name] = ce_loss.item()
+            if aux_loss is not None:
+                step_aux_losses[arm_name] = aux_loss.item()
 
         if step % LOG_EVERY == 0 or step == 1 or step == steps:
             elapsed = time.time() - t0
             loss_hist["full_graft"].append([step, step_losses["full_graft"]])
             loss_hist["backbone_only"].append([step, step_losses["backbone_only"]])
+            # sec G3-B17: aux_loss is a TRAINING loss (like CE), not an eval metric --
+            # OK to print (BLIND discipline only withholds EVAL metrics, per the module
+            # docstring's BLIND DISCIPLINE section below). Absent from the line entirely
+            # when aux_read_loss_weight==0.0 (step_aux_losses stays empty every step).
+            aux_str = (f"  full_graft_aux_loss={step_aux_losses['full_graft']:.4f}"
+                       if "full_graft" in step_aux_losses else "")
             # BLIND: loss is operational telemetry (liveness/divergence), never an eval metric --
             # matches ncr_ortho_fallback_stage0_v3.py's own precedent.
             print(f"[{cell_id}] step {step}/{steps}  full_graft_loss={step_losses['full_graft']:.4f} "
                   f"backbone_only_loss={step_losses['backbone_only']:.4f}  lr={cur_lr:.2e}  "
-                  f"{elapsed:.0f}s", flush=True)
+                  f"{elapsed:.0f}s{aux_str}", flush=True)
 
         if step % ckpt_every == 0 or step == steps:
             save_checkpoint(ckpt_path, step, arms, opts, data_gen, time.time() - t0, cell_id)
@@ -1041,6 +1150,20 @@ def main():
                           "chance => the read-injection or task/loss setup is broken. The encoder "
                           "is asserted to receive EXACTLY zero gradient every step this is active "
                           "(loud AssertionError on violation, never silently trusted).")
+    ap.add_argument("--aux-read-loss-weight", type=float, default=0.0,
+                     help="sec G3-B17 direct-read-supervision auxiliary loss (--mode calibration "
+                          "only, full_graft arm ONLY -- backbone_only stays CE-only; its o_raw is "
+                          "the untrained/read-ablated null baseline sec G3-B5's attribution rule "
+                          "depends on). 0.0 (default) = OFF, byte-identical to pre-G3-B17 CE-only "
+                          "behavior (no aux op is constructed at all, see compute_arm_losses's own "
+                          "docstring). >0.0: total_loss = ce_loss + weight * mean(1 - "
+                          "cosine_similarity(o_raw, entity_adapter(embed(answer_token)).detach())) "
+                          "-- dense direct supervision toward the TRUE h-hop answer entity's own "
+                          "re-based target (target DETACHED: trains the encoder/read, never the "
+                          "target itself, see aux_read_supervision_loss's docstring). Fixes the "
+                          "sec G3-B16-diagnosed WRITE-LEARNING gap (CE-only indirect signal, 20K "
+                          "steps, ~32x under the free-write toy's own convergence budget) by "
+                          "matching that toy's own converged direct cosine read-loss.")
     args = ap.parse_args()
 
     print("=" * 70)
@@ -1078,7 +1201,8 @@ def main():
         ceiling_gpuh=args.ceiling_gpuh, seed=args.seed, device=args.device,
         out_path=args.out, ckpt_path=ckpt_path, stop_file=stop_file,
         ckpt_every=args.ckpt_every, eval_every=args.eval_every,
-        teacher_force_operator=args.teacher_force_operator)
+        teacher_force_operator=args.teacher_force_operator,
+        aux_read_loss_weight=args.aux_read_loss_weight)
     return 0
 
 
