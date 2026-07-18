@@ -5706,3 +5706,43 @@ for the make-or-break launch.**
 - **Non-blocking flags (full-text recheck IF the paper cites specifics):** Yau
   2506.10918's "S5 train 4-18/test 180" numbers (abstract didn't confirm);
   MLP-LDRU 2605.26035 (second structural analog).
+
+## §G3-B15 MAKE-OR-BREAK LAUNCHED (non-TF, n=1 first-signal, 2026-07-18 09:17 UTC)
+
+**BOTH pre-launch gates cleared.** (1) Novelty DISCHARGED (§G3-B14). (2) Opus
+adversarial audit = FIX-FIRST → CLEAR: the #1 target (does the §G3-B12
+single-adapter fix, verified only under teacher-force, leave the ENCODER
+write-path coherent under non-TF?) came back **CLEAN** — the encoder consumes
+`entity_adapter(raw embed)` (no dangling removed-adapter ref), writes Z as a
+(25,25) endomorphism in the SAME entity space as q_key/target by construction,
+empirically corroborated by §G3-B13's teacher-force composition to h=61; the
+encoder is trainable under non-TF (runner:274 `ncr_head.encode` on the non-TF
+branch, runner:370 ncr params in optimizer — coordinator cross-checked vs
+code). Two REQUIRED launch-hygiene fixes APPLIED: (i) fresh non-colliding paths
+in the `ncr_g3b12_fix` tree + the stale old-schema `wave1_calib_K24_s0.ckpt.pt`
+(2.2G) deleted (avoids the silent-no-op / load_state_dict-crash-loop the audit
+found); (ii) runner md5 `a411a87d` verified at the launch site + correct flags
+(ckpt-every 10000 / eval-every 1000).
+
+**LIVE:** tmux `ncr_mob_g3b14_s0`, GPU 2 (~37GB free co-resident, memprobe-
+cleared), proc 2530483, self-healing supervisor `run_mob_g3b14.sh` (terminal-
+status-gated break on `"status":"COMPLETED|ABORTED"`, ckpt-resume-safe on crash,
+BLIND — greps status only, never metrics). Config: `--mode calibration --steps
+20000 --lr 3e-4 --batch-size 32 --eval-batch-size 64 --warmup-steps 200
+--ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 5.0 --seed 0`, NON-teacher-
+force (encoder writes Z), both arms (full_graft + backbone_only o≡0), out
+`/home/nvidia/ncr_g3b12_fix/results/mob_g3b14_s0.json`. ~4.7h wall / ~4.9 GPU-h.
+n=1 FIRST-SIGNAL. BLIND — coordinator does NOT read live metric values (the
+out-JSON has live eval values; poll structural status only).
+
+**ON COMPLETION — apply the FROZEN §G3-B5/§G3-B7 attribution rule (blind
+assess):** PRECONDITION (metric-b answer_accuracy): backbone_only materially
+BELOW full_graft (read load-bearing)? YES → PRIMARY (metric-a rec@0.9 GAP at
+deep ladder): full_graft materially exceeds the frozen null at deep depth? PASS
+= make-or-break passed → escalate n=3 verdict-of-record + up the 98M→392M→1B+
+ladder. NULL/FAIL → route the PRE-REGISTERED ablations (--teacher-force /
+--adapter mlp / --read-inject b / curriculum / higher-LR / more-steps) FIRST —
+**audit (g) caution: 20K×batch32 = 640K docs is ~32× under the free-write toy's
+convergence budget (20.5M) with CE-only indirect signal, so a deep-h NULL may
+be write-learning-UNDERPOWERED, NOT "NCR can't write" — do NOT over-read a
+null.** Stratify deep-h by h%K (h=5≡h=29 mod 24; audit (e)).
