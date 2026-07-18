@@ -4887,3 +4887,133 @@ depth? PASS = make-or-break passed (NCR head trains + load-bearing in a real LM)
 honest "NCR can't train in a real LM" → PI immediately (bet in trouble; scaling
 paper + kwall = shippable core). n=1 first signal; add seeds if borderline
 (§2.35 precedent).
+
+## §G3-B8 STAGE/GATE-3 WAVE-1 VERDICT (blind assess, 2026-07-18)
+
+Blind assessor applying the FROZEN §G3-B5 / §G3-B7 attribution rule
+mechanically to the raw `wave1_calib_K24_s0.json`. No expectations carried in.
+
+**FINAL VERDICT: UNINTERPRETABLE.** The make-or-break precondition was NOT
+met: the integrated model failed to learn the task in **BOTH** arms
+(answer_accuracy at chance ≈1/24, recovered_frac@0.9 floored at 0.0 at every
+depth including in-distribution h=1). The NCR read is therefore **NOT
+demonstrably load-bearing**, so the metric-a deep-recovery null CANNOT be
+attributed to "the NCR head can't train." Per the frozen rule this routes to
+UNINTERPRETABLE → re-bottleneck / fix the integration so the full graft at
+least learns in-distribution, THEN re-run. It explicitly does **NOT** trigger
+the FAIL branch ("NCR can't train in a real LM → PI immediately") — that branch
+is gated on the read being demonstrably load-bearing, which is false here.
+
+### Integrity (all checks pass; run is a valid, substantial terminal state)
+- **status = ABORTED-BUDGET at step 19026/20000** (95.1% of target), elapsed
+  17521s, gpu_h 4.867 ≈ ceiling 4.865. Valid terminal (budget ceiling hit), rc=0,
+  clean driver exit. Both eval bands (in_dist + deep) fully populated.
+- **Both arms present** with complete eval data: `full_graft`, `backbone_only`.
+- **Runner md5 = `5c0442c952922b8e20af1981b954267f`** (box == local archive copy;
+  prefix `5c0442c9` as expected). runner_tag `ncr_gate3_wave1_runner_v1`.
+- **read_ablation_check:** pre_train max_abs_diff 0.0 (verified_exact_zero True)
+  AND post_train max_abs_diff 0.0 (verified_exact_zero True) — control's read is
+  EXACTLY zero pre and post train (genuine frozen-at-init null). Post-train
+  exact-zero also re-confirmed in the run log.
+- **Log clean:** 0 Traceback, 0 OOM/CUDA-error. n_skipped_steps 0/0 both arms.
+- Minor: `git_commit: UNKNOWN` (runner did not stamp commit) — not fatal; the
+  runner is md5-pinned and byte-identical to the archived copy.
+- **Truncation (19026 vs 20000) does NOT matter:** loss had plateaued by ~step
+  5k (last-100-step mean 3.92 full / 3.97 backbone), LR already decayed to
+  3.16e-5 on the cosine tail; the final 974 steps cannot turn a chance-level,
+  loss-3.9 model into a K=24-composition solver. Full-budget for all
+  interpretive purposes.
+
+### Metric-b PRECONDITION — answer_accuracy on actual logits (n=64/hop)
+Chance (uniform over K=24 answer tokens) = 1/24 = **0.041667**. Per-hop
+SE(p≈0.042, n=64) ≈ 0.025; in-dist 3-hop mean SE (n=192) ≈ 0.0144.
+
+| band | hop | full_graft | backbone_only |
+|------|-----|-----------|---------------|
+| in-dist | h=1 | 0.06250 | 0.01563 |
+| in-dist | h=2 | 0.01563 | 0.01563 |
+| in-dist | h=3 | 0.07813 | 0.04688 |
+| **in-dist MEAN** | | **0.05208** | **0.02604** |
+| deep | h=5  | 0.03125 | 0.04688 |
+| deep | h=12 | 0.07813 | 0.04688 |
+| deep | h=20 | 0.03125 | 0.06250 |
+| deep | h=29 | 0.06250 | 0.01563 |
+| deep | h=40 | 0.06250 | 0.03125 |
+| deep | h=61 | 0.04688 | 0.04688 |
+| **deep MEAN** | | **0.05208** | **0.04167** |
+
+Every one of the 18 arm×depth cells lies in [0.0156, 0.0781], i.e. within ~1.5 SE
+of chance 0.0417. **full_graft itself does not solve in-distribution:** mean
+0.05208 is only +0.72 SE above chance (not significant). backbone_only in-dist
+mean 0.02604 is −1.09 SE (noise). The full−backbone in-dist gap = 0.05208 −
+0.02604 = **+0.02604**, z = 0.02604/0.0204 = **1.27** (n.s., p≈0.20).
+
+**Precondition verdict: NOT satisfied.** The rule (and the JSON's own embedded
+`frozen_rule_text`) defines "read demonstrably load-bearing" as backbone_only's
+answer_accuracy being *materially below the full graft's*. That operationalization
+tacitly assumes the full graft SOLVES in-distribution; here it does not (chance).
+When the full graft is itself at chance, "backbone below full graft" (a 0.026,
+1.27-SE difference between two chance-level values) does not establish that the
+read carries any competence. The read is not demonstrably load-bearing — not via
+the anticipated backbone-shortcut, but because **neither arm learned the task at
+all.** Note: the naive one-sided literal reading ("backbone does not solve it →
+load-bearing → FAIL") is DEFEATED by full_graft also sitting at chance; a FAIL
+requires demonstrated load-bearing, which is absent. → UNINTERPRETABLE.
+
+### Metric-a PRIMARY — recovered_frac@0.9 on o_raw (reported for completeness)
+Reached only conditionally; recorded because it independently corroborates
+"didn't learn." recovered_frac@0.9 = **0.0 for BOTH arms at EVERY depth**, in-dist
+AND deep. Per-depth GAP (full − backbone), deep ladder:
+
+| h | full_graft | backbone_only | GAP |
+|---|-----------|---------------|-----|
+| 5 | 0.0 | 0.0 | 0.0 |
+| 12 | 0.0 | 0.0 | 0.0 |
+| 20 | 0.0 | 0.0 | 0.0 |
+| 29 | 0.0 | 0.0 | 0.0 |
+| 40 | 0.0 | 0.0 | 0.0 |
+| 61 | 0.0 | 0.0 | 0.0 |
+
+Deepest-rung (h=61) gap = **0.0**. In-distribution recovered_frac@0.9 is ALSO 0.0
+for full_graft (even at h=1). The primary capability signal is a hard floor of
+zero — no PASS is possible, and the zero-in-distribution recovery reinforces that
+this is a "model did not learn / read not producing recoverable o_raw" state, not
+a clean deep-composition FAIL.
+
+### Loss corroboration
+Both arms start ~10.95 (≈ ln(50259)=10.82, uniform over full vocab) and plateau
+at ~3.9 (full 3.916 / backbone 3.970, last-100-step mean). ln(24)=3.178 — the
+model did not even collapse to uniform-over-the-24-answer-alphabet; it learned
+sequence/marginal token structure, not the K-cycle mapping. Consistent across
+both metrics and both arms.
+
+### Caveats (foregrounded)
+- **n=1 seed.** What it CAN support: at this exact config (K=24, 98M DeltaNet
+  backbone, 20k steps, batch 32, lr 3e-4, this task formulation) the calibration
+  cell did NOT produce an interpretable make-or-break test — the integrated model
+  failed to learn in-distribution in both arms. What it CANNOT support: (a) the
+  general claim "NCR can't train in a real LM" (requires demonstrable
+  load-bearing, absent, and would need seeds); (b) ruling out that a different
+  lr/schedule/longer horizon/easier curriculum lets the full graft learn
+  in-distribution; (c) distinguishing "model didn't train" from "o_raw recovery
+  instrument mis-wired" — the recovered_frac@0.9 hard-zero across all 18 cells is
+  consistent with either, though the independent answer_accuracy-at-chance signal
+  makes "didn't learn the task" the more parsimonious read.
+- **Per-cell eval n=64 is small** (per-hop SE≈0.025); no single hop is trusted,
+  but the "everything at chance / recovery hard-zero" pattern is consistent across
+  all 18 arm×depth cells, so the conclusion is robust to per-cell noise.
+- **Anomaly / rule-gap:** the frozen rule enumerated only the *backbone-shortcut*
+  cause of UNINTERPRETABLE (backbone solves it, gradient-starving the read). The
+  observed cause is the opposite corner it did not enumerate — BOTH arms at
+  chance. Same disposition (cannot attribute → re-bottleneck/fix before main-wave
+  GPU), but flagged so the re-design targets whole-model in-distribution
+  convergence, not only the P=1 bottleneck.
+
+### Recommended next action (not a spend decision — assessor note)
+Re-run the calibration only after the FULL graft can learn in-distribution
+h∈{1,2,3} (i.e. full_graft in-dist answer_accuracy materially and significantly
+above 1/24). Candidate levers before any main-wave GPU: verify the o_raw recovery
+instrument taps the correct tensor (negative-control it), check task/curriculum
+difficulty at K=24, lr/warmup/horizon, and the read-injection bottleneck. Do NOT
+escalate "NCR can't train" to PI on this run — the data does not license that
+attribution.

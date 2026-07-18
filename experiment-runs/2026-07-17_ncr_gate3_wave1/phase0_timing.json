@@ -1,0 +1,46 @@
+{
+ "runner_tag": "ncr_gate3_wave1_runner_v1",
+ "mode": "phase0-timing",
+ "config": {
+  "K": 24,
+  "d_ncr": 25,
+  "backbone": {
+   "d_model": 768,
+   "d_state": 64,
+   "n_layers": 12,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "vocab_size_total": 50259,
+  "seed": 0,
+  "batch_size": 32,
+  "warmup_steps": 10,
+  "probe_steps": 60,
+  "target_steps": 20000,
+  "lr": 0.0003,
+  "doc_len": 174
+ },
+ "measured": {
+  "mean_s_per_step_full_graft": 0.11742932001749674,
+  "mean_s_per_step_backbone_only": 0.11332524220148722,
+  "mean_s_per_step_both_arms_combined": 0.23075456221898397,
+  "tokens_per_step_per_arm": 5568,
+  "tokens_per_sec_per_arm_full_graft": 47415.75612607123,
+  "tokens_per_sec_per_arm_backbone_only": 49132.91947878959,
+  "probe_wall_clock_s": 18.45406699180603
+ },
+ "projected": {
+  "contended_multiplier": 3.3,
+  "uncontended_s_for_target_steps": 4615.09124437968,
+  "uncontended_gpuh_for_target_steps": 1.2819697901054665,
+  "contended_s_for_target_steps": 15229.80110645294,
+  "contended_gpuh_for_target_steps": 4.230500307348039,
+  "suggested_ceiling_gpuh": 4.865
+ },
+ "host": "brev-ukptqsu65",
+ "device": "cuda",
+ "torch_version": "2.12.1+cu130",
+ "git_commit": "UNKNOWN",
+ "finished_utc": "2026-07-17T21:46:19Z"
+}
