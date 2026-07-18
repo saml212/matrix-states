@@ -5632,3 +5632,47 @@ the make-or-break is the real capability claim and re-enters the gate.
 Integration odds materially improved: NCR's core mechanism now demonstrably
 works inside a real LM; the flagship's make-or-break is one write-learning
 question away, no longer confounded by a broken read.
+
+## §G3-B14 MAKE-OR-BREAK RE-RUN — PLAN (coordinator, 2026-07-18; gated on novelty + audit)
+
+The make-or-break is ALREADY fully pre-registered and gauntlet-frozen — this
+re-run reuses it verbatim, NO redesign. What changed since §G3-B8's
+UNINTERPRETABLE verdict is ONLY the harness: the single-space read fix
+(§G3-B12, verified) + the §G3-B13 sanity that DISCHARGED the exact confound
+(the two-adapter read bug) that made §G3-B8 uninterpretable. An in-dist lift
+is now achievable, so the frozen PRECONDITION can actually be met.
+
+**Config (frozen §G3-B7, minus `--teacher-force-operator`, with the FIXED
+runner md5 `a411a87d` single `entity_adapter`):**
+`--mode calibration --steps 20000 --lr 3e-4 --batch-size 32 --eval-batch-size
+64 --warmup-steps 200 --ckpt-every 10000 (HIGH, cap disk) --eval-every 1000
+--seed 0 --ceiling-gpuh 5.0`, both arms (full_graft + backbone_only o≡0),
+BLIND (this IS the capability verdict — coordinator does NOT read live metric
+values pre-assess). NON-teacher-force: the encoder (BindingEncoder) must WRITE
+the composing operator from context ITSELF — the sole remaining unknown.
+
+**Attribution rule: UNCHANGED, frozen §G3-B5/§G3-B7.** PRECONDITION (metric-b
+answer_accuracy): backbone_only materially BELOW full_graft (read load-bearing)?
+NO → UNINTERPRETABLE (but the §G3-B13-discharged confound means both-at-chance
+is now far less likely). YES → PRIMARY (metric-a recovered_frac@0.9 GAP at deep
+ladder {5,12,20,29,40,61}): full_graft materially exceeds the frozen null at
+deep depth? PASS = make-or-break passed (encoder LEARNS to write composing
+operators in a real LM → the capability) → up the 98M→392M→1B+ ladder. FAIL →
+pre-wired ablations (--adapter mlp / --read-inject b / curriculum / higher LR)
+BEFORE any "NCR can't write" conclusion.
+
+**Discipline:** n=1 FIRST-SIGNAL (frozen §G3-B7 "n=1 first, add seeds if
+borderline" + CLAUDE.md "calibration before big sweep mandatory"); ~4.9 GPU-h,
+<10 GPU-h → 1 audit round. If PASS/borderline → escalate to n=3 verdict-of-
+record (~15 GPU-h, >10 → full red-team). The CRUX the audit must probe: under
+teacher-force deep-h=61 worked BY CONSTRUCTION (exact operator); under non-TF
+the LEARNED operator must be precise enough that Z^61 still recovers — a high
+bar (the free-write K=24 toy reached rec 1.0 all depths, but the graft is
+unknown).
+
+**Two GATES before launch:** (1) NOVELTY re-gate — 2 external sweeps (by-task +
+by-mechanism) dispatched + internal-archive sweep done by coordinator (CLEAR:
+no prior clean make-or-break verdict; §G3-B8 was the bug; KILL_LIST entries are
+the retired bolt-on matrix-CODI rank work). Adjudicate before launch. (2) ONE
+Opus adversarial audit of the non-TF re-run config + any single-adapter
+write-path interaction + resource/placement. STATUS: gated, NOT yet launched.
