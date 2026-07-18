@@ -6019,3 +6019,48 @@ proven by an isolated fresh-tensor test, not reasoned about statically;
 regression-check of the read-ablation exact-zero invariant;
 `ncr_lm_wave1_smoke.py` is untouched (md5-verified); new md5s pinned
 box==local. STOPPING before launch per the build brief.
+
+## §G3-B19 AUX-RETRY VERDICT — UNINTERPRETABLE by rule, but REAL PARTIAL PROGRESS (blind Opus + coordinator cross-check, 2026-07-18)
+
+Direct-read-supervision retry (`mob_g3b17_s0`, --aux-read-loss-weight 1.0, non-TF,
+both arms). ABORTED-BUDGET at step 19677/20000 (98.4%, gpu_h 5.002, 0 errors —
+assessable). Blind Opus judge + coordinator recompute from raw JSON — CONFIRMED:
+
+- **PRECONDITION (metric-b answer_accuracy in-dist): FAILS.** full_graft 0.0625
+  vs backbone_only 0.03125 — both at the answer-marginal floor, gap = 6/192
+  (~1.8 SE, immaterial). Model still does not SOLVE the task in-dist. → the
+  frozen rule short-circuits to **UNINTERPRETABLE**.
+- **BUT the read is no longer inert — a real, confirmed signal the §G3-B16 run
+  did NOT have:** full_graft **mean_cos ≈ 0.57–0.65 UNIFORMLY across every depth
+  h=1→61** (h=61 itself 0.577) vs backbone_only ≈ 0. The aux supervision taught
+  the encoder to write an operator that (a) reads DIRECTIONALLY toward the
+  answer entity and (b) composes STABLY with depth (no degradation h=1→h=61 —
+  suggests a reasonably-conditioned Z, consistent with the c·I conformal-scaffold
+  finding).
+- **But NOT precise:** cos ~0.57, well below the >0.9 exact-recovery bar →
+  rec@0.9 stays 0–5% (h=61 = 0.0), and the decode (which needs high-fidelity
+  reads — §G3-B13 showed cos-1.0 → answer_acc-1.0) never lands correct answers.
+- Final loss: full_graft 3.9152 ≈ backbone_only 3.9474 (Δ0.032, and full_graft's
+  includes the weight-1.0 aux term) — not dropped materially below the null.
+
+**DIAGNOSIS: write-learning is TRACTABLE but has not reached EXACTNESS.** Dense
+supervision moved the encoder-written read from cos-0 (§G3-B16) to a stable
+cos-0.57 across all depths — genuine traction — but the operator is
+directionally-right-not-exact, so exact O(log h) recovery and functional answer
+decoding do not yet appear. This is the 2ND non-PASS of the flagship make-or-break.
+
+**HONEST STRATEGIC READ + RECOMMENDATION (coordinator, steward):** the
+NCR-learned-write-in-a-real-LM capability is NOT demonstrated after two serious
+attempts, though the aux retry shows the write-learning approach WORKS partway
+(stable cos-0.57 across depth). Reaching exactness (cos-0.9+ → functional
+recovery) is uncertain in cost under mid-Aug pressure. **I recommend PIVOT:
+BANK the §G3-B13 result** (given in-context operators, a real 98M LM performs
+exact O(log h) composition reads to h=61 from a fixed constant-size state — a
+real, clean, novelty-cleared NARROWER capability) **+ prioritize shipping the
+scaling paper** (Goal 2, the sure result), documenting learned-write as a
+tractable-but-unsolved direction with the cos-0→0.57 progress as the honest
+marker. ALTERNATIVE (PI's call): one more targeted write-supervision push
+(higher aux weight + orthogonality reg + more steps + supervise-at-more-depths)
+to test if exactness is reachable — cheap (~5 GPU-h), signal is climbing, but
+odds moderate given the decode-fidelity threshold. SURFACED to PI verdict-first;
+fork is theirs. Raw json archived (mob_g3b17_s0.json ≤25MB).
