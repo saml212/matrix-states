@@ -5587,3 +5587,48 @@ smoke 9b), audited-safety invariants (read-ablation exact-zero, teacher-force
 zero-grad) hold post-fix, md5s pinned box==local, and the one audit-flagged
 pre-launch hazard (old-schema ckpt collision) is mitigated by fresh paths.
 STOPPING before launch per the build brief.
+
+## §G3-B13 SANITY CELL VERDICT — DECODE PATH HEALTHY, HARNESS PROVEN (coordinator, 2026-07-18)
+
+**Cell:** `sanity_g3b12_tf_s0` — teacher-force calibration, 3000 steps,
+lr 3e-4, batch 32, seed 0, GPU2 co-resident with production training (all 8
+GPUs stayed hot). Ran to term COMPLETED (~2480s wall / ~0.7 GPU-h, under the
+2.0 ceiling), tmux `ncr_sanity_g3b12`. Raw: `results/sanity_g3b12_tf_s0.json`
+(archived). Coordinator read the raw JSON directly (not an agent summary).
+
+**VERDICT: DECODE PATH FULLY HEALTHY. The GATE-3 harness is proven end-to-end
+(write-given → read composes → decode trains).** With the true operator handed
+in (teacher-force), the trained `full_graft` arm decodes the composed read to
+the EXACT answer token:
+
+| depth h | full_graft answer_acc | full_graft mean_cos | backbone_only (o≡0 null) answer_acc |
+|---|---|---|---|
+| 1, 2, 3 (in-dist) | **1.0** | 1.0 | 0.094 / 0.0 / 0.078 |
+| 5, 12, 20, 29, 40 (deep) | **1.0** | 1.0 | 0.016–0.078 |
+| 61 (deep) | **1.0** | 0.9971 | 0.047 |
+
+`recovered_frac@0.9` = 1.0 full_graft at every depth (h=61: 0.984); 0.0 at
+every depth for the null. Loss: full_graft 11 → **0.24**, backbone_only pinned
+at **~4.5** (≈ ln 107, the train-answer marginal) — the read is load-bearing,
+the null cannot decode without it. Clean two-arm separation (1.0 vs ~0.05).
+
+**What this proves / does NOT prove (honest):**
+- PROVES: the read-injection → tied-head DECODE path trains; the two-adapter
+  bug (§G3-B11/§G3-B12) was the ONLY thing breaking §G3-B8's UNINTERPRETABLE
+  run — with it fixed, the full pipeline works. The make-or-break is now
+  INTERPRETABLE: the only remaining unknown is the ENCODER's WRITE-learning.
+- Also demonstrates (part of NCR's value prop, exactness-by-construction):
+  GIVEN in-context operators, a real 98M LM performs exact O(log h)
+  composition reads recovering the answer at **h=61** from a fixed
+  constant-size state — deep-h generalization here is BY CONSTRUCTION under
+  teacher-force (exact operator + exact Z^h), NOT yet a learned-write claim.
+- Does NOT prove: that the model LEARNS to WRITE operators from context that
+  compose to deep h. That is exactly the make-or-break (non-teacher-force)
+  capability test — the real claim, and the sole remaining question.
+
+**NEXT:** design the make-or-break re-run (non-teacher-force; encoder writes
+the operator; two-arm; n-seeds; ceiling). Re-verify the novelty gate FIRST —
+the make-or-break is the real capability claim and re-enters the gate.
+Integration odds materially improved: NCR's core mechanism now demonstrably
+works inside a real LM; the flagship's make-or-break is one write-learning
+question away, no longer confounded by a broken read.
