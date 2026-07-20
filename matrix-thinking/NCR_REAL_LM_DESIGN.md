@@ -6382,3 +6382,53 @@ subprocess re-run of its own original regression suite;
 box==local; production (all 8 GPUs, a separate 392M run on GPU2 itself)
 verified undisturbed before and after. STOPPING before launch per the
 build brief.
+
+## §G3-B22 ORTHO-REG PUSH VERDICT — UNINTERPRETABLE by rule, but the WRITE-LEARNING is SOLVED (blind Opus + coordinator cross-check, 2026-07-20)
+
+Ortho-reg push (`mob_g3b20_s0`, non-TF, aux_read_loss_weight 3.0 + ortho_reg_weight
+0.1). COMPLETED 20000/20000, 4.997 GPU-h, 0 errors, read-ablation exact-zero
+verified. Blind Opus judge + coordinator recompute from raw JSON — CONFIRMED:
+
+**THE BIG POSITIVE (the hard part, twice-failed, is now solved): orthogonality
+unlocked exact write-learning.** From SHALLOW supervision (train_hops=[1,2,3]),
+non-teacher-force, the encoder learned to write an operator that composes EXACTLY
+to HELD-OUT depth h=61:
+- full_graft mean_cos = **0.999** and recovered_frac@0.9 = **1.0** at EVERY depth
+  h∈{1,2,3,5,12,20,29,40,61} (null arm cos ≈ 0, rec 0). §G3-B19 (no ortho)
+  plateaued at cos 0.57; ortho pushed it to 0.999 — exactly the mechanistic bet.
+- The deep h=5..61 recoveries are GENUINE generalization: aux supervises only
+  h≤3, and matching the h-hop target at held-out h via binexp_read (powers of a
+  SINGLE Z) requires Z to BE the exact cycle operator + orthogonal so Z^h doesn't
+  drift. This is the core NCR mechanism — learned in-context operator + exact
+  O(log h) composition — working with a LEARNED (not teacher-forced) operator in
+  a real 98M LM.
+
+**THE GAP (why the frozen rule says UNINTERPRETABLE): answer_accuracy did NOT
+lift.** full_graft in-dist answer_acc 0.02604 vs backbone_only 0.03646 — both at
+the floor, full slightly BELOW. Per §G3-B5 the read is not shown load-bearing for
+the actual answer task → **UNINTERPRETABLE**.
+- **Diagnosis (well-supported): a LOSS-BALANCE/DECODE issue, NOT a capability
+  limit.** The aux loss (weight 3.0) DOMINATED and was directly satisfiable by the
+  encoder (o→target), so it saturated the recovery metric but STARVED the CE loss —
+  the read_injector→tied-head DECODE never got gradient to wire the (now near-
+  perfect) read to the answer token. Contrast §G3-B13 (teacher-force, NO aux, pure
+  CE): cos 1.0 → answer_acc 1.0, i.e. the decode DOES work at cos≈1 when CE trains
+  it. Here cos≈1 but decode untrained → answers at floor.
+- **HONEST CAVEAT (the judge's circularity point):** recovered_frac@0.9 IS the aux
+  loss's direct target, so it is not an independent confirmation; the independent
+  metric (answer_accuracy, via the real decode) did NOT confirm. The deep-h
+  held-out generalization is real evidence the operator composes, but a CLEAN
+  capability claim needs answer_accuracy to be load-bearing — which requires the
+  decode fix.
+
+**NEXT (the clear knob — a 3rd push, PI's call since they approved ONE):**
+rebalance so the decode trains — lower/anneal the aux weight (3.0→~0.5) or a
+curriculum (aux-heavy to learn the operator, then aux→0 + CE to learn the decode).
+The read is already near-perfect, so the decode is a much easier problem; a
+rebalanced run has a good shot at a clean end-to-end PASS. Coordinator lean: worth
+ONE rebalanced run — the twice-failed hard part (write-learning) is now solved,
+we're one loss-balance fix from a clean capability demo. SURFACED to PI verdict-
+first. If PI declines: bank this (ortho unlocked exact learned-operator composition
+to h=61) + §G3-B13 + write-traction as honest results and ship the scaling paper.
+Box ckpt retained pending PI decision (probing Z's orthogonality is a candidate
+mechanistic addendum).
