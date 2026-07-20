@@ -97,7 +97,11 @@ def aux_smoke_a_flag_off(device: str, pools, cfg, vocab_size_total: int) -> None
     batch = graft.build_task1_document(cfg, pools, gen, 8, TRAIN_HOP, device)
     arm = arms["full_graft"]
 
-    total_loss, ce_loss, aux_loss, o_raw = runner.compute_arm_losses(
+    # sec G3-B20 ripple fix: compute_arm_losses now returns a 5-tuple
+    # (added ortho_loss, default ortho_reg_weight=0.0 so this call's own
+    # behavior is unaffected -- see ncr_lm_wave1_ortho_smoke.py's own
+    # sub-test (e) for the regression proof this file still passes as-is).
+    total_loss, ce_loss, aux_loss, ortho_loss, o_raw = runner.compute_arm_losses(
         arm, batch, read_ablate=False, teacher_force=False, aux_read_loss_weight=0.0, is_full_graft=True)
     identity_ok = total_loss is ce_loss
     aux_none_ok = aux_loss is None
@@ -107,7 +111,7 @@ def aux_smoke_a_flag_off(device: str, pools, cfg, vocab_size_total: int) -> None
     # backbone_only in the real training loop -- prove that holds even with a
     # non-zero weight passed in (the real loop never does this, but the guarantee
     # should not depend on the caller getting the weight right).
-    total_loss_bo, ce_loss_bo, aux_loss_bo, _ = runner.compute_arm_losses(
+    total_loss_bo, ce_loss_bo, aux_loss_bo, _, _ = runner.compute_arm_losses(
         arms["backbone_only"], batch, read_ablate=True, teacher_force=False,
         aux_read_loss_weight=1.0, is_full_graft=False)
     bo_identity_ok = total_loss_bo is ce_loss_bo
@@ -147,7 +151,7 @@ def aux_smoke_b_flag_on_decreasing(device: str, pools, cfg, vocab_size_total: in
     all_finite = True
     all_params = list(arm["backbone"].parameters()) + list(arm["ncr"].parameters()) + list(arm["integ"].parameters())
     for _step in range(REPEAT_STEPS):
-        total_loss, ce_loss, aux_loss, o_raw = runner.compute_arm_losses(
+        total_loss, ce_loss, aux_loss, ortho_loss, o_raw = runner.compute_arm_losses(
             arm, batch, read_ablate=False, teacher_force=False, aux_read_loss_weight=1.0, is_full_graft=True)
         opt.zero_grad()
         total_loss.backward()
@@ -227,7 +231,7 @@ def aux_smoke_d_backbone_only_unaffected(device: str, pools, cfg, arms: dict) ->
     gen = torch.Generator(device=device).manual_seed(103)
     batch = graft.build_task1_document(cfg, pools, gen, 8, TRAIN_HOP, device)
 
-    total_loss, ce_loss, aux_loss, o_raw = runner.compute_arm_losses(
+    total_loss, ce_loss, aux_loss, ortho_loss, o_raw = runner.compute_arm_losses(
         arm_bo, batch, read_ablate=True, teacher_force=False, aux_read_loss_weight=1.0, is_full_graft=False)
     ce_only_ok = total_loss is ce_loss and aux_loss is None
 

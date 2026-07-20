@@ -140,6 +140,34 @@ the training loop (run_two_arm_cell) and this build's own real-CUDA smoke
 training code path, not a hand-copied reimplementation that could drift
 from it.
 
+============================================================================
+sec G3-B20 ORTHOGONALITY REGULARIZATION (2026-07-20, coordinator-designed
+fix for the sec G3-B19-diagnosed gap: the aux read-supervision loss above
+DID teach the encoder to write -- full_graft's read moved to a STABLE
+cos~0.57-0.65 across every depth h=1..61 -- but that operator is
+directionally-right, NOT a clean rotation, so Z^h (binexp_read's own
+repeated-squaring composition) accumulates error and never clears the
+~0.9 cosine bar exact recovery needs)
+============================================================================
+NEW flag --ortho-reg-weight (default 0.0 = OFF, reproduces the EXACT
+pre-G3-B20 loss path -- no ortho tensor is even constructed at that
+default, independent of --aux-read-loss-weight's own value, see
+compute_arm_losses's own docstring for the byte-identical guarantee).
+full_graft ARM ONLY, same rationale as --aux-read-loss-weight --
+backbone_only's Z lives in a separate, frozen-at-init ncr_head instance
+sec G3-B5's attribution rule depends on staying untouched. When
+weight > 0.0: total_loss += weight * ortho_loss, where ortho_loss =
+mean_B(||Z^T Z - I_d||_F^2) / d^2 (d=d_ncr=25, NORMALIZED -- see
+ortho_regularization_loss's own docstring for the disclosed weight-balance
+rationale) and Z is ncr_head.encode's own (B,d,d) output -- the SAME
+tensor ncr_lm_forward_ablatable already returns, no extra forward pass.
+Orthogonal matrices compose EXACTLY under powering (Q^h stays orthogonal
+for any h), so this pushes the encoder's write DIRECTLY toward the regime
+where binexp_read's O(log h) repeated-squaring accumulates zero error at
+any depth -- complementing the aux loss above, which only pressures Z
+INDIRECTLY through the read's own cosine to the target. See
+ortho_regularization_loss() and compute_arm_losses() below.
+
 Run (box only -- chunk_delta_rule has no CPU path):
   python3 ncr_lm_wave1_runner.py --mode phase0-timing --device cuda \
       --out results/phase0_timing.json
@@ -409,27 +437,93 @@ def aux_read_supervision_loss(integ: NCRIntegration, embed: torch.nn.Embedding, 
     return (1.0 - cos).mean()
 
 
+# ---------------------------------------------------------------------------
+# sec G3-B20 orthogonality regularization (coordinator-designed fix for the
+# sec G3-B19-diagnosed gap: the aux read-supervision loss above moved the
+# encoder-written operator Z from cos~0 to a STABLE cos~0.57-0.65 across
+# every depth h=1..61 -- real write-learning traction -- but Z is
+# directionally-right, NOT a clean rotation, so Z^h (binexp_read's own
+# repeated-squaring composition) accumulates error and the read never
+# clears the ~0.9 cosine bar exact recovery needs. Orthogonal matrices
+# compose EXACTLY under powering: if Q1, Q2 are orthogonal (Q^T Q = I) then
+# so is Q1 Q2 -- (Q1 Q2)^T(Q1 Q2) = Q2^T(Q1^T Q1)Q2 = Q2^T Q2 = I -- so by
+# induction Q^h stays orthogonal (norm/angle-preserving) for every h; a
+# perfectly-orthogonal Z would compose without any depth-dependent drift.
+# This term pushes each batch item's Z toward that regime DIRECTLY (a
+# penalty on Z itself), independent of and additive to the aux read-loss
+# above (which pressures Z only INDIRECTLY, through the read
+# o=binexp_read(Z,...)'s own cosine to the target).
+# ---------------------------------------------------------------------------
+def ortho_regularization_loss(Z: torch.Tensor) -> torch.Tensor:
+    """Z: (B,d,d) -- the encoder-written operator, ncr_head.encode's own
+    output (ncr_lm_forward_ablatable's Z, the non-TF path). Called from
+    compute_arm_losses on full_graft ONLY -- the arm whose Z is actually
+    SGD-trained; backbone_only's Z lives in a separate, frozen-at-init
+    ncr_head instance that must stay untouched (sec G3-B5's null-baseline
+    control) -- see compute_arm_losses's own docstring for how the
+    is_full_graft gate preserves that.
+
+    ortho_loss = mean_B( ||Z^T Z - I_d||_F^2 ) / d^2 -- the per-batch-item
+    squared-Frobenius deviation of Z from orthogonality, mean-reduced over
+    the batch, then NORMALIZED by d^2 (weight-balance choice, sec G3-B20
+    build brief item 4, disclosed here rather than left implicit): at
+    d_ncr=25 an UNNORMALIZED ||Z^TZ-I||_F^2 sits at O(d)-O(d^2) magnitude
+    for an approximately-randomly-initialized Z -- large enough to swamp
+    ce_loss (O(1)-O(10) nats) and aux_loss (O(1), cosine-bounded in [0,2])
+    at any --ortho-reg-weight in the same ~0.1-3.0 range
+    --aux-read-loss-weight already operates in (see the sec G3-B20 smoke's
+    own 3-loss magnitude report for the measured numbers this estimate is
+    checked against). Dividing by d^2 rescales the term to O(1) regardless
+    of d_ncr's own value, so ONE --ortho-reg-weight in that familiar range
+    works without inventing a separate tiny-weight unit system (the
+    alternative disclosed in the build brief -- leave it raw, pick a tiny
+    weight like 0.01-0.1 instead -- was NOT taken)."""
+    b, d, d2 = Z.shape
+    assert d == d2, f"ortho_regularization_loss expects square (B,d,d) Z, got {tuple(Z.shape)}"
+    eye = torch.eye(d, device=Z.device, dtype=Z.dtype).expand(b, d, d)
+    dev = torch.matmul(Z.transpose(-1, -2), Z) - eye
+    return (dev * dev).sum(dim=(-2, -1)).mean() / (d * d)
+
+
 def compute_arm_losses(arm: dict, batch: dict, read_ablate: bool, teacher_force: bool,
-                        aux_read_loss_weight: float, is_full_graft: bool):
+                        aux_read_loss_weight: float, is_full_graft: bool,
+                        ortho_reg_weight: float = 0.0):
     """sec G3-B17: the ONE shared per-arm forward+loss computation used by
     BOTH the training loop (run_two_arm_cell) and this build's own real-CUDA
     aux-loss smoke (ncr_lm_wave1_aux_smoke.py) -- so the smoke exercises the
     EXACT training code path, not a hand-copied reimplementation that could
     silently drift from it. Returns (total_loss, ce_loss, aux_loss_or_None,
-    o_raw). aux_read_loss_weight <= 0.0 OR is_full_graft=False: aux_loss is
-    None and total_loss IS ce_loss (the identical tensor object, not a
-    fresh one) -- no aux op is constructed at all, so the flag-OFF path is
-    BYTE-IDENTICAL to pre-G3-B17 behavior (same computation graph, same
-    loss value, same backward pass)."""
+    ortho_loss_or_None, o_raw). aux_read_loss_weight <= 0.0 OR
+    is_full_graft=False: aux_loss is None, the aux branch below never runs,
+    so total_loss is left exactly as it was set BEFORE that branch (ce_loss,
+    the identical tensor object, not a fresh one) -- no aux op is
+    constructed at all.
+
+    sec G3-B20 (orthogonality reg, threaded THE SAME WAY as the aux flag
+    just above -- same full_graft-only gating, same "OFF means the branch
+    never runs at all" guarantee): ortho_reg_weight <= 0.0 OR
+    is_full_graft=False: ortho_loss is None and the ortho branch below never
+    runs either, so total_loss is left EXACTLY as the aux branch (or the
+    base ce_loss, if aux was also off) already set it. The two flags compose
+    INDEPENDENTLY -- each one's OFF state is byte-identical to that flag
+    never having been added, regardless of the OTHER flag's value (verified
+    directly, not merely assumed, by the sec G3-B20 smoke's own sub-test
+    (a)). When ON, ortho_reg_weight applies ortho_regularization_loss to Z
+    (the SAME (B,d,d) operator tensor ncr_lm_forward_ablatable already
+    returns above -- no extra forward pass, no extra ncr_head.encode call)."""
     logits, o_raw, o_inj, hidden, Z, keys_v, values_v = ncr_lm_forward_ablatable(
         arm["backbone"], arm["ncr"], arm["integ"], batch, read_ablate=read_ablate, teacher_force=teacher_force)
     ce_loss = F.cross_entropy(logits, batch["answer_token"])
     aux_loss = None
+    ortho_loss = None
     total_loss = ce_loss
     if is_full_graft and aux_read_loss_weight > 0.0:
         aux_loss = aux_read_supervision_loss(arm["integ"], arm["backbone"].embed, o_raw, batch["answer_token"])
         total_loss = ce_loss + aux_read_loss_weight * aux_loss
-    return total_loss, ce_loss, aux_loss, o_raw
+    if is_full_graft and ortho_reg_weight > 0.0:
+        ortho_loss = ortho_regularization_loss(Z)
+        total_loss = total_loss + ortho_reg_weight * ortho_loss
+    return total_loss, ce_loss, aux_loss, ortho_loss, o_raw
 
 
 # ---------------------------------------------------------------------------
@@ -642,7 +736,7 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
                       lr: float, warmup_steps: int, ceiling_gpuh: float, seed: int,
                       device: str, out_path: str, ckpt_path: str, stop_file: str,
                       ckpt_every: int, eval_every: int, teacher_force_operator: bool = False,
-                      aux_read_loss_weight: float = 0.0) -> dict:
+                      aux_read_loss_weight: float = 0.0, ortho_reg_weight: float = 0.0) -> dict:
     if os.path.exists(out_path):
         with open(out_path) as f:
             prev = json.load(f)
@@ -679,7 +773,7 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
                     eval_batch_size=eval_batch_size, lr=lr, warmup_steps=warmup_steps,
                     train_hops=list(TRAIN_HOPS), deep_ladder=list(DEEP_LADDER),
                     ceiling_gpuh=ceiling_gpuh, teacher_force_operator=teacher_force_operator,
-                    aux_read_loss_weight=aux_read_loss_weight),
+                    aux_read_loss_weight=aux_read_loss_weight, ortho_reg_weight=ortho_reg_weight),
         params=dict(per_arm=n_params["full_graft"],
                     backbone=sum(p.numel() for p in arms["full_graft"]["backbone"].parameters()),
                     ncr_head=sum(p.numel() for p in arms["full_graft"]["ncr"].parameters()),
@@ -720,6 +814,7 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
 
         step_losses = {}
         step_aux_losses = {}   # sec G3-B17: full_graft only, populated only when aux_read_loss_weight > 0.0
+        step_ortho_losses = {}  # sec G3-B20: full_graft only, populated only when ortho_reg_weight > 0.0
         for arm_name, read_ablate in (("full_graft", False), ("backbone_only", True)):
             arm, opt = arms[arm_name], opts[arm_name]
             for g in opt.param_groups:
@@ -729,11 +824,13 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
             # backbone_only's o_raw stays the untrained-encoder null baseline
             # regardless of this flag, and never touches its own loss anyway).
             tf_this_arm = teacher_force_operator and arm_name == "full_graft"
-            # sec G3-B17: aux_read_loss_weight applies to full_graft ONLY, same
-            # scoping/rationale as teacher_force above -- see compute_arm_losses's
-            # own docstring for the byte-identical-when-OFF guarantee.
-            total_loss, ce_loss, aux_loss, o_raw = compute_arm_losses(
-                arm, batch, read_ablate, tf_this_arm, aux_read_loss_weight, arm_name == "full_graft")
+            # sec G3-B17/sec G3-B20: aux_read_loss_weight and ortho_reg_weight both
+            # apply to full_graft ONLY, same scoping/rationale as teacher_force above
+            # -- see compute_arm_losses's own docstring for the byte-identical-when-
+            # OFF guarantee (each flag independently, regardless of the other's value).
+            total_loss, ce_loss, aux_loss, ortho_loss, o_raw = compute_arm_losses(
+                arm, batch, read_ablate, tf_this_arm, aux_read_loss_weight, arm_name == "full_graft",
+                ortho_reg_weight)
             opt.zero_grad()
             total_loss.backward()
             if tf_this_arm:
@@ -760,22 +857,27 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
             step_losses[arm_name] = ce_loss.item()
             if aux_loss is not None:
                 step_aux_losses[arm_name] = aux_loss.item()
+            if ortho_loss is not None:
+                step_ortho_losses[arm_name] = ortho_loss.item()
 
         if step % LOG_EVERY == 0 or step == 1 or step == steps:
             elapsed = time.time() - t0
             loss_hist["full_graft"].append([step, step_losses["full_graft"]])
             loss_hist["backbone_only"].append([step, step_losses["backbone_only"]])
-            # sec G3-B17: aux_loss is a TRAINING loss (like CE), not an eval metric --
-            # OK to print (BLIND discipline only withholds EVAL metrics, per the module
-            # docstring's BLIND DISCIPLINE section below). Absent from the line entirely
-            # when aux_read_loss_weight==0.0 (step_aux_losses stays empty every step).
+            # sec G3-B17/sec G3-B20: aux_loss/ortho_loss are TRAINING losses (like CE),
+            # not eval metrics -- OK to print (BLIND discipline only withholds EVAL
+            # metrics, per the module docstring's BLIND DISCIPLINE section below).
+            # Each is absent from the line entirely when its own weight==0.0
+            # (step_aux_losses/step_ortho_losses stay empty every step in that case).
             aux_str = (f"  full_graft_aux_loss={step_aux_losses['full_graft']:.4f}"
                        if "full_graft" in step_aux_losses else "")
+            ortho_str = (f"  full_graft_ortho_loss={step_ortho_losses['full_graft']:.4f}"
+                         if "full_graft" in step_ortho_losses else "")
             # BLIND: loss is operational telemetry (liveness/divergence), never an eval metric --
             # matches ncr_ortho_fallback_stage0_v3.py's own precedent.
             print(f"[{cell_id}] step {step}/{steps}  full_graft_loss={step_losses['full_graft']:.4f} "
                   f"backbone_only_loss={step_losses['backbone_only']:.4f}  lr={cur_lr:.2e}  "
-                  f"{elapsed:.0f}s{aux_str}", flush=True)
+                  f"{elapsed:.0f}s{aux_str}{ortho_str}", flush=True)
 
         if step % ckpt_every == 0 or step == steps:
             save_checkpoint(ckpt_path, step, arms, opts, data_gen, time.time() - t0, cell_id)
@@ -1164,6 +1266,22 @@ def main():
                           "sec G3-B16-diagnosed WRITE-LEARNING gap (CE-only indirect signal, 20K "
                           "steps, ~32x under the free-write toy's own convergence budget) by "
                           "matching that toy's own converged direct cosine read-loss.")
+    ap.add_argument("--ortho-reg-weight", type=float, default=0.0,
+                     help="sec G3-B20 orthogonality regularization on the encoder-written "
+                          "operator Z (--mode calibration only, full_graft arm ONLY -- same "
+                          "scoping as --aux-read-loss-weight; backbone_only's Z lives in a "
+                          "separate frozen-at-init ncr_head instance that must stay untouched). "
+                          "0.0 (default) = OFF, byte-identical to pre-G3-B20 behavior (no ortho "
+                          "op is constructed at all, independent of --aux-read-loss-weight's own "
+                          "value -- see compute_arm_losses's own docstring). >0.0: total_loss += "
+                          "weight * mean_B(||Z^T Z - I_d||_F^2) / d^2 (d=d_ncr=25, NORMALIZED so "
+                          "the term is O(1) at a weight in the same range --aux-read-loss-weight "
+                          "already uses -- see ortho_regularization_loss's own docstring for the "
+                          "disclosed weight-balance rationale). Fixes the sec G3-B19-diagnosed "
+                          "gap (aux supervision alone reached a STABLE but NOT-exact cos~0.57-0.65 "
+                          "read across all depths h=1..61): orthogonal matrices compose EXACTLY "
+                          "under binexp_read's own repeated-squaring powering, so pushing Z toward "
+                          "orthogonal should let a directionally-right write become an exact one.")
     args = ap.parse_args()
 
     print("=" * 70)
@@ -1202,7 +1320,8 @@ def main():
         out_path=args.out, ckpt_path=ckpt_path, stop_file=stop_file,
         ckpt_every=args.ckpt_every, eval_every=args.eval_every,
         teacher_force_operator=args.teacher_force_operator,
-        aux_read_loss_weight=args.aux_read_loss_weight)
+        aux_read_loss_weight=args.aux_read_loss_weight,
+        ortho_reg_weight=args.ortho_reg_weight)
     return 0
 
 

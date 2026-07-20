@@ -6064,3 +6064,321 @@ marker. ALTERNATIVE (PI's call): one more targeted write-supervision push
 to test if exactness is reachable — cheap (~5 GPU-h), signal is climbing, but
 odds moderate given the decode-fidelity threshold. SURFACED to PI verdict-first;
 fork is theirs. Raw json archived (mob_g3b17_s0.json ≤25MB).
+
+## §G3-B20 ORTHO-REG PUSH BUILD (Fable build agent, 2026-07-20)
+
+Implements the coordinator-designed "ALTERNATIVE" fork §G3-B19 surfaced
+(orthogonality reg + stronger aux weight): the aux read-supervision loss
+(§G3-B17) DID teach the encoder to write — full_graft's read reached a
+STABLE cos~0.57-0.65 across every depth h=1..61 — but that operator is
+directionally-right, NOT a clean rotation, so `binexp_read`'s own
+repeated-squaring composition (Z^h) accumulates error and never clears the
+~0.9 cosine bar exact recovery needs. FIX: an additive orthogonality
+penalty on the encoder-written operator Z, pushing it toward a clean
+rotation (orthogonal matrices compose EXACTLY under powering: if
+Q1,Q2 are orthogonal then so is Q1·Q2 — `(Q1Q2)^T(Q1Q2) = Q2^T(Q1^TQ1)Q2 =
+Q2^TQ2 = I` — so by induction Q^h stays orthogonal for any h). BUILD + real
+CUDA SMOKE only — STOP before any GPU launch (coordinator audits +
+launches). No git commit/push (per the build brief).
+
+### The exact diff
+
+`experiment-runs/2026-07-17_ncr_gate3_wave1/ncr_lm_wave1_runner.py` is the
+PRIMARY file edited (mirroring §G3-B17's own additive pattern exactly, same
+full_graft-only gating). `ncr_lm_wave1_smoke.py` is UNTOUCHED (md5
+unchanged, `bc105af6…`, re-verified) — the ortho term is purely a
+training-loop addition living in `compute_arm_losses`, same as the aux
+term; nothing in the audited graft module needed to change.
+
+1. **NEW function `ortho_regularization_loss(Z)`** (runner.py, after
+   `aux_read_supervision_loss`): `Z` is the `(B,d,d)` encoder-written
+   operator (`ncr_head.encode`'s own output, the SAME tensor
+   `ncr_lm_forward_ablatable` already returns and `compute_arm_losses`
+   already unpacks — no extra forward pass, no extra `ncr_head.encode`
+   call). `ortho_loss = mean_B(||Z^T Z − I_d||_F^2) / d^2` — the
+   per-batch-item squared-Frobenius deviation of Z from orthogonality,
+   mean-reduced over the batch, then **normalized by d² (weight-balance
+   choice, item 4, see below)**.
+2. **NEW flag `--ortho-reg-weight FLOAT`, default `0.0` (OFF).** Threaded
+   through `main()` → `run_two_arm_cell(..., ortho_reg_weight=0.0)` →
+   `rec["config"]["ortho_reg_weight"]` — identical threading pattern to
+   `--aux-read-loss-weight`.
+3. **`compute_arm_losses` signature extended**: NEW param
+   `ortho_reg_weight: float = 0.0` (default, so old callers that never
+   pass it still get ortho OFF). **Gating (mirrors item 1's aux gate
+   exactly, applied SEPARATELY/independently):** `ortho_loss` is computed
+   and added into `total_loss` ONLY when `is_full_graft` AND
+   `ortho_reg_weight > 0.0` — a SEPARATE `if` block appended AFTER the
+   existing aux `if` block, so the aux branch's own behavior (and its own
+   OFF-guarantee) is completely undisturbed by this addition; the two
+   flags compose independently (verified directly, not assumed, by the
+   smoke's own sub-test (a): aux ON + ortho OFF still yields
+   `ortho_loss is None`, and both-OFF still yields `total_loss is
+   ce_loss`, Python object identity). **Return signature changed**
+   `(total_loss, ce_loss, aux_loss, o_raw)` → `(total_loss, ce_loss,
+   aux_loss, ortho_loss, o_raw)` — a forced, disclosed ripple: the THREE
+   existing call sites inside `ncr_lm_wave1_aux_smoke.py` (§G3-B17's own
+   regression-smoke script) needed their unpacking lines updated from a
+   4-tuple to a 5-tuple (mechanical `total_loss, ce_loss, aux_loss, o_raw`
+   → `total_loss, ce_loss, aux_loss, ortho_loss, o_raw`, one site using
+   `_, _` for the two unused slots) — NOT a logic change to that file
+   (its own sub-tests, assertions, and conclusions are byte-for-byte the
+   same), just an arity fix forced by the shared function's new return
+   value. Verified live by smoke sub-test (e): the FIXED
+   `ncr_lm_wave1_aux_smoke.py`, run as a real subprocess, still reports
+   ALL ITEMS PASSED with numbers matching §G3-B17's own original smoke
+   record (aux_loss 0.9343→0.7944 over 100 steps, vs the original build's
+   0.9658 mean-first-10→0.7946 mean-last-10 — same order, same trend,
+   different seed-batch draw so not bit-identical, which is expected).
+4. **Training loop (`run_two_arm_cell`)**: new `step_ortho_losses` dict
+   (full_graft only, populated only when `ortho_reg_weight > 0.0`), same
+   pattern as `step_aux_losses`; the per-arm call site now unpacks the
+   5-tuple and passes `ortho_reg_weight` positionally; `total_loss.backward()`
+   unchanged. `rec["config"]` gains `ortho_reg_weight`.
+5. **Logging**: the per-`LOG_EVERY` training-step print line gains an
+   optional `  full_graft_ortho_loss=X.XXXX` suffix (absent entirely at
+   the default), appended after the existing `aux_str` — a TRAINING loss,
+   explicitly permitted by BLIND DISCIPLINE (only EVAL metrics are
+   withheld). No eval-path code touched — `eval_arm_at_hops`/
+   `build_attribution`/`recovered_frac@0.9`/`answer_accuracy` untouched;
+   the ortho term never reaches any eval metric or the attribution JSON.
+6. **Two-arm structure, read-ablation exact-zero, §G3-B12 single
+   `entity_adapter`, §G3-B17 aux loss, checkpoint/resume: all UNTOUCHED**
+   except the additive ortho term — the diff never edits
+   `ncr_lm_forward_ablatable`, `assert_read_ablation_is_exact_zero`,
+   `build_two_arms`, `save_checkpoint`/`load_checkpoint`/
+   `restore_arms_and_opts`, `aux_read_supervision_loss`, or
+   `NCRIntegration` itself. `backbone_only`'s Z lives in a SEPARATE,
+   frozen-at-init `ncr_head` instance (`build_arm` builds one `ncr_head`
+   per arm) — the `is_full_graft` gate means the ortho branch NEVER runs
+   for `backbone_only` regardless of `--ortho-reg-weight`'s value, so its
+   read-ablated null-baseline property (§G3-B5's control) is preserved;
+   verified directly by smoke sub-test (d), not merely assumed from the
+   gate's code.
+
+### Ambiguity check (per the build brief) — RESOLVED, not blocking
+
+*"Where is Z available at the loss site, and does backbone_only compute a
+Z at all?"* Not ambiguous once `compute_arm_losses` is read: `Z` was
+ALREADY unpacked from `ncr_lm_forward_ablatable`'s own 7-tuple return at
+the top of the function (`logits, o_raw, o_inj, hidden, Z, keys_v,
+values_v = ncr_lm_forward_ablatable(...)`) but simply unused downstream
+before this build — no new data-plumbing needed, only a new consumer of an
+already-available tensor. `backbone_only` DOES compute a Z (every call to
+`ncr_lm_forward_ablatable` calls `ncr_head.encode` regardless of
+`read_ablate`'s value — the ablation only zeroes `o_injected`, not Z's own
+computation) — but it is a SEPARATE `ncr_head` module instance
+(`backbone_only`'s own, from its own `build_arm` call), and the
+`is_full_graft` gate means this build's new ortho branch is never entered
+for that arm, so `backbone_only`'s Z stays exactly as untouched by
+gradient as the aux term already left it. Also checked: `Z` in the
+`--teacher-force-operator` diagnostic path (`Z =
+integ.teacher_force_operator(keys_v, values_v)`, closed-form fit on
+`.detach()`-ed inputs) carries no gradient to any parameter at all — if
+`--ortho-reg-weight` and `--teacher-force-operator` were ever combined
+(not the case in the proposed launch below, which is non-TF), the ortho
+term would compute and add a numeric value to `total_loss` but contribute
+literally zero gradient (same no-op-under-TF property the aux term
+already has via `Z`'s own detachment in that path, not specially
+gated — consistent with existing precedent, not a new design choice).
+
+### Smoke — real CUDA, GPU 2 (box `youthful-indigo-turkey`, FRESH directory
+`/home/nvidia/ncr_g3b20_ortho_fix/` — did not touch the live
+`ncr_g3b12_fix`/`ncr_g3b17_aux_fix` trees or their resident artifacts).
+`nvidia-smi` checked before AND after: GPU2 43.5GB→(peak +3.94GB this
+process only)→back to 43.5GB baseline after exit; all 8 GPUs stayed at
+100% util throughout (a separate, unrelated 392M frozen-bias production
+run, PID confirmed via `nvidia-smi --query-compute-apps`, occupies GPU2's
+other 43.5GB — production undisturbed). New script
+`ncr_lm_wave1_ortho_smoke.py` (real-CUDA, mirrors
+`ncr_lm_wave1_aux_smoke.py`'s own structure/conventions one-for-one),
+calling the runner's OWN `compute_arm_losses`/`ortho_regularization_loss`
+directly — not a reimplementation. Total wall clock **134.7s** (includes
+running the full `ncr_lm_wave1_aux_smoke.py` regression suite as a
+subprocess for sub-test (e), itself ~58-65s). Peak memory (this smoke
+process only, `torch.cuda.reset_peak_memory_stats` scoped) **3.94 GB**.
+Raw: `experiment-runs/2026-07-17_ncr_gate3_wave1/g3b20_ortho_smoke_results/
+{ortho_smoke.json,ortho_smoke.log,aux_regression_check.json}` (archived,
+all <15KB, committed here per the repo's small-file archive policy).
+
+**ONE ROUND-TRIP CORRECTION, DISCLOSED (exactly the kind of thing item 4
+asked this smoke to catch):** the FIRST run used an a-priori
+`--ortho-reg-weight 1.0` guess (informed by the docstring's own O(1)
+estimate for the /d² -normalized term). Sub-test (c) correctly FAILED its
+own balance heuristic: measured raw (post-normalization) `ortho_loss` at a
+random init was **65.894** — far above the O(1) guess — so at weight=1.0
+the weighted ortho term (65.894) dominated `ce_loss` (10.667) by **>6x**
+at step 0. This is real evidence, not a bug: the /d² normalization alone
+was not sufficient to land the term at O(1) for THIS encoder's actual
+init scale. Recommended weight revised DOWN to **0.1** from the measured
+number (not a re-guess) — re-ran the full smoke at 0.1; ALL 5 sub-tests
+PASSED cleanly the second time. Both runs' raw JSON are on the box; the
+retained/archived JSON here is the SECOND (all-passing, final-weight) run.
+
+**ALL 5 SUB-TESTS PASSED (final run, `--ortho-reg-weight 0.1` in
+sub-test (c) specifically; other sub-tests use weight=1.0 deliberately
+to isolate/stress the signal, see each one's own docstring):**
+- **(a) flag OFF:** `ortho_loss is None` in every case tested — both flags
+  off (`total_loss is ce_loss`, Python object identity); aux ON
+  (weight=3.0) + ortho OFF (`ortho_loss` still `None`, independent of
+  aux's own value — proves the two flags gate independently, not merely
+  "at least one is off"); `backbone_only` with BOTH weights=1.0 but
+  `is_full_graft=False` → arm-gating alone protects it (`total_loss is
+  ce_loss`, both aux/ortho `None`).
+- **(b) flag ON (`--ortho-reg-weight 1.0`, aux OFF, isolating the ortho
+  signal), full_graft arm, 100 steps on a REPEATED fixed batch** (batch=8,
+  h=2, real 98M backbone + NCR head + integ, real AdamW + grad-clip-1.0,
+  LR=2e-3 deliberately aggressive overfit-one-batch probe, mirroring
+  §G3-B17's own `AUX_LR` precedent/rationale): forward/backward finite
+  every step; grad reached `ncr_head` every step (47/47 encoder params);
+  **`ortho_loss` DECREASED 73.097→0.038** (mean-first-10 15.642→mean-last-10
+  0.038); **the DIRECT (unnormalized, non-squared) orthogonality metric
+  `mean(||Z^TZ−I||_F)` independently confirmed Z becomes more orthogonal:
+  213.741→4.899** (mean-first-10 57.335→mean-last-10 4.899) — proves the
+  loss-number decrease reflects Z ACTUALLY becoming more orthogonal, not
+  merely the loss formula being gamed. `ce_loss` fell 10.904→0.0000 on the
+  same repeated 8-doc batch (expected memorization, not itself part of the
+  pass/fail criterion, same disclosed-probe caveat as §G3-B17's own (b)).
+- **(c) THE 3-LOSS MAGNITUDE REPORT (build brief item 4), fresh arm, both
+  `--aux-read-loss-weight 3.0` AND `--ortho-reg-weight 0.1` ON
+  simultaneously** (the actual joint launch condition, not each term in
+  isolation):
+  | | ce_loss | aux_loss (raw / weighted×3.0) | ortho_loss (raw / weighted×0.1) | total |
+  |---|---|---|---|---|
+  | step 0 (init) | 10.667 | 0.972 / 2.915 | 65.894 / 6.589 | 20.171 |
+  | step 100 | 0.0001 | 0.890 / 2.671 | 0.076 / 0.0076 | 2.679 |
+
+  At init, the weighted ortho term (6.589) sits BELOW `ce_loss` (10.667)
+  and comfortably ABOVE the weighted aux term (2.915) — a meaningful
+  gradient contribution that does not swamp the task loss. By step 100 it
+  has fallen to near-negligible (0.0076) as Z becomes orthogonal, letting
+  aux/CE dominate the tail of training — the intended dynamic (orthogonality
+  is a precondition the write should reach EARLY, not an ongoing tug-of-war
+  with task-solving).
+- **(d) `backbone_only` arm unaffected:** with BOTH
+  `--aux-read-loss-weight 1.0` AND `--ortho-reg-weight 1.0` passed,
+  `compute_arm_losses(..., is_full_graft=False)` still returns
+  `total_loss is ce_loss` / `aux_loss is None` / `ortho_loss is None`; AND
+  the runner's own `assert_read_ablation_is_exact_zero` still PASSES on
+  this arm (`max_abs_diff=0.00e+00`) — this build did not disturb that
+  invariant.
+- **(e) existing aux still works:** `ncr_lm_wave1_aux_smoke.py` (the
+  §G3-B17 build's own regression suite, mechanically fixed for the new
+  5-tuple return, see item 3 above), run as a REAL subprocess, exits 0 and
+  reports "AUX SMOKE: ALL ITEMS PASSED" — all 4 of its own sub-tests pass
+  with numbers matching the original §G3-B17 build's own record in shape
+  and order of magnitude (different seed/batch draw, so not bit-identical,
+  as expected).
+
+### Weight-balance choice (build brief item 4 — DISCLOSED)
+
+**Chosen: normalize `ortho_loss` by d² inside the function (`/ (d*d)`,
+d=d_ncr=25) AND additionally pick a small recommended weight (0.1) informed
+by the MEASURED (not guessed) magnitude** — a combination of both options
+the brief offered, not purely one or the other, because the /d²
+normalization alone (a priori) was not sufficient to land the term at O(1)
+for this encoder's actual random-init scale (measured raw post-normalization
+value ≈65.9, not O(1) as estimated) — the smoke caught this directly (the
+disclosed round-trip correction above) rather than it being silently wrong
+at launch. **Recommended `--ortho-reg-weight 0.1`** (paired with
+`--aux-read-loss-weight 3.0`, per the build brief's own launch template):
+at init this keeps the weighted ortho contribution (6.59) below `ce_loss`
+(10.67) and meaningfully above the weighted aux contribution (2.92,
+i.e. ~2.3x) — present, non-trivial, non-dominant — and by step 100 (of the
+cheap smoke's own aggressive-LR probe) it has receded to near-zero,
+consistent with orthogonality being a precondition the write should reach
+early rather than a permanent competing force against task-loss reduction.
+
+### New md5s (box == local, byte-identical, VERIFIED)
+
+| File | md5 (was, §G3-B17 HEAD) | md5 (now, §G3-B20) |
+|---|---|---|
+| `ncr_lm_wave1_runner.py` | `a07d58f6aa2736059a79e1817a5d4d78` | `bf4878124b970c30235e52b0b52dd4d1` |
+| `ncr_lm_wave1_smoke.py` | `bc105af69661e488ff95f5046e2bcd8a` | `bc105af69661e488ff95f5046e2bcd8a` (UNCHANGED) |
+| `ncr_lm_wave1_aux_smoke.py` | `201761a7582fe43e726ff4fe9f1b24b0` | `512dd3bf4d06c3d3d5d0c22e963aa22e` (ripple fix: 4-tuple→5-tuple unpacking, no logic change) |
+| `ncr_lm_wave1_ortho_smoke.py` (NEW file) | — | `60b932578560311be8e48164956a45c9` |
+
+### PROPOSED LAUNCH (STOP HERE — coordinator audits + runs it)
+
+Per the build brief: the §G3-B17 config, `--aux-read-loss-weight` raised to
+3.0 (stronger shallow read-supervision to clear the precondition, per the
+coordinator's own diagnosis in the task background) plus the new
+`--ortho-reg-weight 0.1` (this build's recommendation, §item above). Same
+non-TF (encoder writes Z itself — no teacher-forcing at inference), both
+arms, BLIND, fresh cell-id `mob_g3b20_s0` inside the `ncr_g3b12_fix` tree
+(per the build brief) to avoid any collision with the live
+`mob_g3b14_s0`/`mob_g3b17_s0` artifacts still resident there. Training
+distribution UNCHANGED — `TRAIN_HOPS=(1,2,3)` (h=1..61 stays HELD-OUT for
+eval, per the build brief's own explicit instruction not to add deep-h to
+training):
+
+```bash
+# on box, from /home/nvidia/ncr_g3b12_fix/ (COPY the updated runner.py
+# there first — md5 bf4878124b970c30235e52b0b52dd4d1 — verify md5
+# box==local before launch), inside a self-healing supervisor tmux
+# session (mirrors run_mob_g3b17.sh's own terminal-status-gated
+# while-loop):
+cat > run_mob_g3b20.sh <<'EOF'
+#!/bin/bash
+cd /home/nvidia/ncr_g3b12_fix
+while true; do
+  CUDA_VISIBLE_DEVICES=<least-loaded, nvidia-smi first> /home/nvidia/tdenv/bin/python3 \
+    ncr_lm_wave1_runner.py --mode calibration --device cuda \
+    --cell-id mob_g3b20_s0 --steps 20000 \
+    --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 \
+    --aux-read-loss-weight 3.0 --ortho-reg-weight 0.1 \
+    --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 6.0 --seed 0 \
+    --out results/mob_g3b20_s0.json --ckpt-dir results/mob_g3b20_s0_ckpts \
+    2>&1 | tee -a results/mob_g3b20_s0.log
+  if grep -qE '"status":[[:space:]]*"(COMPLETED|ABORTED)' results/mob_g3b20_s0.json 2>/dev/null; then
+    echo "SUPERVISOR: terminal status reached, exiting"; break
+  fi
+  echo "SUPERVISOR: non-terminal exit, restart in 15s"; sleep 15
+done
+EOF
+chmod +x run_mob_g3b20.sh
+tmux new-session -d -s ncr_mob_g3b20_s0 "./run_mob_g3b20.sh"
+```
+
+Ceiling raised to **6.0 GPU-h** (vs §G3-B17's 5.0) per the build brief's
+own note that the prior run (`mob_g3b17_s0`) was contention-slow and
+budget-aborted at 98.4% completion (§G3-B19: step 19677/20000, gpu_h
+5.002) — the extra headroom is to let THIS run reach its own natural
+COMPLETED status under similar contention, not a scope change. Timing
+profile should be close to §G3-B17's own (~4.7h wall / ~4.9 GPU-h) plus
+one extra cheap term per full_graft step (`ortho_regularization_loss` is
+one `matmul` + one `sub` + one `sum` on a (B,25,25) tensor — negligible
+next to the 98M backbone's own forward/backward). **Attribution rule: the
+SAME frozen §G3-B5/§G3-B7 rule, unchanged** — PRECONDITION (metric-b
+answer_accuracy, backbone_only materially below full_graft) → PRIMARY
+(metric-a recovered_frac@0.9 GAP at deep ladder). n=1 first-signal
+(10-50 GPU-h band once launched — per CLAUDE.md's ceremony tiers, a
+pre-launch resource/placement red-team is due in addition to this build's
+own audit, mirroring §G3-B7's/§G3-B17's own memory-fit gate). BOTH
+`full_graft_aux_loss` and `full_graft_ortho_loss` should be watched
+(operational telemetry, BLIND-safe per item 5 above) — a healthy run
+should show `ortho_loss` trending toward near-zero EARLY (within the first
+few hundred-to-thousand steps, per this smoke's own short-horizon signal)
+while `aux_loss` continues trending down over the full 20K steps, and — the
+signal this whole build exists to produce — the eval-side `mean_cos`
+(§G3-B9's own diagnostic field, already wired, untouched) climbing PAST
+the ~0.57-0.65 §G3-B19 plateau toward the ~0.9 exact-recovery bar at deep h.
+
+### Readiness verdict
+
+**READY for the coordinator's audit + launch.** The flag is OFF-default
+and verified byte-identical to pre-§G3-B20 behavior via Python object
+identity (not just numeric equality), independently of the aux flag's own
+value; ON-behavior is verified finite, decreasing (both the training-loss
+number AND an independent direct orthogonality metric), and
+encoder-grad-reaching on real CUDA; the 3-loss magnitude balance was
+MEASURED (not guessed) and the recommended weight was revised from an
+initial a-priori guess based on that measurement — the exact discipline
+item 4 asked for; `backbone_only` is verified unaffected by both
+arm-gating AND a regression-check of the read-ablation exact-zero
+invariant; the existing aux path is verified unaffected by a live
+subprocess re-run of its own original regression suite;
+`ncr_lm_wave1_smoke.py` is untouched (md5-verified); new md5s pinned
+box==local; production (all 8 GPUs, a separate 392M run on GPU2 itself)
+verified undisturbed before and after. STOPPING before launch per the
+build brief.
