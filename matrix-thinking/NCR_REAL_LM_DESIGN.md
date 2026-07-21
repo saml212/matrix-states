@@ -6385,6 +6385,19 @@ build brief.
 
 ## §G3-B22 ORTHO-REG PUSH VERDICT — UNINTERPRETABLE by rule, but the WRITE-LEARNING is SOLVED (blind Opus + coordinator cross-check, 2026-07-20)
 
+**[AMENDED by §G3-B23, 2026-07-21 — read the amendment before citing this section.**
+The mechanism claim below ("orthogonality unlocked it / orthogonal Z composes
+exactly") is WRONG: the Z-probe shows Z is NOT literally orthogonal (~11 of 25
+σ near 1, ‖ZᵀZ−I‖_F=3.46, raw powers diverge). What is REAL: under the model's
+OWN read (`binexp_read`, which RENORMALIZES each squaring step), the operator
+composes directionally like the true K=24 cycle to held-out h=61 (cos 0.999) —
+so the write-learning/composition RESULT stands, but via SCALE-INVARIANT
+directional composition, not strict orthogonality. ALSO: §G3-B20 changed TWO
+things vs §G3-B19 (aux 1.0→3.0 AND +ortho 0.1); since Z isn't orthogonal, the
+0.57→0.999 gain is CONFOUNDED and likely driven by the stronger aux, NOT ortho
+— "the orthogonality bet paid off" is NOT established. The end-to-end answer
+task still fails (decode). See §G3-B23.]**
+
 Ortho-reg push (`mob_g3b20_s0`, non-TF, aux_read_loss_weight 3.0 + ortho_reg_weight
 0.1). COMPLETED 20000/20000, 4.997 GPU-h, 0 errors, read-ablation exact-zero
 verified. Blind Opus judge + coordinator recompute from raw JSON — CONFIRMED:
@@ -6432,3 +6445,106 @@ first. If PI declines: bank this (ortho unlocked exact learned-operator composit
 to h=61) + §G3-B13 + write-traction as honest results and ship the scaling paper.
 Box ckpt retained pending PI decision (probing Z's orthogonality is a candidate
 mechanistic addendum).
+
+## §G3-B23 Z-ORTHOGONALITY PROBE — READ-ONLY mechanistic characterization (Fable, 2026-07-21)
+
+Non-circular structural check requested against §G3-B22's judge-flagged
+circularity concern (recovered_frac@0.9 IS the aux loss's own target, so it
+cannot independently confirm the encoder learned a genuine composing
+operator). READ-ONLY: no training, no writes to `results/`, one small
+forward pass (`extract_kv` → `ncr_head.encode`) on the COMPLETED
+`mob_g3b20_s0` checkpoint (step 20000/20000, ortho-reg push, non-TF, aux
+3.0 + ortho 0.1), on box `youthful-indigo-turkey` GPU2 (`nvidia-smi`
+before/after: 43549 MiB → peak +2.96GB this process only → back to 43549
+MiB; all 8 GPUs stayed >=98% util throughout, production undisturbed).
+Loaded via the runner's own `load_checkpoint`/`restore_arms_and_opts`
+(no reimplementation). Batch = 64 fresh grammar_rd Task-1 documents,
+probe seed 20260721 (independent of the training data stream and of any
+eval seed). Scripts + raw JSON archived:
+`experiment-runs/2026-07-17_ncr_gate3_wave1/z_ortho_probe.py`,
+`z_ortho_probe_v2.py`, `g3b23_z_probe_results/*.json`.
+
+**Two passes, because the first (literal, unnormalized) test and the
+mechanism-faithful test disagree in an informative way — both are reported,
+not just the favorable one.**
+
+### Pass 1 — raw linear algebra on Z (no renormalization)
+
+`full_graft` (trained), 64-doc batch, d=25:
+- Singular values: min **0.004**, mean **0.586**, max **1.307** — NOT all
+  ≈1. Full sorted spectrum (mean per rank across the batch): ranks 1-11 sit
+  in **[0.981, 1.307]** (a tight near-unit cluster, one rank slightly hot at
+  1.30), then ranks 12-25 decay smoothly **0.687 → 0.004**. 10 of 25
+  singular values land inside [0.9,1.1]; the bottom ~14 do not.
+- ‖ZᵀZ−I‖_F: **3.460** (min 3.460 / max 3.461 — essentially batch-invariant).
+  Squared/d² = 0.0192 — same order as the training `ortho_loss`'s own
+  converged value in the §G3-B20 smoke (0.038), consistent, not
+  contradictory, with this being what SGD actually minimized.
+- Eigenvalue magnitudes |λ|: min **0.035**, mean **0.413**, max **1.301** —
+  NOT on the unit circle.
+- **Raw (unnormalized) matrix powers do NOT return to I**: ‖Z²⁴−I‖_F mean
+  **484.2** (range 434-556); ‖Z¹²−I‖_F mean **21.6**; ‖Z²⁵−Z‖_F mean
+  **626.4**; the periodicity check ‖Z⁶¹−Z¹³‖_F (61 mod 24 = 13) mean
+  **6.72×10⁶** — explosively large, driven by the one singular value >1
+  (1.307²⁴ ≈ 500-600, matching the observed Z²⁴ deviation almost exactly).
+  **Taken alone, Z is NOT a clean orthogonal matrix and does NOT satisfy
+  literal order-24 periodicity.**
+- Permutation check (Z·keyᵢ vs valueᵢ, the h=1 bind pair from this batch's
+  own K-cycle, all K=24 pairs × 64 docs): mean cos **0.9988**, min
+  **0.9965** — near-perfect DIRECTIONAL alignment despite Z not being
+  norm-preserving.
+
+`backbone_only` (frozen-at-random-init control — its `o_injected` is
+zeroed with no autograd edge back to Z's graph, so this Z never received
+gradient; it doubles as the "random-init encoder" baseline the brief asked
+for, no third model needed): singular values min 0.0006 / mean 0.586 / max
+**11.84** (one huge outlier, no unit-singular-value cluster at all);
+‖ZᵀZ−I‖_F mean **135.96** (39× the trained value); |λ| mean 0.143;
+permutation-check cos mean **0.0033**, range [-0.579, 0.557] — chance
+level.
+
+### Pass 2 — mechanism-faithful test (the model's OWN read operator)
+
+`nm.binexp_read` renormalizes the running matrix/vector after every
+squaring/application step (`_renorm_mat`/`_renorm_vec` in `ncr_models.py`)
+and tracks scale separately — by construction `o ∝ Zʰq` "up to a strictly
+positive scalar," i.e. the read is scale-invariant, cosine-based composition
+by design, not an incidental property. Pass 1's raw-matrix-power test
+doesn't respect that invariance, so it can't by itself refute exact
+composition under the mechanism the model actually uses. Re-tested using
+`nm.binexp_read(Z, entity_vecs, h)` directly against the TRUE h-hop target
+(`succ^h(i)`, pulled from grammar_rd's own raw `succ` K-cycle array — a
+ground truth fully independent of the aux loss's answer-token target and of
+`build_task1_document`'s stripped eval dict), for ALL K=24 starting
+entities simultaneously (not just one queried a_slot per document) at
+h ∈ {1,2,3,5,12,20,24,25,48,61} — h=24/48 are the cycle order and its
+double, h=61 replicates the deep-ladder held-out probe. Sanity-checked
+`succ²⁴ == identity` directly against grammar_rd's own K-cycle (100.0% of
+slots, K=24 single Hamiltonian cycle has order exactly K by construction).
+
+`full_graft`: mean cosine to the TRUE h-hop target is **flat at ~0.999 for
+every h tested, 1 through 61** (0.9988 / 0.9990 / 0.9989 / 0.9990 / 0.9990 /
+0.9990 / 0.9990 / 0.9990 / 0.9990 / 0.9990 for h=1,2,3,5,12,20,24,25,48,61
+respectively; min-cos never below 0.997; frac_cos≥0.9 = 1.0 at every h) —
+literally indistinguishable whether composing 1 hop or 61. `backbone_only`:
+mean cosine to the true target stays at chance (0.001-0.007, min as low as
+-0.616) at every h — no structure.
+
+### Interpretation (one honest sentence, plus the caveat that earns it)
+
+**Under the read mechanism the model actually uses (renormalized,
+scale-invariant repeated squaring — the O(log h) composition read this
+whole architecture is built around), the trained encoder writes an operator
+that composes EXACTLY like the true K=24 cycle permutation at every depth
+tested including 61 (>2.5 full cycles), against ground truth independent of
+the aux loss's own target and independent of any single evaluated query —
+this is genuine, non-circular structural evidence the encoder learned the
+composing operator, not an artifact of the recovery metric; BUT Z is
+demonstrably NOT a literal orthogonal matrix (raw SVD: only ~10-11 of 25
+singular values cluster near 1, condition number ~300+, raw Zʰ powers
+diverge) — so "orthogonal cycle operator" is true in the scale-invariant
+sense binexp_read's own contract relies on, false in the strict
+linear-algebra sense, and §G3-B22's own prose ("a clean rotation") should
+be read with that qualifier going forward.** The `backbone_only`/random-init
+contrast (chance-level on every metric, both passes) confirms none of this
+is a read-instrument artifact — it is specific to the trained encoder.

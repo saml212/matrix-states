@@ -1,0 +1,131 @@
+{
+  "probe": "sec_G3_B23_z_orthogonality_probe",
+  "ckpt_path": "/home/nvidia/ncr_g3b12_fix/results/mob_g3b20_s0_ckpts/mob_g3b20_s0.ckpt.pt",
+  "ckpt_step": 20000,
+  "ckpt_cell_id": "mob_g3b20_s0",
+  "probe_seed": 20260721,
+  "batch_size": 64,
+  "hop_value": 1,
+  "K": 24,
+  "d_ncr": 25,
+  "results": {
+    "full_graft": {
+      "label": "full_graft",
+      "batch_size": 64,
+      "d": 25,
+      "singular_values": {
+        "min": 0.004099386278539896,
+        "mean": 0.5859271287918091,
+        "max": 1.3073012828826904,
+        "finite_frac": 1.0
+      },
+      "ZtZ_minus_I_fro": {
+        "min": 3.459974527359009,
+        "mean": 3.460537910461426,
+        "max": 3.4613759517669678,
+        "finite_frac": 1.0
+      },
+      "eig_magnitude": {
+        "min": 0.035008981823921204,
+        "mean": 0.4130193293094635,
+        "max": 1.301200270652771,
+        "finite_frac": 1.0
+      },
+      "Z24_minus_I_fro": {
+        "min": 433.5733337402344,
+        "mean": 484.17120361328125,
+        "max": 555.7384033203125,
+        "finite_frac": 1.0
+      },
+      "Z24_finite_frac": 1.0,
+      "Z12_minus_I_fro": {
+        "min": 20.471208572387695,
+        "mean": 21.61143684387207,
+        "max": 23.156389236450195,
+        "finite_frac": 1.0
+      },
+      "Z12_finite_frac": 1.0,
+      "Z25_minus_Z_fro": {
+        "min": 558.343017578125,
+        "mean": 626.4225463867188,
+        "max": 723.098876953125,
+        "finite_frac": 1.0
+      },
+      "Z25_finite_frac": 1.0,
+      "Z61_minus_Z13_fro_periodicity_check": {
+        "min": 5046425.0,
+        "mean": 6719543.0,
+        "max": 9470199.0,
+        "finite_frac": 1.0
+      },
+      "Z61_finite_frac": 1.0,
+      "Z13_finite_frac": 1.0,
+      "permutation_cos_Zkey_vs_value": {
+        "min": 0.9965342879295349,
+        "mean": 0.9987964630126953,
+        "max": 0.9996438026428223,
+        "finite_frac": 1.0
+      }
+    },
+    "backbone_only": {
+      "label": "backbone_only",
+      "batch_size": 64,
+      "d": 25,
+      "singular_values": {
+        "min": 0.0006059125298634171,
+        "mean": 0.5857898592948914,
+        "max": 11.83952522277832,
+        "finite_frac": 1.0
+      },
+      "ZtZ_minus_I_fro": {
+        "min": 134.2241668701172,
+        "mean": 135.95755004882812,
+        "max": 139.25624084472656,
+        "finite_frac": 1.0
+      },
+      "eig_magnitude": {
+        "min": 0.00656239315867424,
+        "mean": 0.1431073397397995,
+        "max": 1.1889150142669678,
+        "finite_frac": 1.0
+      },
+      "Z24_minus_I_fro": {
+        "min": 5.003809452056885,
+        "mean": 61.750953674316406,
+        "max": 682.3626098632812,
+        "finite_frac": 1.0
+      },
+      "Z24_finite_frac": 1.0,
+      "Z12_minus_I_fro": {
+        "min": 5.465344429016113,
+        "mean": 23.756975173950195,
+        "max": 85.60981750488281,
+        "finite_frac": 1.0
+      },
+      "Z12_finite_frac": 1.0,
+      "Z25_minus_Z_fro": {
+        "min": 2.376772165298462,
+        "mean": 58.76434326171875,
+        "max": 799.6747436523438,
+        "finite_frac": 1.0
+      },
+      "Z25_finite_frac": 1.0,
+      "Z61_minus_Z13_fro_periodicity_check": {
+        "min": 0.05398150905966759,
+        "mean": 9235.962890625,
+        "max": 411650.03125,
+        "finite_frac": 1.0
+      },
+      "Z61_finite_frac": 1.0,
+      "Z13_finite_frac": 1.0,
+      "permutation_cos_Zkey_vs_value": {
+        "min": -0.579300582408905,
+        "mean": 0.0032735494896769524,
+        "max": 0.556971549987793,
+        "finite_frac": 1.0
+      }
+    }
+  },
+  "peak_gpu_mem_gb_this_process": 2.9568305015563965,
+  "elapsed_s": 9.489997625350952
+}
