@@ -6548,3 +6548,59 @@ linear-algebra sense, and §G3-B22's own prose ("a clean rotation") should
 be read with that qualifier going forward.** The `backbone_only`/random-init
 contrast (chance-level on every metric, both passes) confirms none of this
 is a read-instrument artifact — it is specific to the trained encoder.
+
+## §G3-B24 REBALANCED 3RD PUSH — ROUTING NOTE + DISPATCH RECORD (Fable, 2026-07-24)
+
+**Authorization.** §G3-B22's NEXT clause left the 3rd push as "PI's call
+since they approved ONE." Discharged: PI live directive 2026-07-24
+("figure out what the next right experiment for them is and get it
+going") during a GPU/runway check; the registry's own recorded lean
+("worth ONE rebalanced run — the twice-failed hard part is now solved,
+we're one loss-balance fix from a clean capability demo") is the
+experiment selected. Recorded here BEFORE dispatch per the gauntlet
+bookkeeping rule.
+
+**Hypothesis (one sentence).** With the aux read-supervision weight
+lowered 3.0→0.5 (ortho 0.1 kept), the CE/decode path — starved of
+gradient share in §G3-B20/B22 while the aux term drove write-learning to
+solution — receives enough training signal to clear the gate's existing
+Task-1 end-to-end PASS bands, while write-learning (recovered_frac ≈ 1.0,
+§G3-B23's mechanism-faithful composition ~0.999 at h≤61) is retained.
+
+**Design delta from §G3-B20: ONE flag** — `--aux-read-loss-weight 0.5`
+(was 3.0). Everything else identical: non-TF, `--ortho-reg-weight 0.1`,
+seed 0, lr 3e-4, batch 32/64, 20,000 steps, ceiling 6.0 GPU-h. Of
+B22's two offered rebalance options (flat-lower vs curriculum), flat-0.5
+is chosen because it is config-only on the already-audited runner; the
+curriculum variant would require new anneal code + a fresh audit round
+and stays available as the follow-on knob if this run trains the decode
+but degrades the write.
+
+**Audit status.** Script = `ncr_lm_wave1_runner.py`, byte-identical
+(md5 `bf4878124b970c30235e52b0b52dd4d1`) across the §G3-B12-fix dir that
+produced `mob_g3b20_s0` (COMPLETED, status/step verified in its result
+JSON), the §G3-B20 smoke dir, and the new pinned copy at
+`~/ncr_g3b24_rebalance/` on the box. Config-only change on an audited
+script, measured cost 5.0 GPU-h at B20 → <10 GPU-h ceremony tier, prior
+audit carries.
+
+**Novelty gate.** No claim pivot: same claim, task, mechanism, and gate
+as §G3-B17/B20/B22 — a loss-balance rebalance on the pre-registered
+FAIL-branch continuation recorded in §G3-B22's NEXT. Design-time
+novelty verdicts stand; no new sweep owed.
+
+**Success criteria.** PASS/FAIL = the gate's EXISTING pre-registered
+Task-1 bands, unchanged — this note adds no new bands and re-registers
+nothing. Secondary (mechanism retention, non-gating): recovered_frac@0.9
+does not collapse vs B20, and a §G3-B23-style read-only Z-probe on the
+final checkpoint remains available as the addendum check.
+
+**Dispatch.** Box queue job `0985_ncr_g3b24_rebalance_aux05_s0.json`
+(claims lexicographically FIRST box-wide — worker sort is `ls | sort`, plain lexicographic, which is also why the 990_ falconmamba job correctly waits behind the 11xx series; claims the first GPU that
+frees, ~hours). Cell `mob_g3b24_s0`, out
+`~/ncr_g3b24_rebalance/results/mob_g3b24_s0.json`.
+
+**Same check, queue runway (doctrine item).** All 8 GPUs verified
+92-100% util; queue was 5 pending (<1 day) — refill generator's seed
+range extended s44–s51 (+16 laneB cells ≈ 252 GPU-h, idempotent run:
+WROTE 16 / SKIPPED 28), pending now 21 ≈ >2-day runway restored.

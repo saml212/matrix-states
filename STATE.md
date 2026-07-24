@@ -1,5 +1,13 @@
 # STATE — Current Project State
 
+**2026-07-24 tick (Fable):** 8/8 GPUs verified hot (92–100%); on-box
+queue runway restored 5→21 pending (laneB refill seeds s44–s51, ≈252
+GPU-h, >2 days). **NCR §G3-B24 rebalanced 3rd push DISPATCHED** (aux
+3.0→0.5, config-only on the audited runner, ~5 GPU-h) as box job
+`0985_ncr_g3b24_rebalance_aux05_s0` — PI live go 07-24 discharged
+§G3-B22's "PI's call" gate; full routing note + pre-registration in
+`matrix-thinking/NCR_REAL_LM_DESIGN.md` §G3-B24. Claims first free GPU.
+
 ## DAY BRIEFING — 2026-07-17 (current; supersedes all below)
 
 **THE NCR ARC + STRATEGIC PIVOT (all pushed, main @ ~1cb3c9a+).**
