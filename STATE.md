@@ -8,9 +8,13 @@ reads) NOVEL at high confidence; 5 cite-and-distinguish obligations
 (2505.23683 depth-based O(log k); 2505.12960 memristor N^1.74; 2607.19390
 read-time NS-scaffold skeptic — bears on §G3-B24's read; 2605.05189
 argmax-vs-exact thresholds; Huh 2402.17002). Internal sweep found P4/P5
-had ZERO prior coverage — P4 closed by this gate; P5 + P1's
-invariant-subspace sub-claim under a follow-up sweep (in flight, appends
-to the memo). research/README.md index un-staled.
+had ZERO prior coverage — both closed same day (follow-up sweep §7):
+P5 verdict = PARTIAL-OVERLAP with MANDATORY REFRAME (bytes-matched axis
+is Zoology/Based 2023-24 prior art; our headline is the counter-consensus
+WIN direction, cite + reconcile); P1's invariant-subspace sub-claim =
+NOVEL (claim the restricted-erank instrument, not the concept). GATE
+CLOSED: all program claims COVERED-FRESH, 7 obligations on the memo's
+punch list. research/README.md index un-staled.
 
 **2026-07-24 tick (Fable):** 8/8 GPUs verified hot (92–100%); on-box
 queue runway restored 5→21 pending (laneB refill seeds s44–s51, ≈252
