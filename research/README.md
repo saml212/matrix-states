@@ -67,6 +67,17 @@ The most recent work. A multi-agent session investigated 11 topics in parallel a
 - **reasoning-link-litreview-2026-07-07.md** — Literature validation for the
   REASONING-LINK program (GO-WITH-REFRAME): must-defend papers (VLA,
   Frozen-QK, Okpekpe & Orvieto), scoop-risk adjudication, novelty table.
+- **ncr_separation_grounding.md** — (added 2026-07-15/16) The NCR
+  separation claim's grounding memo: the triple-sweep gate that
+  RESTRUCTURED the claim (Yau near-scoop → S₅ demoted to supporting
+  evidence), plus the 07-17 novelty-delta sweep on the Cayley/expm
+  fallback axis.
+- **ortho_write_grounding.md** — (added 2026-07-15) Orthogonal fast-weight
+  write prior art: the MuonSSM narrowing verdict that scoped kwall's claim.
+- **novelty-gate-2026-07-27.md** — First PROGRAM-WIDE execution of the
+  2026-07-16 triple-sweep gate (P1–P6 + NCR): no claim scooped; 5
+  cite-and-distinguish obligations; P4 coverage closed, P5 + one P1
+  sub-claim follow-up in flight. The current novelty verdict of record.
 
 ## Convention for new research notes
 
