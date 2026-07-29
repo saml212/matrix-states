@@ -6385,7 +6385,10 @@ build brief.
 
 ## §G3-B22 ORTHO-REG PUSH VERDICT — UNINTERPRETABLE by rule, but the WRITE-LEARNING is SOLVED (blind Opus + coordinator cross-check, 2026-07-20)
 
-**[AMENDED by §G3-B23, 2026-07-21 — read the amendment before citing this section.**
+**[AMENDED by §G3-B23, 2026-07-21, and VOIDED-IN-PART by §G3-B26,
+2026-07-29 — "write-learning SOLVED" rested on a saturated instrument
+(recovered_frac@0.9 with a collapsed target space); read §G3-B26 before
+citing ANY positive claim from this section.**
 The mechanism claim below ("orthogonality unlocked it / orthogonal Z composes
 exactly") is WRONG: the Z-probe shows Z is NOT literally orthogonal (~11 of 25
 σ near 1, ‖ZᵀZ−I‖_F=3.46, raw powers diverge). What is REAL: under the model's
@@ -6447,6 +6450,19 @@ Box ckpt retained pending PI decision (probing Z's orthogonality is a candidate
 mechanistic addendum).
 
 ## §G3-B23 Z-ORTHOGONALITY PROBE — READ-ONLY mechanistic characterization (Fable, 2026-07-21)
+
+**[INTERPRETATION VOIDED by §G3-B26, 2026-07-29. The raw numbers below
+stand, but the "composes EXACTLY like the true K=24 cycle" conclusion is
+fully explained by common-mode collapse: this probe measured cosine to
+the TRUE target only and never the off-target margin. §G3-B26's
+measurement (coordinator re-executed): margin ≈ 0 ± 3e-4, 24-way
+retrieval from o at chance, o document-to-document variance 7e-8 at
+h=61 — the read is one fixed vector (Z's dominant singular direction;
+binexp at depth is power iteration, s1/s2=1.21), and the trained
+entity_adapter collapsed all 24 targets to pairwise cos 0.996. The
+backbone_only contrast (0.999 vs 0.003) is exactly what collapse + a
+random-init control produces and excludes nothing. Do not cite this
+section's conclusion.]**
 
 Non-circular structural check requested against §G3-B22's judge-flagged
 circularity concern (recovered_frac@0.9 IS the aux loss's own target, so it
@@ -6664,3 +6680,93 @@ extension is CI-saturated (28 seeds/arm) and is no longer legitimate
 filler. Runway must come from spearhead-branch jobs (above) and any
 still-open pre-authorized campaign cells; blind filler is declined as
 zero-information grant burn.
+
+## §G3-B26 INDEPENDENT AUDIT VERDICT + READ-COLLAPSE FINDING — AMENDS §G3-B17→B25 (Fable, 2026-07-29)
+
+**What happened:** the §G3-B25 branch build (decode-isolation probe +
+curriculum phase-2 spec) went to its independent judge-tier audit. The
+audit's pre-launch read-only check answered §G3-B25's gating question
+and voided the premise of the entire GATE-3 positive arc.
+
+**THE FINDING (audit-measured, then COORDINATOR TIEBREAK-CONFIRMED by
+direct re-execution of the read-only script on box GPU2, per the
+contradictory-rounds hard rule — raw output in this session's record):**
+on the COMPLETED `mob_g3b24_s0` checkpoint, at h ∈ {1,2,3,61}:
+- cos(o, TRUE target) ≈ cos(o, the 23 WRONG in-document targets):
+  margin −0.00008…+0.00027 — ZERO discriminative signal.
+- 24-way nearest-neighbor retrieval from o: 0.031–0.062 (chance 0.042).
+- o pairwise cos across documents: 0.999→1.00000 at h=61 (o_var
+  6.95e-08) — the read output is ONE FIXED VECTOR.
+- Mechanism: (i) the trained `entity_adapter` (768→25) collapsed the
+  target space — raw GPT-2 entity embeds pairwise cos 0.0837, after the
+  TRAINED adapter 0.9960 (init-adapter control: no collapse, s1/s2
+  1.01 vs trained 4.67) — the standard non-contrastive co-collapse of
+  the `1 − cos(o, target.detach())` aux (detach stops the value path,
+  not the adapter's training); (ii) `binexp_read` at depth is POWER
+  ITERATION, not composition — Z s1/s2 = 1.21, |cos(o_h61, Z's top
+  singular direction)| = 0.9961, cos(o_h1, o_h61) = 0.9995.
+
+**CLAIMS AMENDED:** §G3-B22's "write-learning SOLVED" and §G3-B23's
+"composes EXACTLY at every depth incl 61" rested on a saturated
+instrument (recovered_frac@0.9 against a collapsed target space reads
+1.0 for an information-free read; §G3-B22's judge flagged exactly this
+circularity — this is that concern realized and quantified). One cause
+now explains every observation §G3-B17→B25: aux 3.0, aux 0.5, ortho
+on/off, and B24's below-chance answer accuracy. **The real-LM
+capability claim returns to UNPROVEN.** SCOPE: this voids the GATE-3
+real-LM GRAFT arc's positive signals only — the toy-scale NCR ladder,
+rank-law trilogy, and capacity results used different harnesses with
+provable-lower-bound constructions and are untouched; whether any other
+program instrument shares the non-contrastive-cosine pattern is a
+follow-up verification item, not an assumed contagion. Caveat: n=1
+checkpoint; the s1/s2 replicates (training now) get the same read-only
+check on completion (free) before §G3-B22/B23 prose is rewritten further.
+
+**AUDIT VERDICTS (full audit record in the session task output;
+condensed):**
+- Deliverable 1 (decode-isolation probe): **PASS-WITH-REQUIRED-CHANGES.**
+  Freeze mask exact (19,200/97,831,321 trainable), negative control
+  verified, reuse discipline clean. R1: add discriminability
+  instrumentation (off-target margin + 24-way NN retrieval) — without
+  it the probe cannot distinguish "decode broken" from "read empty."
+  R2: bands re-registered — STRUCTURAL verdict must be conditioned:
+  read-NN at chance ⇒ READ COLLAPSE (upstream), not "decode block";
+  forbidden if CE still descending or the two R3 LRs disagree
+  (head-alone objective is CONVEX — under-optimization is the only
+  alternative explanation and must be excluded). R3: run positive arm
+  at lr 3e-4 AND 3e-3. Ceiling stays 2.0 GPU-h (audited headroom
+  2.2–40×; ABORTED-BUDGET = re-run trigger, never a verdict).
+- Deliverable 2 (curriculum phase-2, 0988): **FAIL — DO NOT QUEUE.**
+  All four resume-semantics claims verified TRUE (CLI weights fresh;
+  LR reheat 9.83e-05 exact, accepted-as-is-if-ever-respecified; no
+  cell-id assert, staged ckpt md5-verified; data-stream continues),
+  spec mechanics correct — but the hypothesis premise ("train decode
+  against the near-perfect frozen read") is now measured FALSE, and
+  the runner's primary registered signal is the saturated instrument.
+  **BLOCKING RULE: no further training on this runner until
+  eval_arm_at_hops + build_attribution carry a discriminative metric
+  (off-target margin + 24-way retrieval).**
+- Seed trap CONFIRMED 100% silent (pools rebuilt from --seed pre-ckpt,
+  nothing asserted): follow-up patch = save seed in ckpt + assert on
+  resume, bundled with the discriminability patch.
+
+**THE CORRECTED ROAD (audit sequencing, adopted):**
+1. Re-verify collapse on `mob_g3b24_s1/s2` checkpoints at completion
+   (read-only, free).
+2. **Runner patch (dispatched to build 2026-07-29):** discriminative
+   metric into eval + attribution; seed assert; probe R1–R3. New code
+   on the pinned runner → its own audit round before any launch.
+3. Run the patched probe as the confirmatory artifact (~0.3 GPU-h).
+4. Re-specify the next training cell around the ROOT-CAUSE FIX: replace
+   the bare-cosine aux with a CONTRASTIVE/softmax objective over the 24
+   in-document entity targets (removes the degenerate optimum rather
+   than hoping CE escapes it). **This is a CLAIM PIVOT → re-enters the
+   novelty gate (triple sweep) before launch, per doctrine.**
+
+**Honest ledger:** §G3-B17→B25 consumed ≈8 GPU-h of training on an
+instrument that could not falsify; the audit's 60-second read-only check
+is what caught it, BEFORE the next spend — the multi-round audit
+discipline and the §G3-B22 judge's original circularity flag did their
+job, two rounds late. The §G3-B23 probe (coordinator-built) shares the
+miss: it verified against the true target and never measured the
+off-target margin. Lesson recorded below.

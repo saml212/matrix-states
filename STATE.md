@@ -1,5 +1,22 @@
 # STATE — Current Project State
 
+**2026-07-29 tick #2 (Fable): READ-COLLAPSE — GATE-3 POSITIVE ARC
+VOIDED (§G3-B26).** The B25-branch independent audit's read-only
+pre-check, COORDINATOR TIEBREAK-CONFIRMED by direct re-execution: the
+graft's read output carries ZERO entity-discriminative information
+(true-vs-wrong-target margin ±3e-4; 24-way retrieval at chance; o is
+ONE fixed vector at h=61, var 7e-8). Cause: non-contrastive cosine aux
+co-collapsed the trained entity_adapter's target space (0.084→0.996
+pairwise cos); binexp at depth = power iteration to Z's top singular
+direction (s1/s2=1.21). §G3-B22 "write SOLVED" + §G3-B23 "composes
+EXACTLY" = saturated instrument; real-LM capability claim back to
+UNPROVEN. Toy-scale NCR/rank-law/capacity results UNTOUCHED (different
+harnesses, provable-bound constructions). Road: s1/s2 collapse
+re-check on completion → runner discriminability+seed-assert patch
+(build dispatched) + audited probe R1-R3 → CONTRASTIVE-aux re-spec =
+CLAIM PIVOT → novelty gate re-entry. Curriculum 0988: audit FAIL, not
+queued. Full record §G3-B26; §G3-B22/B23 carry amendment flags.
+
 **2026-07-29 tick (Fable): §G3-B24 VERDICT = REBALANCE-FAIL on decode;
 write/read PERFECT (gap 1.0 @ every h incl 61) — starvation hypothesis
 WEAKENED, structural-block now the live alternative. Full verdict +
