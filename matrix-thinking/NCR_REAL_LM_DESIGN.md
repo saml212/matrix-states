@@ -6812,3 +6812,43 @@ Full build report in session task record; load-bearing facts:
 recheck script; on PASS, queue 0990/0991 (recheck) + 0989 (probe);
 then the contrastive-aux re-spec through the novelty gate (claim
 pivot) per §G3-B26's road.**
+
+## §G3-B28 INDEPENDENT AUDIT VERDICT on the B27 patch + CHANGES APPLIED + DISPATCH (Fable, 2026-07-29)
+
+**Audit (judge tier, full record in session task output) — verdicts:**
+patched runner PASS-CLEAR (training path proven untouched: 37/37 other
+defs byte-identical, o_raw max-abs-diff 0.00e+00 vs pinned at every hop;
+metric math bit-identical to the reference construction; ckpt
+grandfathering execution-verified unbrickable); recheck script
+PASS-CLEAR (all 4 seed-resolution branches run to completion); probe
+PASS-WITH-CHANGES (P1 aggregator pinned, P2 negative-control-LR rider —
+both pre-registered band-text edits); specs 0990/0991 PASS-CLEAR, 0989
+PASS after Q1 (estimate 1.0→0.15; audit MEASURED 0.08 GPU-h); 0988 FAIL
+stands, stays .CANDIDATE.
+
+**n=3 ADJUDICATION: the §G3-B26 "n=1" caveat is RETIRED — collapse
+stands 3/3** (audit re-ran everything itself; signature uniform:
+o_pairwise 1.00000@h61 all seeds, margin ≈0, ret24 straddles chance,
+rf@0.9 saturated at 1.0 everywhere; frozen-init backbone arm shows NO
+collapse on the same metric/batches → caused by training, not harness).
+**Both §G3-B25 anomalies RESOLVED:** 0.82 GPU-h reproduces 3/3 (B20's
+5.0 is the outlier); s0's below-chance acc = n=64 sampling noise.
+
+**Changes applied + re-verified (2026-07-29):** P1+P2 in FROZEN_BANDS
+(probe md5 a6c6b7fe… → e14c9746…, syntax-checked, --smoke re-run green
+12s); Q1 in 0989 spec (0.15, measured 0.08 noted); H1 wrong-seed
+garbage JSON renamed …_WRONG_SEED_GARBAGE_DO_NOT_USE.json. **H2 hazard
+RECORDED:** results/mob_g3b25cur_s0_ckpts/mob_g3b25cur_s0.ckpt.pt is a
+PRE-PATCH byte-copy staged for the FAILED 0988 — no seed key, so
+grandfathered past the new assert; if 0988 is ever re-specified,
+re-stage that ckpt via a 1-step patched-runner save first.
+
+**Audit disclosure (blind-discipline):** the audit's budget calibration
+produced a 250-step (1/12) preview slice of 0989's measurement (acc
+0.0625 vs 0.0365, CE flat, ret24 mean 0.0256); no band label computed;
+0989 at full budget is the artifact of record.
+
+**DISPATCHED:** 0990/0991 (s1/s2 formal rechecks) + 0989 (patched
+probe, both LRs) into pending/. NEXT after their harvest: the
+contrastive-aux re-spec through the novelty gate (claim pivot), per
+§G3-B26's road.
