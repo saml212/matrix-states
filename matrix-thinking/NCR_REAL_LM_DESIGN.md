@@ -6604,3 +6604,63 @@ frees, ~hours). Cell `mob_g3b24_s0`, out
 92-100% util; queue was 5 pending (<1 day) — refill generator's seed
 range extended s44–s51 (+16 laneB cells ≈ 252 GPU-h, idempotent run:
 WROTE 16 / SKIPPED 28), pending now 21 ≈ >2-day runway restored.
+
+## §G3-B25 REBALANCED 3RD PUSH VERDICT — DECODE STILL DEAD, STARVATION HYPOTHESIS WEAKENED (Fable, 2026-07-29)
+
+**Run:** `mob_g3b24_s0` COMPLETED 2026-07-25T05:01Z, 20000/20000 steps,
+0.82 GPU-h, both read-ablation exact-zero checks PASSED (pre+post).
+Result JSON: box `~/ncr_g3b24_rebalance/results/mob_g3b24_s0.json`.
+
+**Numbers (per the §G3-B5 frozen attribution rule):**
+- recovered_frac@0.9 GAP (full_graft − backbone_only): **1.0 at EVERY
+  depth** — in-dist h=1,2,3 and deep h=5,12,20,29,40,61 all 1.0;
+  mean_cos ≈ 0.998 at h=61. Write-learning + O(log h) read remain fully
+  intact at aux 0.5 — §G3-B22's "write solved" verdict REPLICATED at a
+  6× lower aux weight.
+- **mean_answer_accuracy (the decode leg B24 existed to fix): 0.026
+  full_graft vs 0.0365 backbone_only — both ≈ chance (1/24 ≈ 0.042),
+  full_graft nominally BELOW backbone and below chance.** The decode did
+  not train. VERDICT: REBALANCE-FAIL on the decode leg; end-to-end
+  Task-1 PASS bands NOT met.
+
+**Mechanistic implication (the new information):** §G3-B22 attributed
+decode failure to aux-gradient starvation (aux 3.0 dominating CE). B24
+cuts aux to 0.5 — CE has ample gradient share — and decode still sits at
+chance. The starvation hypothesis is now WEAKENED; a STRUCTURAL block in
+the decode path is the live alternative (candidates: the renormalized,
+scale-free binexp_read output may be information-complete but
+magnitude-degenerate for the answer head; a stop-gradient/detach in the
+read→decode path; CE target/vocab plumbing). Deciding between
+optimization-dynamics vs structural-block is now the gating question.
+
+**Anomalies on record (verdict robustness):** (a) 0.82 GPU-h vs B20's
+5.0 at identical steps/config-except-aux — plausibly contention delta
+(B20 ran beside 7 live 392M trainers; B24 ran on a draining box) but
+unexplained by measurement; (b) below-chance full_graft answer acc.
+Robustness replicates s1/s2 queued (0986/0987, config-only).
+
+**NEXT (pre-registered branch + new diagnostic, dispatched to
+build/audit chain 2026-07-29):**
+1. **Decode-isolation diagnostic** (NEW code → separate audit before
+   launch): freeze everything except the answer/decode head on the
+   COMPLETED B24 checkpoint; train the decode head alone against the
+   frozen (perfect, gap-1.0) read output. Discriminates: trains fine →
+   joint-training dynamics (curriculum territory); still chance →
+   structural block (fix the path before ANY further training spend).
+2. **Curriculum phase-2** (§G3-B22's second pre-registered option):
+   resume from B24's ckpt with aux→0 (pure CE + ortho), NEW cell-id.
+   Runner has true step-level resume but the launch spec must be
+   audited for: LR-schedule state at resume, the COMPLETED-skip guard
+   (needs new cell dir + ckpt seed copy or a minimal --init-from
+   patch), steps_target semantics, data-stream continuation.
+Ceremony: both <10 GPU-h → 1 audit round each, but the audit is
+mandatory (new code / semantically-loaded config surgery on the
+audited runner).
+
+**Queue/runway note:** the on-box queue ran FULLY DRY ~2026-07-26T13:16Z
+(388/388 completed incl. all laneB s30–s51; 0 failed) and the box sat
+idle ~2.5 days — runway doctrine violated at the far end; laneB seed
+extension is CI-saturated (28 seeds/arm) and is no longer legitimate
+filler. Runway must come from spearhead-branch jobs (above) and any
+still-open pre-authorized campaign cells; blind filler is declined as
+zero-information grant burn.

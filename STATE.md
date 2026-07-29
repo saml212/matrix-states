@@ -1,5 +1,17 @@
 # STATE — Current Project State
 
+**2026-07-29 tick (Fable): §G3-B24 VERDICT = REBALANCE-FAIL on decode;
+write/read PERFECT (gap 1.0 @ every h incl 61) — starvation hypothesis
+WEAKENED, structural-block now the live alternative. Full verdict +
+anomalies + branch plan: `NCR_REAL_LM_DESIGN.md` §G3-B25.** Box queue ran
+DRY ~07-26T13:16Z (388/388 done, 0 failed — incl. ALL laneB s30–s51);
+~2.5 days idle before this tick caught it. Refill: B24 robustness
+replicates s1/s2 queued (0986/0987, config-only, firing now);
+decode-isolation diagnostic + curriculum phase-2 resume dispatched to
+build/audit chain (both <10 GPU-h, 1 audit round each). laneB seed
+extension declared CI-SATURATED (28 seeds/arm) — no longer legitimate
+filler; runway rebuilt from spearhead-branch jobs only.
+
 **2026-07-27 tick (Fable): PROGRAM-WIDE NOVELTY GATE RUN — NO SCOOP.**
 PI-invoked triple sweep over P1–P6 + NCR (first program-wide execution of
 the 07-16 doctrine). Verdict of record: `research/novelty-gate-2026-07-27.md`.
