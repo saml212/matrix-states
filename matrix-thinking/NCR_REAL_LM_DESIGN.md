@@ -6770,3 +6770,45 @@ discipline and the §G3-B22 judge's original circularity flag did their
 job, two rounds late. The §G3-B23 probe (coordinator-built) shares the
 miss: it verified against the true target and never measured the
 off-target margin. Lesson recorded below.
+
+## §G3-B27 DISCRIMINABILITY PATCH BUILD — COMPLETE, AWAITING AUDIT (build agent, 2026-07-29)
+
+Full build report in session task record; load-bearing facts:
+- Runner patched (work-dir copy ONLY): `discriminability_metrics()`
+  (byte-for-byte the audit script's construction), additive into
+  `eval_arm_at_hops` + `build_attribution`; new PRIMARY signal v2 =
+  retrieval24_acc GAP at deep h (a collapsed target space reads CHANCE
+  on 24-way argmax, not 1.0 — the metric cannot saturate the B26 way);
+  recovered_frac fields kept for continuity. Seed now saved in ckpt +
+  loud assert on resume (old ckpts grandfathered via get-default).
+  md5: pinned bf48781… → patched f307a7fd…
+- Probe R1–R3 applied (calls the runner's own metric fn; bands
+  re-registered with READ-COLLAPSE label + 3 STRUCTURAL preconditions;
+  LR ladder 3e-4/3e-3 internal loop, fresh ckpt load per arm). Blind
+  discipline preserved (trends descriptive, no verdict computed).
+- Smoke: patched eval reproduces the audit's known s0 numbers (margin
+  |Δ|=8e-5, ret24 |Δ|=3e-4); attribution smoke shows v2 gap 0.031 vs
+  old gap 1.0 side-by-side — the new instrument sees what the old hid.
+  Seed-assert negative test RAISED correctly on a real resume (run to
+  completion, not just written); positive resume clean.
+- **s1/s2 COLLAPSE REPRODUCTION (replicates COMPLETED; recheck run
+  with correct per-cell seeds):** s1: h=61 o_pairwise 1.00000,
+  target_pairwise 0.99552, ret24 0.078; s2: 1.00000 / 0.99253 / 0.031.
+  **The B26 collapse signature is now n=3/3** (raw numbers, verdict
+  deferred to the audited 0990/0991 confirmatory runs).
+- **The seed trap bit the build itself:** the recheck script's first
+  draft defaulted --data-seed 0, silently evaluated s1's ckpt against
+  the wrong entity pool, and produced plausible-looking garbage
+  (rec@0.9=0.47, "no collapse") until fixed to auto-detect-or-fail-loud.
+  Direct empirical validation of the B26 trap severity + the assert.
+- Candidates staged (NOT queued): 0989 patched probe (2.0 GPU-h ceil),
+  0990/0991 s1/s2 rechecks (~0.02 GPU-h each). 5 open questions for
+  audit (R3 negative-arm scope, unseeded subsample jitter, trend
+  aggregates vs blind rule, recheck script scrutiny, 0989 estimate).
+- Box note: s1/s2 replicates completed → GPUs fully idle again pending
+  this audit round; audit dispatched same hour.
+
+**NEXT: independent audit round (judge tier) on the patch + probe +
+recheck script; on PASS, queue 0990/0991 (recheck) + 0989 (probe);
+then the contrastive-aux re-spec through the novelty gate (claim
+pivot) per §G3-B26's road.**
