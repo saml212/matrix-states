@@ -6884,3 +6884,52 @@ runner.
 rechecks ~0.003 + probe 0.09 ≈ 1.74 GPU-h — the arc that voided ~8
 GPU-h of illusory positives and re-instrumented the program cost less
 than 2.
+
+## §G3-B30 CONTRASTIVE-AUX RE-SPEC — DESIGN ADOPTED WITH COORDINATOR AMENDMENTS; NOVELTY GATE IN FLIGHT (Fable, 2026-07-29)
+
+**Design record** (full text in session task output) ADOPTED: 24-way
+InfoNCE over in-document adapted entity targets, τ=0.07 fixed
+(pre-registered fallback 0.03, config-only), ALL 24 targets detached,
+entity_adapter FROZEN at init (the §G3-B28 frozen-init control — no
+collapse, pairwise cos 0.065–0.081 — is the measured basis), CE + aux
+0.5 + ortho 0.1 weights held at B24 values, 3-cell attribution grid
+(PRIMARY frozen+contrastive; A frozen+cosine; B trainable+contrastive),
+pre-registered bands incl. integrity-check-first ordering and the
+depth-decay PARTIAL signature, ≈2.4–4.5 GPU-h total, 1 audit round.
+
+**COORDINATOR AMENDMENTS (from the internal-archive gate leg, which the
+design agent missed):** the program has PRE-EXISTING contrastive-aux
+precedent — `DELTANET_REALDATA_DESIGN.md` option-(b) (InfoNCE-style
+term chosen in RETAINED-COSINE form, 2026-07-03, with audited
+anti-collapse reasoning) and `DELTANET_RD_EXACTNESS_DESIGN.md` (NCE
+term λ=1.0, T=0.1, NCE-crowding mechanism row). Three amendments:
+- **A1 (loss form):** PRIMARY and companion B use the RETAINED-COSINE
+  form — aux = 0.5·L_ctr + 0.5·L_cos (both frozen-detached-target) —
+  per the archive's rationale: pure contrastive trains toward a
+  discrimination criterion satisfiable by low-rank shortcuts (Nichani
+  argmax applies to the training signal too) while never pushing
+  continuous alignment; retaining L_cos keeps that pressure (serving
+  the off-target-margin metric) and, with FROZEN well-separated
+  targets, L_cos's own collapse route is closed — the two terms are
+  complementary, neither reopens the pathology. Companion A
+  (frozen+cosine-only) unchanged; grid still isolates both axes.
+- **A2 (mechanism claim corrected):** the design's "gradient at the
+  collapsed point points toward the true target" OVERCLAIMS — per the
+  archive's 2026-07-03 audit-fix note, at exact collapse the NCE logits
+  are uniform by symmetry and the gradient is ZERO; collapse under the
+  new loss is a NON-ATTRACTING SYMMETRIC SADDLE, escaped via the
+  coupled path from any non-collapsed point. Since training starts at
+  init with frozen well-separated targets (measured non-collapsed),
+  the saddle is never entered. All B30 prose must use this corrected
+  form — same overclaim the old program's mini-audit caught.
+- **A3 (lesson mining):** build agent must pull the exactness program's
+  NCE-arm outcome artifacts (if on box/SSD) for calibration context —
+  non-blocking.
+
+**Internal gate leg: verdict CLEAR-WITH-PRECEDENT** (own-archive
+precedent strengthens, not blocks: same fix family pre-registered for
+the same pathology class in a closed program; cite both registries in
+the eventual write-up). **External by-task + by-mechanism sweeps
+DISPATCHED** (CPC/van-den-Oord differentiation explicitly assigned to
+the by-mechanism agent as the predicted closest prior art). Build+audit
+proceeds ONLY after both sweeps return and are adjudicated here.
