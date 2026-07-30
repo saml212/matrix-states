@@ -8991,3 +8991,43 @@ re-downloaded, test-set sha1 matches repo copy; all smokes PASS incl.
 a real 1-epoch training run. Box gotcha found+fixed: torchrun
 --standalone hangs (hostname resolves to public IP) — direct-python
 env-var launch verified. Candidates 1200-1204 staged, NOT queued.
+
+## 2026-07-30 — Jacobian-erank AUDIT verdict + CORRECTION of the 07-29 entry; calibration cell dispatched
+
+**CORRECTION (R6, no-fabricated-records rule):** the 07-29 entry's
+"camera-ready promise" framing is BACKWARDS. The erank(J)≥4 falsifier +
+readout enumeration is in the SUBMITTED Apr-28 version
+(PAPER_READER_VIEW.md:191; introduced as rebuttal FIX-1) — the
+published camera-ready (Jul tex + arXiv PDF) carries only the hedged
+"we have not yet measured erank(J(Z))" without the bar. The ≥4 bar is
+OUR OWN reviewer-facing pre-registration from the submitted version —
+legitimate grounding, but not "the published paper states it."
+
+**Audit (judge + placement red-team; full record in session task
+output):** ONE LAUNCH-LOSING FATAL caught pre-launch — production
+config OOMs (78.5 GB at step 130/27,925; build's smoke was batch-4 and
+stopped early). Mitigation TESTED: PYTORCH_CUDA_ALLOC_CONF=
+expandable_segments:True → survives at 80.6/81.5 GB, 97–100% SM
+(the best-saturating cell type in program history). Applied to all 4
+training specs (R1). Verdict-string fixed + re-smoked (R4: erank(J)
+does NOT discriminate rank-blind from rank-aware — measured at init
+ALL readouts read erank(J)≈143–244 incl. provably-rank-blind flatten
+at 244; the ≥4 bar will near-certainly fire and licenses ONLY "the
+rank-1-active-subspace refinement is false as operationalized," NOT
+"rank-blindness is dead"). 1204 estimate 0.15→0.5 (R3, measured).
+
+**R5 pre-registered reproduction bands** (re-derived checkpoints;
+originals confirmed gone incl. SSD sweep): flatten 80.47 /
+bilinear_gelu 79.69 / quadratic 79.69 / svd_aug 78.12 (%), ±3pp;
+outside band ⇒ the erank number describes a different model than the
+paper's and the writeup must disclose re-derivation either way.
+
+**Sequencing (audit ruling, adopted):** 1201 (bilinear_gelu) queued NOW
+as the MANDATORY CALIBRATION CELL (tests epoch-boundary eval + final
+eval + full step range against 950 MiB headroom); 1200/1202/1203 held
+until its clean completion; 1204 held as .CANDIDATE until all four
+trainings complete (flat queue has no dependency primitive; held-spec
+is the sanctioned convention). Jacobian GPUs are EXCLUSIVE-NO-TOUCH
+while training (80.6 GB — any co-resident probe OOMs them). Follow-on
+1205 (Z-varying-component erank, the faithful "active subspace"
+operationalization) recommended, deferred to harvest.
