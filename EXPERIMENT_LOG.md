@@ -8970,3 +8970,24 @@ Per §11.4.2 (*"requires W1 AND W2 to clear all five legs, on each corpus… Fai
 **Compute posture:** ≈1.9 GPU-h on a **shared** GPU 7, co-resident with a live 98M training job at no observed cost. **All 8 `lm_pretrain_rd.py` training jobs verified alive before AND after; queue 103 completed / 0 failed; 8 workers up. No `pkill`. `~/queue/` written only to ADD job 990.** No rung checkpoint touched, no rung `DiD` computed, no quarantined file opened (§9.1 no-read list honoured in full).
 
 **Raws:** `experiment-runs/2026-07-13_param_axis_t2a_attempt2/` (956K, repo tier + SSD mirror). Registry: `matrix-thinking/PARAM_AXIS_SCALING_DESIGN.md` §14.
+
+## 2026-07-29 — Jacobian-erank experiment (ICML-MI §5.3 camera-ready promise) — BUILD complete, audit dispatched
+
+Queue item "Exp #0 Jacobian erank" BUILT (report in session task record).
+Premise corrections found by build: (1) claim source is the PUBLISHED
+ICML 2026 MI workshop paper §5.3 (sections/05_positive_control.tex) —
+"a camera-ready experiment we have not yet run" — NOT
+rank-recruitment-ws §5 as the queue item said; (2) falsifier
+(erank(J)≥4) gates ONLY bilinear_gelu/svd_aug/quadratic — flatten is
+linear-in-Z (Jacobian provably Z-independent), reported as baseline
+control only; (3) φ excludes the bottleneck's final LayerNorm (the
+paper's own equations' reading). Checkpoints confirmed GONE (pre-Brev
+pod), retraining required: real historical rate 3.4-3.5 GPU-h/readout
+(Round PC log), total ≈14-15 GPU-h → 10-50 tier → audit + placement
+red-team (dispatched). Build: byte-identical run_matrix_codi.py reuse;
+new measure_jacobian_erank.py (autograd Jacobian, repo effective_rank
+imported, 6 pos × 128 ex pooling, finite-diff cross-check); ProsQA
+re-downloaded, test-set sha1 matches repo copy; all smokes PASS incl.
+a real 1-epoch training run. Box gotcha found+fixed: torchrun
+--standalone hangs (hostname resolves to public IP) — direct-python
+env-var launch verified. Candidates 1200-1204 staged, NOT queued.
