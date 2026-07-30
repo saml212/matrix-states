@@ -6933,3 +6933,35 @@ the eventual write-up). **External by-task + by-mechanism sweeps
 DISPATCHED** (CPC/van-den-Oord differentiation explicitly assigned to
 the by-mechanism agent as the predicted closest prior art). Build+audit
 proceeds ONLY after both sweeps return and are adjudicated here.
+
+### §G3-B30.1 NOVELTY GATE ADJUDICATION — CLEARED FOR BUILD (Fable, 2026-07-29)
+
+Triple sweep complete on the pivoted claim (full reports in session task
+outputs): **by-task NOVEL-AS-CLAIMED (HIGH)** — nearest analogs split
+the claim in half: CTT/LaCT (OpenReview wZYi4faSGK — InfoNCE on a TTT
+fast-weight layer, but generic chunk-local word anchors: no entity
+binding, no composition depth, no repeated-squaring reads) and Identity
+Bridge (arXiv:2509.24653 — auxiliary internal-state supervision for
+multi-hop in an LM, but identity-mapping loss, standard transformer,
+two hops max). **By-mechanism NOVEL-AS-CLAIMED (MOD-HIGH)** — CPC
+(arXiv:1807.03748) is the closest lineage ancestor, differentiated on
+detachment (CPC has none), read structure (no matrix powers), and
+motivation (generic representation learning vs measured-collapse kill).
+**Internal CLEAR-WITH-PRECEDENT** (§G3-B30 A1-A3). **Parallel-discovery
+flag:** arXiv:2605.00253 (Jul 2026) measures the SAME pathology in
+Mamba (state pairwise cos 0.9999) and names contrastive training as
+"the kind of intervention necessary" WITHOUT building it — the idea is
+in the air this month; launch-time delta re-sweep is mandatory (standing
+doctrine) and timeline pressure is real.
+
+**Verification note:** CTT/LaCT has NO arXiv version (arXiv API: 0
+results); OpenReview bot-blocked both agent and coordinator fetches —
+verified at SNIPPET GRADE only. Obligation: re-verify content before
+any citation lands in a manuscript.
+
+**Cite obligations when this ships:** CTT/LaCT, 2509.24653, 1807.03748,
+2605.00253, + the §G3-B30 internal precedents.
+
+**GATE DISCHARGED → BUILD RELEASED** (3-cell grid per §G3-B30 adopted
+design incl. A1 retained-cosine + A2 saddle-corrected prose, on the
+§G3-B27 v2-instrumented runner md5 f307a7fd…; audit round before launch).
