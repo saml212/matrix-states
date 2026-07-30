@@ -6852,3 +6852,35 @@ produced a 250-step (1/12) preview slice of 0989's measurement (acc
 probe, both LRs) into pending/. NEXT after their harvest: the
 contrastive-aux re-spec through the novelty gate (claim pivot), per
 §G3-B26's road.
+
+## §G3-B29 PROBE HARVEST — READ-COLLAPSE CONFIRMED BY TRAINED PROBE; GATE-3 DIAGNOSTIC ARC CLOSED (Fable, 2026-07-29)
+
+Job 0989 (patched decode-isolation probe, both LRs) COMPLETED, 0.09
+GPU-h (audit's 0.08 estimate near-exact). Band application (assessor:
+coordinator; bands frozen §G3-B26/B28, P1 aggregator):
+- read_collapse_band FIRES: retrieval24 MAX over ALL eval points/splits
+  = 0.0417 (both LRs) ≤ 2×chance 0.0833; means 0.0387/0.0387. Checked
+  first, supersedes structural_block_band.
+- Preconditions moot but satisfied: CE non-descending both LRs (deltas
+  +0.0179/+0.0139, first→last quarter); LRs agree (identical ret24
+  means to 4 decimals); convex head-alone objective + two flat LRs =
+  under-optimization EXCLUDED.
+- trains_band: not approached (answer_acc max 0.0677/0.0573 vs 0.5 bar;
+  P2 rider never triggered).
+- Negative control: ret24 max 0.0443, answer_acc max 0.0365 — chance;
+  harness sound.
+
+**VERDICT: READ-COLLAPSE (upstream of the decode head), now confirmed
+three independent ways** — static measurement (§G3-B26, coordinator
+re-executed), replicate signature n=3/3 (§G3-B27/B28 + formal 0990/
+0991 rechecks), and a trained convex probe that provably cannot be
+under-optimized (this section). The decode head was never the problem;
+the read carries nothing to decode. §G3-B26's road steps 1-3 are
+DISCHARGED. Sole remaining path: step 4 — contrastive-aux re-spec →
+novelty gate (claim pivot) → 98M retry on the patched (v2-instrumented)
+runner.
+
+**GPU ledger, GATE-3 diagnostic arc total:** B24 replicates 1.65 +
+rechecks ~0.003 + probe 0.09 ≈ 1.74 GPU-h — the arc that voided ~8
+GPU-h of illusory positives and re-instrumented the program cost less
+than 2.
