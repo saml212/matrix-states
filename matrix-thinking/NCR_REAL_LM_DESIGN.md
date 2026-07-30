@@ -6965,3 +6965,73 @@ any citation lands in a manuscript.
 **GATE DISCHARGED → BUILD RELEASED** (3-cell grid per §G3-B30 adopted
 design incl. A1 retained-cosine + A2 saddle-corrected prose, on the
 §G3-B27 v2-instrumented runner md5 f307a7fd…; audit round before launch).
+
+## §G3-B31 CONTRASTIVE GRID — AUDIT VERDICT, PRE-REGISTRATION CORRECTIONS, LAUNCH (Fable, 2026-07-30)
+
+**Audit (judge tier, artifacts-not-report; full record in session task
+output): runner 9a93198b PASS-CLEAR** — L_ctr detach total (verified via
+detached-o test), τ-inside-softmax exact, class label bit-identical to
+L_cos target, cos construction byte-identical to discriminability_metrics,
+A2 saddle verified numerically (L_ctr = log24 exactly at collapse,
+|grad| 9.5e-9), freeze exact (97,812,121/19,200, resume-safe,
+ckpt-asserted), legacy parity re-verified independently (all diffs 0.0),
+same-op assertion PRESENT with audit-run negative test. Specs 0992/0993/
+0994 code-CLEAR. Smoke sub-test D band fixed per S1 (fresh-init
+[0.005,0.030]; measured 0.0096/0.0099) and ALL sub-tests re-run PASS.
+
+**R1 — BAND 1 RE-REGISTERED (supersedes §G3-B30's fixed window, which is
+VOID; provenance: the "0.065–0.081" was measured on mob_g3b24_s0's
+init-adapter arm at step 20000 — a late-training reference, not init):**
+> TARGET-SPACE INTEGRITY, checked FIRST at every eval point. PAIRED
+> WITHIN-RUN reference: compare TPC_fg = full_graft target_pairwise_cos
+> against TPC_bo = backbone_only's, same eval call, same hop.
+> INTEGRITY-OK: TPC_fg ≤ TPC_bo + 0.15 at every eval point and hop.
+> INTEGRITY-VIOLATED ⇒ cell verdict NULL-BY-COLLAPSE (regardless of
+> retrieval24): TPC_fg > TPC_bo + 0.15 anywhere, OR TPC_fg ≥ 0.50
+> absolute (tripwire; measured collapsed 0.9925–0.9962 vs healthy
+> 0.0099–0.081). Anchors (audit-measured, seed 0): fresh init 0.0099
+> exact; step-20K init-adapter×trained-embed 0.0742 (0.0684–0.0809);
+> step-20K collapsed 0.9962; step-300 PRIMARY-config 0.032/0.036 (both
+> arms drifting together = CE null trajectory, not collapse).
+
+**R2 — §G3-B30 A1 MECHANISM PROSE CORRECTED (second A2-species
+overclaim):** "with frozen well-separated targets, L_cos's collapse
+route is closed" is WRONG. The target is entity_adapter(embed(ids)) —
+the freeze closes the ADAPTER factor only; the EMBED factor stays open
+(embed trainable, LM-head weight-tied, and audit-MEASURED receiving
+aux-only gradient norm 110.13 under the freeze via the o-side path).
+Companion A (0993) is therefore LOAD-BEARING — it measures whether the
+residual embed route re-opens collapse under bare cosine — not a
+formality.
+
+**R3 — WEIGHT-COMPOSITION RULING + DISCLOSURES:** implemented form
+aux_total = aux_weight·(0.5·L_ctr + 0.5·L_cos) ADOPTED (the only
+reading satisfying both §G3-B30 A1 sentences; B24 parity at total-aux
+scale 0.5). Disclosures: (i) PRIMARY vs compA differs TWO ways (L_ctr
+added AND L_cos halved) — inherent to the convex form; attribution
+subtractions carry this confound, individual cells do not. (ii) τ=0.07
+gives ~14.3× effective gradient amplification of L_ctr over L_cos
+(measured init l_ctr 5.86 vs l_cos 0.978) — nominal 0.25/0.25 is not
+effective 50/50. (iii) τ-FALLBACK CONTINGENCY CORRECTED: §G3-B30's
+registered 0.03 fallback is the WRONG DIRECTION for a saturation
+failure — classify the failure mode first; a softer τ (0.2–0.5) is the
+saturation remedy.
+
+**R4 — BLIND DISCLOSURE:** the build ran an undisclosed 300-step
+diagnostic at PRIMARY config (0.0137 GPU-h): deep retrieval24 gap 0.000
+at 1.5% budget, no band label computed; full-budget cells remain the
+artifacts of record. A3 lesson mining: OPEN (NCE artifacts reachable at
+run_deltanet_rd.py:544; no outcome recorded).
+
+**N1:** runner docstrings cite the stale 0.065–0.081 "frozen-init"
+basis in 4 places — known-stale by R1, NOT edited (would invalidate the
+smoked md5); correct at next runner patch. Do not re-anchor on them.
+
+**PLACEMENT (audit-measured):** 6.86 GB VRAM, 73–80% SM util, 0.83
+GPU-h per cell (B24 parity exact). One cell per GPU on 0/1/2, no
+packing (packing would 3× the critical-path wall time for zero
+utilization gain). Launch all three or none.
+
+**DISPATCHED:** 0992 (PRIMARY frozen+ctr+cos), 0993 (compA
+frozen+cosine), 0994 (compB trainable+ctr+cos) → pending/ after this
+commit. Remaining 5 GPUs await the Jacobian audit verdict (in flight).
