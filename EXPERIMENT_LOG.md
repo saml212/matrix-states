@@ -9311,3 +9311,17 @@ certification hole); EXHAUSTED-BUDGET overcharge escape hatch
 (coordinator-gated resubmission). Round-6 scope narrowed to crash
 paths + enums + arithmetic; numeric sweeps excluded (5× verified).
 Build-release checklist from R5 accepted as the build charter.
+
+## 2026-08-06 — K-wall Rev-5 returned: H1–H6 implemented; narrow audit R6 dispatched
+
+DRAFT-R5 (3406 lines): atomic ledger writes + conservative disk
+reconstruction; copy-then-fold w/ temp+atomic-rename (no partial
+canonical possible); honest bound prose — the ledger bounds 15.00,
+TRUE spend T ≤ 15.00 + 13×0.0157 = 15.2041, disclosed inside the
+15.20+0.30 declared structure; unified authoritative enum table w/
+precedence sentence over frozen historical enumerations;
+evidence-carrying validity_check (COMPLETE ⇔ 12 canonical files on
+disk; the R5 no-op JSON now fails all 5 branches); overcharge escape
+hatch. 16/17 findings fixed, KW6.9 ACCEPTED-BY-ADDENDUM (frozen-§R4
+attribution recorded in §R5). Frozen sections md5-identical. Narrow
+R6 scope binding: crash paths + enums + arithmetic only.
