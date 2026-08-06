@@ -9148,3 +9148,25 @@ recommendation: K∈{26,28,30} recovery-leg wall characterization
 anchored on live K=24 — DESIGN DRAFT DISPATCHED (Sonnet worker,
 background → `NCR_KWALL_CHARACTERIZATION_DESIGN.md`, DRAFT-R0, awaits
 audit round; nothing queue-eligible until it clears).
+
+## 2026-08-06 — K-wall characterization DRAFT-R0 returned; audit round dispatched
+
+`NCR_KWALL_CHARACTERIZATION_DESIGN.md` (Sonnet draft worker, 482
+lines): K∈{26,28,30} × 4 seeds on the live-K=24 tight-spare recipe
+(d=K+1, h=64, earlyln free-write, 80K steps via `ncr_earlyln_scale.py
+--d-override`), recovery leg (`indist_min`) PRIMARY; 12 cells, ≈6.0
+GPU-h nominal / ≤15.0 hard-ceiling worst case; three pre-registered
+bands (WALL-AT-K*, GRADUAL-DECAY, NO-WALL-BELOW-32) + an
+INDETERMINATE flag guarding the round-4 A4.9 defect class. Notable
+draft findings for the audit to verify: (i) `ncr_ortho_write.py --arm
+free` REJECTED as the runner — its hardcoded REALISTIC_DEPTHS ladder
+mod-K-crashes at all three new K's (agent's own code-read, not
+inherited); (ii) 320K-vs-80K step conflict resolved from raw JSONs
+(80K valid for the primary recovery metric — clean 1.000 at K=24
+n=4→12, failing 0.464–0.871 at K=32 — but NOT for the noisy far-depth
+front metric, kept reported-only per A4.8). Status DRAFT-R0, not
+queue-eligible. Audit round (judge tier, WITH the new frame-attack
+charter) dispatched; adjudication on return. Ceremony note: 15 GPU-h
+worst case sits at the 10–50 tier boundary — a pre-launch
+resource/placement red-team is REQUIRED at build time in addition to
+this audit.
