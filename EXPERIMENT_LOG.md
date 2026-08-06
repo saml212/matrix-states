@@ -9270,3 +9270,16 @@ TRIGGER-UNRESOLVED terminal state; all 11 ambiguous configs
 enumerated + re-executed, exact match to audit R3. Historical
 sections md5-verified. Focused audit R4 dispatched — CLEAR opens the
 build ceremony.
+
+## 2026-08-06 — K-wall audit R4: REV-REQUIRED (2F/3M/8m) but delivery model STANDS; contract-line dispositions G1–G6; Rev-4 dispatched
+
+Trigger totality proven over all 1000 reachable vectors (844/156, 0
+excluded-K dispatches); partition + pricing reproduce (4th round).
+Remaining: crash zero-counts spend (G1 write-ahead attempt pricing),
+attempt-dirs break harvest glob + threaten denominator guard (G2
+canonical-copy contract), exit-code conflation incl. stop-file
+mass-abort (G3 classification table), undefined run_status enum
+routing degraded-complete to failed/ (G4), trigger paying 9.28h on an
+unresolved rung in 371/1000 vectors (G5 decided-band precondition).
+0.30h margin ruled acceptable-as-declared (adopted). Audit's own
+ruling: no fifth delivery model — line surgery only.

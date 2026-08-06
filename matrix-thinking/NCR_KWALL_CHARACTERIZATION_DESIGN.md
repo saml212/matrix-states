@@ -1986,3 +1986,50 @@ than this one was created or modified; no command was run on the box;
 no job was launched; no git mutation was made. The two scratch Python
 scripts used for the enumerations above are session-local working
 files, not part of this design and not committed.*
+
+## §A4-ADJUDICATION-KWALL — AUDIT ROUND 4 VERDICT ADOPTED: **REV-REQUIRED**, CONTRACT-LINE FIXES ONLY (Fable, 2026-08-06)
+
+`NCR_KWALL_ATTACK_R4.md`: 2 FATAL / 3 MAJOR / 8 MINOR; F3 DISCHARGED,
+F4 discharged-with-one-defect, F1 NOT / F2 PARTIAL. The audit's own
+structural ruling is adopted with it: the delivery model STANDS (K_trig
+proven total over all 1000 reachable vectors, zero excluded-K
+dispatches; partition + pricing chains reproduce again; §6's
+"self-enforced ceiling" honesty confirmed against both dispatch
+scripts) — every discharge is contract-line surgery, no new model.
+The 0.30h margin ruling (acceptable as-declared, do NOT tighten) is
+adopted verbatim.
+
+**BINDING DISPOSITIONS for Rev 4:**
+- **G1 (KW5.1):** write-ahead attempt pricing — BEFORE each dispatch
+  the orchestrator persists an attempt-open record (cell, ceiling,
+  monotonic start); ledger recovery on any (re)start FIRST closes
+  every dangling open record by charging its FULL ceiling
+  (conservative), then resumes. A crash can now only over-charge,
+  never re-open budget. State the revised bound argument.
+- **G2 (KW5.2):** attempt dirs stay as archive; on attempt acceptance
+  the orchestrator COPIES the accepted output to the canonical flat
+  path harvest() already globs (one cell = exactly one canonical
+  file; overwrite forbidden by an exists-check that fails loudly).
+  Denominator-4 guard untouched. State the harvest contract
+  explicitly: harvest reads canonical paths ONLY.
+- **G3 (KW5.3):** exit-code classification table: stop-file exit (3) →
+  STOPPED-BY-OPERATOR (terminal for the wave, never an abort, never
+  retried, disclosed); ceiling abort → ABORTED-BUDGET-n; any other
+  non-zero → CRASHED-n (retry-eligible under the same gates); enum
+  enumerated in the output-JSON field spec.
+- **G4 (KW5.4):** define the report `run_status` enum exhaustively
+  (COMPLETE, COMPLETE-DEGRADED — the pre-registered degradation
+  outcomes enumerated — STOPPED-BY-OPERATOR, EXHAUSTED-BUDGET);
+  the job spec's validity_check accepts every enum value that §5
+  pre-registers as reportable — graceful degradation must land in
+  completed/, not failed/.
+- **G5 (KW5.5):** pre-registered trigger precondition: the conditional
+  arm dispatches ONLY if the triggering K's own primary band is
+  DECIDED (not INCOMPLETE-AT-K, not interval-ambiguous); otherwise
+  TRIGGER-UNRESOLVED. Re-run the 1000-vector sweep under this rule
+  and embed the new decide/unresolved split.
+- **G6:** the 8 MINORs + F4's one defect + the unattributed diff hunk
+  per their discharge conditions; §R4 rows for everything.
+
+Rev 4 → audit round 5 (contract-line verification, expected terminal)
+→ adjudication → BUILD ceremony.
