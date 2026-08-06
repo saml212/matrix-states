@@ -9283,3 +9283,17 @@ routing degraded-complete to failed/ (G4), trigger paying 9.28h on an
 unresolved rung in 371/1000 vectors (G5 decided-band precondition).
 0.30h margin ruled acceptable-as-declared (adopted). Audit's own
 ruling: no fifth delivery model — line surgery only.
+
+## 2026-08-06 — K-wall Rev-4 returned: G1–G6 implemented; audit R5 (expected terminal) dispatched
+
+DRAFT-R4: write-ahead attempt pricing w/ full-ceiling recovery close
+(crash case now bounds TIGHTER than crash-free — R_N≤15.00 exactly on
+recovery; combined tails 15.0157, declared 15.20/15.50 unchanged);
+canonical-flat-path harvest contract makes the duplicate-seed
+corruption unreachable AND obsoletes the planned harvest() patch (a
+canonical file exists only for COMPLETED cells); exhaustive exit-code
++ run_status enums (stop-file → STOPPED-BY-OPERATOR, degraded-complete
+lands in completed/); amended trigger sweep EXECUTED: 473 DECIDED /
+527 TRIGGER-UNRESOLVED, 0 paid-on-unresolved (old 371 eliminated;
+cross-check 473+371=844 exact); 13-row §R4 table, 7 historical
+sections md5-verified. Round 5 = terminal contract verification.
