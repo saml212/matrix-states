@@ -480,3 +480,53 @@ JSONs in `experiment-runs/2026-07-12_ncr_nextlever_wave/` and
 `json.load` this session, not transcribed from prose). No repo file
 other than this one was created or modified; no command was run on
 the box; no job was launched; no git mutation was made.*
+
+## §A1-ADJUDICATION — AUDIT ROUND 1 VERDICT ADOPTED: **REV-REQUIRED** (Fable, 2026-08-06)
+
+Audit `NCR_KWALL_ATTACK_R1.md` (judge tier, frame-attack charter):
+REV-REQUIRED, 4 FATAL / 7 MAJOR / 7 MINOR. Coordinator verified the
+decisive findings against raws before adopting: KW1.1 CONFIRMED —
+`experiment-runs/2026-07-12_ncr_k32_budget/` exists and the 07-13 log
+entry records K=32 CONVERGED improving 1/4 (2×) → 2/4 (4×) with
+budget, so this draft's fixed "K=32 = 0/4 DEAD" band anchor is an
+80K-budget artifact (CLAUDE.md's recorded plateau-vs-slow-convergence
+failure mode, verbatim); KW1.8's uncited ruling located and read in
+full. The draft's verified-clean core (mod-K crash finding, grid
+constructors, FLOP arithmetic, K∈{25..31} openness — independently
+re-swept by the audit incl. SSD superset and git -S) carries forward.
+
+**BINDING DISPOSITIONS for Rev 1 (audit's recommended shape ADOPTED):**
+- **D1 (KW1.1/KW1.2):** keep all 12 cells; RE-REGISTER the headline as
+  the **80K-budget convergence frontier** over K∈{26,28,30} (a budget-
+  conditioned claim, never "the wall"); add the pre-registered
+  CONDITIONAL 4-cell 160K arm at the first sub-ROBUST rung as the
+  speed-vs-wall disambiguator (~1.2–1.5 GPU-h, total stays ≤15 cap);
+  redo the §3 sweep keyed on config axes (budget included), not K
+  strings.
+- **D2 (KW1.3/KW1.4):** rebuild §5 as a DEMONSTRATED partition — K*
+  domain extended to {24,26,28,30}, every one of the 125 rate outcomes
+  classified exactly once, the (0,0,0) wall-at-24→26 case included;
+  the demonstration table goes IN the design (audit re-checks it).
+- **D3 (KW1.8):** the 07-13 "closes the K-axis book" ruling is
+  adjudicated NARROW per its own scope paragraph ("Closed: whether
+  budget alone rescues K=32's tight-spare wall into anything licensing
+  further K-escalation — no"): it bars upward escalation (K≥48 stays
+  BLOCKED; parked cells stay parked), it does NOT bar the below-32
+  characterization this design performs, which the §A4-ADJUDICATION
+  mandate + two judge-tier rounds name as genuinely open. Rev 1 cites
+  this disposition where it cites the mandate.
+- **D4 (KW2.1):** do not fork instrument semantics — the runner's
+  CONVERGED conjunction (recovery AND rank) stays as-is; the design
+  must STATE the gate accurately (rank leg is a gate component, not
+  "reported not gating") and disclose it in every band definition.
+- **D5 (KW2.2/KW2.3):** eval-inclusive ceiling handling; ABORTED-BUDGET
+  cells excluded from band denominators WITH mandatory disclosure and
+  resume-skip (no infinite re-abort); explicit MISSING/non-COMPLETED
+  rule before `harvest()` folds anything.
+- **D6 (KW1.5–KW1.7, KW2.x MINORs):** address each per the audit's
+  discharge conditions; citation corrections exactly as found (the
+  KW1.5/KW1.6 conclusions survive on the corrected evidence — say so
+  plainly, no silent swap).
+
+Rev 1 → fresh audit round (same two-part charter) → adjudication →
+only then build/audit → placement red-team (10–50 tier) → pool.

@@ -9170,3 +9170,19 @@ charter) dispatched; adjudication on return. Ceremony note: 15 GPU-h
 worst case sits at the 10–50 tier boundary — a pre-launch
 resource/placement red-team is REQUIRED at build time in addition to
 this audit.
+
+## 2026-08-06 — K-wall audit R1: REV-REQUIRED (4F/7M/7m) — adopted w/ dispositions; Rev-1 dispatched
+
+Frame-attack charter earned its keep on round one: KW1.1 (FATAL,
+coordinator-verified vs raws) — the draft's 80K-step anchor treats
+budget-responsive slow convergence at K=32 (1/4→2/4 across 2×/4×,
+`2026-07-12_ncr_k32_budget/` + 07-13 log) as a fixed wall; headline
+re-registered to "80K-budget convergence frontier" + conditional 160K
+disambiguator arm. KW1.3/1.4: bands proven not a partition (25/125
+outcomes unclassifiable, (c)⊂(a), K*=24 inexpressible) → demonstrated-
+partition rebuild required. KW1.8 adjudicated NARROW on the ruling's
+own scope paragraph (upward escalation stays barred; below-32
+characterization licensed). Draft's mod-K crash finding verified
+EXACTLY right by execution at all three K. Full dispositions D1–D6:
+design §A1-ADJUDICATION. Rev-1 agent dispatched; fresh audit round to
+follow before any build.

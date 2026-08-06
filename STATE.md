@@ -1,5 +1,18 @@
 # STATE — Current Project State
 
+**2026-08-06 tick #4 (Fable): K-wall audit R1 = REV-REQUIRED (4F/7M/7m,
+`NCR_KWALL_ATTACK_R1.md`) — frame-attack charter caught the draft
+anchoring on an 80K-budget artifact (K=32 converges 1/4→2/4 with
+budget, coordinator-verified vs `2026-07-12_ncr_k32_budget/` raws) and
+a non-partition band system (25/125 outcomes unclassifiable). Adopted
+w/ dispositions D1–D6 (§A1-ADJUDICATION): headline re-registered as
+the 80K-budget convergence frontier + conditional 160K disambiguator;
+demonstrated-partition rebuild; KW1.8 "K-axis book closed" ruling
+adjudicated NARROW on its own scope text (upward-only bar). Rev-1
+in flight → fresh audit → build ceremony. Box: vacant for PI's RL
+sampling; idle daemons armed/watchdogged; Jacobian batch behind the
+3h gate; pool still legitimately empty.**
+
 **2026-08-06 tick #3 (Fable): K-LADDER DESIGN STAMPED SPENT** — round-4
 attack BLOCKED (4 FATAL; report `NCR_KLADDER_ATTACK_R2.md`),
 coordinator-verified vs raws and adopted (`NCR_KLADDER_DESIGN.md`
