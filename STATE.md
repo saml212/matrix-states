@@ -1,5 +1,26 @@
 # STATE — Current Project State
 
+**2026-08-06 tick (Fable): §G3-B31 GRID = NULL ×3 (collapse bands) —
+CONTRASTIVE ROAD EXHAUSTED, BLOCK IS STRUCTURAL; Jacobian 1201
+IN-BAND, batch on a 3h-idle trigger; box handed to PI.** Queue ran dry
+07-30 ~07:00Z, results sat ~7 days (coordinator gap). §G3-B32 verdict
+(coordinator direct read, runner md5 re-pinned): PRIMARY/compA
+NULL-BY-COLLAPSE decisively (embed-route collapse, TPC 0.71–0.81 —
+R2's predicted route confirmed); compB NULL by the letter (+0.0008
+over the paired bar at one hop, disclosed); deep retrieval ≈ chance
+everywhere. NEW FACT: compB kept targets spread (TPC 0.21) yet o
+collapsed directionally with depth (o_pc→0.99) — power-iteration/
+Z-conditioning structural block (§G3-B25's alternative), NOT the aux
+loss. Next NCR lever = in-LM write-conditioning = CLAIM PIVOT →
+novelty gate re-entry before any build; NO NCR job queue-eligible.
+Jacobian: 1201 calibration 78.125% in R5 band → 1200/1202/1203
+released, 1204 held; PI took the box mid-harvest → launch DEFERRED to
+an on-box idle trigger (tmux `idle_launcher`: 3h continuous all-GPU
+idle → promote 1200/1202/1203; all-3-complete → promote 1204; STOP
+honored, fail-aborts-1204). Records: `NCR_REAL_LM_DESIGN.md` §G3-B32 +
+EXPERIMENT_LOG 2026-08-06 ×2; artifacts in
+`experiment-runs/2026-07-30_*/` (repo+SSD).
+
 **2026-07-29 tick #2 (Fable): READ-COLLAPSE — GATE-3 POSITIVE ARC
 VOIDED (§G3-B26).** The B25-branch independent audit's read-only
 pre-check, COORDINATOR TIEBREAK-CONFIRMED by direct re-execution: the

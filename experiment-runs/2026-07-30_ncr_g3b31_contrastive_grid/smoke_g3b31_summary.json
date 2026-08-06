@@ -1,0 +1,207 @@
+{
+ "failures": [],
+ "results": {
+  "A_legacy_parity": {
+   "ok": true,
+   "diffs": {
+    "total_loss": 0.0,
+    "ce_loss": 0.0,
+    "aux_loss": 0.0,
+    "ortho_loss": 0.0,
+    "o_raw_max_abs_diff": 0.0
+   },
+   "pristine": {
+    "total": 14.507070541381836,
+    "ce": 11.09758186340332,
+    "aux": 0.9779928922653198,
+    "ortho": 29.204923629760742
+   }
+  },
+  "C_freeze_negative_test": {
+   "ok": true,
+   "adapter_grad_norms": [
+    56.16023254394531
+   ]
+  },
+  "D_collapse_sanity": {
+   "ok": true,
+   "target_pairwise_cos": 0.009570657275617123,
+   "full_disc": {
+    "offtarget_margin": -0.04985329881310463,
+    "retrieval24_acc": 0.03125,
+    "o_pairwise_cos": -0.008774482645094395,
+    "target_pairwise_cos": 0.009570657275617123
+   }
+  },
+  "B_six_step_configs": {
+   "PRIMARY_frozen_ctrcos": {
+    "ok": true,
+    "wall_s": 5.853036403656006,
+    "loss_history_full_graft": [
+     [
+      1,
+      10.984375953674316
+     ],
+     [
+      6,
+      10.904369354248047
+     ]
+    ],
+    "final_status": "COMPLETED",
+    "cmd": [
+     "/home/nvidia/tdenv/bin/python3",
+     "/home/nvidia/ncr_g3b31_contrastive/ncr_lm_wave1_runner.py",
+     "--mode",
+     "calibration",
+     "--device",
+     "cuda",
+     "--cell-id",
+     "smoke6_PRIMARY_frozen_ctrcos",
+     "--steps",
+     "6",
+     "--ceiling-gpuh",
+     "1.0",
+     "--batch-size",
+     "8",
+     "--eval-batch-size",
+     "16",
+     "--warmup-steps",
+     "2",
+     "--lr",
+     "3e-4",
+     "--aux-read-loss-weight",
+     "0.5",
+     "--ortho-reg-weight",
+     "0.1",
+     "--contrastive-temperature",
+     "0.07",
+     "--ckpt-every",
+     "6",
+     "--eval-every",
+     "6",
+     "--seed",
+     "0",
+     "--out",
+     "/home/nvidia/ncr_g3b31_contrastive/results/smoke_b/smoke6_PRIMARY_frozen_ctrcos.json",
+     "--ckpt-dir",
+     "/home/nvidia/ncr_g3b31_contrastive/results/smoke_b",
+     "--aux-loss-type",
+     "contrastive+cosine",
+     "--freeze-entity-adapter"
+    ]
+   },
+   "compA_frozen_cosine": {
+    "ok": true,
+    "wall_s": 5.8876872062683105,
+    "loss_history_full_graft": [
+     [
+      1,
+      10.984375953674316
+     ],
+     [
+      6,
+      10.697668075561523
+     ]
+    ],
+    "final_status": "COMPLETED",
+    "cmd": [
+     "/home/nvidia/tdenv/bin/python3",
+     "/home/nvidia/ncr_g3b31_contrastive/ncr_lm_wave1_runner.py",
+     "--mode",
+     "calibration",
+     "--device",
+     "cuda",
+     "--cell-id",
+     "smoke6_compA_frozen_cosine",
+     "--steps",
+     "6",
+     "--ceiling-gpuh",
+     "1.0",
+     "--batch-size",
+     "8",
+     "--eval-batch-size",
+     "16",
+     "--warmup-steps",
+     "2",
+     "--lr",
+     "3e-4",
+     "--aux-read-loss-weight",
+     "0.5",
+     "--ortho-reg-weight",
+     "0.1",
+     "--contrastive-temperature",
+     "0.07",
+     "--ckpt-every",
+     "6",
+     "--eval-every",
+     "6",
+     "--seed",
+     "0",
+     "--out",
+     "/home/nvidia/ncr_g3b31_contrastive/results/smoke_b/smoke6_compA_frozen_cosine.json",
+     "--ckpt-dir",
+     "/home/nvidia/ncr_g3b31_contrastive/results/smoke_b",
+     "--aux-loss-type",
+     "cosine",
+     "--freeze-entity-adapter"
+    ]
+   },
+   "compB_trainable_ctrcos": {
+    "ok": true,
+    "wall_s": 5.858212947845459,
+    "loss_history_full_graft": [
+     [
+      1,
+      10.984375953674316
+     ],
+     [
+      6,
+      10.906329154968262
+     ]
+    ],
+    "final_status": "COMPLETED",
+    "cmd": [
+     "/home/nvidia/tdenv/bin/python3",
+     "/home/nvidia/ncr_g3b31_contrastive/ncr_lm_wave1_runner.py",
+     "--mode",
+     "calibration",
+     "--device",
+     "cuda",
+     "--cell-id",
+     "smoke6_compB_trainable_ctrcos",
+     "--steps",
+     "6",
+     "--ceiling-gpuh",
+     "1.0",
+     "--batch-size",
+     "8",
+     "--eval-batch-size",
+     "16",
+     "--warmup-steps",
+     "2",
+     "--lr",
+     "3e-4",
+     "--aux-read-loss-weight",
+     "0.5",
+     "--ortho-reg-weight",
+     "0.1",
+     "--contrastive-temperature",
+     "0.07",
+     "--ckpt-every",
+     "6",
+     "--eval-every",
+     "6",
+     "--seed",
+     "0",
+     "--out",
+     "/home/nvidia/ncr_g3b31_contrastive/results/smoke_b/smoke6_compB_trainable_ctrcos.json",
+     "--ckpt-dir",
+     "/home/nvidia/ncr_g3b31_contrastive/results/smoke_b",
+     "--aux-loss-type",
+     "contrastive+cosine"
+    ]
+   }
+  }
+ },
+ "finished_utc": "2026-07-30T06:08:50Z"
+}

@@ -7035,3 +7035,72 @@ utilization gain). Launch all three or none.
 **DISPATCHED:** 0992 (PRIMARY frozen+ctr+cos), 0993 (compA
 frozen+cosine), 0994 (compB trainable+ctr+cos) → pending/ after this
 commit. Remaining 5 GPUs await the Jacobian audit verdict (in flight).
+
+## §G3-B32 CONTRASTIVE GRID HARVEST — VERDICT: NULL, ALL THREE CELLS; READ-SIDE DEPTH COLLAPSE IS STRUCTURAL (Fable, 2026-08-06)
+
+Harvest of 0992/0993/0994 (all COMPLETED 2026-07-30 ~07:00Z, 0.81–0.84
+GPU-h each ≈2.5 total, B24 parity exact). Coordinator read the raw
+JSONs directly; runner md5 re-verified at harvest
+(9a93198b642242f512ff8489e32b0a53, matches the §G3-B31 pin). Artifacts:
+`experiment-runs/2026-07-30_ncr_g3b31_contrastive_grid/` (repo + SSD).
+
+**Band-1 (§G3-B31 R1 paired within-run rule), scored at the final eval
+point:**
+- **PRIMARY (0992, frozen+ctr+cos): NULL-BY-COLLAPSE.** TPC_fg
+  0.711–0.731 at every hop vs TPC_bo 0.064–0.084 — exceeds the paired
+  +0.15 bar everywhere AND the ≥0.50 absolute tripwire.
+- **compA (0993, frozen+cosine): NULL-BY-COLLAPSE.** TPC_fg 0.797–0.814.
+  Confirms R2's prediction exactly: the EMBED factor re-opens the
+  collapse route under bare cosine despite the frozen adapter —
+  companion A was load-bearing, not a formality. Its rec@0.9 0.55–0.61
+  with o_pairwise_cos 1.0000 reproduces the §G3-B26 saturated-instrument
+  signature (4th independent confirmation).
+- **compB (0994, trainable+ctr+cos): NULL-BY-COLLAPSE by the letter.**
+  TPC_fg 0.196–0.228; single paired-bar exceedance at h=40 (0.2272 vs
+  bar 0.2264, +0.0008). Disclosed: the margin is within eval noise, and
+  the absolute level sits far below the 0.50 tripwire (vs 0.9925–0.9962
+  collapsed anchors) — qualitatively R1's "both-arms-drifting" regime,
+  not the B26 pathology. The frozen rule stays frozen; both the letter
+  verdict and its marginality are recorded.
+
+**Retrieval bands: NULL in all cells regardless of Band-1.** Deep
+retrieval24 ≈ chance (0.0417) in every cell and arm;
+retrieval24_acc_gap at h=61 = 0.0 / +0.0625 / −0.03125;
+primary_signal_v2_deepest_gap_h61 = 0.0 / +0.0625 / −0.03125. No WIN,
+no depth-decay PARTIAL signature anywhere.
+
+**THE LOAD-BEARING NEW FACT (compB):** with target-space integrity
+largely intact (TPC 0.21 — the contrastive term DID prevent the B24
+0.996 catastrophic collapse in the trainable arm) the read output o
+STILL collapses directionally with depth: o_pairwise_cos 0.80 (h=1) →
+0.97 (h=2) → 0.989–0.992 (h=3..61), retrieval at chance throughout.
+The §G3-B26 target-space mechanism is therefore NOT the binding block:
+the depth path itself (binexp = power iteration toward Z's top singular
+direction) destroys read discriminability in-LM independent of the aux
+loss. This positively evidences §G3-B25's "structural-block"
+alternative. Contrast the toy: free-write K=24 trained to cond 1.0 and
+perfect far-depth recovery (NCR_ORTHO_WRITE §9–§10) — the in-LM-trained
+Z is ill-conditioned in the read-relevant sense. WRITE-SIDE
+CONDITIONING IN-LM is the live lever, not read-side aux shaping.
+(Secondary observation, hypothesis-grade: PRIMARY's frozen adapter made
+target integrity WORSE than compB's trainable one (0.72 vs 0.21) —
+consistent with the R2-measured embed-side aux gradient (norm ~110)
+having nowhere else to go under the freeze; not further tested here.)
+
+**τ-fallback ruling (per R3's classify-first requirement):** the
+failure is neither ctr saturation (compB's targets are spread — L_ctr
+achieved its objective) nor the sharpening case — the registered τ
+contingencies do not address depth-side directional collapse. NOT
+invoked. **The contrastive road AS SPECIFIED is EXHAUSTED**; §G3-B26's
+"sole remaining path" produced a clean pre-registered NULL. Any next
+lever (write-conditioning in-LM: ortho/conformal-scaffold family per
+the c*·I Z-dump finding + the free-write K=24 precedent) is a NEW
+design = CLAIM-PIVOT territory → full novelty-gate re-entry before any
+build (07-16 doctrine). No NCR job is queue-eligible until that design
+round runs.
+
+**Disclosures:** (i) the blind-discipline runner overwrites its JSON at
+each eval — Band-1's "every eval point" clause was scorable only at
+the final eval point (the surviving artifact of record); earlier eval
+points are unrecoverable. (ii) GATE-3's real-LM capability claim
+remains UNPROVEN; toy-scale NCR/rank-law/capacity results untouched.

@@ -9031,3 +9031,44 @@ is the sanctioned convention). Jacobian GPUs are EXCLUSIVE-NO-TOUCH
 while training (80.6 GB — any co-resident probe OOMs them). Follow-on
 1205 (Z-varying-component erank, the faithful "active subspace"
 operationalization) recommended, deferred to harvest.
+
+## 2026-08-06 — §G3-B31 contrastive grid HARVEST: NULL all three cells (coordinator direct read)
+
+Box queue ran dry 2026-07-30 ~07:00Z; results sat unharvested ~7 days
+(coordinator gap). Verdict of record: `NCR_REAL_LM_DESIGN.md` §G3-B32.
+One-line: PRIMARY and compA are NULL-BY-COLLAPSE decisively (embed-route
+target collapse, TPC 0.71–0.81, ≥0.50 tripwire); compB is
+NULL-BY-COLLAPSE by the letter (+0.0008 over the paired bar at one hop,
+marginality disclosed); deep retrieval ≈ chance everywhere. Load-bearing
+new fact: compB kept targets spread (TPC 0.21) yet o still collapsed
+directionally with depth (o_pc → 0.99) — the block is STRUCTURAL
+(power iteration at depth / in-LM Z ill-conditioning), not the aux loss.
+Contrastive road exhausted; next NCR lever = write-conditioning in-LM,
+which is a claim pivot → novelty gate re-entry required before build.
+Artifacts: `experiment-runs/2026-07-30_ncr_g3b31_contrastive_grid/`
+(repo + SSD), runner md5 re-verified 9a93198b at harvest.
+
+## 2026-08-06 — Jacobian 1201 calibration HARVEST: IN-BAND PASS; batch audit-released; launch DEFERRED to a 3h-idle trigger (PI instruction)
+
+1201 (bilinear_gelu retrain, exact §5.3 recipe): best acc **78.125%** vs
+R5 pre-registered band 79.69 ±3pp → **IN BAND**; final_eval 76.6%
+(best-epoch 78.125%); 195.1 min ≈ 3.25 GPU-h (est 3.5); ran the full 25
+epochs under the expandable_segments OOM mitigation — the calibration
+cell's purpose (epoch-boundary eval + final eval + full step range vs
+950 MiB headroom) is satisfied. **Sequencing gate DISCHARGED:**
+1200/1202/1203 launch-eligible; 1204 stays held until all trainings
+complete. Artifacts:
+`experiment-runs/2026-07-30_jacobian_erank_1201_calibration/` (repo+SSD).
+
+**PI 2026-08-06 (mid-harvest):** box handed to another workstream —
+batch launch DEFERRED. Armed an on-box idle trigger (tmux session
+`idle_launcher`, script `~/queue/idle_launch_jacobian.sh`, log
+`~/queue/idle_launcher.log`): 36 consecutive 5-min samples with ZERO
+GPU compute apps box-wide (= 3 h continuously idle) → promote
+1200/1202/1203 to `~/queue/pending/`; phase 2 then waits for all three
+in `completed/` → promotes 1204. Honors the STOP sentinel; any training
+landing in `failed/` aborts the 1204 promotion; a `.DONE` sentinel +
+supervisor loop make it crash-safe (a supervisor restart resets the
+idle counter — conservative direction). Jacobian training cells are
+EXCLUSIVE-NO-TOUCH per the audit (80.6 GB each); each occupies one full
+GPU, so at most 3 GPUs go busy on trigger, 5 remain free.
