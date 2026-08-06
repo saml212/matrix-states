@@ -9325,3 +9325,18 @@ disk; the R5 no-op JSON now fails all 5 branches); overcharge escape
 hatch. 16/17 findings fixed, KW6.9 ACCEPTED-BY-ADDENDUM (frozen-§R4
 attribution recorded in §R5). Frozen sections md5-identical. Narrow
 R6 scope binding: crash paths + enums + arithmetic only.
+
+## 2026-08-06 — K-wall audit R6: REV-REQUIRED (2F/3M/10m); 8/10 crash windows + arithmetic + enums SETTLED; Rev-6 dispatched
+
+Remaining surface = reconstruction path (per-cell rows lose a second
+attempt's 7.2h charge; conditional arm invisible; corrupt canonical
+unmatched) + validity_check edges (rejects every legitimate
+INCOMPLETE-AT-K run; sub-case (i) self-contradictory; EXHAUSTED-BUDGET
+label can contradict disk). Dispositions I1–I6: per-attempt
+reconstruction from attempt dirs w/ quarantine rule; completed-work
+promotion on pre-copy crash; authoritative attempt numbering;
+outcome-space-quantified validity branches; label-vs-disk consistency.
+KW6.9 stands on the audit's replacement justification (MD5-identity
+argument) — adopted. Build charter gains the R6 §9 additions
+(red-team i–xiv, negative-test-to-completion, makedirs assertion).
+Round-7 scope: reconstruction + validity only.

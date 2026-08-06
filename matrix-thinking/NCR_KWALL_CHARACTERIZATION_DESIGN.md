@@ -3404,3 +3404,52 @@ job-spec template and the micro-smokes — is KW2.7's on-box
 `fallback_pool/`/`claimed/` sweep, unchanged from Rev 4 and still
 listed in the audit's own conditional build-release checklist (§9),
 not a Rev-5 discharge item.
+
+## §A6-ADJUDICATION — AUDIT ROUND 6 VERDICT ADOPTED: **REV-REQUIRED**; RECONSTRUCTION + VALIDITY ONLY REMAIN (Fable, 2026-08-06)
+
+`NCR_KWALL_ATTACK_R6.md`: 2 FATAL / 3 MAJOR / 10 MINOR. SETTLED this
+round (excluded from all future rounds): crash windows 1–8 incl. the
+copy-then-fold closure of KW6.2 (verified line-exact), the H3
+arithmetic (two routes, 13-multiplier provenance), the enum precedence
+mechanism, and the no-op rejection. KW6.9's outcome stands on the
+audit's REPLACEMENT justification (editing frozen §R4 would destroy
+the §A1→EOF MD5 identity), which is ADOPTED. The audit's §9 build-
+charter additions (per-attempt-dir reconstruction contract; Rev-6
+validity one-liner; red-team items i–xiv; negative-test-run-to-
+completion; the os.makedirs build assertion) are ADOPTED into the
+build charter.
+
+**BINDING DISPOSITIONS for Rev 6:**
+- **I1 (KW7.1):** reconstruction rebuilt PER-ATTEMPT from attempt
+  dirs (the ground truth of dispatches): each attempt dir ⇒ one
+  ledger row, charged at measured elapsed if its JSON parses, else
+  full ceiling; conditional-arm cells reconstruct from the same
+  attempt-dir evidence; a present-but-unparseable canonical file ⇒
+  quarantine-rename (canonical.CORRUPT-<ts>), cell treated per its
+  attempt evidence (full ceiling, NOT COMPLETED), exists-check no
+  longer trips. State totality: every disk state maps to exactly one
+  rule.
+- **I2 (KW7.2):** before declaring PERSISTENTLY-ABORTED, recovery
+  consults the attempt-dir JSON: parseable + COMPLETED ⇒ promote to
+  canonical via the same temp+atomic-rename path, charge measured
+  elapsed — a completed cell is never lost to a pre-copy crash.
+- **I3 (KW7.3):** one precedence sentence: reconstruction's attempt
+  numbering is authoritative; resume at attempt_n = max(reconstructed
+  n)+1 when ≤2 and the cell is non-terminal; never below, never
+  re-dispatch a numbered attempt.
+- **I4 (KW7.4):** validity_check branches quantified over the FULL
+  pre-registered outcome space: INCOMPLETE-AT-K runs are reportable
+  and must PASS with their own evidence clause (per-K canonical
+  counts consistent with the reported band vector); COMPLETE's
+  12-primaries assertion applies only when no K is INCOMPLETE;
+  COMPLETE-DEGRADED sub-case (i)'s assertion corrected to the count
+  it actually implies. Test list in-text: every §5-reportable outcome
+  passes, every R5/R6 adversarial JSON fails.
+- **I5 (KW7.5):** label-vs-disk consistency: EXHAUSTED-BUDGET
+  additionally requires at least one gated-out cell with no canonical
+  evidence — a label contradicting a complete disk state is rejected.
+- **I6:** 10 MINORs incl. the KW7.9 §6-hunk disclosure; §R6 rows for
+  all 15 findings.
+
+**ROUND 7 SCOPE (binding):** the I1–I3 reconstruction contract and the
+I4–I5 validity text ONLY. Everything else is settled and excluded.
