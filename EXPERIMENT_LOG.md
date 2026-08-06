@@ -9234,3 +9234,23 @@ byte-identical. BONUS: Rev-2 code-read confirmed harvest()'s
 n_completed uses file-glob presence not status=="COMPLETED" — a real
 bug, patch assigned to build stage. Focused audit R3 dispatched
 (E-discharge verification + re-executions); CLEAR → build ceremony.
+
+## 2026-08-06 — K-wall audit R3: REV-REQUIRED (3F/3M/5m) — E1's cap contradicted the pool contract (coordinator-owned); delivery model changed to single orchestrator job
+
+KW4.1–4.3 root cause: §A2-E1's cumulative gate across independent pool
+specs is exactly the intra-wave dependency the A4.12 flat-spec
+contract forbids — both rulings were the coordinator's; the
+contradiction was structural, not the rev agent's failure. Also: the
+named "launcher" didn't exist; aborted cells' spend was invisible
+twice over (status filter + gpu_h never written on the abort path +
+retry overwrites the first attempt); true worst case up to 39.8h.
+Disposition F1: the experiment becomes ONE self-contained orchestrator
+job (sanctioned chained-launcher pattern) with an internal wall-clock
+spend ledger, attempt-indexed outputs, unified enforced-equals-charged
+ceilings, 15.00/12.00 gates inside the job; pool-eligibility claims
+attach to the orchestrator spec. F2: aborted rungs excluded from
+160K-trigger candidacy + smallest-K tie-break (pre-registered). F3:
+real per-K micro-smoke replaces the false cross-reference. Third
+consecutive round reproduced the partition (125/125) and budget-wave
+numbers clean — science settled; this is delivery mechanics. Rev-3
+dispatched.

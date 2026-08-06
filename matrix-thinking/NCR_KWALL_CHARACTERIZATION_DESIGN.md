@@ -1476,3 +1476,51 @@ for the KW3.8 quote-splice correction, and a fresh read of
 `gate_eligible` defect KW3.4/E4 names. No repo file other than this one
 was created or modified; no command was run on the box; no job was
 launched; no git mutation was made.*
+
+## §A3-ADJUDICATION — AUDIT ROUND 3 VERDICT ADOPTED: **REV-REQUIRED**; DELIVERY MODEL CHANGED (Fable, 2026-08-06)
+
+`NCR_KWALL_ATTACK_R3.md`: 3 FATAL / 3 MAJOR / 5 MINOR. E2/E3/E5
+DISCHARGED (independently reproduced, third consecutive round for the
+partition and budget-wave numbers); E1 NOT-DISCHARGED, E4/E6 PARTIAL.
+The E1 FATALs (KW4.1–4.3) share one root cause the coordinator OWNS:
+§A2's E1 prescribed a cumulative budget gate while §6 (per the A4.12
+flat-spec pool contract the coordinator also imposed) requires cells
+to be independent pool specs — a cumulative cap across independent
+specs IS the forbidden intra-wave dependency. The two rulings were
+contradictory as written; no revision inside that frame could close
+KW4.1–4.3.
+
+**BINDING DISPOSITIONS for Rev 3:**
+- **F1 (KW4.1–KW4.4; supersedes E1's mechanism, keeps its intent):**
+  DELIVERY MODEL CHANGE — the experiment ships as ONE self-contained
+  ORCHESTRATOR job (the chained-launcher pattern the pool contract
+  itself prescribes for sequenced work): a single queue/pool spec,
+  one GPU, cells run sequentially inside it. The orchestrator keeps
+  its own realized-spend ledger from wall-clock elapsed (counts
+  ABORTED attempts' true spend; attempt-indexed output files — no
+  overwrite of a first attempt's record), enforces per-cell CLI
+  ceilings (the ENFORCED 1.20/2.32 values are also the charged
+  values — KW4.4 unification) plus the 15.00 cumulative gate and
+  12.00 retry gate internally. The queue-level spec carries ONE
+  ceiling (15.20 + supervisor margin) and is flat/independent —
+  §6 rewritten to claim pool-eligibility for the ORCHESTRATOR SPEC,
+  not the cells.
+- **F2 (KW4.5):** PERSISTENTLY-ABORTED/INCOMPLETE-AT-K rungs are
+  EXCLUDED from 160K-trigger candidacy (a K that cannot resolve
+  cannot trigger); pre-registered tie-break when interval logic
+  leaves K_trig ambiguous between two K's: the SMALLEST candidate K
+  runs (rationale: nearest the live rung, most informative for the
+  frontier claim; stated in-text, attackable). The orchestrator
+  implements trigger resolution as an explicit function of the
+  post-interval-logic band vector.
+- **F3 (KW4.6):** the accepted-risk's false cross-reference is
+  replaced by a real, specified per-K micro-smoke (d-override
+  short-run per K∈{26,28,30}) wired into the BUILD gate in the live
+  body; harvest-time validity_check stays but is not called a smoke.
+- **F4:** all 5 MINORs per their discharge conditions; every E4/E6
+  PARTIAL completed or re-justified with an attackable sentence.
+
+Rev 3 → focused audit round 4 (F1 delivery model + F2 trigger logic +
+ledger arithmetic; fresh judge) → adjudication → build ceremony
+(orchestrator script + specs + harvest patch, own build audit) →
+placement red-team → pool.
