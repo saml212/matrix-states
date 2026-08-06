@@ -9254,3 +9254,19 @@ real per-K micro-smoke replaces the false cross-reference. Third
 consecutive round reproduced the partition (125/125) and budget-wave
 numbers clean — science settled; this is delivery mechanics. Rev-3
 dispatched.
+
+## 2026-08-06 — K-wall Rev-3 returned: orchestrator delivery model implemented; focused audit R4 dispatched
+
+DRAFT-R3: single-job sequential orchestrator — per-attempt monotonic
+wall-clock folded into a disk-persisted ledger BEFORE status is read
+(closes KW4.1's trio at the root); charged=enforced CLI ceilings;
+HARD gate ≤15.00 pre-dispatch + retry gate <12.00; attempt-indexed
+outdirs via existing --outdir (no harness change); worst case
+15.0126h by sequential admission (single-attempt unpriced term),
+declared pool ceiling 15.50h incl. stated 0.30h supervisor margin
+(flagged for R4 tightening); trigger rule evaluated independently
+over the interval cross-product w/ min() tie-break +
+TRIGGER-UNRESOLVED terminal state; all 11 ambiguous configs
+enumerated + re-executed, exact match to audit R3. Historical
+sections md5-verified. Focused audit R4 dispatched — CLEAR opens the
+build ceremony.

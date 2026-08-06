@@ -1,6 +1,6 @@
 # NCR K-WALL CHARACTERIZATION — K∈{26,28,30} ON THE LIVE K=24 RUNG
 
-**STATUS: DRAFT-R2 — POST-AUDIT-2, AWAITING FOCUSED AUDIT ROUND 3 (not
+**STATUS: DRAFT-R3 — POST-AUDIT-3, AWAITING FOCUSED AUDIT ROUND 4 (not
 build-released, not queue-eligible).**
 
 **Mandate.** `NCR_KLADDER_DESIGN.md` §A4-ADJUDICATION (2026-08-06,
@@ -425,63 +425,183 @@ only), Part A only (single-relation; no discriminator/bank cells) —
 unchanged from R0.** **Rev 1 adds (D1): a CONDITIONAL 4-cell 160K
 disambiguator arm**, pre-registered here, launched only if triggered.
 
-**Command (primary, unchanged CLI surface from R0/Rev 1):**
+**Rev 3 (F1, KW4.1–KW4.4): delivery model changed — ONE self-contained
+ORCHESTRATOR job, not 16 independently pool-dispatched cells.**
+§A3-ADJUDICATION locates the root cause of all three FATALs in one
+place: §A2's E1 prescribed a cumulative budget gate while §6's own
+cited pool contract (`idle_fallback_daemon.sh:10-16`) forbids
+intra-wave dependencies between pool specs — a cumulative cap across
+independently-dispatched cells IS such a dependency, and no revision
+inside that frame could close it. Rev 3 changes what the pool sees:
+the pool holds exactly ONE flat, independent spec — "run the
+orchestrator" — carrying its own single cost ceiling (§6, 15.50h). All
+16 possible cells run STRICTLY SEQUENTIALLY, on ONE GPU, INSIDE that
+one job, dispatched by the orchestrator itself — never through the
+multi-worker `queue_worker.sh`/`idle_fallback_daemon.sh` pool paths
+KW4.3 found carry no budget state at all. This is the audit's own
+"Option B" (`NCR_KWALL_ATTACK_R3.md` §9, item 1) minus the
+reservation-ledger machinery a PARALLEL-dispatch Option B would have
+needed — because dispatch is strictly serial, there is no "batch" to
+reserve against; the orchestrator's own realized-spend ledger (the
+ORCHESTRATOR CONTRACT below) is always exactly the true cumulative
+spend at every gate check, by construction of the sequencing itself,
+not by a convention that could be violated. This occupies exactly 1 of
+the cluster's 8 GPUs; the other 7 remain free for concurrent pool work
+— saturation is a fleet-level property, not a claim this one job makes
+about itself.
+
+**Per-cell-attempt subprocess shape (issued BY the orchestrator; not a
+command a human or the pool runs standalone — the orchestrator itself
+is the only pool artifact this design produces, §6).** Primary arm,
+one subprocess call per (K, seed, attempt):
 
 ```
 ncr_earlyln_scale.py --cell --K {26,28,30} --d-override {27,29,31} \
   --seed {0,1,2,3} --steps 80000 --ceiling-gpuh 1.20 \
-  --outdir results_kwall_characterization \
+  --outdir results_kwall_characterization/K{K}_s{seed}_attempt{n} \
   --stop-file results_kwall_characterization/STOP
 ```
 
-**Rev 2 (E2, KW3.2): `--ceiling-gpuh` restored to the job-108 house
-convention** (`≥2×nominal, floor 1.0h` — verified verbatim against
-`queue/jobs/pending/108_laneA_main_K48_s0.json`'s own notes field:
-*"`--ceiling-gpuh` is 2x the estimate (floor 1.0h) as the real safety
-bound"*), not Rev 1's 0.75h trim. Per-K minimum under this convention
-is `max(2×nominal, 1.0)` = 1.0211/1.1073/1.1946 h for K=26/28/30
+**Attempt-indexed outdir (F1, KW4.1's overwrite defect closed by
+construction — no harness code change).** `{n}∈{1,2}`: attempt 1's
+outdir is never reused for attempt 2. `run_earlyln_cell`'s existing
+`--outdir` flag (already part of the R0 CLI surface) is the ONLY
+mechanism needed. The overwrite KW4.1 found — `:240-266` skips only on
+`status=="COMPLETED"`, so a retry's write to the SAME fixed filename
+clobbers the first attempt's `elapsed_s` — cannot occur here, because
+the two attempts are never given the same directory; a first attempt's
+full JSON record survives untouched under `attempt1/` even after
+`attempt2/` is written. (The same convention applies to the
+conditional-arm command below.)
+
+**`--ceiling-gpuh` values (E2, Rev 2, unchanged in substance) restored
+to the job-108 house convention** (`≥2×nominal, floor 1.0h` — verified
+verbatim against `queue/jobs/pending/108_laneA_main_K48_s0.json`'s own
+notes field: *"`--ceiling-gpuh` is 2x the estimate (floor 1.0h) as the
+real safety bound"*). Per-K minimum under this convention is
+`max(2×nominal, 1.0)` = 1.0211/1.1073/1.1946 h for K=26/28/30
 (recomputed this revision, §4 pricing below); **1.20h is used as one
 shared value across the 3-K command** because it is `≥2×nominal` for
 EVERY K in the batch (it exceeds even K=30's 1.1946h minimum), so one
 CLI invocation stays valid for all three K's without under-covering
-any of them. Rev 1's 0.75h trim is deleted — it violated the job-108
-floor discipline and, per KW3.2, inverted the exact contention
-mitigation KW2.2 asked for. Program-level cost bounding is now done by
-the **cumulative cap (E1, below)**, not by shrinking individual
-ceilings — no per-cell trim is needed.
+any of them. **Rev 3 (KW4.4): this CLI value — 1.20h primary, 2.32h
+conditional (below) — is now ALSO the exact value the orchestrator's
+ledger CHARGES at every gate check** (ORCHESTRATOR CONTRACT below);
+there is no longer a separate per-K "charged" figure distinct from the
+"enforced" one. The per-K `max(2×nominal,1.0)` numbers above remain
+only as the INFORMATIONAL justification for why 1.20h clears every
+K's own floor — they do not feed the gate.
 
-**Trigger rule for the conditional 160K arm (D1, exact).** Let
-`K_trig` = the smallest K in the ordered list `(26, 28, 30, 32)` whose
-primary 80K rate is NOT CONVERGED-ROBUST (`rate<3/4`), evaluated only
-over K's with 4/4 `status=="COMPLETED"` primary cells (K=32's "rate"
-is the ALREADY-ARCHIVED 0/4 value from
-`experiment-runs/2026-07-12_ncr_mappinglaw_wave1/dratio_K32_d33/`,
-fixed, not re-measured).
+**Trigger rule for the conditional 160K arm (F2, KW4.5, Rev 3 —
+replaces D1's rule, which deadlocked and did not compose with interval
+logic).** The trigger is evaluated as an explicit function of the
+per-K resolution-state vector `(state_26, state_28, state_30)` — the
+SAME per-K states §4's D5/E4 rule (below) computes for band
+classification, consumed here by a SEPARATE downstream function,
+because `classify()` (§5) and the trigger's K-scan are different rules
+over the same triple and — per the 11 cases enumerated below — CAN
+disagree even when both individually "decide."
+
+**Per-K resolution state (shared with D5/E4; `n_completed` from
+`harvest()`'s status-based count, never file-glob presence):**
+
+| `n_completed(K)` | State | Contribution to the trigger scan |
+|---|---|---|
+| 4 | `EXACT` | one fixed `r`-value |
+| 3, `r_known∈{0,1,3}` | `DECIDED` (interval-resolved) | one fixed `r`-value — `ROBUST(r_known)==ROBUST(r_known+1)` for every value except 2, so the candidate is unambiguous |
+| 3, `r_known=2` | `AMBIGUOUS` | two candidate `r`-values `{2,3}` — the ONE point where `ROBUST(r):=r≥3` straddles the boundary |
+| ≤2 | `UNRESOLVED` | excluded from candidacy (F2); blocks the scan IF reached (below) |
+
+**Trigger decision procedure (pseudocode):**
+
+```
+def trigger(states_26_28_30):
+    branches = cross_product_of_AMBIGUOUS(states)   # 1, 2, or 4 candidate (r26,r28,r30) triples
+    K_trigs = set()
+    for triple in branches:
+        # scan K=26,28,30,32 in order; r24=4 (fixed ROBUST), r32=0 (fixed archive)
+        kt = smallest_K_with_rate_below_3(triple)
+        if kt requires reading an UNRESOLVED K's status to decide:
+            return ("TRIGGER-UNRESOLVED", blocking_K)   # F2: a K that cannot resolve cannot trigger
+        K_trigs.add(kt)
+    if len(K_trigs) == 1:
+        return ("DECIDED", K_trigs.pop(), "unanimous")
+    else:
+        return ("DECIDED", min(K_trigs), f"tie-break-min, candidates were {sorted(K_trigs)}")
+```
+
 - If `K_trig ∈ {26,28,30}`: launch the 4-cell 160K arm AT `K_trig`.
 - If `K_trig == 32`: **no new cells are launched.** The K=32
   disambiguation is already on record (§3's budget table:
   0/4→1/4→2/4 across 1×/2×/4×) and is cited directly, at $0
   incremental GPU-h. This is the FRONTIER-AT-K\*=30 case (§5) — the
-  best possible primary outcome — and it costs nothing extra to
-  disambiguate because the archive already did the work.
-- Precondition (D5): `K_trig` is read only from a K with 4/4 COMPLETED
-  cells. An `INCOMPLETE-AT-K` rung (§5) defers the trigger decision
-  until it resolves.
+  best possible primary outcome.
+- **`TRIGGER-UNRESOLVED`:** no conditional arm launches. This is a
+  disclosed, terminating, publishable outcome — NOT a deferral that
+  waits for the blocking K to resolve (a `PERSISTENTLY-ABORTED`-caused
+  `UNRESOLVED` state is, by E4's own bounded-retry rule, TERMINAL and
+  can never resolve — Rev 2's "defers … until it resolves" precondition
+  deadlocked against exactly this, KW4.5's first defect). The primary
+  80K `classify()` band is still reported if it is itself decidable
+  (§5) — only the 160K disambiguation is unavailable.
+- **Tie-break rationale (F2, in-text, attackable):** the SMALLEST
+  disagreeing candidate K runs — nearest the live K=24 rung, and the
+  most informative single choice for the frontier claim §1 makes (a
+  wall confirmed at the smaller K is evidence the larger K's own
+  ambiguity does not need to independently re-establish).
 
-**Command (conditional, if triggered):**
+**The 11 ambiguous configurations (KW4.5's finding, independently
+re-executed this revision — not merely cited).** A ~40-line Python
+sweep (executed this revision, not hand-checked) enumerated every
+singly-incomplete configuration — 3 choices of incomplete K × 4 values
+of `r_known` × 25 combinations of the other two K's full 0–4 range =
+300 configs — and flagged every one where `classify()` gives the SAME
+band at both interval candidates (E4 would say "DECIDE") while the
+OLD trigger rule's `K_trig` differs between them. **Exactly 11**,
+matching the audit's count to the digit:
+
+| # | Incomplete K | `r_known` | Candidate triples | Band (both agree) | `K_trig` candidates | Tie-break |
+|---|---|---|---|---|---|---|
+| 1 | 26 | 2 | (2,0,3) / (3,0,3) | FRONTIER-AT-K\*=30 [NON-MONOTONE] | {26,28} | **26** |
+| 2 | 26 | 2 | (2,0,4) / (3,0,4) | FRONTIER-AT-K\*=30 [NON-MONOTONE] | {26,28} | **26** |
+| 3 | 26 | 2 | (2,1,3) / (3,1,3) | FRONTIER-AT-K\*=30 [NON-MONOTONE] | {26,28} | **26** |
+| 4 | 26 | 2 | (2,1,4) / (3,1,4) | FRONTIER-AT-K\*=30 [NON-MONOTONE] | {26,28} | **26** |
+| 5 | 26 | 2 | (2,2,0) / (3,2,0) | GRADUAL-DECAY | {26,28} | **26** |
+| 6 | 26 | 2 | (2,2,1) / (3,2,1) | GRADUAL-DECAY | {26,28} | **26** |
+| 7 | 26 | 2 | (2,2,2) / (3,2,2) | GRADUAL-DECAY | {26,28} | **26** |
+| 8 | 26 | 2 | (2,2,3) / (3,2,3) | FRONTIER-AT-K\*=30 [NON-MONOTONE] | {26,28} | **26** |
+| 9 | 26 | 2 | (2,2,4) / (3,2,4) | FRONTIER-AT-K\*=30 [NON-MONOTONE] | {26,28} | **26** |
+| 10 | 28 | 2 | (3,2,2) / (3,3,2) | GRADUAL-DECAY | {28,30} | **28** |
+| 11 | 28 | 2 | (4,2,2) / (4,3,2) | GRADUAL-DECAY | {28,30} | **28** |
+
+Every one of the 11 has `r_known=2` — the same single point KW4.7
+independently flags as the ROBUST boundary interval logic cannot
+disambiguate (§4 D5/E4 below) — and every disagreement is between
+exactly two adjacent K's, so `min()` always resolves it; no 3-way tie
+is ever produced by this rule (verified by an extended sweep of the
+two-K-simultaneously-incomplete case, 4-way candidate cross-products
+over all 3 K-pairs × 4 `r_known` values × 5 third-K values = 240
+configs checked: the maximum number of distinct `K_trig` values in any
+band-agreeing configuration is **2**, never 3+). Composition confirmed
+against every reachable interval-logic outcome — the case analysis
+above is exhaustive over the singly-incomplete domain, not
+illustrative.
+
+**Command (conditional, if triggered) — same attempt-indexed-outdir
+convention as the primary arm:**
 
 ```
 ncr_earlyln_scale.py --cell --K {K_trig} --d-override {K_trig+1} \
   --seed {0,1,2,3} --steps 160000 --ceiling-gpuh 2.32 \
-  --outdir results_kwall_characterization_160k \
+  --outdir results_kwall_characterization_160k/K{K_trig}_s{seed}_attempt{n} \
   --stop-file results_kwall_characterization_160k/STOP
 ```
 
-**Rev 2 (E2):** `--ceiling-gpuh` restored to `2.32h` — `≥2×nominal`
-for every possible `K_trig∈{26,28,30}` (worst case K=30's minimum is
-`2.3121h`, §4 pricing below; 2.32h clears it and every smaller-K
-minimum). Rev 1's 1.50h trim (≈1.36× nominal, below job-108's 2×
-convention) is deleted for the same reason as the primary ceiling.
+`--ceiling-gpuh 2.32h` — `≥2×nominal` for every possible
+`K_trig∈{26,28,30}` (worst case K=30's minimum is `2.3121h`, §4
+pricing below; 2.32h clears it and every smaller-K minimum) — and,
+per the same KW4.4 fix above, this is the value the ledger charges
+directly, not a separate per-K figure.
 
 **Pricing — recomputed from raw JSONs this revision, not
 FLOP-extrapolated from a different config family.**
@@ -522,9 +642,9 @@ one: K16 `1.9355`, K24/d48 `1.8580`, K32 `1.0510/0.5688 = 1.8477`. Rev
 understates the 160K nominal by up to 5% (a non-conservative choice
 inside a pricing figure). **Rev 2 applies the MAXIMUM of the three
 (1.9355×, K16) instead** — the conservative choice, since this figure
-now feeds a per-cell ceiling floor (E2) and the program cumulative cap
-(E1), both of which are safety bounds that should never be built on an
-understated nominal:
+now feeds a per-cell ceiling floor (E2, informational sizing per
+KW4.4) and the orchestrator's cumulative ledger (F1), both of which are
+safety bounds that should never be built on an understated nominal:
 
 | K | 160K nominal (h/cell) | ×4 seeds |
 |---|---|---|
@@ -537,78 +657,206 @@ understated nominal:
 `0.5973×1.9355=1.1561`, all directly executed this revision, not hand
 math.)
 
-**E1 — the cumulative-realized-GPU-h program cap (KW3.1's fix,
-replacing Rev 1's "sum of trimmed per-cell ceilings" bound, which was
-false — see KW3.1: the trim did not survive its own retry rule and the
-true worst case under it was 30.00h, double the mandate's cap).**
+**ORCHESTRATOR CONTRACT (F1, Rev 3 — replaces E1's launcher-side
+cumulative-realized-GPU-h check, which KW4.1–KW4.3 found blind to
+aborted spend, derived from a false premise, and unimplementable in
+the repo's real dispatch path). Specified precisely enough for a
+build-stage implementer to write the script from this design alone —
+this document remains DRAFT and creates no code.**
 
-**The enforceable rule, stated exactly (who checks, when, on what
-data):** before dispatching ANY cell-launch command — a first attempt
-on a not-yet-attempted cell, OR a retry of an `ABORTED-BUDGET` cell
-(E4, below) — the launcher (the same resume-safe supervisor-loop
-process that already gates on `status=="COMPLETED"` for skip-vs-resume,
-per the repo's on-box queue directive) computes
-`realized_gpu_h = Σ gpu_h` read fresh from EVERY cell JSON currently on
-disk under `results_kwall_characterization*/` whose `status` is
-`COMPLETED` (the `gpu_h` field is `elapsed_s/3600`, already
-eval-inclusive, `ncr_earlyln_scale.py:303-304`), and applies, in order:
-1. **HARD PROGRAM GATE.** If `realized_gpu_h + ceiling(cell) > 15.00`,
-   the launch is refused outright — no cell, first attempt or retry,
-   is ever dispatched once its OWN training-phase ceiling (E2's
-   restored `max(2×nominal,1.0h)` value) would push the projected total
-   past the 15.00 hard cap. For a batch of cells dispatched together
-   (e.g. one per GPU, per the repo's packing doctrine), the check is
-   applied to the WHOLE batch atomically —
-   `realized_gpu_h + Σ ceiling(cell_i in batch) ≤ 15.00` — never
-   per-cell in isolation, so simultaneous launches cannot jointly
-   overshoot a bound only checked one cell at a time.
-2. **RETRY GATE (subordinate to 1).** If `realized_gpu_h ≥ 12.00`, no
-   RETRY is dispatched — an `ABORTED-BUDGET` cell hitting this
-   condition is flagged `PERSISTENTLY-ABORTED` (E4) immediately, with
-   no second attempt, reserving the residual `15.00−12.00=3.00` GPU-h
-   band exclusively for completing outstanding FIRST attempts, never
-   for a second attempt at a cell that already failed once.
+**Cell order (deterministic, K-major).** Primary arm: K=26
+(seed 0,1,2,3), then K=28 (seed 0,1,2,3), then K=30 (seed 0,1,2,3) —
+12 cells. All 12 reach a terminal state (below) before the trigger
+(§4, above) is evaluated even once. If triggered, the 4 conditional
+cells at `K_trig` (seed 0,1,2,3) run next, same discipline. Exactly
+ONE cell-attempt is ever in flight — never parallel, never split
+across GPUs.
 
-**Worst-case bound, derived (not asserted).** By induction on
-admission order: the hard gate (1) never admits a cell or batch unless
-`realized_gpu_h`-so-far + that admission's own ceiling(s) stays
-`≤15.00`; each admitted cell's actual TRAINING time is bounded above by
-its ceiling (the existing `ceiling_s` enforcement in
-`train_earlyln_cell`); the only quantity the admission check does NOT
-price is EVAL overhead (unenforced by `ceiling_s`, empirically bounded
-at `≤0.0126 GPU-h/cell`, the corrected max — KW3.9, below). So for the
-LAST batch admitted before the gate closes: `realized_before_last_batch
-+ Σ ceiling(last batch) ≤ 15.00`, and once that batch finishes,
-`realized_final = realized_before_last_batch + Σ(training_i + eval_i)
-≤ realized_before_last_batch + Σ ceiling(last batch) + Σ eval_i ≤ 15.00
-+ Σ eval_i`. Since there are at most 16 distinct cells in the WHOLE
-program (12 primary + 4 conditional) and `eval_i ≤ 0.0126h` each, this
-is a batching-strategy-independent bound:
+**Per-cell-attempt dispatch loop — the abort/retry state machine.**
+For each (K, seed) in cell order:
+1. **Attempt 1.** HARD GATE check (below). Refused → state
+   `GATE-REFUSED`, ledger unchanged, move to the next cell (treated
+   identically to MISSING by the resolution-state table above and by
+   `harvest()`, §4 D5/E4). Admitted → run the subprocess (command
+   shape above, `attempt1` outdir). The orchestrator's OWN wall-clock
+   timer — `t0` immediately before `subprocess.run(...)`, `t1`
+   immediately after it returns, `attempt_elapsed_h=(t1-t0)/3600` —
+   is the measurement, **not** the cell JSON's `gpu_h` field (KW4.1:
+   that field is assigned only on the `COMPLETED` path,
+   `ncr_earlyln_scale.py:304`, and is absent entirely on the
+   `ABORTED-BUDGET` early-return path, `:262-266`). `ledger.
+   realized_gpu_h += attempt_elapsed_h` UNCONDITIONALLY — before the
+   resulting JSON's `status` is even inspected. Then branch on
+   `status`: `COMPLETED` → state `COMPLETED` (terminal);
+   `ABORTED-BUDGET` (or a non-zero subprocess exit) → state
+   `ABORTED-BUDGET-1`, proceed to step 2.
+2. **Retry (attempt 2), only from `ABORTED-BUDGET-1`.** HARD GATE
+   **and** RETRY GATE (below), both checked against the ledger AS IT
+   STANDS after attempt 1 — already updated in step 1, so there is no
+   staleness: strict sequencing means the ledger is exactly current at
+   every check. Both pass → run attempt 2 (`attempt2` outdir, identical
+   ledger-update discipline); `COMPLETED` → state `COMPLETED`;
+   `ABORTED-BUDGET` again → state `PERSISTENTLY-ABORTED` (terminal).
+   Either gate fails → state `PERSISTENTLY-ABORTED` immediately,
+   attempt 2 is never dispatched, zero additional ledger spend.
+   (Retraining is still from scratch — the harness has no checkpoint
+   resume, only a `status=="COMPLETED"` skip, `:243-245` — so a retry
+   still costs close to a full ceiling again; what Rev 3 fixes is that
+   the retry's OWN spend, successful or not, is now always counted and
+   never overwrites the first attempt's record, per the attempt-indexed
+   outdir above.)
+
+**Gate check points, exact — checked immediately BEFORE every
+dispatch (attempt 1 or the retry), never after:**
+1. **HARD GATE.** `ledger.realized_gpu_h + ceiling(this_attempt) ≤
+   15.00`, else refuse. `ceiling(this_attempt)` is the CLI
+   `--ceiling-gpuh` value passed to THIS attempt — `1.20` for every
+   primary attempt, `2.32` for every conditional attempt. **The
+   charged value and the enforced value are the same number by
+   definition (KW4.4 closed)** — there is no separate per-K
+   `max(2×nominal,1.0)` figure inside the gate; that figure's only
+   remaining role is the informational sizing table below.
+2. **RETRY GATE (attempt-2 dispatches only, subordinate to 1 — both
+   must pass).** `ledger.realized_gpu_h < 12.00`, else the cell goes
+   straight to `PERSISTENTLY-ABORTED` with no second attempt,
+   reserving the residual `15.00−12.00=3.00` GPU-h band exclusively
+   for completing outstanding first attempts.
+
+**Ledger persistence (crash-recovery — CLAUDE.md's resume-safe-
+supervisor rule).** `results_kwall_characterization/
+ORCHESTRATOR_LEDGER.json` (`realized_gpu_h`, plus one row per attempt:
+`{K, seed, arm, attempt_n, elapsed_h, status, outdir}`) is rewritten
+after EVERY ledger update, not only at the end. A restarted
+orchestrator reads this file FIRST and resumes from the true recorded
+spend — never resets `realized_gpu_h` to 0, which would silently
+re-open budget an earlier crashed run already consumed.
+
+**Trigger evaluation point + harvest invocations, exact.**
+1. Once all 12 primary cells are terminal, `harvest()` runs ONCE over
+   `results_kwall_characterization/` to compute each K's resolution
+   state (table above) and, from it, both the §5 `classify()` band
+   candidates and the §4 trigger resolution. This is the ONLY point
+   the trigger is evaluated.
+2. If a conditional arm is dispatched, its 4 cells run (same state
+   machine, `--steps 160000 --ceiling-gpuh 2.32`,
+   `results_kwall_characterization_160k/`), then `harvest()` runs a
+   SECOND time over the combined results to produce the final report
+   (§5's 160K qualifier band).
+3. If no conditional arm is dispatched (`K_trig==32`'s $0 branch, or
+   `TRIGGER-UNRESOLVED`), the second `harvest()` call still runs (over
+   primary results only, plus — for `K_trig==32` — the already-archived
+   §3 table cited at $0 cost) so the final report always has the same
+   shape regardless of branch.
+
+**Output JSON (`orchestrator_report.json`), required fields:**
 
 ```
-realized_final ≤ 15.00 + 16 × 0.0126 = 15.2016 ≈ 15.20 GPU-h
+{
+  "run_status": "COMPLETE" | "GATE-EXHAUSTED-PARTIAL",
+  "ledger": {
+    "realized_gpu_h_final": <float>, "hard_gate_cap": 15.00,
+    "retry_gate_threshold": 12.00, "declared_pool_ceiling": 15.50,
+    "attempts": [ {"K":int,"seed":int,"arm":"primary"|"conditional",
+      "attempt_n":1|2,"elapsed_h":float,
+      "status":"COMPLETED"|"ABORTED-BUDGET"|"GATE-REFUSED",
+      "outdir":str}, ... ] },
+  "primary": { "per_K": { "26": {...}, "28": {...}, "30": {...} } },
+  "trigger": { "resolution": "unanimous"|"tie-break-min"|
+    "TRIGGER-UNRESOLVED", "K_trig": int|null,
+    "candidate_set": [int,...]|null, "blocking_K": int|null },
+  "conditional": {"launched": bool, "per_seed": [...],
+    "qualifier_band": str|null} | null,
+  "band": {"label": str, "non_monotone_tag": bool,
+    "interval_resolved_Ks": [int,...]},
+  "wall_clock": {"start": <iso8601>, "end": <iso8601>},
+  "n_cells_attempted": int, "n_attempts_total": int
+}
 ```
 
-— matching, not exceeding, the pre-existing eval-inclusive disclosure
-(D5, below), and this time actually TRUE (KW3.1's 30.00h defect is
-closed by construction: bounded by budget, not by a fixed retry count).
-The retry gate (2) does not loosen this bound — it is a stricter,
-disclosed sub-constraint that keeps retries from crowding out
-first-attempt cells inside the same 15.00 envelope, nothing more.
-**A disclosed consequence, not a hidden failure mode:** in the
-pathological case where all 12 primary cells consume their full
-ceiling before the conditional arm is considered, the hard gate can
-correctly THROTTLE OR REFUSE part or all of the conditional arm rather
-than exceed 15.00 — the mechanism degrades gracefully to
-`INCOMPLETE-AT-K`/reduced conditional coverage, never to a silent
+**Worst-case bound, derived for the sequential model — the
+parallel-batch hole no longer exists.** Rev 2's induction broke
+(KW4.2) because `realized_before_last_batch` was read from
+`COMPLETED`-only JSONs on disk at admission time, and nothing
+prevented MULTIPLE dispatches from reading the SAME stale value before
+any of them finished — the "batch" was undefined and could be
+arbitrarily large (the audit's own abort-free counterexample reached
+20.92h under the most natural reading of the old trigger wording).
+**That hole is structural to CONCURRENT dispatch — it does not exist
+when dispatch cannot be concurrent.** F1 removes concurrency itself:
+one GPU, one subprocess in flight at a time, ledger updated
+synchronously in the SAME process immediately after each attempt
+returns and BEFORE the next gate check runs. There is no "batch" to
+be atomic about, and no reservation/release bookkeeping is needed
+(what a PARALLEL Option B would have required) — every gate check sees
+the exact true cumulative spend of every prior attempt, aborted or
+completed.
+
+Induction: let attempt `N` be the LAST attempt ever admitted before
+the program ends or the gate starts refusing everything. By the hard
+gate, `ledger.realized_gpu_h` immediately before dispatching attempt
+`N` — call it `R_{N-1}` — is, by the sequencing argument above,
+EXACTLY the sum of every prior attempt's true `elapsed_h` (aborted or
+completed, not an approximation), and satisfies `R_{N-1} +
+ceiling(N) ≤ 15.00`. Attempt `N`'s own true `elapsed_h` can exceed
+`ceiling(N)` by at most ONE of: eval overhead, if `N` reaches
+`COMPLETED` (max observed **0.0126 GPU-h**, KW3.9's corrected figure,
+D5 below); or the `log_every=500`-step training-ceiling-check
+granularity (KW4.9 — `ncr_earlyln_scale.py:191-199` tests
+`elapsed>ceiling_s` only at 500-step boundaries, so training can
+overshoot by up to one interval — max observed **0.0031 GPU-h** at
+archive throughput), if `N` instead aborts. Only one of the two can
+apply to a single attempt. Taking the larger as the single-attempt
+bound:
+
+```
+R_N = R_{N-1} + elapsed_h(N)  ≤  15.00 + 0.0126  =  15.0126 GPU-h
+```
+
+**This is the whole derivation — not `15.00 + 16×0.0126` as in Rev 2.**
+Rev 2's `16×` term existed because its induction had to price EVERY
+admitted cell's unpriced tail (any of them could, under concurrent
+dispatch, have been "the one seen stale"). Under strict sequencing,
+every attempt BEFORE the last one is already fully reflected in
+`R_{N-1}` — its own eval/overshoot tail was added to the ledger before
+the NEXT gate check ran. Only the ONE truly-last attempt's tail is
+ever unpriced. **Sequential admission does not merely dodge KW4.2 — it
+structurally converts an N-attempt unpriced term into a 1-attempt
+term.**
+
+Rounding conservatively (retaining the prior revisions' disclosed
+`≈15.20h`, tighter than but consistent with the true `15.0126h` this
+derivation proves — a reader comparing revisions sees the number get
+MORE conservative, never less) and adding a **stated — not derived; a
+policy choice, disclosed as such — supervisor margin**, covering the
+log-interval overshoot's own disclosed contention-variance
+("proportionally more under exactly the contention the ceiling exists
+to survive," KW4.9) plus orchestrator-process overhead the cell-level
+`ceiling_s` check does not model (subprocess spawn/interpreter/import
+latency, ledger-file I/O, the two `harvest()` invocations), fixed at a
+round, generous **0.30 GPU-h**:
+
+```
+declared program ceiling = 15.20  (disclosed, conservative-rounded internal bound)
+                          + 0.30  (supervisor margin, stated)
+                          = 15.50 GPU-h
+```
+
+This is the ONE ceiling the orchestrator's pool spec carries (§6) —
+flat, independent, derived by induction over a genuinely sequential
+admission process. **A disclosed consequence, not a hidden failure
+mode:** in the pathological case where all 12 primary cells consume
+their full ceiling before the conditional arm is considered, the hard
+gate correctly THROTTLES OR REFUSES part or all of the conditional arm
+rather than exceeding 15.00 — degrading gracefully to
+`TRIGGER-UNRESOLVED`/reduced conditional coverage, never to a silent
 overrun. In the intended, non-adversarial case the numbers stay far
 inside this envelope: nominal primary (≈6.65h) + nominal conditional
 worst-case (K=30, ≈4.62h) = **≈11.27h**, informational only, not the
 enforced bound.
 
-**Ceiling reference table (E2, restored job-108 convention;
-informational — the ENFORCED bound is E1's 15.00/15.20, not a sum of
-these):**
+**Ceiling reference table (E2, unchanged values — informational
+sizing justification ONLY; Rev 3: the gate charges the CLI value
+directly, 1.20/2.32, not these per-K figures — KW4.4):**
 
 | | per-cell ceiling (`≥2×nominal`, floor 1.0h) | ×N cells (informational sum) |
 |---|---|---|
@@ -619,27 +867,29 @@ these):**
 | Conditional K=28 (160K) | 2.1432 h | 8.573 h |
 | Conditional K=30 (160K, worst case) | 2.3121 h | 9.248 h |
 
-(All 6 values re-derived this revision by direct execution of
-`max(2×nominal, 1.0)` against the corrected nominals above; the
-informational per-arm ceiling-sums — e.g. all 16 cells simultaneously
-at ceiling would sum to `13.29h primary + 9.25h conditional(K30) =
-22.54h` — are NOT the enforced bound and are shown only to make clear
-why E1's cumulative, realized-GPU-h check, not a static ceiling-sum, is
-the mechanism that actually holds the program to ≤15.20h.)
+(All 6 values re-derived by direct execution of `max(2×nominal, 1.0)`
+against the corrected nominals above; shown only to justify why
+1.20h/2.32h clear every K's own floor — the enforced/charged bound is
+the ORCHESTRATOR CONTRACT's 15.50h above, never a sum of these.)
 
-**Margin claim, corrected (KW3.2).** Rev 1's supporting sentence *"every
-1×-budget cell ever run has stayed within 1.06× of its own K's mean"*
-is **deleted — it was false** (the audit found 4 of 24 archive config
-groups exceed 1.06×, max 1.092×). The TRUE archive-wide figure, verified
-CLEAN by the audit over all 97 completed cells / 24 groups, is cited
-instead: **the largest max/nominal ratio ever observed in this program
-is 1.206×** (K32, 2×-budget, seed 3: `1.2685/1.0510`). Under the
-restored E2 ceilings (`≥2×nominal`), this leaves `2.00/1.206 ≈ 1.66×`
-of headroom beyond the worst spike ever recorded — a substantially
-WIDER safety margin than Rev 1's 0.75h/1.50h trim (which was
-`1.26×`–`1.47×` nominal, i.e. inside 1.5× of the worst archive spike,
-the exact contention risk KW2.2 flagged). Restoring the convention
-fixes the substance of KW3.2, not merely its citation.
+**Margin claim, corrected (KW3.2; digit fixed, KW4.10).** Rev 1's
+supporting sentence *"every 1×-budget cell ever run has stayed within
+1.06× of its own K's mean"* is **deleted — it was false** (the audit
+found 4 of 24 archive config groups exceed 1.06×, max 1.092×). The
+TRUE archive-wide figure, verified CLEAN by the audit over all 97
+completed cells / 24 groups and independently re-executed this
+revision to the same digit: **the largest max/nominal ratio ever
+observed in this program is 1.2069×, rounding to 1.207×** (K32,
+2×-budget, seed 3: `1.2685/1.0510` — Rev 2's "1.206×" was a truncation
+in the flattering direction, KW4.10). Under the restored `≥2×nominal`
+ceilings, this leaves `2.00/1.2069 ≈ 1.657×` (≈1.66×) of headroom
+beyond the worst spike ever recorded — a substantially WIDER safety
+margin than Rev 1's 0.75h/1.50h trim (which was `1.26×`–`1.47×`
+nominal, i.e. inside 1.5× of the worst archive spike, the exact
+contention risk KW2.2 flagged). This margin bounds a SINGLE training
+run's own variance around its ceiling — a property of the harness,
+independent of and unaffected by the ORCHESTRATOR CONTRACT's ledger
+fix above.
 
 **D5 — eval-inclusive ceiling handling (KW2.2, corrected not merely
 disclosed).** `gpu_h` (used throughout this pricing) is
@@ -654,126 +904,177 @@ Measured directly this revision across every archived cell (K=16/24/32,
 (corrected this revision — KW3.9 found Rev 1's "0.7%–1.5%" scope wrong
 at both ends; the max ABSOLUTE figure was already right and is
 unchanged), max observed **45.5s = 0.0126 GPU-h** (K32, 2×, seed 3).
-This is exactly the per-cell figure E1's worst-case derivation (above)
-uses; the ≈15.20 GPU-h program bound already reflects it.
+This is exactly the per-cell figure the ORCHESTRATOR CONTRACT's
+worst-case derivation (above) uses; the `≈15.20`/`15.50` GPU-h program
+bounds already reflect it.
 
-**D5/E4 — ABORTED-BUDGET / MISSING / non-COMPLETED cell rule, Rev 2
-mechanization (KW2.2/KW2.3/KW3.4).** Rev 1's version deadlocked
-(`PERSISTENTLY-ABORTED` could never reach 4/4 COMPLETED, so its K could
-never be classified) and left the retry/exclusion logic unmechanized,
-with no named enforcement point against `harvest()`'s actual behavior.
-Rev 2 replaces both bullets with a bounded, mechanized rule:
+**D5/E4 — ABORTED-BUDGET / MISSING / non-COMPLETED cell rule for BAND
+classification, Rev 2 mechanization (KW2.2/KW2.3/KW3.4), Rev 3
+cross-referenced to the orchestrator's own gates (F1) rather than a
+launcher that no longer exists in this form.** Rev 1's version
+deadlocked (`PERSISTENTLY-ABORTED` could never reach 4/4 COMPLETED, so
+its K could never be classified) and left the retry/exclusion logic
+unmechanized, with no named enforcement point against `harvest()`'s
+actual behavior. Rev 2's bounded, mechanized rule stands (the band
+side of E4 was independently verified correct by round 3, KW4.5's own
+text: *"delivered exactly as the disposition specified"*); Rev 3 only
+repoints its cross-references from the retired launcher-side E1 check
+to the orchestrator's HARD/RETRY gates it now shares with the trigger
+rule (§4, above), and fixes KW4.7/KW4.8:
 
 - **Retry, bounded.** A cell with `status=="ABORTED-BUDGET"`
   (`train_earlyln_cell`, `:198-201`) is retried AT MOST ONCE — subject
-  to E1's retry gate (`realized_gpu_h<12.00`, above) — with no ceiling
-  change. Retraining is from scratch (the harness only skips on
-  `status=="COMPLETED"`, `:243-245`; there is no checkpoint resume, so
-  a retry consumes close to a full ceiling again — this is exactly why
-  the retry is bounded at 1 and gated on cumulative budget, not
-  unconditional). If the retry ALSO fails to reach `COMPLETED` (a
-  second `ABORTED-BUDGET`, or the retry itself is refused by E1's retry
-  gate), that seed becomes **`PERSISTENTLY-ABORTED` — a TERMINAL state,
-  never retried again, regardless of remaining budget.**
+  to the orchestrator's RETRY GATE (`realized_gpu_h<12.00`, above) —
+  with no ceiling change. If the retry ALSO fails to reach `COMPLETED`
+  (a second `ABORTED-BUDGET`, or the retry itself is refused by the
+  RETRY GATE), that seed becomes **`PERSISTENTLY-ABORTED` — a TERMINAL
+  state, never retried again, regardless of remaining budget.**
 - **Denominator, fixed at 4 (A4.9 guard preserved — KW3.4's
-  "denominator contradiction" closed).** `PERSISTENTLY-ABORTED` and
-  MISSING (never-attempted) cells are NOT excluded from `n_seeds`; the
-  rate denominator for every K stays exactly 4, matching the
-  partition's own `r∈{0,1,2,3,4}` domain. What is unknown is the
-  NUMERATOR contribution of the incomplete seed(s), not the
-  denominator — resolved by interval logic, next.
-- **Interval logic for a K with exactly one terminal-aborted or
-  MISSING cell (E4, exact).** Let `r_known` = the CONVERGED count among
-  that K's 3 resolved seeds. The incomplete seed's true outcome is
-  unknown but bounded: it either would have been CONVERGED (contributing
-  `+1`) or not (contributing `+0`). Evaluate the §5 six-rule
-  classification procedure TWICE — once with that K's `r = r_known` and
-  once with `r = r_known + 1` (the other two K's `r`-values held fixed
-  at their own resolved values) — and compare the resulting bands
-  (including the `[NON-MONOTONE]` tag, which is part of the band for
-  this comparison):
+  "denominator contradiction" closed).** `PERSISTENTLY-ABORTED`,
+  `GATE-REFUSED`, and MISSING (never-attempted) cells are NOT excluded
+  from `n_seeds`; the rate denominator for every K stays exactly 4,
+  matching the partition's own `r∈{0,1,2,3,4}` domain. What is unknown
+  is the NUMERATOR contribution of the incomplete seed(s), not the
+  denominator — resolved by interval logic, next. This is the SAME
+  `n_completed`-based resolution-state computation §4's trigger rule
+  (above) consumes — one shared computation, two independent
+  downstream decision functions (`classify()` here, the trigger's
+  K-scan there), which is exactly why the two can (and per KW4.5's 11
+  enumerated cases, do) disagree even when each individually decides.
+- **Interval logic for a K with exactly one terminal-aborted, MISSING,
+  or `GATE-REFUSED` cell (E4, exact).** Let `r_known` = the CONVERGED
+  count among that K's 3 resolved seeds. Evaluate the §5 six-rule
+  classification procedure TWICE — once with `r = r_known` and once
+  with `r = r_known + 1` (the other two K's `r`-values held fixed) —
+  and compare the resulting bands (the `[NON-MONOTONE]` tag included):
   - **Same band both ways ⇒ DECIDE.** Report that band, with a
     disclosure flag naming which K's rate was interval-resolved and
-    from which incomplete-cell state (`PERSISTENTLY-ABORTED` or
-    MISSING).
-  - **Different bands ⇒ `INCOMPLETE-AT-K` for that K.** Reported as its
-    own outcome, explicitly EXCLUDED from frontier claims (never
-    silently forced into either candidate band), and disclosed with
-    both candidate bands shown side by side.
+    from which incomplete-cell state.
+  - **Different bands ⇒ the STUDY reports `INCOMPLETE-AT-K` (KW4.8
+    fix — this is a study-level verdict, not a per-K band the
+    six-rule procedure can return; §5's partition is a function of the
+    FULL triple and yields exactly one label, never one per K).**
+    `INCOMPLETE-AT-K` is reported as its own outcome, orthogonal to
+    the 125-outcome partition (§5), explicitly EXCLUDED from frontier
+    claims, and disclosed carrying the affected K(s) as a field —
+    never silently forced into either candidate band.
+  - **Decide-rate, disclosed (KW4.7 — not previously stated).**
+    Independently re-executed this revision (a ~40-line sweep, not
+    hand-counted): at `r_known=2` — precisely the value where
+    `ROBUST(r):=r≥3` straddles the boundary, the case a sub-ROBUST
+    rung is expected to produce — the two candidates give DIFFERENT
+    bands (fail to decide) in **16/25=64%** (K=26 incomplete),
+    **17/25=68%** (K=28), and **25/25=100%** (K=30) of the surrounding
+    configurations; with two K's each singly-incomplete, the
+    cross-product decides in only **45–54%** of configurations. A
+    single terminal abort at K=30 with `r_known=2` therefore
+    **guarantees** `INCOMPLETE-AT-K` for the study band (no further
+    recourse — the retry is exhausted, the state is terminal). This is
+    not a logic error; it is a reliability property a reader should
+    not assume is better than it is.
 - **Two or more incomplete cells at one K, or incomplete cells at
   MULTIPLE K's simultaneously.** With ≥2 incomplete cells at a single
-  K, the interval width exceeds what a two-way comparison can resolve
-  (up to 3 candidate `r` values); Rev 2 does not attempt the wider
-  interval — that K is `INCOMPLETE-AT-K` UNCONDITIONALLY, no candidate
+  K, the interval width exceeds what a two-way comparison can resolve;
+  that K is `INCOMPLETE-AT-K` (band) / `UNRESOLVED` (trigger,
+  excluded from candidacy per F2) UNCONDITIONALLY, no candidate
   comparison performed. If DIFFERENT K's each have exactly one
   incomplete cell at the same time, interval logic is applied
-  compositionally: evaluate the classification over the full
-  cross-product of each affected K's two candidate `r`-values (`2^m`
-  candidates for `m` singly-incomplete K's); if every candidate in the
-  cross-product yields the SAME band, decide (disclosing all `m`
-  interval-resolved K's); otherwise `INCOMPLETE-AT-K` for the affected
-  K's, both/all candidate bands disclosed. Either rule is acceptable to
-  state outright per E4; Rev 2 states both rather than leaving the
-  multi-incomplete case silent.
+  compositionally: evaluate over the full cross-product of each
+  affected K's two candidate `r`-values (`2^m` candidates for `m`
+  singly-incomplete K's); if every candidate yields the SAME band,
+  decide (disclosing all `m` interval-resolved K's); otherwise
+  `INCOMPLETE-AT-K` for the affected K's, both/all candidate bands
+  disclosed. (The trigger rule, §4 above, runs the identical
+  cross-product independently for `K_trig` and applies its own
+  tie-break when it disagrees — the two need not agree with each
+  other on whether they can decide, per KW4.5's 11 cases.)
 - **Enforcement point, named (closes KW3.4's "no enforcement point"
-  defect).** `harvest()`'s existing `n_seeds`/`gate_eligible` computation
+  defect; unchanged from Rev 2, still correct).** `harvest()`'s
+  existing `n_seeds`/`gate_eligible` computation
   (`ncr_earlyln_scale.py:380-406`) is **not** the right instrument
   as-is: `n_seeds = len(seeds_by_K[K])` comes from `discover_seeds_by_K`,
   which globs `earlyln_K{K}_s{seed}.json` FILE PRESENCE — a file exists
   on disk for an `ABORTED-BUDGET`/`PERSISTENTLY-ABORTED` cell too, so
   `n_seeds` silently counts it and `gate_eligible=n_seeds>=4` reads
   `True` even though that cell never reached `COMPLETED` (verified by
-  direct code read this revision — this is the "band contamination"
-  KW2.2/KW3.4 named, concretely located). **Build-stage instruction
-  (this design stays DRAFT and edits no code; specified here so the
-  build stage implements exactly this, the same deferral pattern
-  already used for the KW2.6 job-spec template):** `harvest()` must
-  compute `n_completed = Σ 1[cells[seed]["status"]=="COMPLETED"]`
+  direct code read — the "band contamination" KW2.2/KW3.4 named,
+  concretely located). **Build-stage instruction (this design stays
+  DRAFT and edits no code):** `harvest()` must compute
+  `n_completed = Σ 1[cells[seed]["status"]=="COMPLETED"]`
   (status-based, not file-glob-based) per K, and:
   - `n_completed==4` → classify normally (as today).
-  - `n_completed==3`, the 4th `MISSING` or `PERSISTENTLY-ABORTED` →
-    apply the interval-logic rule above; emit the decided band + the
-    interval-resolved disclosure flag, OR `INCOMPLETE-AT-K`.
-  - `n_completed≤2` → `INCOMPLETE-AT-K` unconditionally, no candidate
-    comparison.
-  This patch is the harvest-side counterpart to the launcher-side E1
-  cumulative check — together they are the two points that actually
-  enforce this design's stated rules against the harness's real
-  behavior, closing the gap KW3.4 found between "the rule is written"
-  and "the rule has an enforcement point."
+  - `n_completed==3`, the 4th `MISSING`/`PERSISTENTLY-ABORTED`/
+    `GATE-REFUSED` → apply the interval-logic rule above.
+  - `n_completed≤2` → `INCOMPLETE-AT-K` unconditionally.
+  This patch is the harvest-side counterpart to the orchestrator's own
+  ledger/gate machinery (§4, above) — together they are the two points
+  that actually enforce this design's stated rules against the
+  harness's real behavior.
 
-**Job-spec template (KW2.6 — pool-conformance artifact, specified
-here for the build stage; this design remains DRAFT and creates no job
-JSONs itself).** Every cell, primary and conditional, gets a
-`queue/jobs/pending/*.json` entry in job-108's own 8-field format
-(`id, lane, hypothesis, cmd, gpu_h_estimate, output_dir,
-validity_check, notes`) with an ABSOLUTE interpreter/working-directory
-`cmd` (not the CWD-relative `--outdir` R0 left implicit) and a
-`validity_check` that asserts, in addition to job-108's
-`status=='COMPLETED'`/`train.step==<budget>`/`'eval' in d`/
-`blank_out.passed is True`: **`d == K+1` and `d_override == K+1`** —
-closing the exact `d=K+1`-vs-`d=2K` filename-collision risk
-`EXPERIMENT_LOG.md:8452` already forced a workaround for once (the
-fresh `results_kwall_characterization*` outdirs already avoid the
-collision; this `validity_check` addition is defense-in-depth against
-a mis-flagged cell silently harvesting under the wrong convention).
+**Job-spec template (KW2.6, Rev 3 rescoped to F1's delivery model —
+pool-conformance artifact, specified here for the build stage; this
+design remains DRAFT and creates no job JSONs itself).** Rev 2 gave
+every one of up to 16 CELLS its own pool entry; **F1 replaces that
+with exactly ONE** `queue/jobs/pending/*.json` entry, job-108's own
+8-field format (`id, lane, hypothesis, cmd, gpu_h_estimate,
+output_dir, validity_check, notes`), whose `cmd` is an ABSOLUTE
+interpreter/working-directory invocation of the (build-stage)
+orchestrator script — never a single `ncr_earlyln_scale.py` cell
+command directly. `gpu_h_estimate: 15.50` (§4's derived-plus-margin
+ceiling). `validity_check` asserts, over the orchestrator's OWN
+`orchestrator_report.json` (schema above): `run_status=="COMPLETE"`,
+`ledger.realized_gpu_h_final <= 15.50`, and — closing the exact
+`d=K+1`-vs-`d=2K` filename-collision risk `EXPERIMENT_LOG.md:8452`
+already forced a workaround for once — `all(a["K"]+1 ==
+d_override_of(a) for a in ledger.attempts)`, i.e. every logged
+attempt's underlying cell carried `d==K+1`/`d_override==K+1`, checked
+across the WHOLE ledger rather than per-cell (the attempt-indexed
+outdirs already avoid the collision by construction; this is
+defense-in-depth against a mis-flagged attempt silently harvesting
+under the wrong convention). **No per-cell job specs are created** —
+the orchestrator is the only pool artifact this design produces (§6).
 
-**KW2.8/KW3.13 close-out (accepted-risk, Rev 2).** The build's own
-`--smoke`/t5 self-test path exercises new K's at `GRID_SHAPES`'
-default `d=2K`, not this design's own `d=K+1` config, and would run 3
-extra smoke cells under an already-rejected convention (§2(a)/(b)).
-R1's discharge asked for two things: a `d=K+1` micro-smoke instruction
-(recorded above, in the `validity_check`/job-spec instructions) AND an
-extension of `t4b`'s own K-list — the second half was silently dropped
-in Rev 1. **Accepted as risk, one sentence:** the `t4b` K-list
-extension is deferred to the build-stage smoke-test checklist (a
-build-time task, not this draft's own claim about K∈{26,28,30}'s
-trainability), and the +3 default-`d=2K` smoke cells are harmless
-extra coverage of a convention already rejected on its own evidence
-(§2(a)/(b)), not a gap in this design's `d=K+1` claim — the build stage
-must still run the `d=K+1` micro-smoke this design specifies before
-release, which is the smoke test that actually matters for this
-design's own config family.
+**KW2.8/KW3.13/KW4.6 close-out — the REFUTED accepted-risk replaced
+with a real, owned gate (F3, Rev 3).** Round 3 found the "d=K+1
+micro-smoke... recorded above" cross-reference FALSE: no live section
+specified it (only `§R1`, frozen and non-operative by house
+convention); `validity_check` (above) is a harvest-time assertion on a
+COMPLETED production cell, not a smoke test, and cannot catch a
+first-forward-pass shape crash the way a smoke test does — it is never
+called a smoke anywhere in this document. Rev 3 specifies a real
+per-K micro-smoke as an explicit BUILD-RELEASE GATE, distinct from and
+run strictly BEFORE any production cell:
+
+- **What runs.** One short `d`-override cell per K∈{26,28,30}:
+  `ncr_earlyln_scale.py --cell --K {K} --d-override {K+1} --seed 0
+  --steps 500 --ceiling-gpuh 0.05 --outdir results_kwall_smoke/K{K}`
+  (the `t10` micro-cell pattern `§R1`'s frozen KW2.8 row already named
+  as the right shape, now actually wired to a live gate instead of
+  left inside a frozen, non-operative section). 500 steps exercises
+  one full forward/backward pass and one optimizer step at each new
+  K's actual `d=K+1` shape; it is not expected to converge and is not
+  scored on `indist_min`.
+- **Pass criterion (exact, build-checkable).** The subprocess exits
+  without an uncaught exception, AND the resulting JSON has
+  `status ∈ {"COMPLETED","ABORTED-BUDGET"}` (either is fine — a smoke
+  only proves the config RUNS, never that it converges), AND `K`, `d`,
+  `d_override` in the JSON equal `K`, `K+1`, `K+1` respectively (the
+  shape actually built is the one asked for, not a silently-defaulted
+  `d=2K`).
+- **Gate placement.** Build-release gate: the orchestrator script is
+  not queue-eligible until all 3 micro-smokes (K=26,28,30) pass —
+  specified here precisely enough for the build stage to implement
+  without further design input, the same deferral precedent already
+  accepted for the job-spec template above (design-complete,
+  implementation deferred to build, not a design gap).
+- **`t4b`'s K-list extension** (the OTHER half of R1's original ask)
+  stays deferred to the build-stage smoke-test checklist, same
+  disposition as Rev 1/Rev 2 — a build-time task, not this draft's own
+  claim about K∈{26,28,30}'s trainability. The +3 default-`d=2K` smoke
+  cells the build's own `--smoke`/t5 path already runs remain harmless
+  extra coverage of an already-rejected convention (§2(a)/(b)), never
+  a substitute for the gate specified above, which is this design's
+  own owned smoke for its own config family.
 
 ---
 
@@ -981,22 +1282,36 @@ information a reader may want, not part of the pre-registered
 160K-matched decision, and it is never substituted into the label the
 way Rev 1 did.
 
-**INCOMPLETE-AT-K (D5/E4, Rev 2 mechanization, KW2.2/KW2.3/KW3.4).**
-Rev 1 said an incomplete K is "re-run... until 4/4 COMPLETED, then
-classified" — this deadlocks against a TERMINAL `PERSISTENTLY-ABORTED`
-seed (§4's bounded-retry rule), which by construction can never reach
-4/4 COMPLETED. Rev 2 replaces this with §4's mechanized rule (E4,
-cross-referenced here rather than restated in full): a K with exactly
-one `PERSISTENTLY-ABORTED`/MISSING cell is resolved by INTERVAL LOGIC
-(evaluate the six-rule procedure at both possible values of the
-unresolved seed; same band ⇒ decide with disclosure, different bands
-⇒ `INCOMPLETE-AT-K`); a K with ≥2 incomplete cells, or multiple K's
-whose cross-product of interval candidates disagrees, is
-`INCOMPLETE-AT-K` — reported, disclosed, and explicitly EXCLUDED from
-frontier claims, never silently forced into a band or silently dropped
-from `n_seeds` (the denominator stays fixed at 4 throughout, per the
-A4.9 guard). No partial rate is ever read into the table as if it were
-a full-n=4 verdict.
+**INCOMPLETE-AT-K (D5/E4, Rev 2 mechanization, KW2.2/KW2.3/KW3.4; Rev 3
+KW4.8 wording fix).** Rev 1 said an incomplete K is "re-run... until
+4/4 COMPLETED, then classified" — this deadlocks against a TERMINAL
+`PERSISTENTLY-ABORTED` seed (§4's bounded-retry rule), which by
+construction can never reach 4/4 COMPLETED. Rev 2 replaces this with
+§4's mechanized rule (E4, cross-referenced here rather than restated
+in full): a K with exactly one `PERSISTENTLY-ABORTED`/MISSING/
+`GATE-REFUSED` cell is resolved by INTERVAL LOGIC (evaluate the
+six-rule procedure at both possible values of the unresolved seed;
+same band ⇒ decide with disclosure, different bands ⇒ the study
+reports `INCOMPLETE-AT-K`); a K with ≥2 incomplete cells, or multiple
+K's whose cross-product of interval candidates disagrees, likewise
+yields `INCOMPLETE-AT-K`. **`INCOMPLETE-AT-K` is a STUDY-LEVEL verdict,
+not a per-K band (KW4.8) — §5's six-rule procedure is a function of
+the FULL `(r26,r28,r30)` triple and returns exactly ONE label; there is
+no per-K band object for it to attach to.** It sits orthogonal to the
+125-outcome partition demonstrated below (that partition is exhaustive
+over its OWN domain — complete triples — and stays exact;
+`INCOMPLETE-AT-K` is what the study reports when no complete triple can
+be read at all), reported, disclosed with the affected K(s) carried as
+a field, and explicitly EXCLUDED from frontier claims — never silently
+forced into a band or silently dropped from `n_seeds` (the denominator
+stays fixed at 4 throughout, per the A4.9 guard). No partial rate is
+ever read into the table as if it were a full-n=4 verdict. **Distinct
+from, and evaluated separately from, `TRIGGER-UNRESOLVED` (§4)** — a K
+can be band-`INCOMPLETE-AT-K` while the 160K trigger still resolves
+(or vice versa is not reachable, since the trigger scan only reaches
+an unresolved K when it needs that K's own status, per §4's pseudocode)
+because `classify()` and the trigger's K-scan are different functions
+of the same per-K resolution states.
 
 **KW2.9 (Rev 2, now fully discharged — the one sentence R1 asked for).**
 `harvest()`'s existing report format also emits `SUB4-DISCLOSED-ONLY(n=0)`
@@ -1020,68 +1335,82 @@ unclassifiable result was the defect this design no longer has).
 
 ## §6 POOL-ELIGIBILITY STATEMENT
 
-This grid satisfies `matrix-thinking/queue/idle_fallback_daemon.sh`'s
-own pool contract (header, `:10-16`): *"the pool holds ONLY flat
-specs — each fully audited + queue-eligible, independently runnable in
-any order, carrying its own cost ceiling, with NO intra-wave
-dependencies, stage gates, or staged-escalation semantics."* Verified
-against this design's own structure, not asserted:
-- **Independent, with one honest exception (Rev 1 disclosure).** No
-  primary cell's launch condition depends on another cell's result —
-  all 12 primary cells run in any order or fully in parallel, exactly
-  as R0 stated (unlike the SPENT K-ladder design,
-  `NCR_KLADDER_ATTACK_R2.md` finding A4.12). **The CONDITIONAL 4-cell
-  160K arm (§4) is NOT flat-independent of the primary** — its launch
-  (and which K it targets) depends on the primary 12-cell harvest.
-  This is a genuine, disclosed, single-stage dependency, reintroduced
-  at far smaller scale than the SPENT ladder's multi-stage design it
-  was praised for avoiding. Resolution: the PRIMARY 12-cell grid is
-  the flat, pool-eligible spec (unchanged from R0); the CONDITIONAL
-  arm is a separate, pre-registered FOLLOW-UP spec, generated only
-  after the primary's harvest determines `K_trig` (§4) — it is not
-  submitted to the pool alongside the primary as a second flat item,
-  and its own job spec (§4's template) is produced at that later point,
-  not now.
-- **Own cost ceiling (Rev 2, E1/E2 — restored per-cell ceilings, global
-  program cap does the bounding).** The primary 12 cells carry
-  `--ceiling-gpuh 1.20` (§4 — restored to the job-108 `≥2×nominal`
-  convention, NOT Rev 1's 0.75h trim); the conditional 4 cells, if
-  triggered, carry `--ceiling-gpuh 2.32`. Both per-cell ceilings are
-  still enforced by the runner's own existing training-phase mechanism
-  (`train_earlyln_cell`'s `ceiling_s` argument, `:198-201`); the
-  PROGRAM-level bound is now E1's cumulative-realized-GPU-h check (the
-  launcher reads `gpu_h` from every `COMPLETED` cell JSON before each
-  launch/retry and refuses admission once `realized_gpu_h +
-  ceiling(cell) > 15.00`) — this is what makes ≤15.20h GPU-h
-  (eval-inclusive, derived in §4) an actual bound rather than an
-  aspirational sum, closing KW3.1's finding that Rev 1's per-cell-sum
-  bound broke under its own retry rule.
+**Rev 3 (F1): pool-eligibility attaches to the ORCHESTRATOR SPEC, not
+to the 16 cells.** This is the structural fix to KW4.3's finding that
+§6 asserted both "16 independent pool-eligible cells" AND "a
+cumulative program cap across them" — mutually exclusive under the
+pool's own contract. Rev 3 resolves the contradiction by changing which
+object the contract is checked against: ONE job, "run the
+orchestrator," is what ships to `queue/jobs/pending/` (job-spec
+template, §4, above); the 16 cells (12 primary + up to 4 conditional)
+are dispatched BY that job, sequentially, on the one GPU it occupies —
+entirely internal to its execution, invisible to and unenforced by
+`queue_worker.sh`/`idle_fallback_daemon.sh`. This grid satisfies
+`matrix-thinking/queue/idle_fallback_daemon.sh`'s own pool contract
+(header, `:10-16`): *"the pool holds ONLY flat specs — each fully
+audited + queue-eligible, independently runnable in any order,
+carrying its own cost ceiling, with NO intra-wave dependencies, stage
+gates, or staged-escalation semantics."* Verified against the
+orchestrator spec's own structure, not asserted:
+- **Independent — genuinely, not "with one honest exception."** Rev 2
+  disclosed the conditional arm's dependency on the primary harvest as
+  a pool-level exception to flatness (KW4.3's structural complaint was
+  exactly that this exception contradicted the flat-spec claim
+  alongside it). Under F1 that dependency no longer touches the pool
+  at all: the primary→trigger→conditional sequencing (§4's cell order,
+  trigger evaluation point, harvest invocations) is entirely INTERNAL
+  to the one orchestrator job. From the pool's perspective there is
+  exactly one flat, independently-runnable-in-any-order item — nothing
+  about it depends on any OTHER pool spec's state or result. (Unlike
+  the SPENT K-ladder design's multi-stage pool submission,
+  `NCR_KLADDER_ATTACK_R2.md` finding A4.12, which this design still
+  does not repeat.)
+- **Own cost ceiling (F1, replaces E1/E2's launcher-side cumulative
+  check, which KW4.1–KW4.3 found blind/false-premised/unimplementable
+  in the real dispatch path).** The orchestrator spec carries exactly
+  ONE declared ceiling: **15.50 GPU-h** — `15.20h` (the disclosed,
+  conservatively-rounded internal worst case; the tight derivation
+  proves `15.0126h`, §4) plus a **stated 0.30h supervisor margin**
+  (§4). This is enforced ENTIRELY inside the orchestrator's own
+  process (the HARD/RETRY gates and the wall-clock ledger, §4) — no
+  external launcher, no cross-cell coordination, and no dependence on
+  `queue_worker.sh`/`idle_fallback_daemon.sh` carrying any budget
+  state (they carry none, and now need none: KW4.3's finding that
+  neither script has a notion of "batch" or "cumulative spend" is
+  moot, because the ONE thing the pool dispatches doesn't need either
+  from them). Per-cell CLI ceilings (`1.20`/`2.32`) are still enforced
+  by the runner's own existing training-phase mechanism
+  (`train_earlyln_cell`'s `ceiling_s` argument, `:198-201`) AND are now
+  the SAME values the orchestrator's ledger charges (KW4.4 closed, §4).
 - **Audited + queue-eligible only after this draft clears its own
   audit round** — still explicitly NOT queue-eligible (status header,
-  now DRAFT-R2); the pool contract's "ceremony gate stays upstream of
+  now DRAFT-R3); the pool contract's "ceremony gate stays upstream of
   it" applies here exactly as written.
-- **Queue-pool sweep scope, corrected (KW2.7).** §3's internal sweep
-  covered `matrix-thinking/queue/jobs/pending/` (the only queue
-  directory tracked in this repo) and found zero K∈{26,28,30} hits;
-  `~/queue/{fallback_pool,claimed}` on the box were NOT swept this
-  session. **Added as a mandatory pre-launch red-team task:** sweep
-  both on-box directories for K∈{26,28,30} content before this design
-  (or its conditional follow-up) is promoted to the pool.
-- **Resource/placement red-team, made explicit in the living body
-  (Rev 2, KW3.16).** CLAUDE.md's ceremony tiers require a pre-launch
-  resource/placement red-team for any 10–50 GPU-h wave; this design's
-  true worst case (≈15.20h, E1) sits in that tier, but Rev 1's only
-  red-team task named in §6 was the on-box pool sweep above. Rev 2
-  states the requirement here explicitly rather than leaving it only in
-  `§A1-ADJUDICATION` (historical): before launch, the red-team round
-  must (i) verify E1's cumulative-cap check and E2's restored ceilings
-  against whatever launcher script the build stage actually produces
-  (not just against this design's prose), (ii) verify E4's
+- **Queue-pool sweep scope, corrected (KW2.7, unchanged from Rev 2).**
+  §3's internal sweep covered `matrix-thinking/queue/jobs/pending/`
+  (the only queue directory tracked in this repo) and found zero
+  K∈{26,28,30} hits; `~/queue/{fallback_pool,claimed}` on the box were
+  NOT swept this session. **Still a mandatory pre-launch red-team
+  task:** sweep both on-box directories for K∈{26,28,30} content before
+  this design's orchestrator job is promoted to the pool.
+- **Resource/placement red-team, restated for the orchestrator model
+  (Rev 2, KW3.16; Rev 3 repoints items (i)/(iii)).** CLAUDE.md's
+  ceremony tiers require a pre-launch resource/placement red-team for
+  any 10–50 GPU-h wave; this design's declared ceiling (15.50h) sits in
+  that tier. Before launch, the red-team round must: (i) verify the
+  build-stage orchestrator script's ledger/gate implementation against
+  the ORCHESTRATOR CONTRACT (§4) EXACTLY — cell order, dispatch loop,
+  gate check points, attempt-indexed outdirs, ledger persistence — not
+  just against this design's prose in the abstract; (ii) verify E4's
   `harvest()` `n_completed`-vs-`n_seeds` patch is actually applied
-  before any K is classified, (iii) confirm the packing density (cells
-  per GPU) the build intends, since E1's batch-atomic admission check
-  depends on knowing the batch size, and (iv) complete KW2.7's
-  still-outstanding on-box `fallback_pool/`/`claimed/` sweep.
+  before any K is classified; (iii) confirm the orchestrator genuinely
+  occupies exactly ONE GPU with no concurrent cell dispatch anywhere in
+  its own process (the property the whole worst-case derivation, §4,
+  depends on — a build that silently parallelizes cells across GPUs
+  "for speed" would reopen KW4.2's hole); (iv) verify the 3 build-release
+  micro-smokes (F3, §4) actually ran and passed before the orchestrator
+  was marked queue-eligible; and (v) complete KW2.7's still-outstanding
+  on-box `fallback_pool/`/`claimed/` sweep.
 - **No standing restriction bites.** The `STATE.md:53` "NO NCR job
   queue-eligible" restriction (line renumbered this revision — content
   unchanged, KW3.7) is scoped to the in-LM write-conditioning claim
@@ -1162,14 +1491,17 @@ against this design's own structure, not asserted:
   every K would cost roughly 4× this design's cap. A reader of the
   eventual harvest should not read "FRONTIER-AT-K\*=28" as implying
   K=26 was budget-checked too.
-- **E1 (the cumulative program cap) and E4 (the bounded-retry /
-  interval-logic incomplete-cell rule) apply uniformly to BOTH arms,
-  stated once here to avoid ambiguity (Rev 2, KW3.16).** Neither rule
-  is primary-arm-only or conditional-arm-only: the launcher's
-  cumulative-GPU-h check (§4) gates every launch/retry in the whole
-  program regardless of which arm it belongs to, and a conditional-arm
-  cell that hits `ABORTED-BUDGET` is subject to the identical
-  1-retry-then-`PERSISTENTLY-ABORTED` rule and the identical
+- **The ORCHESTRATOR CONTRACT's gates (F1, superseding E1) and E4 (the
+  bounded-retry / interval-logic incomplete-cell rule) apply uniformly
+  to BOTH arms, stated once here to avoid ambiguity (Rev 2, KW3.16;
+  Rev 3 repoints from the retired launcher-side E1 check).** Neither
+  rule is primary-arm-only or conditional-arm-only: the orchestrator's
+  single ledger and HARD/RETRY gates (§4) govern every dispatch in the
+  whole program, in the SAME sequential stream, regardless of which arm
+  a cell belongs to — there is no separate ledger, no separate gate,
+  and no separate GPU for the conditional arm. A conditional-arm cell
+  that hits `ABORTED-BUDGET` is subject to the identical
+  1-retry-then-`PERSISTENTLY-ABORTED` state machine and the identical
   interval-logic classification treatment as a primary cell — there is
   no separate, weaker, or unspecified abort-handling path for the
   conditional arm.
@@ -1524,3 +1856,133 @@ Rev 3 → focused audit round 4 (F1 delivery model + F2 trigger logic +
 ledger arithmetic; fresh judge) → adjudication → build ceremony
 (orchestrator script + specs + harvest patch, own build audit) →
 placement red-team → pool.
+
+---
+
+## §R3 REVISION 3 (2026-08-06)
+
+Rev 3, dispatched per §A3-ADJUDICATION's binding dispositions F1–F4.
+Every finding from `NCR_KWALL_ATTACK_R3.md` gets a row below — all 3
+FATAL (KW4.1–KW4.3), all 3 MAJOR (KW4.4–KW4.6), all 5 MINOR
+(KW4.7–KW4.11) — plus the two round-3 PARTIALs (E4, E6), per F4's "no
+silent leftovers" instruction. §1–§7, `§A1-ADJUDICATION`, `§R1`,
+`§A2-ADJUDICATION`, `§R2`, and `§A3-ADJUDICATION` are UNCHANGED as
+historical record EXCEPT where a disposition explicitly required
+rewriting a section's content in place — every such rewrite is listed
+in the "Where fixed" column below. This design now carries status
+**DRAFT-R3 — POST-AUDIT-3, AWAITING FOCUSED AUDIT ROUND 4**.
+
+**The core change (F1) is a delivery-model change, not a bookkeeping
+patch: the experiment ships as ONE self-contained orchestrator job —
+single queue spec, one GPU, sequential cells — with an internal
+wall-clock ledger, attempt-indexed output files, unified
+charged-equals-enforced ceilings, and the 15.00/12.00 internal gates.
+Every number below was recomputed or derived visibly this revision:**
+the trigger's 11 ambiguous configurations were found by a ~40-line
+Python sweep (all 300 singly-incomplete configurations enumerated,
+matching the audit's count to the digit) and independently
+cross-checked against a 240-config two-K-simultaneously-incomplete
+sweep (max 2 distinct `K_trig` values in any band-agreeing case, never
+3+); the interval-logic decide-rates (KW4.7) were independently
+re-executed and matched the audit exactly (64%/68%/100%, 45–54%); the
+sequential worst-case bound (`15.0126h`) is derived by induction over
+a genuinely non-concurrent admission process, not asserted; the
+1.206×→1.207× correction (KW4.10) is a direct re-division
+(`1.2685/1.05105=1.20685...`).
+
+| Finding | Disposition | Where fixed |
+|---|---|---|
+| **KW4.1 (FATAL)** — `ABORTED-BUDGET` cells burn full-ceiling GPU-h but are invisible to the gate on two independent grounds (status filter + missing `gpu_h` field), and a retry overwrites the first attempt's `elapsed_s`; true worst case 28.80h/39.80h against a claimed ≤15.20h | **DISCHARGED.** The orchestrator's own wall-clock timer (`t0`/`t1` around each `subprocess.run`) measures every attempt's `elapsed_h` directly — never the cell JSON's `gpu_h` field, which is absent on the abort path by construction of the harness. The ledger updates UNCONDITIONALLY, before `status` is even inspected — no status filter can hide an aborted attempt. Attempt-indexed outdirs (`attempt1/`, `attempt2/`) mean a retry never overwrites the first attempt's record — all three grounds KW4.1 named (status filter, missing field, overwrite) are closed by construction, not by patching the old file-glob mechanism. | §4 (ORCHESTRATOR CONTRACT — dispatch loop steps 1–2; attempt-indexed outdir paragraph) |
+| **KW4.2 (FATAL)** — the induction's premise is false (`realized_before_last_batch` is a COMPLETED-only read, not true cumulative spend); an abort-free counterexample reaches 20.92h; a second, conflicting reading of the trigger rule exists | **DISCHARGED.** Concurrency itself is removed — one GPU, one subprocess in flight, ledger updated synchronously in-process immediately after each attempt. There is no "batch" for the premise to be stale about: `realized_gpu_h` at every gate check IS the true cumulative spend, by construction of strict sequencing, not by convention. KW4.2's counterexample (dispatching K=28/K=30 while K=26 is still training) cannot occur under this model. The reading ambiguity is also closed: the trigger is evaluated at exactly ONE point (§4's "trigger evaluation point"), after all 12 primary cells are terminal — never earlier, so there is no second reading to disagree with the first. | §4 (ORCHESTRATOR CONTRACT — cell order; worst-case derivation; trigger evaluation point) |
+| **KW4.3 (FATAL)** — E1 has no owner in the repo's real dispatch path (`queue_worker.sh`/`idle_fallback_daemon.sh` carry no budget state and no "batch"), and a cumulative cap across independent pool specs is itself the forbidden intra-wave dependency; §6 asserted both simultaneously | **DISCHARGED** — Option B (audit's own §9 recommendation), simplified: sequential dispatch needs no reservation ledger, only Option B's parallel-dispatch case would have. The orchestrator script is the owner — one purpose-built process the pool dispatches as a SINGLE job; `queue_worker.sh`/`idle_fallback_daemon.sh` need no budget state because neither ever sees more than "run this one job." §6 rewritten in full: pool-eligibility is claimed for the orchestrator spec, never for the 16 cells — the contradiction dissolves because the two claims are no longer about the same object. | §4 (delivery-model paragraph; ORCHESTRATOR CONTRACT); §6 (rewritten in full) |
+| **KW4.4 (MAJOR)** — `ceiling(cell)` denotes two different numbers: the gate charged `max(2×nominal,1.0h)` (per-K) while the runner enforced the shared CLI `1.20`/`2.32`; under-charge up to 1.14h, true idealized bound ≈16.34h | **DISCHARGED.** The gate now charges the CLI value DIRECTLY (`1.20` primary, `2.32` conditional) — the exact same number the runner enforces, by definition (ORCHESTRATOR CONTRACT gate 1). The per-K `max(2×nominal,1.0)` figures are relabeled explicitly INFORMATIONAL (sizing justification for why the shared CLI value clears every K's own floor) and no longer feed any gate arithmetic — no under-charge is possible. | §4 (command-block ceiling paragraph; ORCHESTRATOR CONTRACT gate 1; "Ceiling reference table" relabel) |
+| **KW4.5 (MAJOR)** — the trigger precondition ("defers … until it resolves") is unchanged from Rev 1 and deadlocks against a TERMINAL `PERSISTENTLY-ABORTED` state; 11 configurations exist where interval logic decides the band but `K_trig` remains ambiguous between two K's | **DISCHARGED.** New trigger rule (F2): `K_trig` is evaluated independently via the SAME interval-candidate cross-product used for band classification (not derived from the band label), with an explicit tie-break — smallest candidate K — whenever the resulting set has more than one value. All 11 audit-found configurations are enumerated in the design and resolve by construction under `min()` (re-verified this revision by direct execution, exact match to the audit's count and rows). The "defers … until it resolves" deadlock is retired: a K that cannot resolve is excluded from trigger candidacy (F2) and the whole run reports `TRIGGER-UNRESOLVED` — a terminating, disclosed outcome, never an infinite wait. | §4 (Trigger rule for the conditional 160K arm, rewritten in full — resolution-state table, pseudocode, 11-config enumeration table); §4 (D5/E4 rule, cross-referenced) |
+| **KW4.6 (MAJOR)** — the KW2.8/KW3.13 accepted-risk rests on a false internal cross-reference: the `d=K+1` micro-smoke it claims is "recorded above" exists nowhere in the living body, only in the frozen, non-operative `§R1` | **DISCHARGED (F3).** A real per-K micro-smoke is specified as an explicit BUILD-RELEASE GATE: a 500-step `d`-override cell per K∈{26,28,30}, exact pass criterion (no uncaught exception; `status∈{COMPLETED,ABORTED-BUDGET}`; `K`/`d`/`d_override` match the requested shape), run strictly before any production cell. Kept explicitly distinct from, and never conflated with, the harvest-time `validity_check` (a post-hoc correctness assertion on a COMPLETED production cell — never called a smoke anywhere in this document). | §4 (KW2.8/KW3.13/KW4.6 close-out, rewritten in full) |
+| **KW4.7 (MINOR)** — interval logic frequently cannot decide, undisclosed: at `r_known=2` bands differ in 64%/68%/100% of configurations (K=26/28/30); two singly-incomplete K's decide in only 45–54% | **DISCHARGED.** Figures independently re-derived this revision by direct execution (exact match to the audit's: 16/25, 17/25, 25/25; 43/80, 38/80, 36/80) and disclosed inline as a new bullet in the interval-logic paragraph, with the practical consequence stated plainly (a terminal abort at K=30 with `r_known=2` guarantees `INCOMPLETE-AT-K`). | §4 (D5/E4 rule, new "Decide-rate, disclosed" bullet) |
+| **KW4.8 (MINOR)** — "`INCOMPLETE-AT-K` for that K" is a category error: the six-rule procedure returns one global label for the triple, not a per-K band | **DISCHARGED.** Reworded throughout: `INCOMPLETE-AT-K` is stated explicitly as a STUDY-LEVEL verdict orthogonal to the 125-outcome partition, carrying the affected K(s) as a disclosure field — never implying a per-K band object the procedure cannot produce. | §4 (D5/E4 rule); §5 (INCOMPLETE-AT-K section, rewritten) |
+| **KW4.9 (MINOR)** — "actual TRAINING time is bounded above by its ceiling" is false: the `elapsed>ceiling_s` test fires only at `log_every=500`-step boundaries, so training can overshoot by up to one interval; unpriced in the induction | **DISCHARGED.** The claim is no longer made unqualified. The worst-case derivation explicitly prices the `log_every` overshoot (max observed 0.0031 GPU-h) as one of the two possible single-attempt overrun terms (the other being eval overhead), and its own disclosed contention-variance is folded into the stated supervisor margin rather than silently ignored. | §4 (ORCHESTRATOR CONTRACT, worst-case derivation) |
+| **KW4.10 (MINOR)** — `1.206×` is a truncation of the true `1.2069×` (rounds to `1.207×`); the error direction flatters the margin | **DISCHARGED.** Corrected to `1.2069×`, rounding to `1.207×`, re-derived directly (`1.2685/1.05105`); the headroom figure (`2.00/1.2069≈1.657×`, "≈1.66×") is unchanged since it was already computed from the correct ratio, only the reported digit moves. | §4 (Margin claim, corrected) |
+| **KW4.11 (MINOR)** — one 2-line diff hunk (the KW3.7 `STATE.md` line-renumber fix) falls outside every section `§R2`'s "Where fixed" column claims — it lands in the pre-§1 mandate preamble, attributed to "§1" | **ACCEPTED-COSMETIC, not retroactively edited — same precedent as `§R2`'s own KW3.14/KW3.15 rows.** `§R2` is historical and frozen by house convention; the underlying fix (correct `STATE.md` line numbers) is genuinely present and correct at the cited location — only its section attribution in a frozen revision-log TABLE is off by one block. One-sentence justification: editing a frozen table to correct a table-attribution slip, when the substantive fix it describes is real, visible, and unaffected, trades a documented correction for an invisible retcon; not worth reopening a frozen section for. | (no edit — `§R2`'s table stays frozen; recorded here per F4's "no silent leftovers") |
+| **E4 (round-3 PARTIAL — band side delivered exactly as specified, trigger side deadlocked and non-composing)** | **FULLY DISCHARGED.** The band side was independently verified correct by round 3 itself (KW4.5: "delivered exactly as the disposition specified") and is unchanged in substance this revision — only its cross-references are repointed from the retired E1 launcher check to the orchestrator's own HARD/RETRY gates (§4). The trigger side (KW4.5's forcing defect) is fixed by F2's new rule in full — see the KW4.5 row above. Nothing left open on either side. | §4 (Trigger rule; D5/E4 rule) |
+| **E6 (round-3 PARTIAL — coverage complete, but (1) KW3.1/KW3.4's `§R2` rows overstated given this round's findings, and (2) the KW2.8/KW3.13 accepted-risk was REFUTED)** | **FULLY DISCHARGED, both problems, differently.** (1) KW3.1's and KW3.4's `§R2` "DISCHARGED" rows are **SUPERSEDED, not retroactively edited** (the same frozen-section precedent `§R2` itself set for KW3.14/KW3.15): the mechanism KW3.1 discharged (the launcher-side E1 cumulative check) no longer exists in this design at all, replaced by F1's orchestrator ledger; KW3.4's band-side fix stands unchanged, and its trigger-side gap (KW4.5) is now closed by F2. Both `§R2` rows describe a mechanism this revision retired, not a live defect. (2) KW4.6's refutation is fixed for real by F3's owned, build-gated micro-smoke — see the KW4.6 row above; no second false cross-reference is introduced this time. | §4, §6 (throughout — the delivery-model change itself is the discharge); this table (supersession stated explicitly for KW3.1/KW3.4) |
+
+**Numbers that moved as a direct, disclosed consequence of the F1–F4
+fixes (not independent changes):** the declared program-level bound
+`≤15.20h (E1, false — broken by KW4.1–KW4.3) → 15.0126h (true,
+sequential-model induction) → 15.50h (declared pool ceiling: 15.20h
+disclosed-conservative + 0.30h stated supervisor margin)`; `ceiling
+(cell)` for gate purposes `per-K max(2×nominal,1.0) →` the shared CLI
+value `1.20/2.32` (KW4.4, no more charged/enforced split); the pool
+artifact count `16 possible per-cell job specs → 1 orchestrator job
+spec` (job-spec template, §4); the margin ratio `1.206×→1.2069×/1.207×`
+(KW4.10); the trigger mechanism `single scan, no interval resolution,
+one deadlocking precondition → interval-resolved per-K states + an
+independent K_trig cross-product + a stated tie-break`, with 11
+previously-silent ambiguous configurations now enumerated and resolved
+in-text; the `INCOMPLETE-AT-K` framing `implied per-K band →` explicit
+study-level verdict (KW4.8).
+
+**Not re-litigated in Rev 3 (out of scope for this pass, unchanged
+from Rev 2, flagged for Round 4 to check for completeness):** §2's
+`d=K+1`-vs-`d=2K` config choice itself; §2(c)'s mod-K crash arithmetic
+and §2(d)'s `h`-never-binds argument (both independently verified
+CLEAN by round 3, untouched again); the Gate-2/secondary far-depth
+ladder generation (`_gen_grid(K)`, unchanged); the K=48 WAVE-1b block
+and the K=32 `d(K)`-grid CLOSED verdict (both stand as written, §7);
+the six-rule classification procedure's RULE TEXT itself and the
+125-outcome partition (E5, independently reproduced a THIRD time by
+round 3 — `NCR_KWALL_ATTACK_R3.md` §3/§8 — and not touched this
+revision); the `$0` K=32 reuse branch's matched-160K scoring (E3,
+likewise independently reproduced a third time and unchanged); D4's
+leg-attribution narrowing (still not separated, unaffected by the
+delivery-model change).
+
+**Disposition not fully implementable inside this file (disclosed,
+same structural limit `§R1`/`§R2` already flagged for KW2.10/E1/E4,
+now extended to the whole ORCHESTRATOR CONTRACT):** F1 specifies the
+orchestrator's cell order, per-cell command shape, ledger update
+points, gate check points, abort/retry state machine, trigger
+evaluation point, harvest invocations, and output JSON schema
+PRECISELY ENOUGH for a build-stage implementer to follow exactly, but
+none of it is — and structurally cannot be, this document being a
+design draft that edits no code — actually implemented as the
+orchestrator script, the `harvest()` patch, or the job-spec JSON by
+this revision. This is the same deferral pattern already accepted for
+KW2.6's job-spec template and E4's `harvest()` patch in Rev 1/Rev 2
+(CLEAN-10 / CLEAN precedent both rounds); Round 4 should verify the
+build stage's actual orchestrator script against these specifications
+line-by-line — cell order, ledger semantics, gate arithmetic, the
+attempt-indexed outdir convention, and the trigger's tie-break — not
+merely re-read this design's prose a fourth time. Separately, and by
+design rather than omission: the **0.30h supervisor margin is STATED,
+not derived** — F1's own mandate calls for "one ceiling ≈15.20 +
+a stated supervisor margin," and this revision is explicit that 0.30h
+is a policy choice sized generously against the disclosed but
+unbounded contention-variance of the `log_every` overshoot (KW4.9),
+not a tight statistical bound; Round 4 may tighten it once the build
+stage's actual orchestrator-process overhead (subprocess spawn,
+interpreter/import latency) is measured rather than estimated.
+
+*Rev 3, 2026-08-06. Written from direct reads of
+`NCR_KWALL_ATTACK_R3.md` (974 lines, every FATAL/MAJOR/MINOR, the
+per-disposition summary, and the "what I could not break" list), this
+file's own `§A3-ADJUDICATION`, and fresh Python execution (not
+hand-checked) of: (1) the `classify()` six-rule procedure combined with
+the OLD trigger rule over all 300 singly-incomplete `(incomplete_K,
+r_known, other two K's)` configurations, isolating the 11 cases where
+band agrees but `K_trig` disagrees — reproduced exactly (11/11,
+matching the audit's rows to the digit); (2) an extended 240-config
+sweep of the two-K-simultaneously-incomplete case, confirming no
+band-agreeing configuration ever produces more than 2 distinct
+`K_trig` candidates; (3) the KW4.7 decide-rate figures, independently
+re-executed over the same `r_known=2`/two-K-incomplete domains
+(exact match: 16/25, 17/25, 25/25, 43/80, 38/80, 36/80). Also read
+`matrix-thinking/ncr/ncr_earlyln_scale.py` (lines 191–266, 303–304,
+351–406) confirming the `log_every=500` overshoot window (KW4.9) and
+the `gpu_h`-assignment/overwrite defects (KW4.1) at their cited lines,
+and `matrix-thinking/queue/idle_fallback_daemon.sh` (header, `:10-16`)
+for the pool contract text §6 is checked against. No repo file other
+than this one was created or modified; no command was run on the box;
+no job was launched; no git mutation was made. The two scratch Python
+scripts used for the enumerations above are session-local working
+files, not part of this design and not committed.*
