@@ -9186,3 +9186,24 @@ characterization licensed). Draft's mod-K crash finding verified
 EXACTLY right by execution at all three K. Full dispositions D1–D6:
 design §A1-ADJUDICATION. Rev-1 agent dispatched; fresh audit round to
 follow before any build.
+
+## 2026-08-06 — K-wall Rev-1 returned (all 18 findings discharged); KW2.10 coordinator ruling; audit round 2 dispatched
+
+Rev-1 (`NCR_KWALL_CHARACTERIZATION_DESIGN.md`, now DRAFT-R1): headline
+re-registered as the 80K-budget convergence frontier over
+K∈{24,26,28,30,32} (budget-wave numbers re-derived from the 12 raw
+JSONs, not prose); 160K disambiguator with an exact trigger rule (K=32
+trigger case reuses the archived budget table at $0); worst-case cost
+15.00 GPU-h as an UNCONDITIONAL 16-cell sum (per-cell ceilings trimmed
+1.25→0.75/1.50 — disclosed trade, still >1.206× the archive's max
+observed ratio); bands rebuilt as a 6-rule total decision procedure
+over (r26,r28,r30), K* domain {24,26,28,30}, agent-executed against
+all 125 outcomes (125/125, exclusive, audit-named cases resolved).
+**KW2.10 COORDINATOR RULING (the item Rev-1 correctly escalated):**
+STATE's standing "NO NCR job queue-eligible" sentence (tick #1,
+§G3-B32) scopes to the GATE-3 REAL-LM lane (the claim-pivot block) —
+per §G3-B32's own disclosure that toy-scale NCR results are untouched.
+Toy-scale K-axis cells (this design) enter through their own ceremony:
+audit-2 CLEAR + build audit + placement red-team remain the gates.
+Audit round 2 dispatched (fresh judge, both charters + partition
+re-execution + historical-section integrity vs git).
