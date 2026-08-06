@@ -985,3 +985,49 @@ line 5071), `STATE.md`, and `matrix-thinking/ncr/ncr_earlyln_scale.py`
 (lines 198-266, 317-329, 351-406). No repo file other than this one
 was created or modified; no command was run on the box; no job was
 launched; no git mutation was made.*
+
+## §A2-ADJUDICATION — AUDIT ROUND 2 VERDICT ADOPTED: **REV-REQUIRED** (Fable, 2026-08-06)
+
+`NCR_KWALL_ATTACK_R2.md`: 0 FATAL / 5 MAJOR / 11 MINOR; 13/18 prior
+findings DISCHARGED, 4 PARTIAL, 1 declined. Core VERIFIED CLEAN by
+independent recomputation (budget wave to 4 decimals; partition
+125/125 exhaustive+exclusive; §A1-ADJUDICATION byte-identical to
+HEAD~1). The five MAJORs are ops/cost bookkeeping; all forcing.
+
+**BINDING DISPOSITIONS for Rev 2:**
+- **E1 (KW3.1):** replace blanket retry-once with a retry rule
+  SUBORDINATED to an enforceable cumulative program cap: retries
+  permitted only while cumulative realized GPU-h ≤ 12.0, hard program
+  cap 15.00 INCLUSIVE of retries, conditional arm, and eval — the
+  worst case is bounded by construction (budget-capped, not
+  count-capped). State the bound's derivation.
+- **E2 (KW3.2):** per-cell ceilings return to the job-108 house
+  convention (≥2× nominal, floor 1.0h); the GLOBAL cap (E1) does the
+  program bounding, so no per-cell trim is needed. Delete the false
+  "within 1.06×" support claim; cite the audit-verified 1.206×
+  archive-wide max instead.
+- **E3 (KW3.3):** the $0 K=32 reuse branch is scored at MATCHED budget
+  (160K vs 160K) under the same band rule as the paid branch; any
+  320K-dependent label is unreachable and must be removed from the
+  reachable-outcome set (the 320K datum may appear as archive-only
+  disclosure, never as a branch output).
+- **E4 (KW3.4):** mechanize the incomplete-cell logic: 1 retry max →
+  PERSISTENTLY-ABORTED is terminal; denominators stay fixed at 4
+  (A4.9 guard preserved); a K with a terminal-aborted/MISSING cell is
+  decided by INTERVAL LOGIC — if both possible values of the missing
+  cell map to the same band, decide; otherwise INCOMPLETE-AT-K
+  (reported, disclosed, excluded from frontier claims). harvest()'s
+  treatment must be specified to implement exactly this.
+- **E5 (KW3.5):** regenerate the 125-outcome table from the rules as
+  written (add the missing NON-MONOTONE-UNRESOLVED row; fix the
+  (2,4,2) row's tag); the demonstration counts must reproduce under
+  re-execution.
+- **E6:** every PARTIAL (KW1.3, KW2.2, KW2.3, KW2.8) and the declined
+  KW2.9 gets an explicit close-out row: fully discharged, or
+  accepted-risk with a one-sentence justification the next audit can
+  attack. No silent leftovers.
+
+Rev 2 → FOCUSED audit round 3 (E1–E6 discharge verification +
+partition re-execution + bound recomputation; fresh judge) →
+adjudication → build ceremony (spec generation + harvest script get
+their own build audit) → placement red-team → pool.

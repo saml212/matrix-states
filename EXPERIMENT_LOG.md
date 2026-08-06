@@ -9207,3 +9207,15 @@ Toy-scale K-axis cells (this design) enter through their own ceremony:
 audit-2 CLEAR + build audit + placement red-team remain the gates.
 Audit round 2 dispatched (fresh judge, both charters + partition
 re-execution + historical-section integrity vs git).
+
+## 2026-08-06 — K-wall audit R2: REV-REQUIRED (0F/5M/11m, 13/18 discharged) — dispositions E1–E6; Rev-2 dispatched
+
+Science core now verifies clean (frame, frontier registration,
+partition, anchors); remaining breaks are ops/cost: retry-once
+silently doubled the 15.00 bound to 30.00 (E1: cumulative-cap
+subordination), ceiling trim breached the 2×-estimate house convention
+(E2: restore, bound globally), $0 K=32 branch scored at mismatched
+budget (E3: matched-budget scoring), D5 abort logic deadlocks +
+contradicts the fixed-denominator guard (E4: interval-logic decision
+rule, denominators stay 4), partition table missing 2 rows vs rule
+execution (E5: regenerate). Full record: design §A2-ADJUDICATION.
