@@ -9072,3 +9072,56 @@ supervisor loop make it crash-safe (a supervisor restart resets the
 idle counter — conservative direction). Jacobian training cells are
 EXCLUSIVE-NO-TOUCH per the audit (80.6 GB each); each occupies one full
 GPU, so at most 3 GPUs go busy on trigger, 5 remain free.
+
+## 2026-08-06 — Idle-trigger ADVERSARIAL ANALYSIS (PI-ordered) — 1 FATAL found+fixed; standing fallback machinery installed; K-ladder attack-2 dispatched
+
+PI directives (verbatim intent): sampling for the current RL environment
+has ABSOLUTE priority; idle = zero GPU compute processes for 3 h; if
+anything would leave the GPUs idle-with-nothing-queued in the future,
+fix it — "fall back on the scaling ladder is vitally important."
+
+**Findings (F1–F6) and dispositions:**
+- **F1 FATAL, FIXED + VERIFIED LIVE:** the idle launcher's tmux session
+  was NOT watchdog-covered — tmux-server death/reboot revives queue
+  workers (existing cron watchdog) but would have silently killed the
+  deferred launch forever. Fix: `watchdog_idle_daemons.sh` + second
+  crontab line (same has-session/STOP-honoring safety construction as
+  the worker watchdog; skips a one-shot whose .DONE exists). End-to-end
+  test on the real box: killed `idle_launcher` 19:12:44Z → cron tick
+  19:13:01Z relaunched it (and cold-started `idle_fallback`).
+- **F2 MINOR, FIXED:** NEED=36 could fire at 2h55m of confirmed idle
+  (off-by-one). NEED=37 → ≥3h0m confirmed span. Redeployed; box log
+  shows the re-armed NEED=37 line.
+- **F3 STRUCTURAL, FIXED:** one-shot design meant queue-dry-forever
+  after 1204. Installed `idle_fallback_daemon.sh` (standing, chained
+  behind the one-shot's .DONE): same 3h-idle rule; promotes up to 8
+  audited specs per wave from `~/queue/fallback_pool/` ONLY when
+  pending+claimed are empty; raises `FALLBACK_POOL_DRY` + log ALERT
+  once per dry spell when starving (alarm clears on next activity).
+  Harness-tested all branches (promotion, dry-alarm-once, re-alarm
+  after activity, pending-nonempty guard, DONE-gating).
+- **F4 GOVERNANCE, RECORDED:** fallback pool is legitimately EMPTY —
+  the 38 parked `laneA` K48–K256 specs implement the fixed-h=64 design
+  that `NCR_KLADDER_DESIGN.md` attack round 1 ruled FATAL (A1.1:
+  Gate-0 unpassable at K=96/128; superseded by h(K)=2K). They stay
+  parked. Refill path = finish the K-ladder gauntlet: **attack round 2
+  DISPATCHED** (Opus judge-tier, background; writes
+  `NCR_KLADDER_ATTACK_R2.md`; coordinator adjudicates on return; on
+  CLEAR → rebuild cells at h(K)=2K → audit → pool).
+- **F5 ACCEPTED-RISK, RECORDED:** queue_worker has no per-job walltime;
+  a wedged training would hold its GPU and stall 1204 promotion.
+  Historical risk low (same recipe ran 3.25 h clean); revisit if it
+  ever fires.
+- **F6 ACCEPTED-BY-DESIGN:** once fired, running cells don't yield to
+  returning RL sampling (no preemption); reclaim = HOLD + PAUSE + let
+  cells finish (≤3.5 h). Pre-launch protection is the 3h gate itself.
+- Verified-OK under attack: nvidia-smi failure counts as BUSY
+  (fail-closed); atomic mv promotion (no double-fire even with two
+  daemon instances); failed-training aborts 1204; worker free-GPU gate
+  keeps queue jobs off GPUs occupied by vLLM (observed live 19:01Z:
+  a real compute app reset the counter); Docker-contained vLLM procs
+  visible to host nvidia-smi; same-filesystem mv atomicity.
+
+Scripts (repo = source of truth, deployed to box): `matrix-thinking/
+queue/idle_launch_jacobian.sh`, `idle_fallback_daemon.sh`,
+`watchdog_idle_daemons.sh`.

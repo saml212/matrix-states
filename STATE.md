@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-06 tick #2 (Fable): idle-trigger ADVERSARIAL PASS — F1 FATAL
+(no watchdog on the launcher) FIXED + live-verified; NEED 36→37;
+standing `idle_fallback` daemon + `fallback_pool/` + starvation alarm
+installed (RL sampling keeps ABSOLUTE priority — 3h zero-compute gate
++ HOLD); parked K48–K256 cells ruled NOT pool-eligible (fixed-h=64,
+attack-1 FATAL relics); K-ladder gauntlet ATTACK ROUND 2 dispatched
+(Opus, background → `NCR_KLADDER_ATTACK_R2.md`, adjudication pending)
+— on CLEAR: rebuild cells at h(K)=2K → audit → pool = the PI's vital
+fallback ladder. Full findings F1–F6: EXPERIMENT_LOG 2026-08-06 #3.**
+
 **2026-08-06 tick (Fable): §G3-B31 GRID = NULL ×3 (collapse bands) —
 CONTRASTIVE ROAD EXHAUSTED, BLOCK IS STRUCTURAL; Jacobian 1201
 IN-BAND, batch on a 3h-idle trigger; box handed to PI.** Queue ran dry

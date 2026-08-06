@@ -30,7 +30,7 @@ DONE="$QROOT/idle_launcher.DONE"
 HOLD="$QROOT/idle_launcher.HOLD"
 TRAIN_JOBS="1200_jacobian_train_flatten 1202_jacobian_train_svd_aug 1203_jacobian_train_quadratic"
 MEASURE_JOB="1204_jacobian_erank_measure"
-NEED=36   # 36 consecutive 5-min all-idle samples = 3 h
+NEED=37   # 37 consecutive 5-min all-idle samples => >=3h0m confirmed idle span (36 fires as early as 2h55m)
 log(){ echo "$(date -u +%FT%TZ) $*" >> "$LOG"; }
 
 [ -f "$DONE" ] && exit 0
