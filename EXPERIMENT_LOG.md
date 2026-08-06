@@ -9125,3 +9125,26 @@ fix it — "fall back on the scaling ladder is vitally important."
 Scripts (repo = source of truth, deployed to box): `matrix-thinking/
 queue/idle_launch_jacobian.sh`, `idle_fallback_daemon.sh`,
 `watchdog_idle_daemons.sh`.
+
+## 2026-08-06 — K-ladder round-4 attack: BLOCKED → design stamped SPENT; F4 record corrected; successor design-draft dispatched
+
+Round-4 attack returned BLOCKED (4 FATAL/10 MAJOR/6 MINOR;
+`NCR_KLADDER_ATTACK_R2.md`). Coordinator verified the decisive findings
+against raw artifacts and ADOPTED: the design's own §9 gate resolved
+FAIL 21 days ago (ortho-write verdict, STATE 07-17) — it was never
+executable; "last validated rung K=32" is false (07-12 log: K=32 grid
+CLOSED, K=48 WAVE-1b BLOCKED, K=24 is the live rung); every prior fix
+targeted the rank leg while the RECOVERY leg was the binding failure.
+Full adjudication + owned coordinator process defects (wrong-Rev
+dispatch premise; missed gate resolution): `NCR_KLADDER_DESIGN.md`
+§A4-ADJUDICATION. **Correction to today's F4 record:** parked K48–K256
+cells are pool-INELIGIBLE on the WAVE-1b-block + dead-K=32 grounds
+(earlyln family), NOT as "h=64 attack-1 FATAL relics" (that history
+belongs to the separate NS-polar design; the two lanes were conflated).
+A4.12 adopted: fallback-pool eligibility contract (flat, independent,
+audited specs only; sequenced work uses chained one-shot launchers)
+recorded in the daemon header + redeployed. Successor per the attack's
+recommendation: K∈{26,28,30} recovery-leg wall characterization
+anchored on live K=24 — DESIGN DRAFT DISPATCHED (Sonnet worker,
+background → `NCR_KWALL_CHARACTERIZATION_DESIGN.md`, DRAFT-R0, awaits
+audit round; nothing queue-eligible until it clears).

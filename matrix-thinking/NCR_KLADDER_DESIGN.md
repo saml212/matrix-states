@@ -1957,3 +1957,48 @@ gate disturbance. **Result (R5, CONFIRMED clean):**
 No amendment to this design results from the novelty gate. BUILD
 AUTHORIZATION continues to require the ortho-write verdict = WIN/PARTIAL
 (Part A) then Stage-0 per §5, exactly as frozen.
+
+## §A4-ADJUDICATION — ROUND-4 ATTACK VERDICT ADOPTED: DESIGN STAMPED **SPENT** (Fable, 2026-08-06)
+
+Round-4 attack (`NCR_KLADDER_ATTACK_R2.md`, Opus judge-tier, 2026-08-06;
+filed under that name for continuity — it is chronologically round 4 and
+uses the A4.x namespace to avoid colliding with the recorded §A2 rows):
+**BLOCKED — 4 FATAL / 10 MAJOR / 6 MINOR.** Coordinator verified the
+decisive findings against raw artifacts before adopting: (i) §9's own
+gate clause ("Under NULL or FAIL: this document does not execute", line
+1066) + the ortho-write FAIL verdict of record (STATE.md 07-17,
+NCR_ORTHO_WRITE §9) ⇒ **A4.1 CONFIRMED — the gate resolved negative 21
+days ago; this design never became executable**; (ii) EXPERIMENT_LOG
+2026-07-12 mapping-law harvest header ("K=32 d(K) grid CLOSED-AT-THIS-K
+— WAVE-1b (K=48) BLOCKED, must not be generated") ⇒ **A4.3/A4.5
+CONFIRMED — the 'last validated rung K=32' premise is false (K=24 is
+the live rung) and the K=48 standing block is undischarged.** These
+three alone are fatal independent of the remaining findings, which
+stand unadjudicated-but-recorded in the report.
+
+**DISPOSITION: SPENT.** Not revised, not rebuilt. The arithmetic core
+(P/F/NS, pricing, caps — round-4 re-verified clean) is salvage for any
+successor design. The 39 parked `laneA` earlyln free-write cells
+(K48–K256, d=2K, h=64) remain queue/pool-INELIGIBLE — corrected
+grounds: they are a DIFFERENT config family from this design (round-4
+A4.2), blocked by the 07-12 WAVE-1b ruling and the dead K=32 rung, NOT
+by this design's h(K) history (the coordinator's 2026-08-06 F4 record
+conflated the two lanes; corrected here per the no-fabricated-records
+rule).
+
+**Coordinator process defects (owned):** the round-4 dispatch prompt
+asserted "Rev 1, PRE-ATTACK-2" (misread §R1 changelog line 1342) and
+treated the design as live despite the coordinator having read the
+ortho FAIL verdict in STATE.md the same session. The agent's premise
+refusal was correct. Lessons emitted to the learnings DB: (1) when a
+verdict of record lands, same-day sweep every design gated on it and
+stamp SPENT/RELEASED; (2) at least one gauntlet round must attack the
+FRAME (which constraint binds, which anchor is live), not the
+arithmetic inside it.
+
+**Successor (recommendation adopted for design-round dispatch, NOT for
+build):** a K∈{26,28,30} wall-characterization anchored on the LIVE
+K=24 rung, aimed at the RECOVERY leg (the leg A4.4 shows was never the
+target of any prior fix). Enters the standard ceremony (design draft →
+internal-archive sweep incl. verifying 26–30 is genuinely open → audit
+→ adjudication) before any cell exists.

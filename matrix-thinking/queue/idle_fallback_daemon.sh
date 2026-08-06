@@ -5,9 +5,16 @@
 # launcher: inert until ~/queue/idle_launcher.DONE exists. Then, forever:
 # if ALL GPUs show zero compute apps for 3+ continuous hours AND pending/
 # and claimed/ are both empty, promote the next wave (up to WAVE specs,
-# filename order) from ~/queue/fallback_pool/. ONLY audited, queue-eligible
-# specs may ever be placed in the pool — the pool is the runway, the
-# ceremony gate stays upstream of it. If the box is starving (3h idle, no
+# filename order) from ~/queue/fallback_pool/.
+#
+# POOL ELIGIBILITY CONTRACT (2026-08-06, per attack finding A4.12 in
+# NCR_KLADDER_ATTACK_R2.md): the pool holds ONLY flat specs — each fully
+# audited + queue-eligible, independently runnable in any order, carrying
+# its own cost ceiling, with NO intra-wave dependencies, stage gates, or
+# staged-escalation semantics (filename-order promotion cannot honor
+# them). Work that needs sequencing gets its own chained one-shot
+# launcher (the idle_launch_jacobian.sh pattern), never the pool. The
+# ceremony gate stays upstream: nothing enters the pool un-audited. If the box is starving (3h idle, no
 # queue work, pool DRY) raise the alarm ONCE per dry spell:
 # ~/queue/FALLBACK_POOL_DRY + a log ALERT — the coordinator's signal to
 # refill via the design/audit gauntlet.

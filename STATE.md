@@ -1,5 +1,20 @@
 # STATE — Current Project State
 
+**2026-08-06 tick #3 (Fable): K-LADDER DESIGN STAMPED SPENT** — round-4
+attack BLOCKED (4 FATAL; report `NCR_KLADDER_ATTACK_R2.md`),
+coordinator-verified vs raws and adopted (`NCR_KLADDER_DESIGN.md`
+§A4-ADJUDICATION): its §9 gate resolved FAIL 07-17 (never executable);
+K=32 is trainability-dead (07-12 log) so K=24 is the last live rung;
+all prior fixes aimed at the rank leg while RECOVERY was the binding
+leg. Tick-#2's F4 wording corrected (parked cells blocked by WAVE-1b +
+dead K=32, not "h=64 relics"). Pool contract recorded (flat audited
+specs only, A4.12). Fallback-runway successor: K∈{26,28,30}
+recovery-leg wall characterization on live K=24 — draft agent in
+flight (`NCR_KWALL_CHARACTERIZATION_DESIGN.md`, DRAFT-R0 → audit →
+adjudication → build → pool). Coordinator process defects owned +
+lessons to DB (same-day SPENT sweeps on landed verdicts; attack the
+frame not just the arithmetic).**
+
 **2026-08-06 tick #2 (Fable): idle-trigger ADVERSARIAL PASS — F1 FATAL
 (no watchdog on the launcher) FIXED + live-verified; NEED 36→37;
 standing `idle_fallback` daemon + `fallback_pool/` + starvation alarm
