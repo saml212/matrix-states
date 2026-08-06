@@ -2684,3 +2684,50 @@ sections (`§A1-ADJUDICATION` through `§A4-ADJUDICATION-KWALL`,
 byte-identical AFTER (table above). No repo file other than this one
 was created or modified; no command was run on the box; no job was
 launched; no git mutation was made.*
+
+## §A5-ADJUDICATION — AUDIT ROUND 5 VERDICT ADOPTED: **REV-REQUIRED**, ~8-LINE SURGERY; ROUND 6 SCOPE NARROWED (Fable, 2026-08-06)
+
+`NCR_KWALL_ATTACK_R5.md`: 2 FATAL / 6 MAJOR / 9 MINOR; G5 PASS
+(five-fold-verified numerics, 0 illegal dispatches), G1/G2/G4 FAIL,
+G3/G6 PARTIAL. The conditional build-release checklist in the report
+is ACCEPTED as the build phase's charter once Rev 5 clears.
+
+**BINDING DISPOSITIONS for Rev 5:**
+- **H1 (KW6.1):** every ledger write uses the repo's existing
+  atomic-write primitive (cite it); unparseable-ledger recovery =
+  CONSERVATIVE RECONSTRUCTION from disk artifacts: canonical files ⇒
+  COMPLETED rows (measured spend unavailable ⇒ charge full ceiling);
+  attempt-dir evidence without a canonical file ⇒ charge full
+  ceiling, no retry credit. No path re-opens budget.
+- **H2 (KW6.2):** ORDERING FIX — canonical copy precedes the terminal
+  COMPLETED ledger row (copy-then-fold). Recovery treats a canonical
+  file + dangling open record as proof of completion: charge full
+  ceiling, write the COMPLETED row, never skip-and-lose. This
+  restores COMPLETED⇒canonical; with G2's canonical⇒COMPLETED both
+  directions hold and the harvest-patch-unnecessary claim becomes
+  true BY THE PAIR — state it that way.
+- **H3 (KW6.3):** correct the bound prose: worst-case TRUE spend
+  15.2041h (show the arithmetic), absorbed within the declared 15.20
+  + 0.30 margin structure; delete the false "crash case ≤15.00
+  exactly" sentence; declared ceilings unchanged.
+- **H4 (KW6.4–KW6.7):** ONE unified enum table as single source of
+  truth (attempts[].status × run_status), cross-producted against
+  every reachable terminal state incl. (exit 0, no JSON) and
+  GATE-REFUSED; validity_check rewritten against the actual schema,
+  accepting exactly the §5-reportable set — and closing the no-op
+  hole: each run_status value carries its own disk-evidence
+  assertion (COMPLETE ⇔ 12 canonical primaries; STOPPED-BY-OPERATOR
+  with attempts=[] valid only with the stop-file's own marker;
+  EXHAUSTED-BUDGET requires ledger-evidenced spend).
+- **H5 (KW6.8):** the EXHAUSTED-BUDGET report gains a
+  charged-vs-measured breakdown; if recovered/full-ceiling charges
+  exceed 50% of the ledger, run_status = EXHAUSTED-BUDGET-SUSPECT-
+  OVERCHARGE — reportable, lands in completed/, resubmission ONLY by
+  explicit coordinator adjudication with a fresh ledger (never
+  automatic). Disclosed, escape-hatched, still budget-safe.
+- **H6:** the 9 MINORs + §R5 rows for all 17 findings.
+
+**ROUND 6 SCOPE (binding on the next audit):** crash-path composition
+(H1/H2 state-machine walk), the unified enum/validity_check text, and
+the H3 arithmetic ONLY. The numeric sweeps (partition, trigger,
+pricing) are FIVE-FOLD verified and excluded — do not re-run them.

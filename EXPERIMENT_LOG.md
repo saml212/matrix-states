@@ -9297,3 +9297,17 @@ lands in completed/); amended trigger sweep EXECUTED: 473 DECIDED /
 527 TRIGGER-UNRESOLVED, 0 paid-on-unresolved (old 371 eliminated;
 cross-check 473+371=844 exact); 13-row §R4 table, 7 historical
 sections md5-verified. Round 5 = terminal contract verification.
+
+## 2026-08-06 — K-wall audit R5: REV-REQUIRED (2F/6M/9m); G5 numerics 5×-verified; build checklist accepted; Rev-5 dispatched
+
+KW6.1/6.2 (FATAL): ledger atomicity unspecified (≤64 truncation
+windows; unparseable ledger re-opens budget) and fold-before-copy
+ordering leaves COMPLETED-row-without-canonical-file → silent
+denominator shrink. Dispositions H1–H6: atomic writes + conservative
+disk reconstruction; copy-then-fold ordering (restores
+COMPLETED⇔canonical both ways); honest 15.2041 bound prose; unified
+enum table + evidence-carrying validity_check (closes the no-op
+certification hole); EXHAUSTED-BUDGET overcharge escape hatch
+(coordinator-gated resubmission). Round-6 scope narrowed to crash
+paths + enums + arithmetic; numeric sweeps excluded (5× verified).
+Build-release checklist from R5 accepted as the build charter.
