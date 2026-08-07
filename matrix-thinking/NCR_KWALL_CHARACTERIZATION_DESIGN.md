@@ -1,6 +1,6 @@
 # NCR K-WALL CHARACTERIZATION — K∈{26,28,30} ON THE LIVE K=24 RUNG
 
-**STATUS: DRAFT-R5 — POST-AUDIT-5, AWAITING NARROW AUDIT ROUND 6 (not
+**STATUS: DRAFT-R6 — POST-AUDIT-6, AWAITING NARROW AUDIT ROUND 7 (not
 build-released, not queue-eligible).**
 
 **Mandate.** `NCR_KLADDER_DESIGN.md` §A4-ADJUDICATION (2026-08-06,
@@ -815,9 +815,11 @@ For each (K, seed) in cell order:
    UNCHANGED (only a `0.0`-valued row is added — §R5 KW6.5(i)); move
    to the next cell (treated identically to MISSING by the
    resolution-state table above and by `harvest()`, §4 D5/E4 — G1's
-   cell-level resume rule, below, now reads "no row with a DISPATCHED
-   status" rather than "no ledger row of any kind," since every
-   touched cell/attempt now always has a row, GATE-REFUSED included).
+   cell-level resume rule, below, skips this cell by its DERIVED
+   terminal state, §R6 I3, never by an absent row: every touched
+   cell/attempt now always has a row, GATE-REFUSED included, so
+   "no row of any kind" could never distinguish it from an untouched
+   cell in the first place).
    Admitted → **write-ahead (G1):** BEFORE calling `subprocess.run`,
    the orchestrator sets `ledger.open_attempt = {K, seed, arm,
    attempt_n, charged_ceiling: ceiling(this_attempt), dispatch_ts:
@@ -999,121 +1001,210 @@ manually-edited file, a filesystem fault, a foreign process).
 
 **Recovery procedure, run on ANY (re)start, BEFORE any gate check and
 BEFORE the cell-order walk resumes:**
-0. **Read `ORCHESTRATOR_LEDGER.json` (§R5 H1 — new step, closes
-   KW6.1's missing branch).** If it parses, proceed to step 1
-   unchanged. **If it is MISSING or UNPARSEABLE — CONSERVATIVE
-   RECONSTRUCTION FROM DISK, never a fresh start:**
-   1. For every (K, seed) in the full cell order (primary 12, plus the
-      conditional 4 if that arm's canonical directory exists): if a
-      canonical-path file exists and parses with `status=="COMPLETED"`,
-      append `{K, seed, arm, attempt_n:1, elapsed_h:charged_ceiling(arm),
-      status:"COMPLETED", outdir:<canonical path>, d_override:K+1,
-      ceiling_charged:true}` — the FULL ceiling, never the cell JSON's
-      own `gpu_h` field: a ledger this corrupt cannot be trusted to
-      say which attempt number produced the file or whether a retry
-      also ran, and charging the ceiling is conservative regardless of
-      which is true. (`attempt_n` is set to `1` by convention; no
-      downstream logic — resume-skip, canonical `n_completed` counts —
-      depends on which `attempt_n` a `COMPLETED` row carries.)
-   2. For every (K, seed) with an archival attempt directory present
-      (`K{K}_s{seed}_attempt{1,2}/`) but NO canonical file: append
-      EXACTLY ONE row (never one per attempt-dir found — there is no
-      way to know from a corrupted ledger how many independent runs it
-      recorded, so charging once, at the full ceiling, is the
-      conservative choice) — `{K, seed, arm, attempt_n:2,
-      elapsed_h:charged_ceiling(arm), status:"CRASHED-RECOVERED",
-      outdir:null, d_override:K+1, ceiling_charged:true}`. Writing it
-      at `attempt_n:2` is deliberate: the cell-derivation rule below
-      (`attempt-2 row non-COMPLETED ⇒ PERSISTENTLY-ABORTED`) makes this
-      cell TERMINAL immediately — **no retry credit** — which is what
-      guarantees reconstruction can only ever ADD charged ceiling to
-      the ledger, never re-open a dispatch slot budget already paid
-      for once.
-   3. `realized_gpu_h` = the sum of every reconstructed row's
-      `elapsed_h`; `open_attempt = null`. Persist the reconstructed
-      ledger ATOMICALLY (`rn.atomic_write_json`), then proceed to step
-      1 — reconstruction produces the same terminal-row shapes normal
-      operation does, so no special-case code is needed downstream. A
-      (K, seed) with NO disk evidence at all gets no row and remains
-      genuinely available for dispatch — reconstruction never charges
-      for work that provably never ran. **No path through this step
-      re-opens budget:** every row it can possibly write charges a
-      real, positive ceiling amount; the only way to add zero charge is
-      to add no row, which happens only when there is nothing on disk
-      to be conservative ABOUT.
+0. **Read `ORCHESTRATOR_LEDGER.json` (§R5 H1).** If it parses, proceed
+   to step 1 unchanged. **If it is MISSING or UNPARSEABLE —
+   CONSERVATIVE RECONSTRUCTION FROM DISK, PER-ATTEMPT-DIRECTORY, never
+   a fresh start (§R6 I1 — replaces the Rev-5 per-CELL procedure
+   KW7.1 found under-charging: it wrote at most one row per (K, seed)
+   regardless of how many attempt directories existed on disk, and it
+   gated the conditional arm on its CANONICAL directory rather than its
+   own archival evidence, silently erasing real spend whenever that arm
+   crashed before its first copy).** Reconstruction now iterates every
+   `(K, seed)` in the full cell order — primary 12 UNCONDITIONALLY,
+   plus the conditional 4 UNCONDITIONALLY (never gated on the
+   conditional CANONICAL directory's existence — closes KW7.1(b): the
+   conditional cells reconstruct from the SAME archival-attempt-dir
+   evidence the primary cells do) — and for each one, every
+   `attempt{n}/` directory, `n∈{1,2}`, in that cell's own archival tree
+   (`.../K{K}_s{seed}_attempt{n}/`).
+
+   **0.0 Canonical sanity pass (once per (K, seed), before the
+   per-attempt loop).** Read the canonical-path file if one exists:
+   parses with `status=="COMPLETED"` → `canonical_state=OK` (its own
+   `elapsed_s` is kept for 0.2's bootstrap fallback); present but
+   unparseable, OR parses with `status!="COMPLETED"` →
+   **QUARANTINE-RENAME** (`os.rename(canonical_path, canonical_path +
+   f".CORRUPT-{int(time.time())}")`), `canonical_state=CORRUPT` — the
+   missing else-branch KW7.1(c) found: the file is no longer AT
+   `canonical_path` afterward, so G2's pre-copy
+   `os.path.exists(canonical_path)` check (§4, above) can never trip
+   against it on a later re-run — the corrupt evidence is preserved on
+   disk (renamed, not deleted) but is no longer in G2's way; absent →
+   `canonical_state=ABSENT`.
+
+   **0.1 Per-attempt-directory reconstruction — a TOTAL function (every
+   reachable disk state maps to exactly one outcome row; state
+   totality, verified below).** For each attempt directory `n∈{1,2}`,
+   cross this attempt's own evidence against the shared
+   `canonical_state` (0.0) and `charged_ceiling(arm)` (`1.20` primary /
+   `2.32` conditional — the only place `arm` enters this table; it
+   selects a NUMBER, never a branch):
+
+   | Attempt dir | Attempt JSON | `canonical_state` | Row appended (`attempt_n` = this directory's own `n`) |
+   |---|---|---|---|
+   | absent | (absent) | OK | none — this attempt slot never ran; the canonical is accounted for by the sibling slot's own row, or by 0.2's bootstrap if NEITHER slot has evidence |
+   | absent | (absent) | CORRUPT | none — see 0.2's bootstrap (canonical already quarantined at 0.0) |
+   | absent | (absent) | ABSENT | none — genuinely never dispatched, cell available for dispatch |
+   | present | parseable, `status=="COMPLETED"` | OK | `{attempt_n, elapsed_h:elapsed_s/3600 (MEASURED), status:"COMPLETED", outdir:<canonical>, d_override:K+1, ceiling_charged:false}` — already consistent with canonical, no copy needed |
+   | present | parseable, `status=="COMPLETED"` | CORRUPT | **PROMOTE (§R6 I2):** copy this attempt's own JSON to `<canonical_path>.tmp`, `os.replace(<canonical_path>.tmp, canonical_path)` — the same atomic pattern G2 uses live. Row as above (measured, `ceiling_charged:false`) |
+   | present | parseable, `status=="COMPLETED"` | ABSENT | **PROMOTE (§R6 I2)** — same copy+rename; this is the "before copy" crash window's fix (crash-window table, above): the science exists and is now USED, never discarded. Row as above |
+   | present | parseable, `status!="COMPLETED"` (e.g. `ABORTED-BUDGET`) | OK | `{attempt_n, elapsed_h:elapsed_s/3600 (MEASURED), status:<the JSON's own status>, outdir:null, d_override:K+1, ceiling_charged:false}` — canonical's `COMPLETED` is attributed to the sibling attempt slot |
+   | present | parseable, `status!="COMPLETED"` | CORRUPT | quarantine already ran (0.0); row as above — "cell treated per its attempt evidence" (§R6 I1) |
+   | present | parseable, `status!="COMPLETED"` | ABSENT | row as above |
+   | present | unparseable | any | `{attempt_n, elapsed_h:charged_ceiling(arm) (FULL ceiling — no measurement is readable), status:"CRASHED-RECOVERED", outdir:null, d_override:K+1, ceiling_charged:true}` |
+   | present | absent (mid-attempt crash, before any status write) | any | same treatment as unparseable — no measurement exists either way: `{attempt_n, elapsed_h:charged_ceiling(arm), status:"CRASHED-RECOVERED", outdir:null, d_override:K+1, ceiling_charged:true}` |
+
+   This is **24 exhaustively-covered state-space cells**: 2 (attempt
+   dir present/absent) × 3 (attempt JSON parseable/unparseable/absent)
+   × 3 (`canonical_state` OK/CORRUPT/ABSENT) × 2 (arm) = 36 nominal,
+   minus the 12 impossible `dir=absent` × `JSON∈{parseable,
+   unparseable}` × canonical(3) × arm(2) combinations (a JSON cannot
+   exist without its directory) = 24 valid, presented above as 12 rows
+   × the 2-way `arm` ceiling-value split noted inline (`arm` changes no
+   branch, only which number `charged_ceiling` reads, and which
+   archival tree root is scanned). **Every dispatched attempt provably
+   leaves an `attempt{n}/` directory** (`os.makedirs(outdir,
+   exist_ok=True)`, `ncr_earlyln_scale.py:237`, before training and
+   before the resume-skip — §R6 I6/KW7.15's premise, stated explicitly
+   rather than left implicit) — so "attempt dir absent" is sound
+   evidence this design's own dispatch path never ran it; the precise
+   claim is "left no evidence this design's dispatch path can
+   produce," never "provably never ran" (KW7.15 — absence of evidence a
+   THIS design's writer would leave is not proof of absence against
+   every possible cause).
+
+   **0.2 Cell-level bootstrap fallback (the residual case: canonical
+   evidence survives with NEITHER attempt directory present for that
+   cell — e.g. an attempt tree pruned after copying).** For any
+   `(K, seed)` where 0.1 appended ZERO rows and `canonical_state≠ABSENT`
+   at 0.0: if `canonical_state` was `OK`, append ONE row
+   `{K, seed, arm, attempt_n:1, elapsed_h:<the canonical JSON's own
+   elapsed_s>/3600 (MEASURED — canonical is a byte copy of the
+   completing attempt's own JSON and retains this field),
+   status:"COMPLETED", outdir:<canonical path>, d_override:K+1,
+   ceiling_charged:false}`; if `canonical_state` was `CORRUPT` (already
+   quarantined at 0.0), append ONE conservative row
+   `{K, seed, arm, attempt_n:1, elapsed_h:charged_ceiling(arm) (FULL
+   ceiling — no attempt-dir evidence survives to measure),
+   status:"CRASHED-RECOVERED", outdir:null, d_override:K+1,
+   ceiling_charged:true}` — something produced the quarantined file;
+   one full ceiling is the conservative floor, now scoped to only this
+   rare filesystem-anomaly case rather than the general rule.
+
+   `realized_gpu_h` = the sum of every reconstructed row's `elapsed_h`
+   (0.1 + 0.2 together); `open_attempt = null`. Persist the
+   reconstructed ledger ATOMICALLY (`rn.atomic_write_json`), then
+   proceed to step 1. **Reconstruction charges ≥ one ceiling-or-measured
+   amount per attempt for which disk evidence exists (§R6 I1 — replaces
+   the refuted "no path through this step re-opens budget" argument:
+   positivity of one row said nothing about whether the SUM replaced a
+   larger true spend) — never zero for a dispatched attempt, and never
+   more than one row per attempt directory found, closing KW7.1(a)/(b)/
+   (c) with the same per-attempt-directory rule.** A `(K, seed)` with NO
+   disk evidence at all — neither attempt directory nor canonical file
+   — gets no row and remains genuinely available for dispatch.
 1. If `open_attempt` is `null`, nothing is dangling — proceed to step 3.
 2. **A non-null `open_attempt` means the orchestrator died between
-   writing it and clearing it — mid-attempt (§R5 H2 revises this step:
-   it now DISTINGUISHES a genuine crash from a crash that landed after
-   the copy but before the fold).** Before closing anything, check
-   whether a canonical-path file exists for `(open_attempt.K,
-   open_attempt.seed)` with `status=="COMPLETED"`:
-   - **YES — canonical file + dangling open record (§R5 H2's named
-     case, the "between copy and fold" crash window): this is PROOF OF
-     COMPLETION, not a crash to conservatively write off.** Append a
-     terminal row `status="COMPLETED"`, `elapsed_h=open_attempt.
-     charged_ceiling` (still the gate-admitted ceiling, not a
-     measurement — the timer that would have measured it died with the
-     process), `outdir=<canonical path>`, `ceiling_charged=true`,
-     `d_override=open_attempt.K+1`. This restores `COMPLETED ⇒
-     canonical`'s converse (G2's own contract already guarantees
-     `canonical ⇒ COMPLETED`) — **with both directions now holding,
-     the harvest-patch-unnecessary claim (below) is true BY THE PAIR,
-     not by one direction alone.**
-   - **NO — genuine crash (covers the "before copy" and "mid-copy"
-     windows; the atomic copy-to-temp+rename above means a mid-copy
-     crash leaves no canonical file, only a harmless orphaned `.tmp`,
-     so it is indistinguishable on disk from "before copy" and gets
-     the same treatment).** Close it conservatively, as before: append
-     a terminal row `status="CRASHED-RECOVERED"`, `elapsed_h=
-     open_attempt.charged_ceiling`, `ceiling_charged=true`,
-     `d_override=open_attempt.K+1`. That cell's attempt/retry state
-     machine treats `CRASHED-RECOVERED` exactly like `CRASHED-n` (G3)
-     for retry-gating and interval-logic purposes (D5/E4, below) — a
-     crash the orchestrator recovers FROM restart is not
-     distinguishable, from the cell's perspective, from a crash it
-     observed directly. (Disclosed cost, not a safety hazard: if the
-     subprocess's OWN archival attempt-dir JSON in fact reads
-     `COMPLETED` in this window — the "before copy" case — that
-     completed science is not reused; the retry re-runs the cell from
-     scratch. Wasteful, never unsafe: the retry is priced and gated
-     exactly like any other admitted attempt.)
-   - **Either branch:** before persisting the closure, verify no LIVE
-     process still holds the GPU this attempt was assigned (§R5
-     KW6.17 — e.g. `nvidia-smi --query-compute-apps`); a kernel
-     OOM-kill of the Python parent alone can orphan a live CUDA
-     process the tmux-session-kill premise elsewhere in this document
-     assumes does not happen. If one is found, ABORT LOUDLY rather
-     than re-dispatching attempt 2 onto a GPU attempt 1 may still be
-     running on.
+   writing it and clearing it — mid-attempt (§R5 H2 distinguishes a
+   genuine crash from a crash that landed after the copy but before the
+   fold; §R6 I2 adds a check that runs FIRST, before either of those
+   two branches, so a provably-`COMPLETED` attempt is never discarded
+   regardless of its attempt number).** Before closing anything:
+   1. **(§R6 I2 — runs BEFORE any branch that could lead to a
+      `PERSISTENTLY-ABORTED` derivation.)** Read
+      `.../K{open_attempt.K}_s{open_attempt.seed}_attempt{
+      open_attempt.attempt_n}/earlyln_K{open_attempt.K}_s{
+      open_attempt.seed}.json` (deterministic from the fields
+      `open_attempt` already carries). If it parses and
+      `status=="COMPLETED"`: **PROMOTE** — copy it to
+      `<canonical_path>.tmp`, `os.replace(<canonical_path>.tmp,
+      canonical_path)` (skip the copy if a canonical file already
+      exists there and itself parses `COMPLETED` — nothing to do), then
+      append a terminal row `status="COMPLETED"`, `elapsed_h=
+      elapsed_s/3600` (MEASURED — the subprocess's own timer survived
+      in its JSON even though the orchestrator's did not),
+      `outdir=<canonical path>`, `ceiling_charged:false`,
+      `d_override=open_attempt.K+1`, and skip the two branches below.
+      **This closes KW7.2:** the prior text discarded exactly this case
+      whenever the crash landed in the "before copy" window, which for
+      an attempt-2 crash left no retry and silently shrank the harvest
+      denominator (a demonstrably-`COMPLETED` cell scored as never
+      having completed); the completed science is now reused on
+      attempt 1 or attempt 2 alike, never re-run from scratch.
+   2. Otherwise (the JSON is missing, unparseable, or parses
+      non-`COMPLETED`), check whether a canonical-path file ALREADY
+      exists for `(open_attempt.K, open_attempt.seed)` with
+      `status=="COMPLETED"`:
+      - **YES — canonical file + dangling open record (§R5 H2's named
+        "between copy and fold" crash window): this is PROOF OF
+        COMPLETION, not a crash to conservatively write off.** Append a
+        terminal row `status="COMPLETED"`, `elapsed_h=open_attempt.
+        charged_ceiling` (still the gate-admitted ceiling, not a
+        measurement — the timer that would have measured it died with
+        the process), `outdir=<canonical path>`, `ceiling_charged=true`,
+        `d_override=open_attempt.K+1`. This restores `COMPLETED ⇒
+        canonical`'s converse (G2's own contract already guarantees
+        `canonical ⇒ COMPLETED`) — **with both directions now holding,
+        the harvest-patch-unnecessary claim (below) is true BY THE PAIR,
+        not by one direction alone.**
+      - **NO — genuine crash (the "before copy" and "mid-copy" windows,
+        now reached ONLY when 2.1's own-JSON check above ALSO found no
+        proof of completion; the atomic copy-to-temp+rename means a
+        mid-copy crash leaves no canonical file, only a harmless
+        orphaned `.tmp`, so it is indistinguishable on disk from
+        "before copy" and gets the same treatment).** Close it
+        conservatively, as before: append a terminal row
+        `status="CRASHED-RECOVERED"`, `elapsed_h=
+        open_attempt.charged_ceiling`, `ceiling_charged=true`,
+        `d_override=open_attempt.K+1`. That cell's attempt/retry state
+        machine treats `CRASHED-RECOVERED` exactly like `CRASHED-n` (G3)
+        for retry-gating and interval-logic purposes (D5/E4, below) — a
+        crash the orchestrator recovers FROM restart is not
+        distinguishable, from the cell's perspective, from a crash it
+        observed directly.
+   3. **Either branch:** before persisting the closure, verify no LIVE
+      process still holds the GPU this attempt was assigned (§R5
+      KW6.17 — e.g. `nvidia-smi --query-compute-apps`); a kernel
+      OOM-kill of the Python parent alone can orphan a live CUDA
+      process the tmux-session-kill premise elsewhere in this document
+      assumes does not happen. If one is found, ABORT LOUDLY rather
+      than re-dispatching attempt 2 onto a GPU attempt 1 may still be
+      running on.
    Then set `open_attempt=null` and persist ATOMICALLY.
-3. **Cell-level resume (closes KW5.1's second, smaller gap — the
-   `GATE-REFUSED`-vs-`harvest()` disagreement).** Walk cell order
-   (above) from the start, but a cell/attempt with an existing
-   TERMINAL row already in `ledger.attempts[]` (`COMPLETED`,
-   `ABORTED-BUDGET`, `CRASHED`, `CRASHED-RECOVERED`, or
-   `GATE-REFUSED`/`STOPPED-BY-OPERATOR` — the unified `attempts[].
-   status` enum, §R5 H4 below; `PERSISTENTLY-ABORTED` is a DERIVED
-   CELL state and never appears here, §R5 KW6.5(ii)) is **never
-   re-gated** — its state comes from the ledger record, not a fresh
-   HARD-GATE decision, so a restart at `realized≈13h` can never turn
-   an already-`COMPLETED` cell into `GATE-REFUSED`: the ledger is
-   consulted FIRST, and (§R5 KW6.5(i)) `GATE-REFUSED` is now itself a
-   row — so this step reads as **"no row with a DISPATCHED status
-   yet"**, not "no ledger row of any kind" (every touched cell/attempt
-   has a row now; only a cell never touched at all has none). This is
-   also what makes the "`GATE-REFUSED` treated identically to MISSING
-   by `harvest()`" claim (dispatch loop step 1, above) correct exactly
-   as stated, on a restart as much as on a first pass: a `GATE-REFUSED`
-   cell/attempt never ran a subprocess, so it never produced a
-   canonical output file (G2, below) either — `harvest()`'s view and
-   the orchestrator's own ledger view agree by construction, because
-   both ultimately trace back to "did a subprocess for this cell ever
-   COMPLETE," never to two independently-maintained records that could
-   disagree.
-4. Once every dangling record is closed and every already-terminal
-   cell is skipped, dispatch resumes from the first cell/attempt with
-   no ledger row — normal operation from here.
+3. **Cell-level resume, stated CELL-WISE and normatively (§R6 I3 —
+   closes KW7.3: the Rev-5 wording mixed a cell-wise skip clause with
+   an attempt-wise "no ledger row" resume clause, and the two disagreed
+   whenever reconstruction had written a row at `attempt_n:2` with no
+   `attempt_n:1` row for the same cell — a state §R6 I1's per-attempt
+   reconstruction no longer produces in the ordinary case, but the rule
+   itself must not depend on that being true).** A cell whose DERIVED
+   state is TERMINAL — `COMPLETED`, `PERSISTENTLY-ABORTED` (the rule
+   above: iff its attempt-2 row exists and is non-`COMPLETED`, OR its
+   attempt-1 row is non-`COMPLETED`, no attempt-2 row exists, and the
+   retry gate closed it), or `STOPPED-BY-OPERATOR` — is skipped IN
+   FULL, regardless of which individual `attempt_n` rows exist for it.
+   This is never re-gated: a restart at `realized≈13h` can never turn
+   an already-`COMPLETED` cell into `GATE-REFUSED`, because terminal
+   status comes from the ledger record, never from a fresh HARD-GATE
+   re-decision.
+
+   **Attempt numbering is authoritative and single-sourced (§R6 I3's
+   one precedence sentence): reconstruction's own `attempt_n` values
+   (§R6 I1 — each attempt directory's own number) are the SAME
+   numbering space normal dispatch writes into; there is no separate
+   reconstruction-only convention left to disagree with it.** For a
+   cell whose derived state is NON-terminal, dispatch resumes at
+   `attempt_n = max(every recorded attempt_n for this cell, default 0)
+   + 1` — always `≤2`, because a cell already carrying an
+   `attempt_n:2` row is, by the derivation rule above, either already
+   terminal (skipped) or `COMPLETED` (not dispatched again at all).
+   Never below the recorded maximum — an already-numbered attempt is
+   never re-dispatched — and never a fresh `attempt_n:1` for a cell
+   that already carries an `attempt_n:1` row of any status.
+4. Once every dangling record is closed (step 2) and every
+   already-terminal cell is skipped in full (step 3), dispatch resumes
+   at the next non-terminal cell's `max(attempt_n)+1` — normal
+   operation from here.
 
 A restarted orchestrator therefore never resets `realized_gpu_h` to 0
 (Rev 3, unchanged) AND never leaves a crashed attempt's spend
@@ -1207,12 +1298,17 @@ unchanged this revision: `harvest()`'s non-recursive glob at
 `ncr_earlyln_scale.py:358-380` is exactly the mechanism this relies on.)
 
 **Crash-window walk (§R5 H2 — the four windows a crash on the
-`COMPLETED` path can land in, and each one's recovery outcome):**
+`COMPLETED` path can land in, and each one's recovery outcome. §R6
+NOTE: the first two rows are UPDATED this revision — §R6 I2 (recovery
+procedure step 2.1, above) now reads the attempt-dir JSON BEFORE
+declaring a genuine crash, so these two windows no longer discard
+completed science; see §R6 for why this forced contact with an
+otherwise-settled table):**
 
 | Window | On-disk state at crash | Recovery outcome |
 |---|---|---|
-| Before copy starts | attempt-dir JSON is `COMPLETED`; no canonical file, no `.tmp`; `open_attempt` dangling | no canonical file found ⇒ genuine-crash branch, `CRASHED-RECOVERED`, full ceiling (disclosed inefficiency: the completed science is not reused, the retry re-runs from scratch — never a safety or budget hazard) |
-| Mid-copy (`.tmp` being written, not yet renamed) | identical observable state to "before copy" — the `.tmp` is unmatched by `discover_seeds_by_K`'s glob | identical outcome: `CRASHED-RECOVERED`, full ceiling |
+| Before copy starts | attempt-dir JSON is `COMPLETED`; no canonical file, no `.tmp`; `open_attempt` dangling | **§R6 I2:** step 2.1 reads the attempt-dir JSON first, finds `COMPLETED`, PROMOTES it (copy+atomic-rename) ⇒ `COMPLETED` row, MEASURED `elapsed_h` (the subprocess's own `elapsed_s`) — the completed science IS reused, never re-run from scratch (closes KW7.2) |
+| Mid-copy (`.tmp` being written, not yet renamed) | identical observable state to "before copy" — the `.tmp` is unmatched by `discover_seeds_by_K`'s glob | identical outcome: §R6 I2's promotion fires the same way — `COMPLETED` row, measured `elapsed_h` |
 | Between copy and fold (`os.replace` completed; fold has not run) | canonical file EXISTS with `status=="COMPLETED"`; `open_attempt` still dangling | canonical file + dangling record ⇒ PROOF OF COMPLETION (the fixed case): `COMPLETED` row written, full ceiling charged, `COMPLETED ⇒ canonical` restored |
 | After fold | canonical file exists; `COMPLETED` terminal row exists; `open_attempt` is `null` | normal — nothing dangling, no recovery action |
 
@@ -1297,11 +1393,19 @@ in the unified-enum table below):**
 SINGLE SOURCE OF TRUTH). Precedence: this table supersedes the
 JSON-schema block immediately above wherever they might ever drift
 (they should not — both are edited together), and it supersedes the
-enumerations in the FROZEN historical sections §R4 (KW5.3's row,
-`:2590`-region; the "numbers that moved" line, `:2615-2616`-region)
-and any frozen `§A`-section text — those stay byte-identical as
-historical record (house convention) and are simply outranked, never
-edited, by this table when the two disagree (§R5 KW6.5/KW6.9 below).**
+enumerations in the FROZEN historical sections §R4 (KW5.3's row and the
+"numbers that moved" line — cited by NAME only, not by line number,
+per §R6 KW7.8: Rev 5 shifted §R4 by +472 lines, so a numeric pointer
+written today goes stale the next time anything ABOVE §R4 is revised,
+exactly as happened to the Rev-5 pointers this fixes) and any frozen
+`§A`-section text — those stay byte-identical as historical record
+(house convention) and are simply outranked, never edited, by this
+table when the two disagree (§R5 KW6.5/KW6.9 below). **The same
+outranking covers arithmetic, not only enumerations (§R6 KW7.12):
+§R4's KW5.1 discharge row still carries the refuted "the crash case is
+actually TIGHTER … than the completing case" claim; it is outranked,
+on the identical footing, by §4's "True spend, worst case" derivation
+(`T ≤ 15.2041h`, above).**
 
 *`attempts[].status` (6 reachable values; `PERSISTENTLY-ABORTED` is
 correctly ABSENT — it is a derived CELL state, never an attempt
@@ -1309,10 +1413,10 @@ status, §R5 KW6.5(ii)):*
 
 | Value | Reachable via | Typical `attempt_n` |
 |---|---|---|
-| `COMPLETED` | classify-copy-fold, exit code 0 or non-zero AFTER a `COMPLETED` JSON is on disk; OR recovery's canonical-file+dangling-record branch (§R5 H2); OR ledger reconstruction's canonical-file branch (§R5 H1) | 1 or 2 |
+| `COMPLETED` | classify-copy-fold, exit code 0 or non-zero AFTER a `COMPLETED` JSON is on disk; OR recovery's canonical-file+dangling-record branch (§R5 H2, "between copy and fold"); OR recovery's attempt-JSON promotion branch (§R6 I2, "before copy"/"mid-copy"); OR ledger reconstruction's per-attempt-directory table / bootstrap fallback (§R6 I1) | 1 or 2 |
 | `ABORTED-BUDGET` | exit 0, `status=="ABORTED-BUDGET"` JSON on disk | 1 or 2 |
 | `CRASHED` | any non-zero exit (or exit 0 with no JSON, §R5 KW6.5(iii)) with no `COMPLETED`/`ABORTED-BUDGET` JSON | 1 or 2 |
-| `CRASHED-RECOVERED` | recovery's genuine-crash branch (dangling `open_attempt`, no canonical file, §R5 H2); OR ledger reconstruction's attempt-dir-without-canonical branch (§R5 H1, always written at `attempt_n=2`) | 1 or 2 |
+| `CRASHED-RECOVERED` | recovery's genuine-crash branch (dangling `open_attempt`, no canonical file, §R5 H2); OR ledger reconstruction's per-attempt-directory table, unparseable/absent-JSON rows (§R6 I1, written at that directory's OWN `attempt_n` — no longer forced to `2`) | 1 or 2 |
 | `GATE-REFUSED` | HARD or RETRY gate refusal, pre-dispatch — no subprocess ever runs (§R5 KW6.5(i): now DOES produce a row, `elapsed_h=0.0`, `outdir=null`) | 1 or 2 |
 | `STOPPED-BY-OPERATOR` | exit code 3 (`--stop-file` sentinel, checked training-only, strictly before any JSON write) | 1 or 2 |
 
@@ -1356,12 +1460,27 @@ KW6.4/KW6.7).**
   without a second, disagreeing test). The trigger was evaluated, and
   — if it fired — every conditional cell's first attempt and retry
   were likewise free of budget-caused refusal. **Disk-evidence
-  assertion (§R5 H4): `COMPLETE` ⇔ exactly 12 canonical PRIMARY files
-  exist, each `status=="COMPLETED"`** — equivalently, exactly 12
-  distinct `(K,seed)` pairs with `arm=="primary"` have a `COMPLETED`
-  row in `ledger.attempts` (unique by G2's exists-check + §R5 H2's
-  `COMPLETED ⇒ canonical` invariant, so counting rows and counting
-  canonical files agree).
+  assertion, quantified over the full outcome space (§R6 I4 — replaces
+  §R5 H4's unconditional 12-canonical count, which KW7.4 showed
+  rejects every legitimately-reportable `INCOMPLETE-AT-K` run even
+  though a non-budget cause, e.g. a twice-`CRASHED` seed, is fully
+  compatible with `COMPLETE`):**
+  - If `band.interval_resolved_Ks` is empty AND `band.incomplete_at_K`
+    is `null` (no K is incomplete): `COMPLETE` ⇔ exactly 12 canonical
+    PRIMARY files exist, each `status=="COMPLETED"` — the original,
+    unchanged 12-canonical assertion, still the ONLY check when nothing
+    is disclosed as incomplete.
+  - Otherwise (some K IS disclosed incomplete): `COMPLETE` ⇔ for every
+    primary `K∈{26,28,30}` named in `band.interval_resolved_Ks` or
+    `band.incomplete_at_K`, that K's canonical primary count is `<4`,
+    AND every OTHER primary K's canonical count is exactly `4` — the
+    per-K canonical counts are consistent with what the report's own
+    `band` object discloses, never a bare magic number.
+  In both cases: equivalently, the canonical count for a fully-complete
+  K equals the number of that K's `(K,seed)` pairs carrying a
+  `COMPLETED` row in `ledger.attempts` (unique by G2's exists-check +
+  §R5 H2's `COMPLETED ⇒ canonical` invariant, so counting rows and
+  counting canonical files agree).
 - **`COMPLETE-DEGRADED`.** Every primary cell got its first attempt
   (the hard gate never refused a PRIMARY cell's first attempt — the
   12-cell baseline sweep completed), but the hard/retry gates
@@ -1372,34 +1491,49 @@ KW6.4/KW6.7).**
   refused* — a primary cell's attempt-2 retry was denied by the HARD
   or RETRY gate rather than the state machine reaching a natural
   `PERSISTENTLY-ABORTED` after both attempts ran; that cell still
-  follows D5/E4's interval logic exactly as any other incomplete cell.
-  (ii) *conditional-throttled* — the trigger fired (`DECIDED`, and the
-  G5 band precondition held), but 1-4 of the conditional arm's 4
-  cells' FIRST attempts were refused by the hard gate before the 15.00
-  cap was reached. (iii) **`conditional-retry-refused` (NEW, §R5
-  KW6.6(ii))** — the trigger fired and every conditional cell got its
-  first attempt, but a conditional cell's RETRY was refused by the
-  HARD or RETRY gate — the case neither (i) (scoped to primary) nor
-  (ii) (scoped to a conditional FIRST attempt) covers, which the
-  parent sentence already implied but the enumeration omitted. Any
+  follows D5/E4's interval logic exactly as any other incomplete cell
+  — hence FEWER than 12 canonical primaries is the NORMAL disk state
+  for this sub-case, not an anomaly (§R6 I4/KW7.4 — see the corrected
+  assertion below, which this sub-case could never satisfy under §R5
+  H4's unconditional 12-canonical wording). (ii) *conditional-
+  throttled* — the trigger fired (`DECIDED`, and the G5 band
+  precondition held), but 1-4 of the conditional arm's 4 cells' FIRST
+  attempts were refused by the hard gate before the 15.00 cap was
+  reached. (iii) **`conditional-retry-refused` (NEW, §R5 KW6.6(ii))**
+  — the trigger fired and every conditional cell got its first
+  attempt, but a conditional cell's RETRY was refused by the HARD or
+  RETRY gate — the case neither (i) (scoped to primary) nor (ii)
+  (scoped to a conditional FIRST attempt) covers, which the parent
+  sentence already implied but the enumeration omitted. Any
   budget-caused throttle strictly downstream of the completed 12-cell
   primary baseline belongs to this label, whether or not it fits one
-  of (i)-(iii) by name. **Disk-evidence assertion (§R5 H4):
-  `COMPLETE-DEGRADED` ⇔ the same 12-canonical-primaries condition as
-  `COMPLETE`, PLUS at least one `GATE-REFUSED` or `PERSISTENTLY-
+  of (i)-(iii) by name. **Disk-evidence assertion, corrected to the
+  count it actually implies (§R6 I4 — replaces §R5 H4's "same
+  12-canonical-primaries condition as `COMPLETE`", which sub-case (i)
+  can never satisfy by its own construction — KW7.4's FATAL):
+  `COMPLETE-DEGRADED` ⇔ every primary `(K, seed)` pair has SOME
+  terminal disposition in `ledger.attempts` (the no-op's hole: zero
+  rows for all 12 cells fails this even though 0 canonical == 0
+  `COMPLETED` rows would otherwise trivially match), AND the number of
+  canonical primary files equals the number of distinct primary
+  `(K,seed)` pairs carrying a `COMPLETED` row in `ledger.attempts`
+  (the identity G2+H2 guarantee — §5's interval logic is free to leave
+  this below 12), AND at least one `GATE-REFUSED` or `PERSISTENTLY-
   ABORTED`-deriving row exists somewhere in `ledger.attempts`** (the
-  positive evidence that a budget-caused throttle actually occurred,
-  distinguishing this from `COMPLETE`).
+  positive evidence that a throttle actually occurred, distinguishing
+  this from `COMPLETE`).
 - **`STOPPED-BY-OPERATOR`.** The `--stop-file` sentinel was seen (G3).
   Terminal for the whole run at whatever point it occurred; never a
-  gate refusal, never retried. **Disk-evidence assertion (§R5 H4,
-  KW6.4/KW6.7's no-op hole): requires the stop-file's own marker on
-  disk — `report["stop_file_path"] is not None and
-  os.path.exists(report["stop_file_path"])`** — an empty-`attempts[]`
-  report claiming `STOPPED-BY-OPERATOR` with no stop-file evidence
-  fails this assertion (this is what makes the no-op JSON below fail
-  for every `run_status` value it could plausibly claim, not only
-  `COMPLETE`).
+  gate refusal, never retried. **Evidence, relocated (§R6 I6/KW7.11 —
+  `validity_check`'s universal assertion 1, below, excludes this label
+  from the accept-set BEFORE any per-`run_status` branch ever runs, so
+  a disk-evidence assertion written as a `validity_check` branch for
+  this label is unreachable code; the stop-file marker check —
+  `report["stop_file_path"] is not None and
+  os.path.exists(report["stop_file_path"])` — is instead the
+  orchestrator's OWN pre-write self-check, asserted before
+  `orchestrator_report.json` is ever written with this label, where it
+  can actually fire and prevent a false report from existing at all).**
 - **`EXHAUSTED-BUDGET`.** The hard gate refused a PRIMARY cell's OWN
   FIRST ATTEMPT — the 12-cell baseline itself could not be completed
   inside the ceiling. Reachable in principle, not vacuous: 12 primary
@@ -1407,16 +1541,26 @@ KW6.4/KW6.7).**
   `15.00` only if every one is admitted with essentially no headroom
   left for anything else. More severe than `COMPLETE-DEGRADED`: most
   or all of §5's K's will read `INCOMPLETE-AT-K`. **Disk-evidence
-  assertion (§R5 H4, closes KW6.7's no-op hole directly):
-  `ledger.realized_gpu_h_final > 13.80`** (`= 15.00 − 1.20`, the exact
+  assertion, now WITH its negative half (§R6 I5 — closes KW7.5: §R5
+  H4's positive-only clause let a report claiming `EXHAUSTED-BUDGET`
+  alongside a COMPLETE 12-cell baseline pass, a label its own disk
+  evidence refutes):**
+  `ledger.realized_gpu_h_final > 13.80` (`= 15.00 − 1.20`, the exact
   threshold at which even one more primary-ceiling admission is
-  impossible — this is ledger-EVIDENCED spend, not merely a claimed
-  label, and it is what the no-op JSON below fails). **Disclosure (§R5
-  H5, KW6.8 — an `EXHAUSTED-BUDGET` verdict is not always a genuine
-  budget result):** repeated crash→restart cycles that each reach the
-  dispatch point before dying burn a full ceiling of LEDGER charge for
-  ≈0 GPU-h of real compute (CLAUDE.md's own mandated supervisor loop
-  can produce exactly this against a systematic mid-attempt kill). An
+  impossible — ledger-EVIDENCED spend, not merely a claimed label, and
+  what the no-op JSON below fails) **AND fewer than 12 canonical
+  PRIMARY files exist AND at least one primary-arm, first-attempt
+  (`attempt_n==1`) `GATE-REFUSED` row exists in `ledger.attempts`**
+  (positive evidence the 12-cell baseline was itself refused, exactly
+  what the label claims — a 12-canonical-primaries disk state can
+  never satisfy this alongside the negative clause, so `EXHAUSTED-
+  BUDGET` and `COMPLETE`/`COMPLETE-DEGRADED` are now provably disjoint
+  on disk, not merely by prose). **Disclosure (§R5 H5, KW6.8 — an
+  `EXHAUSTED-BUDGET` verdict is not always a genuine budget result):**
+  repeated crash→restart cycles that each reach the dispatch point
+  before dying burn a full ceiling of LEDGER charge for ≈0 GPU-h of
+  real compute (CLAUDE.md's own mandated supervisor loop can produce
+  exactly this against a systematic mid-attempt kill). An
   `EXHAUSTED-BUDGET` verdict whose `attempts[]` is dominated by
   `CRASHED-RECOVERED`/reconstructed rows indicates an ENVIRONMENT
   FAULT, not a budget result — see `charged_vs_measured` and the
@@ -1431,8 +1575,10 @@ KW6.4/KW6.7).**
   `status`). Whenever an `EXHAUSTED-BUDGET` verdict (above) would
   otherwise fire AND `ceiling_charged_fraction > 0.50`, the
   orchestrator reports THIS value instead. **Same disk-evidence
-  assertion as `EXHAUSTED-BUDGET` (`realized_gpu_h_final > 13.80`),
-  PLUS `charged_vs_measured.ceiling_charged_fraction > 0.50`.**
+  assertion as `EXHAUSTED-BUDGET`, negative half included (§R6 I5:
+  `realized_gpu_h_final > 13.80` AND fewer than 12 canonical PRIMARY
+  files AND ≥1 primary-arm first-attempt `GATE-REFUSED` row), PLUS
+  `charged_vs_measured.ceiling_charged_fraction > 0.50`.**
   Reportable, and routed to `completed/` by `validity_check` (below) —
   it is a legitimate, disclosed terminal state, not a bug — but
   **resubmission is NEVER automatic: only an explicit coordinator
@@ -1531,16 +1677,26 @@ R_N  ≤  15.00 + 0.0157  =  15.0157 GPU-h    (bound on ledger.realized_gpu_h �
 ```
 
 **True spend, worst case (§R5 H3 — KW6.3's honest replacement for the
-deleted claim above).** Let `τ=0.0157` (the combined per-attempt tail
-derived above) and `T=Σt_i` be the TRUE elapsed GPU-hours across every
-attempt ever dispatched, recovered or not. A recovered attempt's true
-cost can exceed its `charged_ceiling` by at most `τ` — the same
-single-attempt tail bound applies whether or not the orchestrator
-lives long enough to record it — call this its "leak":
-`leak_i ≤ τ` if recovered, `leak_i = 0` otherwise. Then
-`T = L_final + Σ leak_i`, where `L_final` is the truly-last attempt's
-own cost, `L_final ≤ 15.00 + τ` (its own tail, derived above). Every
-LEAKING attempt is, by definition, one the ledger charged its full
+deleted claim above; §R6 NOTE: this paragraph is otherwise SETTLED —
+the two edits below are symbol/premise hygiene only, no number changes,
+forced contact disclosed in §R6).** Let `τ=0.0157` (the combined
+per-attempt tail derived above) and `T=Σt_i` be the TRUE elapsed
+GPU-hours across every attempt ever dispatched, recovered or not. A
+recovered attempt's true cost can exceed its `charged_ceiling` by at
+most `τ` — the same single-attempt tail bound applies whether or not
+the orchestrator lives long enough to record it — call this its
+"leak": `leak_i ≤ τ` if recovered, `leak_i = 0` otherwise. Then
+`T = R_N + Σ leak_i` (§R6 KW7.6 — renamed from `L_final`: the quantity
+is the LEDGER's final bound `R_N`, derived just above, not one
+attempt's own cost, which is bounded by `charged_ceiling(arm)+τ`, not
+`15.00+τ`; the number `15.2041` this derivation produces was already
+correct — only the symbol was wrong), `R_N ≤ 15.00 + τ` (derived
+above). **This bound assumes the ledger only ever accumulates across
+reconstructions (§R6 KW7.7); §R6 I1's per-attempt reconstruction (above)
+establishes exactly that — every reconstructed row charges a positive
+amount, never a reduction — so the assumption now holds by
+construction, not by disclaimer.** Every LEAKING attempt is, by
+definition, one the ledger charged its full
 `charged_ceiling ≥ 1.20` for (the smallest per-attempt ceiling in this
 design, the primary-arm value) — so at most `⌊15.0157/1.20⌋ = 12`
 attempts can have leaked before the ledger itself would refuse the
@@ -1871,45 +2027,142 @@ claimed value:
    ever dispatches, below; this re-assertion is redundant with the
    build-release gate by design — cheap defense-in-depth, not new
    information).
-6. `band["label"] in {<the 10 §5 partition labels>, "INCOMPLETE-AT-K"}`
-   and `trigger["resolution"] in {"unanimous","tie-break-min",
-   "TRIGGER-UNRESOLVED"}` (§R5 KW6.7 — cheap enum-membership checks
-   tying the report to a real, in-domain result, not merely an
-   arithmetically self-consistent one).
+6. `band["label"] in {"FRONTIER-AT-K*=24", "FRONTIER-AT-K*=26",
+   "FRONTIER-AT-K*=28", "FRONTIER-AT-K*=30", "GRADUAL-DECAY",
+   "NON-MONOTONE-UNRESOLVED", "INCOMPLETE-AT-K"}` and
+   `trigger["resolution"] in {"unanimous","tie-break-min",
+   "TRIGGER-UNRESOLVED"}` (§R5 KW6.7, placeholder expanded §R6 I6/
+   KW7.14 — the six literal band labels are §5's own six-rule
+   `classify()` outcomes, EXHAUSTIVE and mutually exclusive over that
+   procedure's own domain, §5 above; `INCOMPLETE-AT-K` is the seventh,
+   study-level label §5 also defines. The `[NON-MONOTONE]` tag is a
+   SEPARATE boolean field, `band["non_monotone_tag"]`, never part of
+   the label string — not asserted here, nothing in this design reads
+   it as part of the enum. The three 160K qualifier bands
+   — `CONFIRMED-WALL-AT-160K`/`SLOW-CONVERGENCE-AT-160K`/
+   `PARTIAL-IMPROVEMENT-AT-160K` — are `conditional.qualifier_band`, a
+   DIFFERENT field this assertion does not touch).
 
 *Per-`run_status` (exactly one branch fires, matching the report's own
-claimed value — §R5 H4, closes KW6.7's no-op hole by construction):*
-- `run_status=="COMPLETE"` ⇒ exactly 12 files matching
-  `earlyln_K{26,28,30}_s{0-3}.json` exist in the PRIMARY canonical
-  directory and every one parses with `status=="COMPLETED"` (a
-  filesystem check, not merely a count over `ledger.attempts` — the
-  same "12 canonical primaries" evidence G4's definition above states).
-- `run_status=="COMPLETE-DEGRADED"` ⇒ the same 12-canonical-primaries
-  filesystem check, PLUS at least one row in `ledger.attempts` with
-  `status=="GATE-REFUSED"` or contributing to a `PERSISTENTLY-ABORTED`
-  derivation (the positive evidence a throttle actually occurred).
+claimed value — §R5 H4, closes KW6.7's no-op hole by construction;
+rewritten §R6 I4/I5 — quantified over the FULL pre-registered §5
+outcome space, closing KW7.4's FATAL, which showed every branch below
+rejected the design's own `INCOMPLETE-AT-K` and `COMPLETE-DEGRADED`
+sub-case (i) outcomes):*
+- `run_status=="COMPLETE"` ⇒ **(§R6 I4)** if `band["interval_resolved_
+  Ks"]==[]` and `band["incomplete_at_K"] is None`: exactly 12 files
+  matching `earlyln_K{26,28,30}_s{0-3}.json` exist in the PRIMARY
+  canonical directory and every one parses with `status=="COMPLETED"`
+  (unchanged from §R5 — the strict case). OTHERWISE (some K is
+  disclosed incomplete): for every `K∈{26,28,30}` named in either
+  field, that K's canonical-file count in the primary directory is
+  `<4`; for every K named in NEITHER field, that K's canonical-file
+  count is exactly `4` — a filesystem check tied to the report's own
+  disclosed `band` fields, not a bare count.
+- `run_status=="COMPLETE-DEGRADED"` ⇒ **(§R6 I4, replaces the
+  12-canonical filesystem check sub-case (i) can never pass)** every
+  primary `(K,seed)`, `K∈{26,28,30}`, `seed∈{0,1,2,3}`, has AT LEAST
+  ONE row in `ledger.attempts` (a terminal disposition exists for all
+  12 cells — the no-op's escape hatch), AND the canonical-file count in
+  the primary directory equals `len({(a["K"],a["seed"]) for a in
+  ledger.attempts if a["arm"]=="primary" and a["status"]=="COMPLETED"})`
+  (the G2+H2 identity — never required to equal 12), AND at least one
+  row in `ledger.attempts` has `status=="GATE-REFUSED"` or contributes
+  to a `PERSISTENTLY-ABORTED` derivation (the positive evidence a
+  throttle actually occurred).
 - `run_status=="STOPPED-BY-OPERATOR"` ⇒ excluded from the accept-set
-  entirely (universal assertion 1) — this branch never fires here; see
-  the paragraph below.
-- `run_status=="EXHAUSTED-BUDGET"` ⇒
-  `ledger.realized_gpu_h_final > 13.80` (`=15.00−1.20`, the exact
-  threshold at which even one more primary-ceiling admission is
+  entirely (universal assertion 1) — this branch never fires here; the
+  stop-file marker check lives in the orchestrator's own pre-write
+  self-check instead (§R6 I6/KW7.11, G4 above), never here.
+- `run_status=="EXHAUSTED-BUDGET"` ⇒ **(§R6 I5, adds the negative
+  half)** `ledger.realized_gpu_h_final > 13.80` (`=15.00−1.20`, the
+  exact threshold at which even one more primary-ceiling admission is
   impossible — LEDGER-evidenced spend, per G4's definition above; this
-  is what fails the audit's no-op example, `realized_gpu_h_final=0.0`).
-- `run_status=="EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE"` ⇒ the same
-  `realized_gpu_h_final > 13.80` check, PLUS
+  alone is what fails the audit's no-op example,
+  `realized_gpu_h_final=0.0`) **AND** fewer than 12 canonical PRIMARY
+  files exist in the primary directory **AND** at least one row in
+  `ledger.attempts` has `arm=="primary"`, `attempt_n==1`, and
+  `status=="GATE-REFUSED"` (closes KW7.5: without this, a 12-canonical
+  baseline whose ledger happens to read `>13.80` — e.g. every primary
+  cell landing near its own ceiling — passed under a label its own
+  disk evidence refuted).
+- `run_status=="EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE"` ⇒ the same three
+  clauses as `EXHAUSTED-BUDGET` (§R6 I5) **PLUS**
   `charged_vs_measured.ceiling_charged_fraction > 0.50`.
 
-**Mentally re-run against the audit's own no-op counterexample
-(`run_status="COMPLETE"`, `attempts=[]`, `realized_gpu_h_final=0.0`):
-FAILS** — the `COMPLETE` branch's 12-canonical-primaries filesystem
-check finds 0 files, not 12. The SAME no-op payload fails under every
-OTHER `run_status` label it could instead claim, too:
-`COMPLETE-DEGRADED` (same 0≠12 check), `EXHAUSTED-BUDGET`/
-`-SUSPECT-OVERCHARGE` (`0.0` is not `>13.80`), `STOPPED-BY-OPERATOR`
-(excluded outright, and would also fail the stop-file-marker check
-above if it weren't). **No per-cell job specs are created** — the
-orchestrator is the only pool artifact this design produces (§6).
+**In-text test list (§R6 I4 — every §5-reportable outcome type PASSES
+with the evidence clause named; every R5/R6 adversarial JSON still
+FAILS):**
+
+*Reportable outcomes, traced against the rewritten branches above:*
+- `COMPLETE`, 12/12 canonical, nothing disclosed incomplete — PASSES
+  the strict-12 clause (unchanged base case).
+- **`INCOMPLETE-AT-K` (§R6 I4's walked case — KW7.4's own construction:
+  one primary seed `CRASHED` on both attempts, 11 canonical primaries,
+  `run_status="COMPLETE"` — CRASHED is not budget-caused, so `COMPLETE`
+  is the correct claim here, per G4's own "no budget-caused refusal"
+  definition, with `band["incomplete_at_K"]=[30]` naming the affected
+  K):** `COMPLETE`'s OTHERWISE branch fires (`incomplete_at_K` is
+  non-`None`); K=30's canonical count is 3 (`<4`, consistent with the
+  disclosed field), K=26 and K=28 each read 4 — **PASSES.** (Under
+  Rev-5's unconditional 12-canonical clause this same payload FAILED —
+  the FATAL this discharges.)
+- **`COMPLETE-DEGRADED` sub-case (i) *primary-retry-refused* (§R6 I4's
+  second walked case): attempt-1 `CRASHED` on one primary seed,
+  attempt-2 `GATE-REFUSED` by the retry gate, 11 canonical primaries,**
+  the retry gate's interval logic DECIDES a real band (or the study
+  reports `INCOMPLETE-AT-K` if it does not — either is compatible).
+  All 12 `(K,seed)` pairs carry ≥1 row (11 `COMPLETED`, 1
+  `CRASHED`+`GATE-REFUSED`); canonical count (11) equals the count of
+  `COMPLETED` rows (11); ≥1 `GATE-REFUSED` row exists — **PASSES all
+  three clauses.** (Under Rev-5's identical-to-`COMPLETE` 12-canonical
+  clause this sub-case could NEVER pass by its own construction — the
+  second half of KW7.4's FATAL this discharges.)
+- `COMPLETE-DEGRADED` sub-case (ii)/(iii) — 12/12 primary canonical (the
+  throttle is downstream, on the conditional arm), ≥1 `GATE-REFUSED`
+  row on a conditional attempt — PASSES (12 canonical == 12
+  `COMPLETED` primary rows; the throttle-evidence clause is satisfied
+  by the conditional row, which the assertion does not restrict to
+  `arm=="primary"`).
+- `EXHAUSTED-BUDGET`, `realized=14.55`, 9 canonical primaries, a
+  primary K's first attempt genuinely `GATE-REFUSED` — PASSES all
+  three clauses.
+- `EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE`, same disk state plus
+  `ceiling_charged_fraction=0.71` — PASSES.
+- `STOPPED-BY-OPERATOR` with a real stop-file on disk — correctly
+  routes to `failed/` via universal assertion 1 (by design, per G4
+  above — this is not a `validity_check` failure, it is the intended
+  exclusion).
+
+*Adversarial JSONs from R5+R6, re-traced against the rewritten
+assertions — still killed by name:*
+- **Audit-R5 no-op** (`run_status="COMPLETE"`, `attempts=[]`,
+  `realized_gpu_h_final=0.0`): `band` carries no disclosed
+  incompleteness in a genuine no-op, so `COMPLETE`'s strict-12 clause
+  fires — 0 canonical files ≠ 12 — **FAILS.** Also fails
+  `COMPLETE-DEGRADED`'s new identity: 0 canonical == 0 `COMPLETED` rows
+  passes that ONE clause, but "every primary `(K,seed)` has ≥1 row" —
+  **FAILS**, none of the 12 cells has any row at all.
+- **Near-miss #1** (12 canonical primaries, `run_status="EXHAUSTED-
+  BUDGET"`, `realized=14.40`): the NEW negative clause requires fewer
+  than 12 canonical files — 12 is not `<12` — **FAILS** (this is
+  exactly KW7.5's fix: the old positive-only clause let this through).
+- **Near-miss #2** (`STOPPED-BY-OPERATOR`, `attempts=[]`, no stop-file
+  marker): excluded outright by universal assertion 1, independent of
+  the marker check — **FAILS**, unchanged.
+- **Near-miss #3's disk state MIS-claimed as anything other than
+  `COMPLETE`** (11 canonical, one seed `CRASHED`-`CRASHED`, no
+  `GATE-REFUSED` anywhere): claiming `EXHAUSTED-BUDGET` — `realized≈
+  8.0h` is not `>13.80` — **FAILS**; claiming `STOPPED-BY-OPERATOR` —
+  excluded outright — **FAILS**. (Claimed as `COMPLETE` with
+  `incomplete_at_K` disclosed, it correctly PASSES — see the reportable
+  list above; this is the fix, not a hole — `validity_check` verifies
+  disk evidence for the CLAIMED label, it does not re-derive the
+  uniquely correct label from raw disk state, which is G4's job, not a
+  job-routing gate's.)
+
+**No per-cell job specs are created** — the orchestrator is the only
+pool artifact this design produces (§6).
 
 **KW2.8/KW3.13/KW4.6 close-out — the REFUTED accepted-risk replaced
 with a real, owned gate (F3, Rev 3).** Round 3 found the "d=K+1
@@ -3453,3 +3706,174 @@ build charter.
 
 **ROUND 7 SCOPE (binding):** the I1–I3 reconstruction contract and the
 I4–I5 validity text ONLY. Everything else is settled and excluded.
+
+---
+
+## §R6 REVISION 6 (2026-08-06)
+
+**Scope discipline (house convention, same as §R4/§R5).** §1–§7 are
+the LIVE body; every edit this revision implements a binding I1–I6
+disposition from `§A6-ADJUDICATION` above and is listed in the
+disposition table below. `§A1-ADJUDICATION` through
+`§A6-ADJUDICATION` (and `§R1`–`§R5` inside that range) are UNCHANGED
+as historical record — verified, not asserted (MD5 block below). This
+design now carries status **DRAFT-R6 — POST-AUDIT-6, AWAITING NARROW
+AUDIT ROUND 7** (status header updated at the top of this file).
+
+**MD5 verification, run before and after this revision's edits.**
+
+| Quantity | Value |
+|---|---|
+| Whole file, before this revision | `cee7e8136a63028ab420f30ab2769cf4` |
+| Frozen range `## §A1-ADJUDICATION` → EOF, before | `9d07f2879e25de26cab512465ba8aa90` (960 lines) |
+| Frozen range `## §A1-ADJUDICATION` → EOF, after | `9d07f2879e25de26cab512465ba8aa90` (960 lines) — **IDENTICAL, independently reproduced** |
+| Live body (§1–§7), before | `e92b343202888e9a948769cd5ff5843b` (2495 lines) |
+| Live body (§1–§7), after (pre-`§R6`-append; recomputed as the LAST step, after two small collateral cross-reference fixes the I1/I3 edits required — see below) | `68440ddc8fc7408168daa8ce4ef2f090` (2748 lines) — **changed, as expected**: every I1–I6 edit landed here |
+
+**No whole-file "after" hash is stated (§R6, following §R5's own
+convention, not repeating KW7.10's mistake for a different reason):**
+a hash of the finished file, printed inside that same file, is a
+fixed point that cannot be satisfied by construction — the moment the
+value is written, the file (and its true hash) changes. `§R5` avoided
+this correctly for the whole file but its one attempt at a **non**
+self-referential figure (live body after) still failed to reproduce,
+per KW7.10 — a real computation slip, not a self-reference issue. The
+two figures given above (live body before/after) are recomputed here
+directly from `git show HEAD:…` and the current on-disk file, not
+carried forward from any prior claim.
+
+**Line-count arithmetic, visibly derived.** `3455` (pre-Rev-6 total)
+`= 2495` (live body) `+ 960` (frozen) `+ 0` (no separator line double
+counted — confirmed by direct `wc -l` on each range). Live body grew
+`2748 − 2495 = 253` lines this revision (two more than the I1–I6 edits
+alone: KW7.1/KW7.3's reconstruction rewrite left two SHORT downstream
+cross-references stale — a dispatch-loop forward-pointer into the old
+step-3 wording, and the unified enum table's `CRASHED-RECOVERED`/
+`COMPLETED` "Reachable via" cells, which named the old fixed
+`attempt_n:2` convention and the old single-branch reconstruction path
+by name; both were corrected in place as a direct, in-scope
+consequence of I1/I3, not a new finding); frozen stayed `960`;
+`2748 + 960 = 3708` (file length immediately before this `§R6` section
+was appended, confirmed by direct `wc -l`). This `§R6` section's own
+length is additive on top of `3708` — the file's final `wc -l` after
+this append is the visible check, not a value pre-declared here.
+
+**Settled-section contact — disclosed prominently, per the
+coordinator's own instruction (three edits physically land in text the
+`§A6-ADJUDICATION` scope named SETTLED; none re-derives or reverses a
+verified number).**
+1. **The unified-enum-table precedence sentence** (§4, "Unified
+   `attempts[].status` × `run_status` enum table") is inside "the enum
+   precedence mechanism," named settled. Two MINOR, non-numeric fixes
+   landed there: KW7.8's stale `§R4` line pointers (Rev 5 shifted §R4
+   by +472 lines; the pointers now targeted unrelated §R1 prose) are
+   replaced with name-only citations, which cannot go stale the same
+   way; KW7.12's gap (the precedence sentence covered enumerations but
+   not `§R4`'s still-live refuted-TIGHTER-claim row) is closed by one
+   added clause. Neither edit touches the mechanism's LOGIC or any
+   verified number — the table it describes is untouched.
+2. **The "Crash-window walk" table** (§4, §R5 H2) is inside "crash
+   windows 1–8," named settled. I2's fix to the recovery procedure's
+   dangling-`open_attempt` branch (a genuinely in-scope KW7.2 edit)
+   makes the table's OLD "Before copy starts"/"Mid-copy" rows
+   factually wrong the moment I2 lands (they describe the discarded,
+   pre-fix behavior). Left uncorrected, the table would directly
+   contradict the procedure it summarizes two paragraphs above it —
+   worse than the contact. Both rows are updated to state I2's
+   promotion outcome; the "Between copy and fold"/"After fold" rows
+   (KW6.2's actual settled FATAL closure) are untouched.
+3. **The H3 "True spend, worst case" paragraph** (§4, §R5 H3) is
+   inside "the H3 arithmetic," named settled. Two MINOR, symbol-only
+   fixes landed there: KW7.6 renames `L_final`→`R_N` (the audit found
+   the SYMBOL wrong, not the NUMBER — `15.2041` is unchanged, re-derived
+   below); KW7.7 adds one sentence noting the paragraph's monotone-
+   ledger premise is now GUARANTEED by I1's per-attempt reconstruction
+   rather than merely assumed — both audit-suggested discharges for
+   these two findings, applied with zero numeric re-derivation.
+   **Re-verified after the edit, not merely asserted:**
+   `13 × 0.0157 = 0.2041`; `15.00 + 0.2041 = 15.2041` — unchanged, H3
+   still **PASSES**.
+
+**Disposition table — all 15 R6 findings.**
+
+| Finding | Severity | §R6 disposition | Where |
+|---|---|---|---|
+| KW7.1 | FATAL | **FIXED (I1).** Reconstruction rewritten per-attempt-directory; 24-state total function (2 dir × 3 JSON × 3 canonical, 12 invalid `dir=absent`×`JSON∈{parseable,unparseable}` combinations removed = 24 valid, `arm` a ceiling-value split of 12 core rows), quarantine-rename rule for a corrupt canonical, conditional arm scanned unconditionally. | §4, recovery procedure step 0 (0.0/0.1/0.2) |
+| KW7.2 | MAJOR | **FIXED (I2).** Both the live dangling-`open_attempt` branch AND reconstruction's per-attempt table now read the attempt's own archival JSON and PROMOTE a provably-`COMPLETED` attempt before any `CRASHED-RECOVERED`/`PERSISTENTLY-ABORTED` path can fire. | §4, recovery procedure step 2.1; step 0.1 table rows |
+| KW7.3 | MAJOR | **FIXED (I3).** Resume rule restated cell-wise, keyed off DERIVED terminal state, never "no ledger row"; one precedence sentence makes reconstruction's own `attempt_n` the sole numbering authority (`max(attempt_n)+1`, never below, never re-dispatch a numbered attempt). | §4, recovery procedure step 3–4 |
+| KW7.4 | FATAL | **FIXED (I4).** `COMPLETE`'s 12-canonical assertion now conditional on `band.interval_resolved_Ks`/`incomplete_at_K` both being empty; `COMPLETE-DEGRADED`'s assertion replaced with the identity (terminal disposition × canonical-count-equals-`COMPLETED`-row-count × throttle evidence). Both G4's prose and the job-spec `validity_check` branches updated in lockstep. | §4, G4 enum definitions; Job-spec `validity_check` per-`run_status` branches |
+| KW7.5 | MAJOR | **FIXED (I5).** `EXHAUSTED-BUDGET`/`-SUSPECT-OVERCHARGE` gain the negative clause: `<12` canonical primaries AND ≥1 primary-arm first-attempt `GATE-REFUSED` row, alongside the existing `>13.80` clause — provably disjoint from `COMPLETE`/`COMPLETE-DEGRADED` on disk now, not by prose alone. | §4, G4 enum definitions; `validity_check` per-`run_status` branches |
+| KW7.6 | MINOR | **FIXED**, forced contact with the settled H3 paragraph (disclosed above) — `L_final`→`R_N` rename, zero numeric change. | §4, "True spend, worst case" |
+| KW7.7 | MINOR | **DISCHARGED AS A SIDE EFFECT OF I1**, plus one disclosure sentence, forced contact with the settled H3 paragraph (disclosed above) — the bound's monotone-ledger premise is now true by construction (I1 never reduces `realized_gpu_h`), not merely assumed. | §4, "True spend, worst case" |
+| KW7.8 | MINOR | **FIXED**, forced contact with the settled precedence sentence (disclosed above) — stale `§R4` line pointers replaced with name-only citations. | §4, unified enum table precedence sentence |
+| KW7.9 | MINOR | **ADDENDUM, not a live edit** — the correct attribution (§6 red-team items (viii), (x)–(xiv) belong under H1/H2/H4/H5's "Where fixed") is recorded in the addendum below; `§R5`'s own table stays frozen (editing it would break the `§A1→EOF` MD5 identity, the same trade `§A6-ADJUDICATION` already ratified for KW6.9). | Addendum below; `§R5` itself untouched |
+| KW7.10 | MINOR | **DISCLOSED, not fixed** — `§R5`'s claimed live-body-`after` MD5 is frozen and cannot be corrected in place; the CORRECT figures for the `§R4→§R5` transition are recorded in the addendum below for anyone who needs them. `§R6`'s own MD5 block (above) was independently recomputed from `git show`/the live file, not carried forward from any prior claim. | Addendum below; `§R5` itself untouched |
+| KW7.11 | MINOR | **FIXED.** `STOPPED-BY-OPERATOR`'s G4 paragraph now states the stop-file marker check is the orchestrator's own pre-write self-check, not a `validity_check` branch (which cannot reach it — universal assertion 1 excludes the label first). | §4, G4 `STOPPED-BY-OPERATOR` bullet |
+| KW7.12 | MINOR | **FIXED**, forced contact with the settled precedence sentence (disclosed above) — one clause extends the precedence sentence's scope from enumerations to arithmetic, naming `§R4`'s KW5.1 row as outranked by "True spend, worst case." | §4, unified enum table precedence sentence |
+| KW7.13 | MINOR | **ADOPTED per `§A6-ADJUDICATION`** (no further edit needed — the adjudication already ruled the audit's REPLACEMENT justification, the MD5-identity argument, in as KW6.9's operative reasoning). | `§A6-ADJUDICATION` above (no live-body edit) |
+| KW7.14 | MINOR | **FIXED.** Universal assertion 6's placeholder expanded to the six literal §5 band labels plus `"INCOMPLETE-AT-K"`; the `[NON-MONOTONE]` tag and the 160K qualifier bands are noted as separate, un-asserted fields. | §4, Job-spec `validity_check` universal assertion 6 |
+| KW7.15 | MINOR | **FIXED.** `os.makedirs(outdir, exist_ok=True)` / `ncr_earlyln_scale.py:237` cited explicitly as the premise behind "attempt dir absent ⇒ no evidence"; "provably never ran" softened to "left no evidence this design's dispatch path can produce." | §4, recovery procedure step 0.1 |
+
+**Addendum — KW7.9 (§6 red-team attribution, corrected without editing
+frozen `§R5`).** `§R5`'s own disposition table names only H3 ("§6 'Own
+cost ceiling' bullet") among its "Where fixed" entries touching §6; the
+two hunks that actually added red-team items (x)–(xiv) and updated
+item (viii)'s accept-set belong, by content, under **H1** (items x, xi
+— the ledger-corruption and copy-window tests), **H2** (item xi,
+shared), **H4** (items viii, xii — the `validity_check`/`GATE-REFUSED`
+tests), and **H5** (items xiii, xiv — the GPU-reap and
+forced-overcharge tests). This correction is recorded here as the
+attribution of record; `§R5`'s table itself is not retroactively
+edited, for the same reason `§A6-ADJUDICATION` already gave for KW6.9
+(the `§A1→EOF` MD5 identity is a real cross-round integrity
+instrument, worth more than one bookkeeping cell).
+
+**Addendum — KW7.10 (`§R4`→`§R5` transition MD5, corrected without
+editing frozen `§R5`).** `§R5`'s own claimed live-body-`after` figure
+(`ef8a45873b2c2455f12aa1db41879ab5`) does not reproduce against the
+`§R4→§R5` boundary (KW7.10, independently confirmed by this round's
+audit, not re-litigated here). The two hashes that DO verify from that
+same transition — whole file before Rev 5
+(`bd8d30b783e3e23b3eec587dc253fc05`) and live body before
+(`eeb62b6c236a0101759bb310fdcbe13d`) — are unaffected and stand. No
+corrected `§R4→§R5` live-body-after figure is manufactured here (this
+round has no way to reconstruct the exact intermediate file state
+`§R5`'s edits produced immediately before its own append, and
+guessing one would create a second unverifiable claim); the reader is
+directed to `git show` against the `§R4`→`§R5` commit boundary
+directly if that specific historical figure is ever needed.
+
+**Confirmation — the two outcomes `§A6-ADJUDICATION` named for direct
+walk-through both now PASS `validity_check`, and every R5/R6
+adversarial JSON still FAILS (traced in full, in-text, at the Job-spec
+`validity_check` section's new "In-text test list" — recapped here for
+the record):**
+- `INCOMPLETE-AT-K` (one primary seed `CRASHED` on both attempts, 11
+  canonical primaries, `run_status="COMPLETE"`, `band.incomplete_at_K`
+  naming the affected K) — **PASSES** `COMPLETE`'s OTHERWISE branch
+  (per-K canonical counts consistent with the disclosed field). Failed
+  under Rev 5's unconditional 12-canonical clause; this is KW7.4's
+  FATAL, discharged.
+- `COMPLETE-DEGRADED` sub-case (i) *primary-retry-refused* (11
+  canonical primaries, one `GATE-REFUSED` retry row) — **PASSES** the
+  new identity assertion (terminal disposition for all 12 cells ×
+  canonical-count-equals-`COMPLETED`-row-count × ≥1 `GATE-REFUSED`
+  row). Could never pass Rev 5's identical-to-`COMPLETE` 12-canonical
+  clause by its own construction; this is the second half of KW7.4's
+  FATAL, discharged.
+- Audit-R5 no-op, near-miss #1 (`EXHAUSTED-BUDGET` at 12 canonical),
+  and near-miss #2 (`STOPPED-BY-OPERATOR`, no stop-file) — **all
+  three still FAIL**, by the assertions named in-text at the Job-spec
+  section above; near-miss #1 is the one whose failure mode CHANGED
+  (previously incorrectly accepted, KW7.5's FATAL-adjacent hole — now
+  correctly rejected by the new negative clause).
+
+**Round 7 should, per `§A6-ADJUDICATION`'s own binding scope, verify
+I1–I5 only — plus, since three MINOR fixes forced contact with
+sections that scope named settled (disclosed above, all three
+non-numeric), confirm those three contacts are exactly what they
+claim: a symbol rename and a monotonicity note in the H3 paragraph, a
+citation-only fix in the precedence sentence, and two crash-window-
+table rows updated to match I2's now-live promotion behavior — none of
+which re-opens the H3 number, the enum precedence mechanism's logic,
+or crash windows 3/4/5/6/7/8 (unaffected, still settled).**

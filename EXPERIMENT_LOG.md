@@ -9340,3 +9340,17 @@ KW6.9 stands on the audit's replacement justification (MD5-identity
 argument) — adopted. Build charter gains the R6 §9 additions
 (red-team i–xiv, negative-test-to-completion, makedirs assertion).
 Round-7 scope: reconstruction + validity only.
+
+## 2026-08-06 — K-wall Rev-6 returned: total reconstruction function + outcome-space validity; narrow audit R7 dispatched
+
+DRAFT-R6: per-attempt reconstruction as a TOTAL function over 24 valid
+disk states (4-dim space, 12 impossible combos excluded, 12-row core
+table + quarantine pass + bootstrap fallback); pre-copy promotion rule
+wired into BOTH reconstruction (step 0.1) and live recovery (step 2.1,
+ahead of any PERSISTENTLY-ABORTED path); INCOMPLETE-AT-K and
+COMPLETE-DEGRADED(i) both now pass validity with evidence witnesses;
+all R5/R6 adversarial JSONs still fail (traced in-text). KW7.9/7.10
+handled by §R6 addendum (frozen-§R5 precedent). Three disclosed
+settled-section contacts (non-numeric) flagged for R7 spot-check.
+Frozen block md5-identical (960 lines both sides). R7 = reconstruction
+re-derivation + validity text + the three contacts; terminal expected.
