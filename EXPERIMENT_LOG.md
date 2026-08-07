@@ -9368,3 +9368,20 @@ assertions on 9.25 of 15 GPU-h (J5); measured-vs-ceiling charging
 broke the bound premise + startup leak (J6 row-wise invariant).
 Build charter extended w/ R7's five items. Round-8 scope: J1–J6 +
 script re-runs only.
+
+## 2026-08-06 — K-wall Rev-7 returned: J1–J7 implemented w/ executed proofs; narrow audit R8 dispatched
+
+DRAFT-R7 (4458 lines): COMPLETE-otherwise positive-evidence clause
+(enhanced no-op fails clause (a), traced); bare-literal
+trigger.resolution + resolution_detail field (tie-break run passes
+assertion 6); 0.2 guard re-keyed — executed sweep: old guard
+reproduces audit exactly (30/200 orphans, 6/200 abort-trips), new
+guard 0/0; EXHAUSTED labels made a dichotomy; conditional-arm
+evidence + directory disjointness; charging invariant restored w/
+honestly-derived startup allowance s=0.0053 (code-read to
+ncr_earlyln_scale.py:257 t0 placement) → bound T ≤ 15.3737 inside
+declared 15.50 (0.1263 headroom); 14/14 payload suite. One disclosed
+J5 scope note (interval-decided partial-conditional qualifier not yet
+definable — flagged, not silent) for R8 to adjudicate. Frozen zone
+md5-identical. R8 = J-discharge verification + script re-runs;
+terminal expected.
