@@ -3877,3 +3877,51 @@ citation-only fix in the precedence sentence, and two crash-window-
 table rows updated to match I2's now-live promotion behavior — none of
 which re-opens the H3 number, the enum precedence mechanism's logic,
 or crash windows 3/4/5/6/7/8 (unaffected, still settled).**
+
+## §A7-ADJUDICATION — AUDIT ROUND 7 VERDICT ADOPTED: **REV-REQUIRED** (Fable, 2026-08-06)
+
+`NCR_KWALL_ATTACK_R7.md`: 2 FATAL / 4 MAJOR / 6 MINOR. NEWLY SETTLED
+(excluded henceforth): the 24-state derivation + impossibility
+argument, 24/24 totality, quarantine placement, promotion preemption
+of every PERSISTENTLY-ABORTED path, resume numbering (0/200
+violations), the 6 legitimate validity outcomes PASSING (KW7.4
+discharged), integrity/citations. The report's §9 build charter
+(R5 + R6's five + R7's five additions, incl. wiring the 13-payload and
+200-composition suites as build unit tests with forced-fail negatives)
+is ADOPTED as the standing charter.
+
+**BINDING DISPOSITIONS for Rev 7:**
+- **J1 (KW8.1):** COMPLETE's OTHERWISE branch gains a positive-
+  evidence clause — a non-empty incomplete_at_K requires, per listed
+  K, attempt-dir evidence of two terminal non-COMPLETED attempts;
+  attempts=[] can never claim incompleteness. Re-trace the R5 no-op
+  against the amended branch in-text.
+- **J2 (KW8.2):** trigger.resolution is a BARE ENUM LITERAL; the
+  candidate list moves to a separate resolution_detail field;
+  universal assertion 6 unchanged. The trigger pseudocode's f-string
+  is corrected at both cited lines.
+- **J3 (KW8.3):** rule 0.2's guard keyed on "no COMPLETED row for
+  this cell" (not "zero rows appended"); re-derive the 200-state
+  composition counts under the fix; G2's abort-loudly sentence
+  re-worded to the truth.
+- **J4 (KW8.4):** EXHAUSTED-BUDGET and EXHAUSTED-BUDGET-SUSPECT-
+  OVERCHARGE made mutually exclusive: the plain label additionally
+  asserts recovered-charge-fraction ≤ 50%; exactly one label can hold
+  for any ledger.
+- **J5 (KW8.5):** conditional-arm disk evidence: any report carrying
+  qualifier_band asserts either the 4 conditional canonical files
+  (disjoint from primary canonical space — assert the disjointness)
+  or the $0-branch archive citation; fabricated qualifier_band with
+  no evidence must fail.
+- **J6 (KW8.6):** restore the row-wise invariant "ledger row ≥ that
+  attempt's true spend": reconstruction/recovery rows charge FULL
+  CEILING except promotion rows (completed work), which charge
+  measured elapsed PLUS a startup allowance derived from the design's
+  own overhead terms (t0 sits after CUDA init — cite it); the H3
+  bound re-derived visibly under the corrected charging, and the
+  false "I1 establishes the premise" sentence corrected.
+- **J7:** 6 MINORs + §R7 rows for all 12 findings.
+
+**ROUND 8 SCOPE (binding):** J1–J6 verification + re-running the two
+audit scripts (vcheck/recon suites) against the amended text. All
+PASS-marked material above is excluded.

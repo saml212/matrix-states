@@ -9354,3 +9354,17 @@ handled by §R6 addendum (frozen-§R5 precedent). Three disclosed
 settled-section contacts (non-numeric) flagged for R7 spot-check.
 Frozen block md5-identical (960 lines both sides). R7 = reconstruction
 re-derivation + validity text + the three contacts; terminal expected.
+
+## 2026-08-06 — K-wall audit R7: REV-REQUIRED (2F/4M/6m); reconstruction machinery SETTLED; validity/charging residue → J1–J7; Rev-7 dispatched
+
+Settled: 24-state totality, promotion preemption, resume numbering,
+legitimate-outcome acceptance. Residue: no-op reopened via COMPLETE's
+else-branch (J1 positive-evidence clause); tie-break f-string vs enum
+assertion would fail EVERY tie-break run post-spend (J2 bare literal);
+0.2 guard orphans 30/200 + re-dispatch trips abort-loudly (J3);
+EXHAUSTED-BUDGET subset labeling evades the resubmission protection
+(J4 mutual exclusion); conditional arm had zero disk-evidence
+assertions on 9.25 of 15 GPU-h (J5); measured-vs-ceiling charging
+broke the bound premise + startup leak (J6 row-wise invariant).
+Build charter extended w/ R7's five items. Round-8 scope: J1–J6 +
+script re-runs only.
