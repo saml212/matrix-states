@@ -9385,3 +9385,35 @@ J5 scope note (interval-decided partial-conditional qualifier not yet
 definable — flagged, not silent) for R8 to adjudicate. Frozen zone
 md5-identical. R8 = J-discharge verification + script re-runs;
 terminal expected.
+
+## 2026-08-12 — Consolidation-policy waterfall OPENED (PI GO 08-11); novelty gate DISCHARGED; attack R1 dispatched; box pipeline armed; K-wall R8 re-dispatched
+
+New support-lane campaign from the PI's 08-11 hybrid-memory idea
+(attention-usage-gated eviction writes into a fixed delta-rule S_mem):
+registry `matrix-thinking/CONSOLIDATION_POLICY_WATERFALL.md` (DRAFT-R0
+phase-1 pre-registration, de-bundled to gate-policy-only, byte-matched
+exact-KV kept as falsifier-by-construction, Mac-runnable pilot).
+Novelty gate ran the full 07-16 triple sweep + two full-text legs, all
+verdicts in `research/consolidation-policy-novelty-2026-08-11.md`:
+9/9 source citations VERIFIED (no fabrications); by-mechanism =
+PARTIALLY-OCCUPIED — Tensor Cache (arXiv:2605.22884) owns the
+SWA-eviction→delta-write skeleton with a FIXED per-head gate, H₂O-line
+usage signals only ever drive hard exact-KV retention; δ-mem full-PDF
+leg: gate is β_t=σ(W_βx_t+b), content-only, no window/eviction/usage —
+gap confirmed; R8ZbLi3oUv leg (via abstract + all 3 official reviews;
+PDF bot-blocked): diagnostic error-taxonomy study, scoop risk NONE to
+this claim and NONE to NCR, reclassified as motivation cite; two
+DISTINCT 2026 sleep papers pinned (2605.26099 CMU/UMD offline
+recurrence; 2606.03979 Google/Cornell distill+RL Dreaming). GATE
+DISCHARGED 2026-08-12; attack R1 (Opus, frame-first charter §4)
+dispatched → `CONSOLIDATION_ATTACK_R1.md`. Box (PI "get GPUs hot",
+08-11): gh_* vLLM screen holds all 8 GPUs at 0% util — not evicted
+(PI's other workstream; PI to name stale sessions); instead Jacobian
+1200/1202/1203 pre-staged into pending/ behind PAUSE, `auto_unpause.sh`
+installed + 4-branch-tested + cron'd (removes the gh_-marked PAUSE only,
+after gh_ sessions AND vLLM apps are gone 2 consecutive checks),
+idle_launcher restarted into its already-promoted branch (1204
+dependency watch live). Chain: gh_* ends → ≤2 min unpause → workers
+claim 3×~3.5 GPU-h trainings → 1204 auto-promotes. K-wall audit R8
+re-dispatched (original 08-06 auditor died with its session; Rev-7
+commit 7a0917d stands as the dispatch of record).

@@ -1,5 +1,21 @@
 # STATE — Current Project State
 
+**2026-08-12 tick (Fable): CONSOLIDATION-POLICY WATERFALL OPENED (PI GO
+08-11) — novelty gate DISCHARGED (triple sweep + δ-mem/R8ZbLi3oUv
+full-text legs; Tensor Cache arXiv:2605.22884 = closest-architecture
+mandatory cite; residue = exposure-normalized usage-trace gate +
+oracle/shuffled/random causal battery, OPEN), attack R1 dispatched →
+`CONSOLIDATION_ATTACK_R1.md`; registry
+`matrix-thinking/CONSOLIDATION_POLICY_WATERFALL.md` (support lane, does
+NOT displace the spearhead). K-wall audit R8 RE-DISPATCHED (08-06
+auditor died with its session; terminal round expected). Box: gh_*
+vLLM screen holds all 8 GPUs at 0% util; Jacobian 1200/1202/1203
+pre-staged behind PAUSE + `auto_unpause.sh` cron watchdog (tested)
+auto-fires the batch the moment gh_* is gone; idle_launcher rebranched
+to the 1204 dependency watch. Grant ends ~end of Aug. Verdicts:
+`research/consolidation-policy-novelty-2026-08-11.md` + EXPERIMENT_LOG
+2026-08-12.**
+
 **2026-08-06 tick #4 (Fable): K-wall audit R1 = REV-REQUIRED (4F/7M/7m,
 `NCR_KWALL_ATTACK_R1.md`) — frame-attack charter caught the draft
 anchoring on an 80K-budget artifact (K=32 converges 1/4→2/4 with
