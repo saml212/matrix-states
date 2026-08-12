@@ -92,23 +92,40 @@ def classify_with_interval_logic(r26_state, r28_state, r30_state):
     since a 3-resolved-seed K always has a computable r_known).
 
     Returns (band_label_or_None, non_monotone_tag_or_None,
-    "INCOMPLETE-AT-K", interval_resolved_Ks) where exactly one of the first
-    two pairs is populated: either (label, tag, None, resolved_Ks) on a
-    DECIDE, or (None, None, "INCOMPLETE-AT-K", incomplete_Ks) otherwise.
-    ">=2 incomplete cells at one K" is modeled by the caller passing
-    "UNRESOLVED" for that K's state directly (D5/E4: unconditional
-    INCOMPLETE-AT-K, no candidate comparison performed)."""
+    "INCOMPLETE-AT-K", interval_resolved_Ks, candidate_bands) where exactly
+    one of the first two fields is populated: either (label, tag, None,
+    resolved_Ks, None) on a DECIDE, or (None, None, "INCOMPLETE-AT-K",
+    incomplete_Ks, candidate_bands) otherwise. `candidate_bands` (M4, build
+    audit R1 — design :2249-2250, "both/all candidate bands disclosed") is
+    non-null ONLY on the ambiguous-cross-product-disagrees path below: it
+    stays None on a DECIDE (nothing to disclose) and None on the
+    unconditional ">=2 incomplete cells at one K" / any-UNRESOLVED path
+    (D5/E4: "no candidate comparison performed" there at all, so there is no
+    candidate set to name). ">=2 incomplete cells at one K" is modeled by
+    the caller passing "UNRESOLVED" for that K's state directly."""
     states = {"26": r26_state, "28": r28_state, "30": r30_state}
     if any(s == "UNRESOLVED" for s in states.values()):
-        incomplete = sorted(int(K) for K, s in states.items() if s == "UNRESOLVED")
-        return None, None, "INCOMPLETE-AT-K", incomplete
+        # F1 fix (build audit R1): disclose the UNION of UNRESOLVED and
+        # AMBIGUOUS K's, not UNRESOLVED alone. A K sitting at n_completed==3
+        # (AMBIGUOUS) in the same run as an UNRESOLVED K was previously
+        # dropped from BOTH `incomplete_at_K` and `interval_resolved_Ks`
+        # (the latter forced to [] by the caller on this path) -- but
+        # validity_check's COMPLETE/otherwise clause requires every K named
+        # in NEITHER field to read exactly 4 canonical files. An AMBIGUOUS
+        # K reads 3, so the un-disclosed K failed the report's own check
+        # after the full GPU-h spend (F1). Both UNRESOLVED and AMBIGUOUS
+        # K's belong in `incomplete_at_K` here: neither is a decided K.
+        incomplete = sorted(
+            int(K) for K, s in states.items()
+            if s == "UNRESOLVED" or (isinstance(s, tuple) and s[0] == "AMBIGUOUS"))
+        return None, None, "INCOMPLETE-AT-K", incomplete, None
 
     ambiguous_Ks = [K for K, s in states.items()
                     if isinstance(s, tuple) and s[0] == "AMBIGUOUS"]
     if not ambiguous_Ks:
         r26, r28, r30 = states["26"], states["28"], states["30"]
         label, tag = classify(r26, r28, r30)
-        return label, tag, None, []
+        return label, tag, None, [], None
 
     # cross-product of each AMBIGUOUS K's two candidates {r_known, r_known+1}
     candidate_lists = []
@@ -124,22 +141,63 @@ def classify_with_interval_logic(r26_state, r28_state, r30_state):
         results.add(classify(r26, r28, r30))
     if len(results) == 1:
         (label, tag), = results
-        return label, tag, None, sorted(int(K) for K in ambiguous_Ks)
-    return None, None, "INCOMPLETE-AT-K", sorted(int(K) for K in ambiguous_Ks)
+        return label, tag, None, sorted(int(K) for K in ambiguous_Ks), None
+    candidate_bands = sorted(
+        f"{lbl} [NON-MONOTONE]" if tag else lbl for lbl, tag in results)
+    return (None, None, "INCOMPLETE-AT-K",
+            sorted(int(K) for K in ambiguous_Ks), candidate_bands)
 
 
 # ---------------------------------------------------------------------------
 # §4 F2 + G5: the conditional-arm trigger.
 
-def _smallest_K_with_rate_below_3(r26, r28, r30, r24=R24_FIXED, r32=R32_FIXED):
-    """Scan K=26,28,30,32 in order for the smallest K whose rate is < 3
-    (i.e. not ROBUST) -- the frontier the conditional arm targets. K=24 is
-    never a candidate (it is the archive-anchored, always-ROBUST rung the
-    conditional arm exists to move past)."""
+def _smallest_K_with_rate_below_3_or_blocking(r26, r28, r30, r24=R24_FIXED, r32=R32_FIXED):
+    """Left-to-right scan K=26,28,30,32 (r24=4 fixed ROBUST, excluded from
+    candidacy; r32=0 fixed, always resolves if reached). Returns
+    `("decided", K)` at the first K whose rate is < 3 (i.e. not ROBUST), or
+    `("blocked", K)` at the first K whose rate is the raw `"UNRESOLVED"`
+    sentinel -- but ONLY when the scan actually reaches it, i.e. every
+    earlier K in scan order was ROBUST (M1 fix, build audit R1 -- design
+    `:558-579`: "if kt requires reading an UNRESOLVED K's status to
+    decide"). A K reached AFTER an earlier K already decided kt is never
+    inspected, so an UNRESOLVED K past the decision point cannot block."""
     for K, r in ((26, r26), (28, r28), (30, r30), (32, r32)):
+        if r == "UNRESOLVED":
+            return ("blocked", K)
         if r < 3:
-            return K
-    return None  # every K including 32 is ROBUST -- cannot occur (r32=0 fixed)
+            return ("decided", K)
+    return ("decided", 32)  # unreachable: r32=0 fixed, the loop above always
+                              # returns "decided" there first
+
+
+def _compute_K_trigs(state_26, state_28, state_30):
+    """Shared K-scan core for `trigger()` and `trigger_candidate_set()`
+    (single source of truth, avoids the two ever drifting apart). Returns
+    `(K_trigs, blocking_K)`: `K_trigs` is the raw candidate set (a
+    non-empty `set[int]`) with `blocking_K=None` when every branch of the
+    scan decides without needing an UNRESOLVED K's value; `K_trigs=None`
+    with `blocking_K` set to the first K whose value the scan needed but
+    could not read, in the FIRST branch (of the cross-product over
+    AMBIGUOUS K's; UNRESOLVED K's are never expanded -- their true value is
+    unknown, not a 2-candidate ambiguity) where that happens."""
+    states = {"26": state_26, "28": state_28, "30": state_30}
+    candidate_lists = []
+    for K in ("26", "28", "30"):
+        s = states[K]
+        if s == "UNRESOLVED":
+            candidate_lists.append(["UNRESOLVED"])
+        elif isinstance(s, tuple) and s[0] == "AMBIGUOUS":
+            candidate_lists.append([s[1], s[1] + 1])
+        else:
+            candidate_lists.append([s])
+
+    K_trigs = set()
+    for r26, r28, r30 in itertools.product(*candidate_lists):
+        kind, K = _smallest_K_with_rate_below_3_or_blocking(r26, r28, r30)
+        if kind == "blocked":
+            return None, K
+        K_trigs.add(K)
+    return K_trigs, None
 
 
 def trigger(state_26, state_28, state_30):
@@ -148,44 +206,65 @@ def trigger(state_26, state_28, state_30):
     on a raw K-scan TRIGGER-UNRESOLVED, or `band_blocked_K_trig` on a G5
     band-blocked TRIGGER-UNRESOLVED -- the caller must key off which
     branch fired, never tuple position alone (design's own note)."""
-    states = {"26": state_26, "28": state_28, "30": state_30}
-    branches = []
-    ambiguous_Ks = [K for K, s in states.items()
-                    if isinstance(s, tuple) and s[0] == "AMBIGUOUS"]
-    unresolved_Ks = [K for K, s in states.items() if s == "UNRESOLVED"]
-    candidate_lists = []
-    for K in ("26", "28", "30"):
-        s = states[K]
-        if s == "UNRESOLVED":
-            candidate_lists = None
-            break
-        elif isinstance(s, tuple) and s[0] == "AMBIGUOUS":
-            candidate_lists.append([s[1], s[1] + 1])
-        else:
-            candidate_lists.append([s])
-    if candidate_lists is None:
-        # An UNRESOLVED K blocks the scan outright (F2: excluded from
-        # candidacy) -- report the smallest UNRESOLVED K as blocking_K.
-        return (None, "TRIGGER-UNRESOLVED", None, min(int(k) for k in unresolved_Ks))
-
-    K_trigs = set()
-    for r26, r28, r30 in itertools.product(*candidate_lists):
-        kt = _smallest_K_with_rate_below_3(r26, r28, r30)
-        K_trigs.add(kt)
+    K_trigs, blocking_K = _compute_K_trigs(state_26, state_28, state_30)
+    if K_trigs is None:
+        # The scan itself needed an UNRESOLVED K's value (M1 fix): a K that
+        # cannot resolve cannot trigger (F2).
+        return (None, "TRIGGER-UNRESOLVED", None, blocking_K)
     if len(K_trigs) == 1:
-        result = (K_trigs.pop(), "unanimous", None, None)
+        result = (next(iter(K_trigs)), "unanimous", None, None)
     else:
         result = (min(K_trigs), "tie-break-min",
                    f"candidates were {sorted(K_trigs)}", None)
 
     # G5 precondition: the whole-study band must ALSO decide (never merely
     # the K-scan) before anything is dispatched.
-    band_label, band_tag, band_incomplete, _ = classify_with_interval_logic(
+    band_label, band_tag, band_incomplete, _, _ = classify_with_interval_logic(
         state_26, state_28, state_30)
     if band_incomplete == "INCOMPLETE-AT-K":
         band_blocked_K_trig = result[0]
         return (None, "TRIGGER-UNRESOLVED", None, band_blocked_K_trig)
     return result
+
+
+def trigger_raw_scan_blocked(state_26, state_28, state_30) -> bool:
+    """Disambiguates `trigger()`'s TRIGGER-UNRESOLVED RETURN SITE for a
+    consumer (M1 fix, build audit R1): True iff the RAW K-scan itself
+    (pre-G5) needed to read an UNRESOLVED K's value to decide -- i.e.
+    `diag` on that TRIGGER-UNRESOLVED belongs in `blocking_K`. False means
+    the raw scan decided fine and, if `trigger()` still returned
+    TRIGGER-UNRESOLVED, it was G5's band-precondition override instead --
+    `diag` belongs in `band_blocked_K_trig`.
+
+    Design's own note: "a consumer must key off the RETURN SITE, never
+    tuple position alone." Before M1's fix, `any(state=="UNRESOLVED")` was
+    a correct (if accidental) proxy for this, because the pre-fix raw scan
+    blocked on ANY UNRESOLVED K regardless of scan position. After the fix,
+    an UNRESOLVED K positioned AFTER the scan's decision point no longer
+    blocks it, so that proxy is WRONG (confirmed this round: it mis-routed
+    115/1000 vectors to `blocking_K` when the true site was G5) -- this
+    function replaces it with the real thing, reusing the same
+    `_compute_K_trigs` `trigger()` itself calls (single source of truth,
+    can never disagree with `trigger()`'s own actual behavior)."""
+    K_trigs, _ = _compute_K_trigs(state_26, state_28, state_30)
+    return K_trigs is None
+
+
+def trigger_candidate_set(state_26, state_28, state_30):
+    """Schema `trigger.candidate_set` (M4, build audit R1 -- design
+    `:1563`, the tie-break verification payload `:2644` sets `[26,28]`).
+    This is NOT part of `trigger()`'s own normalised 4-tuple (that shape is
+    pinned by the design's pseudocode); it exposes the SAME raw K_trigs set
+    `trigger()` computed internally (via the shared `_compute_K_trigs`, so
+    the two can never disagree) for a caller to populate the schema field
+    with. Non-null ONLY when the scan itself decided with >1 candidate
+    (`resolution=="tie-break-min"`) -- null on `unanimous` (one candidate,
+    redundant with `K_trig`) and null on `TRIGGER-UNRESOLVED` (nothing
+    decided, raw-scan-blocked or G5-band-blocked alike)."""
+    K_trigs, _ = _compute_K_trigs(state_26, state_28, state_30)
+    if K_trigs is None or len(K_trigs) == 1:
+        return None
+    return sorted(K_trigs)
 
 
 # ---------------------------------------------------------------------------

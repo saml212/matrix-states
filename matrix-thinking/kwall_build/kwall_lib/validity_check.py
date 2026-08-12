@@ -247,6 +247,18 @@ def main(argv=None):
               "<conditional_outdir>", file=sys.stderr)
         return 2
     report_path, primary_outdir, conditional_outdir = argv
+    # m7 (minor, build audit R1): when `run()` refuses at the startup smoke
+    # gate (exit 3) or aborts loudly on a G2 invariant violation, NO report
+    # is ever written -- routing to failed/ is still correct either way
+    # (non-zero exit), but reading a nonexistent report used to raise an
+    # uncaught FileNotFoundError, so the job log got a Python traceback
+    # instead of a diagnosis. Diagnose explicitly instead.
+    if not os.path.exists(report_path):
+        print(f"VALIDITY_CHECK FAIL: no orchestrator_report.json at "
+              f"{report_path!r} -- the orchestrator never wrote one (startup "
+              f"smoke gate refusal, or a loud G2-invariant abort) -- see the "
+              f"job's own stdout/stderr log for the real cause.", file=sys.stderr)
+        return 1
     reasons = validity_check_report(report_path, primary_outdir, conditional_outdir)
     if reasons:
         print("VALIDITY_CHECK FAIL:", file=sys.stderr)

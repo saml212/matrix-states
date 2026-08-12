@@ -1,5 +1,16 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #13 (Fable): K-wall build Rev-1 RETURNED — all
+findings discharged w/ executed teeth checks; F1's full-enumeration
+sweep 1440/3375 → 1/3375 (= the known design-inherited O1 residual,
+zero build defects); reviser's own re-verification caught a
+SECOND-ORDER consumer-heuristic bug (fixed via shared predicate);
+suites 5/5 + 33/33 + 15/15 green; m8 carried to deploy (box access),
+O1-O3 dispositioned to the design. BUILD AUDIT R2 DISPATCHED (narrow
+re-verification); on PASS → stamped deploy to box + micro-smokes →
+fallback_pool queue-eligible. Box: gh_* still holds all 8 GPUs;
+Jacobians staged; grant ~2.5 weeks.**
+
 **2026-08-12 tick #12 (Fable): K-wall build audit R1 = FAIL (1F/4M/8m)
 — the placement/pre-launch gate caught a launch-losing FATAL exactly
 as chartered: UNRESOLVED-branch disclosure drops n_completed==3 K's →

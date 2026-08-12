@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -215,12 +216,25 @@ class OrchestratorState:
         outdir = self.args.conditional_outdir
         if not os.path.isdir(outdir):
             return None
-        for name in os.listdir(outdir):
+        names = os.listdir(outdir)
+        for name in names:
             if name.startswith("K") and "_s" in name and "_attempt" in name:
                 try:
                     return int(name[1:name.index("_s")])
                 except ValueError:
                     continue
+        # m3 (minor, build audit R1): the design (:1047-1054) reconstructs
+        # the conditional 4 UNCONDITIONALLY, but an attempt tree pruned
+        # after copying (0.2's own named residual case) leaves ONLY
+        # canonical evidence (`earlyln_K{K}_s{seed}.json`, disk_io.cell_id's
+        # convention) behind -- no attempt{n}/ directory survives to match
+        # above. Fall back to the canonical filenames so surviving
+        # conditional canonical evidence is never left unreconstructed.
+        for name in names:
+            if name.startswith("earlyln_K") and name.endswith(".json"):
+                m = re.match(r"earlyln_K(\d+)_s\d+\.json$", name)
+                if m:
+                    return int(m.group(1))
         return None
 
     def _close_dangling_open_attempt(self):
@@ -319,23 +333,33 @@ def evaluate_trigger_and_band(state: "OrchestratorState"):
     `diag`'s MEANING (`blocking_K` vs `band_blocked_K_trig`) depends on
     which of the two `TRIGGER-UNRESOLVED` return sites fired inside
     `trigger()` (design's own note: "a consumer must key off the RETURN
-    SITE, never tuple position alone"); disambiguated here, once, using
-    whether any per-K state is the raw `"UNRESOLVED"` sentinel (the ONLY
-    way the raw K-scan itself can return early with `blocking_K`, as
-    opposed to G5's post-hoc band-precondition override)."""
+    SITE, never tuple position alone"); disambiguated here, once, via
+    `cl.trigger_raw_scan_blocked()` (M1 fix, build audit R1 -- REPLACES the
+    prior "any per-K state is the raw UNRESOLVED sentinel" heuristic, which
+    the M1 fix itself invalidated: post-fix, an UNRESOLVED K positioned
+    AFTER the scan's own decision point no longer blocks the raw scan, so
+    "any UNRESOLVED present" stopped being a valid proxy for "the raw scan
+    blocked" -- confirmed this round: the old heuristic mis-routed 115/1000
+    reachable vectors before this fix)."""
     from kwall_lib import harvest_bridge
     resolution = harvest_bridge.per_K_resolution(state.args.primary_outdir, (26, 28, 30))
     states = {K: resolution_state(*resolution[K]) for K in (26, 28, 30)}
-    any_unresolved = any(s == "UNRESOLVED" for s in states.values())
     K_trig, res, res_detail, diag = cl.trigger(states[26], states[28], states[30])
+    raw_scan_blocked = cl.trigger_raw_scan_blocked(states[26], states[28], states[30])
+    # M4 (build audit R1): trigger.candidate_set (schema :1563) -- the raw
+    # K_trigs set the tie-break branch chose among, non-null only when the
+    # scan itself decided with >1 candidate.
+    candidate_set = (cl.trigger_candidate_set(states[26], states[28], states[30])
+                      if res == "tie-break-min" else None)
     trig_info = {
         "K_trig": K_trig, "resolution": res, "resolution_detail": res_detail,
-        "blocking_K": diag if (res == "TRIGGER-UNRESOLVED" and any_unresolved) else None,
-        "band_blocked_K_trig": diag if (res == "TRIGGER-UNRESOLVED" and not any_unresolved) else None,
+        "candidate_set": candidate_set,
+        "blocking_K": diag if (res == "TRIGGER-UNRESOLVED" and raw_scan_blocked) else None,
+        "band_blocked_K_trig": diag if (res == "TRIGGER-UNRESOLVED" and not raw_scan_blocked) else None,
     }
-    band_label, band_tag, band_incomplete, band_resolved = cl.classify_with_interval_logic(
-        states[26], states[28], states[30])
-    band_info = (band_label, band_tag, band_incomplete, band_resolved)
+    band_label, band_tag, band_incomplete, band_resolved, candidate_bands = \
+        cl.classify_with_interval_logic(states[26], states[28], states[30])
+    band_info = (band_label, band_tag, band_incomplete, band_resolved, candidate_bands)
     return trig_info, band_info, resolution
 
 
@@ -344,23 +368,33 @@ def evaluate_trigger_and_band(state: "OrchestratorState"):
 
 def build_report(state: "OrchestratorState", run_status: str, smoke: dict,
                   trig_info, band, resolution, conditional_launched: bool,
-                  qualifier_band, wall_clock_start: str, gpu_id, git_commit: str) -> dict:
+                  qualifier_band, conditional_per_seed, wall_clock_start: str,
+                  gpu_id, git_commit: str, stop_file_path=None) -> dict:
+    """`stop_file_path` (M3 fix, build audit R1): the CALLER supplies the
+    ACTUAL sentinel path that was seen (`args.stop_file` for a primary-loop
+    stop, `args.stop_file_conditional` for a conditional-loop stop) -- this
+    function no longer reaches into `state.args.stop_file` unconditionally,
+    which silently mis-reported the PRIMARY path on a conditional-arm stop.
+    `conditional_per_seed` (M4 fix): the caller-supplied DATA-ONLY per-seed
+    disclosure for a throttled conditional arm (design :3104-3107); `[]`
+    whenever there is nothing to disclose (no conditional dispatch, or a
+    full 4/4 completion where the qualifier band itself is the verdict)."""
     ledger = state.ledger
     att = ledger["attempts"]
     ccgh = sum(a["elapsed_h"] for a in att if a["ceiling_charged"])
     realized = ledger["realized_gpu_h"]
     frac = (ccgh / realized) if realized > 0 else 0.0
-    label, tag, incomplete_marker, resolved_or_incomplete_Ks = band
+    label, tag, incomplete_marker, resolved_or_incomplete_Ks, candidate_bands = band
     if incomplete_marker == "INCOMPLETE-AT-K":
         band_dict = {"label": "INCOMPLETE-AT-K", "non_monotone_tag": False,
                      "interval_resolved_Ks": [],
                      "incomplete_at_K": resolved_or_incomplete_Ks,
-                     "candidate_bands": None}
+                     "candidate_bands": candidate_bands}
     else:
         band_dict = {"label": label, "non_monotone_tag": bool(tag),
                      "interval_resolved_Ks": resolved_or_incomplete_Ks or [],
                      "incomplete_at_K": None, "candidate_bands": None}
-    return {
+    report = {
         "run_status": run_status,
         "ledger": {
             "realized_gpu_h_final": realized,
@@ -375,17 +409,19 @@ def build_report(state: "OrchestratorState", run_status: str, smoke: dict,
             "ceiling_charged_gpu_h": ccgh,
             "ceiling_charged_fraction": frac,
         },
-        "stop_file_path": state.args.stop_file if run_status == "STOPPED-BY-OPERATOR" else None,
+        "stop_file_path": stop_file_path if run_status == "STOPPED-BY-OPERATOR" else None,
         "smoke": smoke,
         "primary": {"per_K": {str(K): {"n_completed": resolution[K][0],
                                         "n_converged": resolution[K][1]}
                               for K in (26, 28, 30)}},
         "trigger": {"resolution": trig_info["resolution"],
                    "resolution_detail": trig_info["resolution_detail"],
-                   "K_trig": trig_info["K_trig"], "candidate_set": None,
+                   "K_trig": trig_info["K_trig"],
+                   "candidate_set": trig_info["candidate_set"],
                    "blocking_K": trig_info["blocking_K"],
                    "band_blocked_K_trig": trig_info["band_blocked_K_trig"]},
-        "conditional": ({"launched": conditional_launched, "per_seed": [],
+        "conditional": ({"launched": conditional_launched,
+                         "per_seed": conditional_per_seed or [],
                          "qualifier_band": qualifier_band}
                         if (conditional_launched or qualifier_band is not None) else None),
         "band": band_dict,
@@ -395,6 +431,27 @@ def build_report(state: "OrchestratorState", run_status: str, smoke: dict,
         "n_cells_attempted": len({(a["K"], a["seed"], a["arm"]) for a in att}),
         "n_attempts_total": len(att),
     }
+    if run_status == "STOPPED-BY-OPERATOR":
+        _assert_stop_file_evidence(report)
+    return report
+
+
+def _assert_stop_file_evidence(report: dict) -> None:
+    """G4's mandated pre-write self-check (M3 fix, build audit R1 -- design
+    `:1758-1763`): "`report["stop_file_path"] is not None and
+    os.path.exists(report["stop_file_path"])` ... asserted before
+    `orchestrator_report.json` is ever written with this label, where it
+    can actually fire and prevent a false report from existing at all."
+    Relocated OUT of `validity_check` (which never reaches this label --
+    universal assertion 1 excludes it from the accept-set first, making a
+    disk-evidence assertion written as a `validity_check` branch for it
+    dead code) and INTO the one place it can actually stop a false artifact
+    from ever landing on disk: here, before `atomic_write_json` runs."""
+    assert (report["stop_file_path"] is not None
+            and os.path.exists(report["stop_file_path"])), (
+        "G4 STOPPED-BY-OPERATOR self-check FAILED: stop_file_path="
+        f"{report['stop_file_path']!r} does not exist on disk -- refusing "
+        f"to write a false STOPPED-BY-OPERATOR report (design :1758-1763)")
 
 
 def determine_run_status(state: "OrchestratorState") -> str:
@@ -453,12 +510,22 @@ def run(args) -> int:
                                    args.stop_file)
             if result == "STOPPED-BY-OPERATOR":
                 no_trig = {"K_trig": None, "resolution": "TRIGGER-UNRESOLVED",
-                          "resolution_detail": None, "blocking_K": None,
-                          "band_blocked_K_trig": None}
+                          "resolution_detail": None, "candidate_set": None,
+                          "blocking_K": None, "band_blocked_K_trig": None}
+                # M3 fix (build audit R1): `resolution` was the fabricated
+                # literal `{26:(0,0),28:(0,0),30:(0,0)}`, claiming zero
+                # completions for all three K's regardless of how many
+                # cells actually completed before the stop -- read the REAL
+                # per_K state from disk instead (same call
+                # `evaluate_trigger_and_band` uses).
+                from kwall_lib import harvest_bridge
+                real_resolution = harvest_bridge.per_K_resolution(
+                    args.primary_outdir, (26, 28, 30))
                 report = build_report(state, "STOPPED-BY-OPERATOR", smoke,
-                                      no_trig, (None, False, "INCOMPLETE-AT-K", []),
-                                      {26: (0, 0), 28: (0, 0), 30: (0, 0)},
-                                      False, None, wall_clock_start, args.gpu_id, args.git_commit)
+                                      no_trig, (None, False, "INCOMPLETE-AT-K", [], None),
+                                      real_resolution,
+                                      False, None, [], wall_clock_start, args.gpu_id,
+                                      args.git_commit, stop_file_path=args.stop_file)
                 dio.atomic_write_json(args.report_path, report)
                 print("STOPPED-BY-OPERATOR -- run terminated, no trigger evaluated.")
                 return 0
@@ -469,6 +536,7 @@ def run(args) -> int:
     K_trig = trig_info["K_trig"]
     conditional_launched = False
     qualifier_band = None
+    conditional_per_seed = []
 
     if K_trig is not None and K_trig in C.K_VALUES_PRIMARY:
         conditional_launched = True
@@ -477,9 +545,15 @@ def run(args) -> int:
                                    args.conditional_outdir, args.steps_conditional,
                                    args.stop_file_conditional)
             if result == "STOPPED-BY-OPERATOR":
+                # M3 fix (build audit R1): the conditional-loop stop was
+                # reporting the PRIMARY sentinel path (`args.stop_file`) --
+                # this loop only ever checks `args.stop_file_conditional`,
+                # so that is the one actually seen.
                 report = build_report(state, "STOPPED-BY-OPERATOR", smoke, trig_info, band,
                                       resolution, conditional_launched, None,
-                                      wall_clock_start, args.gpu_id, args.git_commit)
+                                      _conditional_per_seed(args.conditional_outdir, K_trig),
+                                      wall_clock_start, args.gpu_id, args.git_commit,
+                                      stop_file_path=args.stop_file_conditional)
                 dio.atomic_write_json(args.report_path, report)
                 print("STOPPED-BY-OPERATOR (conditional arm) -- run terminated.")
                 return 0
@@ -490,6 +564,13 @@ def run(args) -> int:
         # via `ledger.attempts`), never rounded into one of the 3 named bands.
         qualifier_band = (qualifier_band_for(args.conditional_outdir, K_trig)
                           if n_cond_completed == 4 else None)
+        # M4 fix (build audit R1): §5 :3104-3107 -- a throttled arm's
+        # completed cells are disclosed as DATA ONLY (their raw per-seed
+        # gate1/indist_min records); this is the disclosure the design
+        # substitutes for the suppressed qualifier_band, so it is populated
+        # exactly when qualifier_band is null (the headline is withheld).
+        conditional_per_seed = (_conditional_per_seed(args.conditional_outdir, K_trig)
+                                if qualifier_band is None else [])
     elif K_trig == 32:
         # The $0 archive branch (design §5): no new cells dispatched: the
         # K=32 disambiguation is already on record (§3's budget table).
@@ -498,8 +579,8 @@ def run(args) -> int:
 
     run_status = determine_run_status(state)
     report = build_report(state, run_status, smoke, trig_info, band, resolution,
-                          conditional_launched, qualifier_band, wall_clock_start,
-                          args.gpu_id, args.git_commit)
+                          conditional_launched, qualifier_band, conditional_per_seed,
+                          wall_clock_start, args.gpu_id, args.git_commit)
     dio.atomic_write_json(args.report_path, report)
     print(f"orchestrator finished: run_status={run_status} "
           f"realized_gpu_h={state.ledger['realized_gpu_h']:.4f}")
@@ -517,6 +598,24 @@ def qualifier_band_for(conditional_outdir: str, K_trig: int) -> str:
     if n_converged >= 3:
         return "SLOW-CONVERGENCE-AT-160K"
     return "PARTIAL-IMPROVEMENT-AT-160K"  # ==2
+
+
+def _conditional_per_seed(conditional_outdir: str, K_trig: int) -> list:
+    """`conditional.per_seed` (M4 fix, build audit R1 -- schema `:1565`, §5
+    `:3104-3107`: "the cells that DID complete are disclosed as DATA ONLY
+    (their raw per-seed `gate1`/`indist_min` records...)"). Reads the
+    repo's own `harvest()`-produced per-seed `cells` dict for `K_trig`
+    (`kwall_lib.harvest_bridge.per_seed_gate1_records` -- a SEPARATE,
+    explicitly wider-scoped bridge call from `per_K_resolution`'s own
+    narrow n_completed/n_converged-only contract, §R5 KW6.15) and discloses
+    only the seeds that actually reached `COMPLETED` -- the throttle
+    EVIDENCE itself (which seeds did NOT complete) already lives in
+    `ledger.attempts`, per the design's own separation."""
+    from kwall_lib import harvest_bridge
+    cells = harvest_bridge.per_seed_gate1_records(conditional_outdir, K_trig)
+    return [{"seed": seed, "gate1": rec["gate1"]}
+            for seed, rec in sorted(cells.items())
+            if rec.get("status") == "COMPLETED"]
 
 
 def parse_args(argv=None):

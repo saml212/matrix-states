@@ -9691,3 +9691,27 @@ build Rev-1 dispatched (F1+M1-M4+minors per report); audit R2 next;
 NO deploy, NO smokes, NO pool promotion until R2 PASS. Report:
 `kwall_build/BUILD_AUDIT_R1.md` (verified deploy sequence recorded
 for the next round).
+
+## 2026-08-12 #13 — K-wall build Rev-1: F1+M1-M4+8m discharged; full-enumeration sweep 1440/3375 → 1/3375 (the known design-inherited residual, ZERO build defects); a second-order consumer bug caught by the reviser's own re-verification; build audit R2 dispatched
+
+F1: UNRESOLVED early return now discloses UNRESOLVED ∪ AMBIGUOUS;
+the audit's own unmodified end-to-end demo flips FAIL/exit=1 →
+PASS/exit=0; full 3375-state sweep = 1 failure, exactly the O1
+design-inherited (0,0,0) residual. M1: raw K-scan blocks only when
+actually reached — AND the reviser's independent 1000-vector re-check
+caught the orchestrator's consumer-side disambiguation still using
+the invalidated "any UNRESOLVED present" heuristic; added shared
+trigger_raw_scan_blocked() (common _compute_K_trigs, can't drift);
+0/1000 divergences, 844/156 + 473/527 reproduce, revert-teeth
+confirms pre-fix 115/1000. M2: $(git rev-parse HEAD) →
+__DEPLOY_GIT_COMMIT__ stamped locally pre-scp; both failure and
+success modes reproduced live; zero $( in shell-executed fields. M3:
+_assert_stop_file_evidence() (G4 pre-write self-check) + real
+per_K_resolution + correct conditional sentinel. M4: candidate_set /
+candidate_bands / conditional.per_seed populate, verified vs the
+KW4.5 table + an independent disagreeing-candidates case. 8 minors
+fixed (m8 carried as a deploy-sequence step — needs box access,
+disclosed). O1-O3 dispositioned as the design's with the audit's own
+reasoning. Suites green: 5/5, 33/33 (0 divergence, untouched), 15/15
+(80 checks). Scope: kwall_build/ only (11 files). Audit R2 next; NO
+deploy until R2 PASS.

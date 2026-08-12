@@ -83,6 +83,16 @@ def read_attempt_evidence(outdir: str, K: int, seed: int, attempt_n: int) -> Att
         return AttemptEvidence(kind="unparseable")
     if status == "COMPLETED":
         elapsed_s = rec.get("elapsed_s")  # TOP-LEVEL field, :302 (§R8 K7/KW9.11)
+        # m2 (minor, build audit R1): §R7 KW8.9's own precedent (a
+        # missing/invalid `status` -> UNPARSEABLE) extended to a missing or
+        # non-numeric TOP-LEVEL `elapsed_s` on an otherwise-COMPLETED
+        # record -- reconstruction cannot compute a measured elapsed_h
+        # without it, so this is UNPARSEABLE evidence at the READ boundary
+        # (never even constructing the invalid "parseable COMPLETED,
+        # elapsed_s=None" combination `reconstruct_attempt_row` also now
+        # guards defensively).
+        if not isinstance(elapsed_s, (int, float)):
+            return AttemptEvidence(kind="unparseable")
         return AttemptEvidence(kind="parseable", status="COMPLETED", elapsed_s=elapsed_s)
     return AttemptEvidence(kind="parseable", status=status)
 

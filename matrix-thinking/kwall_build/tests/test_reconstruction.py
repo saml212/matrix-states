@@ -24,9 +24,10 @@ sys.path.insert(0, os.path.dirname(_HERE))
 
 from kwall_lib.reconstruction import (  # noqa: E402
     AttemptEvidence, CanonicalEvidence, canonical_sanity_pass,
-    reconstruct_cell, derive_cell_state, _24_STATES,
+    reconstruct_cell, derive_cell_state, reconstruct_attempt_row, _24_STATES,
 )
 from kwall_lib import constants as C  # noqa: E402
+from kwall_lib import disk_io as dio  # noqa: E402
 
 CHARGED_CEILING = C.PRIMARY_CEILING_GPUH
 S = C.STARTUP_ALLOWANCE_S_GPUH
@@ -138,11 +139,61 @@ def test_derive_cell_state_precedence():
     print("test_derive_cell_state_precedence: PASS")
 
 
+def test_m2_completed_missing_elapsed_s_no_crash():
+    """m2 (minor, build audit R1): a parseable, `status=="COMPLETED"` cell
+    JSON that lacks the TOP-LEVEL `elapsed_s` field used to crash
+    `reconstruct_attempt_row` with a `TypeError` (None / float). §R7 KW8.9
+    makes a missing/invalid `status` behave as UNPARSEABLE but said nothing
+    about `elapsed_s` -- extended here. Unreachable from
+    `ncr_earlyln_scale.py`'s own writer (`:275`/`:314` always set it),
+    reachable from a foreign/hand-edited file, landing in the RECOVERY
+    path (inside a supervisor restart loop) -- must never crash there."""
+    bad = AttemptEvidence(kind="parseable", status="COMPLETED", elapsed_s=None)
+    row = reconstruct_attempt_row(bad, 1, "primary", C.PRIMARY_CEILING_GPUH, C.STARTUP_ALLOWANCE_S_GPUH)
+    assert row is not None and row["status"] == "CRASHED-RECOVERED", row
+    assert row["elapsed_h"] == C.PRIMARY_CEILING_GPUH, row  # the Class-1 rule
+    assert row["ceiling_charged"] is True, row
+
+    bad_str = AttemptEvidence(kind="parseable", status="COMPLETED", elapsed_s="not-a-number")
+    row2 = reconstruct_attempt_row(bad_str, 2, "conditional", C.CONDITIONAL_CEILING_GPUH, C.STARTUP_ALLOWANCE_S_GPUH)
+    assert row2 is not None and row2["status"] == "CRASHED-RECOVERED", row2
+    assert row2["elapsed_h"] == C.CONDITIONAL_CEILING_GPUH, row2
+    print("test_m2_completed_missing_elapsed_s_no_crash: PASS "
+          "(no TypeError; bootstrapped to CRASHED-RECOVERED at the full ceiling)")
+
+    # ---- revert-style teeth check: the PRE-FIX code crashed here. Confirm
+    # the crash is real by reproducing the exact pre-fix branch body.
+    def old_reconstruct_attempt_row_completed_branch(attempt):
+        return attempt.elapsed_s / 3600.0 + C.STARTUP_ALLOWANCE_S_GPUH
+    crashed = False
+    try:
+        old_reconstruct_attempt_row_completed_branch(bad)
+    except TypeError:
+        crashed = True
+    assert crashed, "teeth check itself is broken: the pre-fix code path should TypeError on elapsed_s=None"
+    print("  teeth check: the PRE-FIX code path DOES crash (TypeError) on this exact input -- fix confirmed load-bearing")
+
+    # ---- and confirm the disk_io read-boundary layer never even
+    # constructs the dangerous combination from a real (malformed) file.
+    scratch = os.path.join(
+        "/private/tmp/claude-501/-Users-samuellarson-Experiments-learned-representations/"
+        "be705417-f189-4cd8-8024-24cf6a0130a0/scratchpad/kwall_orch_tests", "m2_disk_io")
+    os.makedirs(os.path.join(scratch, "K26_s0_attempt1"), exist_ok=True)
+    import json
+    with open(os.path.join(scratch, "K26_s0_attempt1", "earlyln_K26_s0.json"), "w") as f:
+        json.dump({"status": "COMPLETED", "K": 26, "seed": 0}, f)  # no elapsed_s
+    ev = dio.read_attempt_evidence(scratch, 26, 0, 1)
+    assert ev.kind == "unparseable", ev
+    print("  disk_io.read_attempt_evidence: a real malformed file (COMPLETED, no elapsed_s) "
+          "reads as 'unparseable', never 'parseable COMPLETED elapsed_s=None' -- defense in depth confirmed")
+
+
 def main():
     test_24_state_totality()
     test_200_composition_old_guard()
     test_200_composition_new_guard()
     test_derive_cell_state_precedence()
+    test_m2_completed_missing_elapsed_s_no_crash()
     print()
     print("ALL RECONSTRUCTION TESTS PASS")
     return 0

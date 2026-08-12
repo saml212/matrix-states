@@ -72,6 +72,19 @@ def reconstruct_attempt_row(attempt: AttemptEvidence, n: int, arm: str,
                 "ceiling_charged": True}
     if attempt.kind == "parseable":
         if attempt.status == "COMPLETED":
+            if not isinstance(attempt.elapsed_s, (int, float)):
+                # m2 (minor, build audit R1): a parseable, status=="COMPLETED"
+                # record whose TOP-LEVEL `elapsed_s` is missing or invalid
+                # cannot produce a measured elapsed_h -- §R7 KW8.9's own
+                # precedent (a missing/invalid `status` -> UNPARSEABLE)
+                # extended here rather than crashing with a TypeError.
+                # Unreachable from `ncr_earlyln_scale.py`'s own writer
+                # (`:275`/`:314` always set it); reachable only from a
+                # foreign/hand-edited file, which is exactly what
+                # UNPARSEABLE evidence already models.
+                return {"attempt_n": n, "elapsed_h": charged_ceiling,
+                        "status": "CRASHED-RECOVERED", "outdir": None,
+                        "ceiling_charged": True}
             elapsed_h = attempt.elapsed_s / 3600.0 + s
             return {"attempt_n": n, "elapsed_h": elapsed_h, "status": "COMPLETED",
                     "outdir": "<canonical>", "ceiling_charged": False}

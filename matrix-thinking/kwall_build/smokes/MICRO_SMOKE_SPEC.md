@@ -47,15 +47,33 @@ for K in 26 28 30; do
   D=$((K + 1))
   /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell \
     --K "$K" --d-override "$D" --seed 0 --steps 500 --ceiling-gpuh 0.05 \
-    --outdir "/home/nvidia/ncr/results_kwall_smoke/K${K}" \
-    --stop-file "/home/nvidia/ncr/results_kwall_smoke/K${K}/STOP"
+    --outdir "/home/nvidia/ncr/results_kwall_smoke/K${K}"
 done
 ```
 
-Budget: 3 cells × 0.05h ceiling = **≤0.15 GPU-h**, outside the
-orchestrator's own 15.50h ledger and outside any pool spec (design §4
+(m6 fix, build audit R1: the prior draft of this command added
+`--stop-file .../K${K}/STOP`, a deviation from the design's own literal
+command (design `:2861-2864`, no `--stop-file`) — harmless in practice
+(`--stop-file` defaults to `""`, `ncr_earlyln_scale.py:873`), but removed
+here so this file is byte-for-byte the design's own text, not a restated
+paraphrase.)
+
+Budget: 3 cells × 0.05h ceiling = **≤0.15 GPU-h — a TRAINING-LOOP-ONLY
+bound** (m6 fix, build audit R1). `--ceiling-gpuh` is enforced by
+`train_earlyln_cell`'s runtime `elapsed_s > ceiling_s` check
+(`ncr_earlyln_scale.py:198-201`), which the design's own D5 discloses as
+checking ONLY during training (`gpu_h` itself is measured
+end-to-end/eval-inclusive, but the CEILING ENFORCEMENT is not — a cell
+whose training finishes right at the ceiling can still add eval time, and
+if it reaches `COMPLETED` status, the full post-train instrument sequence
+— z_dump, deep probe, Axis-C lock, trust screen, blank_out_check,
+eval_cell — afterward, unbounded by this check). So `≤0.15 GPU-h` bounds
+the three cells' TRAINING loops only, not their measured end-to-end
+`elapsed_h` if any reaches `COMPLETED`. This is outside the orchestrator's
+own 15.50h ledger and outside any pool spec regardless (design §4
 KW5.10). Total disclosed program spend including these:
-`≤15.50 + ≤0.15 = ≤15.65 GPU-h`.
+`≤15.50 + ≤0.15 = ≤15.65 GPU-h` (training-loop-bound for the smokes, per
+the above).
 
 ## Exact pass criterion (design §4, "Pass criterion (exact,
 build-checkable)")
