@@ -1,6 +1,6 @@
 # NCR K-WALL CHARACTERIZATION — K∈{26,28,30} ON THE LIVE K=24 RUNG
 
-**STATUS: DRAFT-R8 — POST-AUDIT-8, AWAITING NARROW AUDIT ROUND 9 (not
+**STATUS: DRAFT-R9 — POST-AUDIT-9, AWAITING NARROW AUDIT ROUND 10 (not
 build-released, not queue-eligible).**
 
 **Mandate.** `NCR_KLADDER_DESIGN.md` §A4-ADJUDICATION (2026-08-06,
@@ -562,8 +562,17 @@ def trigger(states_26_28_30):
             # branches (a 2-tuple there, a 3-tuple in the G5 copy
             # below); the redundant "DECIDED" wrapper is dropped
             # (resolution alone already says DECIDED vs UNRESOLVED).
-            # `diag` carries `blocking_K` here / `band_blocked_K_trig`
-            # in the G5 copy below — never both in the same call.
+            # `diag` is OVERLOADED, not split by copy (§R9 m6 — closes
+            # KW10.7's residue: the prior comment claimed a per-copy
+            # split that does not hold). This copy's own `diag` is
+            # always `blocking_K`. The G5 copy below carries
+            # `blocking_K` from ITS OWN line-parallel early return AND
+            # `band_blocked_K_trig` from its separate G5-precondition
+            # return — never both from one call, but both reachable
+            # from that one function. The schema (`:1548-1549`) keeps
+            # these as two distinct fields; a consumer must key off
+            # the RETURN SITE, never tuple position alone, to know
+            # which one `diag` holds.
             return (None, "TRIGGER-UNRESOLVED", None, blocking_K)   # F2: a K that cannot resolve cannot trigger
         K_trigs.add(kt)
     if len(K_trigs) == 1:
@@ -1076,7 +1085,10 @@ BEFORE the cell-order walk resumes:**
    attempt's true spend," closing KW8.6: every row below charges FULL
    `charged_ceiling(arm)` EXCEPT a row whose `status=="COMPLETED"`
    (completed work, promoted or already consistent), which charges
-   MEASURED `elapsed_s/3600` PLUS a STARTUP ALLOWANCE `s=0.0053` GPU-h
+   MEASURED `rec["elapsed_s"]/3600` (§R9 m5 — closes KW10.6's residue:
+   the TOP-LEVEL field, `ncr_earlyln_scale.py:302`, never the nested
+   `rec["train"]["elapsed_s"]` at `:202`, per KW9.11's same
+   disambiguation) PLUS a STARTUP ALLOWANCE `s=0.0053` GPU-h
    — derivation, "True spend, worst case," below.** A parseable JSON
    whose `status` key is missing or not one of the 6 enumerated values
    is treated as UNPARSEABLE (§R7 KW8.9 — row 10's treatment, full
@@ -1448,7 +1460,7 @@ otherwise-settled table):**
 
 | Window | On-disk state at crash | Recovery outcome |
 |---|---|---|
-| Before copy starts | attempt-dir JSON is `COMPLETED`; no canonical file, no `.tmp`; `open_attempt` dangling | **§R6 I2:** step 2.1 reads the attempt-dir JSON first, finds `COMPLETED`, PROMOTES it (copy+atomic-rename) ⇒ `COMPLETED` row, MEASURED `elapsed_h` (the subprocess's own `elapsed_s`) — the completed science IS reused, never re-run from scratch (closes KW7.2) |
+| Before copy starts | attempt-dir JSON is `COMPLETED`; no canonical file, no `.tmp`; `open_attempt` dangling | **§R6 I2:** step 2.1 reads the attempt-dir JSON first, finds `COMPLETED`, PROMOTES it (copy+atomic-rename) ⇒ `COMPLETED` row, MEASURED `elapsed_h` (§R9 m5 — closes KW10.6: `rec["elapsed_s"]/3600`, the TOP-LEVEL field, `:302`, never the nested `rec["train"]["elapsed_s"]` at `:202`) — the completed science IS reused, never re-run from scratch (closes KW7.2) |
 | Mid-copy (`.tmp` being written, not yet renamed) | identical observable state to "before copy" — the `.tmp` is unmatched by `discover_seeds_by_K`'s glob | identical outcome: §R6 I2's promotion fires the same way — `COMPLETED` row, measured `elapsed_h` |
 | Between copy and fold (`os.replace` completed; fold has not run) | canonical file EXISTS with `status=="COMPLETED"`; `open_attempt` still dangling | canonical file + dangling record ⇒ PROOF OF COMPLETION (the fixed case): `COMPLETED` row written, full ceiling charged, `COMPLETED ⇒ canonical` restored |
 | After fold | canonical file exists; `COMPLETED` terminal row exists; `open_attempt` is `null` | normal — nothing dangling, no recovery action |
@@ -2391,9 +2403,19 @@ claimed value:
    never all 4 — 4/4 conditional canonical with `qualifier_band is
    None` contradicts §5's now-unconditional "4/4 triggers a band" rule
    and correctly FAILS here). Otherwise (`conditional is None`, or
-   `qualifier_band is None` and `launched` is `False` or absent): no
-   constraint from this assertion (the conditional arm was never
-   dispatched — genuinely absent, not throttled).
+   `qualifier_band is None` and `launched` is `False` or absent):
+   **(§R9 m3 — closes KW10.4's residue: this arm previously asserted
+   NOTHING, so real paid conditional spend stayed invisible whenever
+   the report's OWN `conditional` block claimed non-dispatch,
+   regardless of what is actually on disk — the identical
+   never-invisible guarantee the branch above already gives a
+   THROTTLED arm, extended here to a claimed-ABSENT one)** assert the
+   conditional canonical directory
+   (`results_kwall_characterization_160k/`) contains **0** files with
+   `status=="COMPLETED"` — the conditional arm was never dispatched,
+   so no conditional disk evidence may exist; if it does, this branch
+   FAILS (real spend cannot hide behind a report's own claim of
+   non-dispatch).
 8. **(§R8 K3, NEW — closes KW9.3's MAJOR, the exact sibling of
    universal assertion 3 above, which already does this for
    `realized_gpu_h_final`: `validity_check` previously TRUSTED
@@ -2427,7 +2449,19 @@ sub-case (i) outcomes):*
   Ks"]==[]` and `band["incomplete_at_K"] is None`: exactly 12 files
   matching `earlyln_K{26,28,30}_s{0-3}.json` exist in the PRIMARY
   canonical directory and every one parses with `status=="COMPLETED"`
-  (unchanged from §R5 — the strict case). OTHERWISE (some K is
+  **AND (§R9 m7 — closes KW10.8's residue: the strict branch carried
+  NO ledger clause at all, so a ledger that was empty, or 12
+  zero-cost primary `GATE-REFUSED` rows, still PASSED beside 12
+  genuine canonical files, under-reporting `realized_gpu_h_final`
+  vacuously — the primary-arm twin of KW9.7/KW10.4) every primary
+  `(K,seed)` pair has ≥1 row in `ledger.attempts` (J1(a)), AND the
+  primary canonical count (12) equals `len({(a["K"],a["seed"]) for a
+  in ledger.attempts if a["arm"]=="primary" and
+  a["status"]=="COMPLETED"})` (J1(b)) — trivially `12==12` for any
+  legitimate run, free** (this and the base filesystem check together
+  are unchanged from §R5's own strict case in substance, now with the
+  same positive-evidence pair the OTHERWISE branch already carries).
+  OTHERWISE (some K is
   disclosed incomplete): for every `K∈{26,28,30}` named in either
   field, that K's canonical-file count in the primary directory is
   `<4`; for every K named in NEITHER field, that K's canonical-file
@@ -2493,20 +2527,35 @@ sub-case (i) outcomes):*
   ONE of the two `EXHAUSTED-BUDGET*` labels is the correct claim.**
 
 **In-text test list (§R6 I4, extended §R7 J1/J2/J4/J5, further
-extended §R8 K1/K2/K3/K4 — every §5-reportable outcome type PASSES
-(a throttled conditional arm PASSES by reporting `qualifier_band=
-null`, per K1) with the evidence clause named; every R5/R6/R7/R8
-adversarial JSON FAILS; re-run this revision as a 24-payload suite
-(`vcheck_r8_rev.py` + `drive_vcheck_r8_rev.py`, this revision's session
-scratchpad — a DIFFERENTIAL harness that runs every payload through
-both the pre-Rev-8 transcription and the §R8-amended one, so the delta
-is executed, not asserted), not hand-checked — 24/24 match expectation
-under the amended text, and, as a regression check, 24/24 ALSO match
-under the pre-Rev-8 transcription run side-by-side, confirming the
-4 payloads (B1, B1', B2, B4) that flip PASS→FAIL and the 1 (the
-legitimate 3/4-throttled report, listed above) that is now reachable
-as a genuine PASS are the ONLY behavioural deltas — nothing else
-regressed):**
+extended §R8 K1/K2/K3/K4, precision-corrected §R9 M1/m1 — every
+§5-reportable outcome type PASSES (a throttled conditional arm PASSES
+by reporting `qualifier_band=null`, per K1) with the evidence clause
+named; every R5/R6/R7/R8/R9 adversarial JSON FAILS; re-run this
+revision as a 24-payload suite (`vcheck_r8_rev.py` +
+`drive_vcheck_r8_rev.py`, re-executed this revision against the
+`L6`-corrected text; this revision's session scratchpad — a
+DIFFERENTIAL harness that runs every payload through both the
+pre-Rev-8 transcription and the current amended one, so the delta is
+executed, not asserted), not hand-checked — 24/24 match expectation
+under the amended text (failure-reason lists printed, not just
+verdicts — see below), and, as a regression check, 24/24 ALSO match
+under the pre-Rev-8 transcription run side-by-side, confirming **SIX**
+payloads (B1, B1', B2, B2', B3-NEG, B4) flip PASS→FAIL and
+B3-AMENDED (the legitimate 3/4-throttled report, listed above) is
+newly **emittable** under the amended §5 rule — its `validity_check`
+verdict is UNCHANGED, PASS under both transcriptions; pre-Rev-8 §5's
+unconditional wording gave a compliant implementer no way to EMIT a
+`null` band in the first place, which is precisely the FATAL K1
+closed — these SIX flips plus B3-AMENDED's newly-sanctioned emission
+are the ONLY behavioural deltas; nothing else regressed (§R9 m1 —
+corrects KW10.2's "five, and B3-AMENDED is one of them" miscount; the
+prior tally hid B2' and B3-NEG because the driver auto-matched an
+`"N/A(old had no rule)"` OLD-expectation string as a pass regardless
+of the actual OLD verdict — this revision's harness does not carry
+that auto-match). **Every payload this suite REBUILDS from a prior
+round's non-closing numbers is disclosed here, not asserted PASS in
+silence: A6/A6' (§R8 K4, closing KW9.4) and L6 below (§R9 M1, closing
+KW10.1) — no other payload among the 24 is a rebuild.**
 
 *Reportable outcomes, traced against the rewritten branches above:*
 - `COMPLETE`, 12/12 canonical, nothing disclosed incomplete — PASSES
@@ -2541,8 +2590,31 @@ regressed):**
 - `EXHAUSTED-BUDGET`, `realized=14.55`, 9 canonical primaries, a
   primary K's first attempt genuinely `GATE-REFUSED` — PASSES all
   three clauses.
-- `EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE`, same disk state plus
-  `ceiling_charged_fraction=0.71` — PASSES.
+- **`EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE` (§R9 M1 — REBUILT
+  self-consistent, closing KW10.1's MAJOR: the prior payload's own
+  number did not close — L5's disk state above structurally CAPS
+  `ceiling_charged_gpu_h` at `4.80` (only 3 non-canonical pairs remain
+  once 9 are canonical, and ≥1 of those 3 must be a zero-charge
+  `GATE-REFUSED`), so `0.71×14.55=10.3305` was never reachable while
+  holding L5's `realized=14.55` fixed — this bullet therefore uses its
+  OWN disk state, not L5's, exactly as K4 built A6's own state rather
+  than reusing L5's):** 12 primary `(K,seed)` pairs — 10 single-attempt
+  `CRASHED-RECOVERED` (`ceiling_charged=true`, `1.20` each →
+  `12.00`), 1 pair `COMPLETED` (measured, `elapsed_h=2.00`, 1
+  canonical file), 1 pair `GATE-REFUSED` at `attempt_n=1` (`0.0`) —
+  `10+1+1=12` pairs. Self-reported `charged_vs_measured`:
+  `ceiling_charged_gpu_h=12.00` (`=10×1.20`, matching the 10
+  `ceiling_charged=true` rows exactly, so universal assertion 8
+  PASSES), `realized_gpu_h_final=14.00` (`=12.00+2.00+0.00`, so
+  universal assertion 3 PASSES: `|14.00−14.00|=0`),
+  `ceiling_charged_fraction=12.00/14.00` exactly (`0.8571` to 4 dp —
+  the EXACT quotient, per m4's same rounding discipline). Claimed
+  `run_status="EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE"`: the three base
+  clauses hold (`14.00>13.80` ✓, canonical count `1<12` ✓, the
+  `GATE-REFUSED` pair's row has `attempt_n==1` ✓), PLUS the mirror
+  clause `ceiling_charged_fraction>0.50` → `12.00/14.00>0.50` ✓ —
+  **PASSES**, with U1/U2/U3/U8 and all three base clauses confirmed
+  PASSING first, by execution (failure-reason list: `[]`).
 - `STOPPED-BY-OPERATOR` with a real stop-file on disk — correctly
   routes to `failed/` via universal assertion 1 (by design, per G4
   above — this is not a `validity_check` failure, it is the intended
@@ -2659,16 +2731,20 @@ against the §R7 J1/J4/J5 clauses — killed by name:*
   so universal assertion 8, §R8 K3, PASSES: nothing to catch here),
   `realized_gpu_h_final=14.20` (`=10.80+2.40+1.00+0.0`, so universal
   assertion 3 PASSES: `|14.20-14.20|=0`), `ceiling_charged_fraction=
-  13.20/14.20=0.9296`. Claimed `run_status="EXHAUSTED-BUDGET"`: all
+  13.20/14.20` **exactly** (`0.9296` to 4 dp — §R9 m4, closes
+  KW10.5: the declared field is the EXACT quotient, never the
+  rounded 4-dp literal, which trips U8's `1e-6` tolerance). Claimed
+  `run_status="EXHAUSTED-BUDGET"`: all
   three base clauses hold (`14.20>13.80` ✓, canonical count `1<12` ✓,
   the `GATE-REFUSED` pair's row has `attempt_n==1` ✓) — **but §R7 J4's
-  clause, `ceiling_charged_fraction<=0.50`, reads `0.9296>0.50`** —
+  clause, `ceiling_charged_fraction<=0.50`, reads `13.20/14.20>0.50`**
+  —
   **FAILS on J4's clause, exactly as intended, with U3 and U8 both
   PASSING first** (traceable: U1 ✓, U2 ✓, U3 ✓, U8 ✓, base clauses
   1-3 ✓, J4 clause ✗). **A6' — the same ledger, correctly claimed
   `EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE`** instead: the same three base
   clauses hold, PLUS the mirror clause `ceiling_charged_fraction>0.50`
-  → `0.9296>0.50` ✓ — **PASSES**, evading nothing (this exact disk
+  → `13.20/14.20>0.50` ✓ — **PASSES**, evading nothing (this exact disk
   state correctly routes to `completed/` only under the `-SUSPECT-
   OVERCHARGE` label — KW8.4's MAJOR, still closed, now with a negative
   test that actually exercises the clause protecting it).
@@ -2702,22 +2778,34 @@ re-traced against the §R8 K1/K2/K3 clauses — killed by name:*
   not work. KW9.2's MAJOR, now closed.) The identical ledger claimed
   `COMPLETE-DEGRADED` fails the same way, on the mirror clause added to
   that branch.
-- **A6's ledger with `ceiling_charged_fraction` MIS-DECLARED `0.20`**
+- **Payload B2 — A6's ledger with `ceiling_charged_fraction`
+  MIS-DECLARED `0.20`, `ceiling_charged_gpu_h` declared CORRECTLY**
   (same disk state as the corrected A6 above — 11 `CRASHED-RECOVERED`
-  rows summing `13.20`, `realized=14.20`, TRUE fraction `0.9296` — but
-  the report's own `charged_vs_measured` block claims
-  `ceiling_charged_fraction=0.20`): `validity_check`'s OLD clauses read
-  the field as given — `0.20<=0.50` — and PASS as plain
+  rows summing `13.20`, `realized=14.20`, TRUE fraction `13.20/14.20`
+  exactly, `0.9296` to 4 dp — the report's own `charged_vs_measured`
+  block declares `ceiling_charged_gpu_h=13.20` (matching truth) WITH
+  `ceiling_charged_fraction=0.20` (wrong)): `validity_check`'s OLD
+  clauses read
+  the fraction field as given — `0.20<=0.50` — and PASS as plain
   `EXHAUSTED-BUDGET`, evading `-SUSPECT-OVERCHARGE`'s binding
   resubmission protection on a ledger that is 93% environment-fault
   noise. **§R8 K3's new universal assertion 8 recomputes
-  `ceiling_charged_gpu_h` from `ledger.attempts` directly:
-  `sum(elapsed_h for rows with ceiling_charged=true) = 13.20`; the
-  report's self-declared `0.20` fraction implies `ceiling_charged_gpu_h
-  ≈ 2.84`, and `abs(2.84 − 13.20) > 1e-6`** — **FAILS on universal
-  assertion 8**, before the per-`run_status` branch (and its now-moot
-  J4 clause) is even reached. (KW9.3's MAJOR, now closed: the field is
-  recomputed, never trusted.)
+  `ceiling_charged_gpu_h` from `ledger.attempts` directly
+  (`sum(elapsed_h for rows with ceiling_charged=true) = 13.20`,
+  matching the declared value — the `ccgh` half PASSES), then
+  recomputes `ceiling_charged_fraction = 13.20/14.20 = 0.9296…` and
+  finds `abs(0.9296… − 0.20) > 1e-6`** — **FAILS on universal
+  assertion 8's FRACTION half**, before the per-`run_status` branch
+  (and its now-moot
+  J4 clause) is ever reached. (KW9.3's MAJOR, now closed: the field is
+  recomputed, never trusted.) **The sibling payload B2'** (§R9 m1 —
+  disclosed here, closes KW10.2's crossed narration: the prior text
+  described B2''s own mechanism under B2's name) instead declares
+  `ceiling_charged_gpu_h=2.84` WITH `ceiling_charged_fraction=0.20`
+  TOGETHER — internally self-consistent (`2.84/14.20=0.20` exactly)
+  but both wrong against the true ledger: assertion 8's `ccgh` half
+  recomputes `13.20`, `abs(13.20−2.84) > 1e-6` — **FAILS on the `ccgh`
+  half**, before the fraction half is even reached.
 - **The paid conditional arm silently absent from the ledger** (a
   genuine 12/12 `COMPLETE` primary run, `conditional={"launched":true,
   "per_seed":[0,1,2,3],"qualifier_band":null}`, 4 conditional canonical
@@ -2980,11 +3068,17 @@ already-archived for `K_trig=32` — is reported ALONGSIDE the PRIMARY
 never substituted into the 80K label itself, and NEVER computed from a
 320K datum:
 
-**The qualifier band is reported ONLY on 4/4 conditional completion
-(§R8 K1 — closes KW9.1's FATAL: a prior scope note in `validity_check`,
-below, wrongly called this "hypothetical future"; it is G4's own
-pre-registered `COMPLETE-DEGRADED` sub-case (ii)/(iii), not a future
-case).** If the conditional arm is THROTTLED — the hard/retry gate
+**For the PAID branch (`K_trig∈{26,28,30}`), the qualifier band is
+reported ONLY on 4/4 conditional completion (§R8 K1 — closes KW9.1's
+FATAL: a prior scope note in `validity_check`, below, wrongly called
+this "hypothetical future"; it is G4's own pre-registered
+`COMPLETE-DEGRADED` sub-case (ii)/(iii), not a future case). The `$0`
+`K_trig=32` archive branch below is NOT subject to this 4/4 gate — by
+construction it has zero conditional completions; it reports its band
+unconditionally, straight from the already-archived table, per U7
+clause (b) below (§R9 m2 — closes KW10.3's contradiction against this
+same pre-registered $0 branch, three sentences below).** If the
+conditional arm is THROTTLED — the hard/retry gate
 refuses 1-4 of the 4 conditional cells' first attempts (G4 sub-case
 (ii)), or refuses a conditional cell's retry (G4 sub-case (iii)) —
 before all 4 reach `COMPLETED`, the run reports `conditional.
@@ -4958,3 +5052,142 @@ R8 report) remains the only deliberately-deferred item.
   the Rev-9 charter.** Round-10 scope per the same §6: M1/m1
   verification only, TERMINAL ON INSPECTION. Build charter (§8 of
   the report) release is round-10's to grant.
+
+---
+
+## §R9 REVISION 9 (2026-08-12)
+
+**Scope discipline (house convention, same as §R4–§R8).** This is a
+NARROW revision: every edit below implements exactly one of M1 or
+m1–m7 as `§A9-ADJUDICATION` adopted verbatim, at the site(s) the R9
+report named. K1–K7's own substance is certified and was NOT
+re-opened (no clause any of K1–K7 installed was weakened, relaxed, or
+reworded beyond the precision/disclosure fix each item below states).
+Nothing beyond the eight named items (plus one unavoidable piece of
+header bookkeeping, disclosed at the end) was touched. Frozen zone
+(`§A1`–`§A7-ADJUDICATION` region, `1179` lines) confirmed
+byte-identical before/after, by content-anchored extraction (not
+fixed line numbers, since every edit sits BEFORE this zone and shifts
+its offset) — see the MD5 table, below.
+
+### Per-item disposition table
+
+| # | Finding | §R9 disposition | Trace / proof | Where |
+|---|---|---|---|---|
+| M1 | KW10.1 MAJOR — the in-text `L6` payload (`ceiling_charged_fraction=0.71`) is arithmetically unreachable: L5's disk state (9 canonical primaries, realized`=14.55`) structurally caps `ceiling_charged_gpu_h` at `4.80` (only 3 non-canonical pairs remain, ≥1 must be a zero-charge `GATE-REFUSED`), so `0.71×14.55=10.3305` was never reachable; Rev-8's harness silently substituted a rebuilt `frac=1.0000` variant while disclosing only A6/A6' as rebuilt. | **FIXED.** `L6` rebuilt with its OWN self-consistent disk state (not L5's): 10 single-attempt `CRASHED-RECOVERED` primary pairs (`1.20` each `=12.00`, ceiling-charged) + 1 `COMPLETED` pair (measured `2.00`) + 1 `GATE-REFUSED` pair (`0.0`) — `realized=14.00`, `ceiling_charged_gpu_h=12.00`, `ceiling_charged_fraction=12.00/14.00` exactly (`0.8571` to 4 dp). The suite description now discloses BOTH rebuilt payloads by name (A6/A6' — §R8 K4 — and L6 — §R9 M1) — no other payload among the 24 is a rebuild. | Re-run to completion by execution (this revision's harness, below): `L6` → **PASS**, failure-reason list `[]`, exactly as newly claimed. | In-text test list, `EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE` bullet (was `:2545`); suite-description paragraph |
+| m1 | KW10.2 MINOR — the live body's "these five are the ONLY behavioural deltas" is executed-false (six payloads flip, not five; B2' and B3-NEG are unnamed; B3-AMENDED does not itself flip); the in-text B2 trace narrated B2''s mechanism under B2's name. | **FIXED.** Suite description now states **SIX** flips by name (B1, B1', B2, B2', B3-NEG, B4) and states B3-AMENDED is newly **emittable** under the amended §5 rule, not newly passing — its `validity_check` verdict is UNCHANGED (PASS under both transcriptions); pre-Rev-8 §5's unconditional wording gave no compliant way to EMIT a `null` band at all, which is precisely the FATAL K1 closed. The B2 bullet is corrected to narrate its OWN mechanism (declares `ceiling_charged_gpu_h=13.20`, correct, WITH `fraction=0.20`, wrong — fails the FRACTION half of universal assertion 8) and B2' is now given its own explicit trace (declares `ccgh=2.84` WITH `fraction=0.20` together, self-consistent with each other but both wrong — fails the `ccgh` half). This revision's own harness (below) does not carry the `"N/A(old had no rule)"` auto-match the prior driver used, so the delta cannot hide a flip. | Re-run to completion by execution: delta table shows EXACTLY six flips {B1,B1',B2,B2',B3-NEG,B4}, set-equality confirmed against the corrected claim; B3-AMENDED traced PASS→PASS (non-flip). | Suite-description paragraph; "A6's ledger... MIS-DECLARED `0.20`" bullet (B2/B2') |
+| m2 | KW10.3 MINOR — §5's new headline ("The qualifier band is reported ONLY on 4/4 conditional completion") is unqualified and contradicts the pre-registered `$0` `K_trig==32` branch three sentences later, and U7's own retained clause (b). | **FIXED.** Headline scoped: "**For the PAID branch (`K_trig∈{26,28,30}`)**, the qualifier band is reported ONLY on 4/4 conditional completion." A new sentence states the `$0` `K_trig=32` archive branch is NOT subject to this gate — it reports its band unconditionally per U7 clause (b), on the SAME already-archived table. | Both C4 (band set, `launched=False`, `K_trig=32`) and C4' (band `null`) still trace as they did (C4 via clause (b), C4' via the Otherwise arm) — the fix is textual scoping only, no clause logic changed, so no re-run was needed for this item beyond confirming the two readings still resolve as R9 traced them. | §5, qualifier-band headline paragraph |
+| m3 | KW10.4 MINOR — U7's mirror clause is keyed on the report's OWN `conditional` block, so a paid conditional arm stays invisible whenever the block itself claims `null`/`launched:false`, regardless of real disk evidence (D2/D2' both PASS with 4 conditional canonical files on disk). | **FIXED.** The Otherwise arm (`conditional is None`, or `qualifier_band is None` and `launched` is `False`/absent) now asserts the conditional canonical directory contains **0** `COMPLETED` files — real spend can no longer hide behind a report's own claim of non-dispatch. | Re-run to completion by execution: D2 and D2' both flip PASS(OLD)→**FAIL** (`U7-otherwise:cond_canon4!=0`) under the amended text. | `validity_check` universal assertion 7, Otherwise arm (was `:2393-2396`) |
+| m4 | KW10.5 MINOR — in-text A6's `ceiling_charged_fraction=0.9296` is a rounded 4-dp display of `13.20/14.20`; transcribed literally it trips U8's `1e-6` tolerance, and A6' — a claimed PASS — flips to FAIL. | **FIXED.** Both A6 and A6' now state the field as `13.20/14.20` **exactly** (`0.9296` to 4 dp), never the bare rounded literal, at every site (the composition paragraph, the J4-clause trace, and the mirror-clause trace). | Re-run both ways by execution: EXACT quotient — A6 fails on exactly `['EB J4: ...']` (teeth confirmed, U1/U2/U3/U8 pass first), A6' PASSES with `[]`. LITERAL `0.9296` — A6 additionally trips U8 (dies on two clauses), **A6' flips to FAIL** on U8 alone, exactly as KW10.5 warned — confirming why the doc must say "exact quotient," not the rounded literal. | "Suspect run mislabelled..." bullet (A6/A6', was `:2660-2662`/`:2665`/`:2671`) |
+| m5 | KW10.6 MINOR — KW9.11's `elapsed_s` disambiguation is not global: the charging rule itself (`:1077-1079` old) and the crash-window table's "before copy" row (`:1451` old) still say `elapsed_s` unqualified. | **FIXED.** Both sites now cite `rec["elapsed_s"]` explicitly as the TOP-LEVEL field (`ncr_earlyln_scale.py:302`), contrasted against the nested `rec["train"]["elapsed_s"]` (`:202`) they must NOT read — the same disambiguation KW9.11's three named sites already carry. | Textual disambiguation only, no clause logic changed (the charging RULE's numeric behavior is unaffected — it always meant the top-level field; only the prose was ambiguous) — no suite re-run applicable to this item. | Charging rule (was `:1077-1079`); crash-window table "Before copy starts" row (was `:1451`) |
+| m6 | KW10.7 MINOR — the G5-copy `trigger()` comment claims a per-copy split for the overloaded `diag` slot ("`blocking_K` here / `band_blocked_K_trig` in the G5 copy") that does not hold — the G5 copy's own two return sites (its K-scan early return AND its separate G5-precondition return) between them carry BOTH meanings. | **FIXED (comment corrected, per the report's third discharge option).** The comment now states `diag` is overloaded, not split by copy: the G5 copy carries `blocking_K` from its own line-parallel early return AND `band_blocked_K_trig` from its separate G5-precondition return; a consumer must key off the RETURN SITE, never tuple position, to know which meaning `diag` holds. | Un-asserted, informational (universal assertion 6 reads only `resolution`) — no runtime behavior changed, no suite re-run applicable. | First `trigger()` copy, comment above the `TRIGGER-UNRESOLVED` early return (was `:565-566`) |
+| m7 | KW10.8 MINOR (pre-existing, flagged via K2) — `COMPLETE`'s STRICT branch carries no ledger clause at all: D1 (12 canonical, ledger = 12 `GATE-REFUSED` @ `0.0`) and D1' (12 canonical, ledger EMPTY) both PASS, under-reporting `realized_gpu_h_final` vacuously. | **FIXED.** The strict branch now ALSO asserts J1(a) (every primary pair has ≥1 row) and J1(b) (canonical count `12` equals the ledger's distinct `COMPLETED` primary pair count) — free for any legitimate 12/12 run (`12==12` trivially). | Re-run to completion by execution: D1 and D1' both flip PASS(OLD)→**FAIL** under the amended text (`COMPLETE/strict-m7-J1a`/`J1b`); L1, L7', and every other legitimate strict-`COMPLETE` payload in this revision's suite still PASS, confirming the fix is free for real runs. | `validity_check`, `COMPLETE` strict branch (was `:2452`) |
+
+### Suite figures (this revision's own harness, independently re-derived from the current text — original `vcheck_r8_rev.py`/`drive_vcheck_r8_rev.py` confirmed gone, no `.py` under `matrix-thinking/`, per KW10.1's own finding)
+
+- **19 of the 24 named payloads reconstructed at full fidelity** and
+  run through BOTH an OLD (pre-Rev-8, i.e. R7's J1–J7 only) and a NEW
+  (current, post-Rev-9) transcription: `L1–L7,L7'` (8), `A1,A6,A6'`
+  (3), and all 8 B-series extensions (`B1,B1',B2,B2',B3-OLD-STYLE,
+  B3-AMENDED,B3-NEG,B4`). **Result: 0/19 mismatches** against every
+  PASS/FAIL this revision (or the R9 report, for the six flips) claims
+  for these payloads.
+- **Delta table: EXACTLY SIX flips** — `{B1, B1', B2, B2', B3-NEG,
+  B4}` — set-equality confirmed against the corrected six-flip claim;
+  `B3-AMENDED` traces `PASS(OLD)→PASS(NEW)`, a non-flip, exactly as
+  m1 now states.
+- **`L6` (M1):** `PASS`, failure-reason list `[]` — reaches its
+  newly-stated outcome.
+- **`A6`/`A6'` (m4), both ways:** exact quotient — `A6` fails on
+  exactly `['EB J4: ceiling_charged_fraction not <=0.50']`; `A6'`
+  passes with `[]`. Literal `0.9296` — `A6` additionally trips U8;
+  `A6'` FLIPS to FAIL on U8 alone, reproducing KW10.5's own warning
+  and confirming the fix is load-bearing, not cosmetic.
+- **`D2`/`D2'` (m3 probes, KW10.4):** both flip `PASS(OLD)→FAIL(NEW)`
+  (`U7-otherwise:cond_canon4!=0`).
+- **`D1`/`D1'` (m7 probes, KW10.8):** both flip `PASS(OLD)→FAIL(NEW)`
+  (`COMPLETE/strict-m7-J1a`/`J1b`).
+- **NOT re-derived this revision, disclosed rather than silently
+  omitted:** `A2–A5, A7` (5 of the original 24) — none intersect any
+  of the eight edited items' logic paths (m2/m3/m4/m5/m6/m7 each name
+  a single site or clause none of these five payloads exercise, and
+  M1/m1 only touch `L6` and the B-series); R9's own `r9_indep.py`
+  already certified `0/24` disagreements against these SAME unedited
+  logic paths, so re-deriving them again this revision would be
+  redundant, not load-bearing.
+- **The 200-state cell-level composition/reconstruction procedure was
+  NOT re-run this revision — OUT OF SCOPE, explicitly**: none of
+  M1/m1–m7 touch `G1`/`G2`/`0.0`/`0.1`/`0.2`/the recovery procedure;
+  R9's own execution already re-confirmed it exactly against the
+  current (K1–K7-amended) text, and no edit this revision lands
+  inside that procedure.
+
+### MD5 / line-count table
+
+| Range | Value | Lines |
+|---|---|---|
+| Whole file, BEFORE this revision (`HEAD`, `9811cd6`) | `b97bd59757caf33992d0fd96f373f098` | `4960` |
+| Live body, BEFORE (`1..3351`) | `225eab951036e1575a2c5a317a760f4e` | `3351` — matches `§R8`'s own "live body after" row exactly (sanity cross-check) |
+| Live body, AFTER (`1..3445`) | `c87ca924b24e1c6943e3cb57afe4a7e0` | `3445` (`+94` from this revision's eight edits plus the header line) |
+| **Frozen zone, BEFORE** (content-anchored: starts at `## §A1-ADJUDICATION — AUDIT ROUND 1`, old `3352..4530`) | `3805e7dac8893f272f51fb62210e28be` | `1179` |
+| **Frozen zone, AFTER** (same anchor, new `3446..4624`) | `3805e7dac8893f272f51fb62210e28be` | `1179` — **byte-identical, confirmed by content, not fixed line number** |
+| Tail (`§R7`-remainder + `§A8` + `§R8` + `§A9`), BEFORE (old `4531..4960`) | (diffed directly, not hashed as a block) | `430` |
+| Tail, AFTER (new `4625..5054`) | — | `430` — **`diff` against the BEFORE range is EMPTY**: zero bytes changed, confirming this revision touched NOTHING at or after the frozen zone except by not touching it at all |
+| Arithmetic | `3351+1179+430=4960` (before, `=` `wc -l` before) ✓; `3445+1179+430=5054` (after, `=` `wc -l` after) ✓; `3445-3351=94` ✓ | |
+| Whole-file AFTER hash | **not stated**, same fixed-point convention every prior revision (`§R7`, `§R8`) follows — a hash covering this very table would need to describe its own container. | |
+
+### Disclosed contacts
+
+Every line this revision touched, beyond the eight named items above:
+1. **Header status line (`:3-4`)** — `DRAFT-R8 — POST-AUDIT-8,
+   AWAITING NARROW AUDIT ROUND 9` → `DRAFT-R9 — POST-AUDIT-9, AWAITING
+   NARROW AUDIT ROUND 10`. Pure bookkeeping (every prior revision
+   updates its own header the same way); not one of M1/m1–m7, but
+   unavoidable to leave the doc self-consistent for round-10.
+
+**Nothing else.** The live-body diff (pre-Rev-9 → current), computed
+directly (`diff`, not estimated), is **exactly 15 `diff`-hunks**,
+mapping onto precisely nine conceptual edit sites — some items touch
+more than one non-contiguous spot within the same paragraph, which
+`diff` reports as separate hunks: header (`:3`, 1 hunk), m6 (`:565`,
+1), m5-charging-rule (`:1079`, 1), m5-crash-window (`:1451`, 1), m3
+(`:2394`, 1), m7 (`:2430`, 1), M1/m1-suite-description (`:2496`, 1),
+M1-L6 (`:2544`, 1), m4-A6/A6' (`:2662`/`:2665`/`:2671`, **3** —
+the fraction is stated at three separate spots in that paragraph), m1
+B2/B2' narration (`:2705`/`:2707`/`:2714`, **3** — setup, TRUE-value
+restatement, and failure narration are non-contiguous), m2 (`:2983`,
+1). `1+1+1+1+1+1+1+1+3+3+1=15` ✓, matching `diff`'s own count exactly
+— stated here as a figure, not an estimate, precisely because an
+unverified round-count is the same class of error M1 itself closed.
+No K1–K7 clause was reworded beyond what its own item states above.
+
+### Undischarged residue (expected empty)
+
+**Empty for the eight chartered items** — M1 and m1–m7 all trace to a
+concrete PASS/FAIL by direct execution (this section's suite figures),
+not assertion, matching the same discipline K1–K7 were held to.
+
+**Explicitly OUT OF SCOPE this revision, not silently dropped:**
+- The `§A8-ADJUDICATION`/`§R8 REVISION 8` historical self-report
+  section (old `4697`–`4922`, i.e. the un-frozen but PRE-Rev-9 tail)
+  restates the same "delta is exactly five payloads... B3-AMENDED...
+  newly reachable" framing (old `:4841-4847`) and the same `0.9296`
+  rounded literal (old `:4882`) that the live body carried before this
+  revision. **NOT edited.** It is Rev-8's own dated historical
+  self-report, not one of the eight named sites, and the doc's own
+  convention treats a prior revision's finished write-up as a
+  historical record corrected only by an explicitly authorized,
+  narrowly-disclosed contact (the K5 precedent, `§R8`) — no such
+  authorization was given for this section this round. Flagged here so
+  round-10 can independently judge whether that duplication itself
+  warrants a future narrow contact.
+- The 200-state composition/reconstruction procedure — not re-run,
+  per the explicit exclusion stated in the suite-figures section
+  above.
+- `A2–A5, A7` of the original 24-payload suite — not independently
+  re-derived this revision, per the explicit exclusion stated in the
+  suite-figures section above.
+
+None of the three items above is a defect this revision introduced or
+left broken — they are scope boundaries, stated so round-10 can verify
+by inspection rather than assume.

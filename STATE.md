@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #8 (Fable): K-wall Rev-9 RETURNED — M1+m1-m7 all
+discharged by execution (L6 rebuilt self-consistent + substitution
+disclosed; six-flip delta set confirmed by independent transcription
+0/19 mismatches; new clauses have probe-confirmed teeth; frozen zone
+byte-identical). Residue EMPTY; three scope boundaries disclosed for
+R10. Audit R10 DISPATCHED (M1/m1 only, TERMINAL ON INSPECTION) — on
+CLEAR the build charter releases and the K∈{26,28,30} wall
+characterization enters build ceremony → box fallback pool refills.
+Consolidation lane remains PARKED (tick #7).**
+
 **2026-08-12 tick #7 (Fable): CONSOLIDATION LANE PARKED —
 KILLED-AT-DESIGN (attack R2 BLOCKED 5F/6M/5m, adopted; registry §8).
 The +0.230 was a min-norm-vs-ridge conditioning artifact (fair A7 →

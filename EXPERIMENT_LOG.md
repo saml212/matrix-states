@@ -9563,3 +9563,24 @@ inventory (ridge-baseline discipline; fp16 delta drift ~1.6e-3
 self-correcting; the index-coded-cache steelman as this program's new
 standard baseline) in §8. The waterfall did its job: idea → verified
 novel → killed by executed math in ~1 day, before any build.
+
+## 2026-08-12 #8 — K-wall Rev-9 returned: M1+m1-m7 all discharged by execution, residue EMPTY; audit R10 dispatched (M1/m1, terminal on inspection)
+
+L6 payload rebuilt self-consistent (10×1.20 CRASHED-RECOVERED pairs +
+1×2.00 COMPLETED + 1 GATE-REFUSED; realized=14.00, fraction=12.00/
+14.00 exact) with both harness rebuilds (A6/A6' AND L6) now disclosed
+by name — KW10.1 closed. Delta count corrected to six named flips
+(set-equality confirmed by an independent 19/24-payload transcription,
+0 mismatches); §5 headline scoped to the PAID branch (K_trig∈{26,28,
+30}), $0 K_trig=32 exempt; U7 Otherwise-arm 0-COMPLETED assertion
+(D2/D2' probes flip OLD-PASS→NEW-FAIL — teeth confirmed); A6 fraction
+as exact quotient 13.20/14.20 (the rounded literal provably trips U8);
+elapsed_s disambiguated at both cited sites; diag comment corrected;
+COMPLETE/strict now carries J1(a)/(b) (D1/D1' probes confirm). Frozen
+zone md5 3805e7da... byte-identical both sides (content-anchored —
+region shifted under edits); §R7-tail/§A8/§R8/§A9 diff-identical.
+Three disclosed scope boundaries for R10 (historical §R8 framing
+untouched by convention; composition suite + A2-A5/A7 out of scope).
+Doc now DRAFT-R9, 5193 lines. R10 = M1/m1 verification, TERMINAL ON
+INSPECTION; on CLEAR the §8 build charter releases → build ceremony →
+fallback-pool refill (the PI's GPU-hot runway).
