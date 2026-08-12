@@ -1,5 +1,17 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #12 (Fable): K-wall build audit R1 = FAIL (1F/4M/8m)
+— the placement/pre-launch gate caught a launch-losing FATAL exactly
+as chartered: UNRESOLVED-branch disclosure drops n_completed==3 K's →
+validity_check rejects the orchestrator's OWN report POST-SPEND
+(1440/3375 reachable states, via the cheapest ~0-GPU-h failure mode);
++ the job spec's $(git rev-parse HEAD) would abort argparse on the
+box pre-dispatch. Core all PASSED (suites 4/4+33/33+10/10 from clean
+checkout, crash windows, gates, item-(j)). Build Rev-1 DISPATCHED
+(F1+M1-M4+8m); audit R2 next; NO deploy/smokes/pool until R2 PASS.
+Box: unchanged — gh_* holds GPUs, Jacobians staged, auto-unpause
+armed.**
+
 **2026-08-12 tick #11 (Fable): K-wall BUILD COMPLETE —
 `matrix-thinking/kwall_build/` (orchestrator + kwall_lib + 3 suites,
 all tests run to completion; 33/33 verdict-identity vs the unmodified

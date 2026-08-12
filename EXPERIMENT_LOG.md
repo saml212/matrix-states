@@ -9660,3 +9660,34 @@ literal 500-step micro-smokes (CPU-infeasible), artifact deploy to
 line-by-line orchestrator-contract fidelity, determine_run_status
 row-coverage invariant, harvest_bridge no-patch claim, trigger diag,
 item-(j) throughout (BUILD_REPORT.md §7 list).
+
+## 2026-08-12 #12 — K-wall build audit R1: FAIL (1F/4M/8m/3 design-inherited) — launch-losing FATAL caught pre-deploy (the ceremony earning its cost again); build Rev-1 dispatched
+
+F1 (FATAL, KW8.2 class): classify_with_interval_logic's UNRESOLVED
+early return discloses only n_completed≤2 K's and silently DROPS any
+n_completed==3 K → validity_check's "every K named in NEITHER field
+must read exactly 4" clause fires against the orchestrator's OWN
+report → full ≤15.50 GPU-h spent, then routed to failed/.
+Demonstrated END-TO-END (real orchestrator.run(), real subprocess
+dispatch, real harvest(), real CLI: exit=1, 'COMPLETE/otherwise: K=28
+count 3 != 4'). Blast radius 1440/3375 reachable states across 54/125
+n_completed shapes — reachable via the CHEAPEST failure mode
+(deterministic ~0-GPU-h crashes never trip a budget gate). MAJORs:
+trigger diag return-site wrong in 115/1000 vectors (disclosure-only;
+resolution/K_trig identical 0/1000); job spec's $(git rev-parse HEAD)
+— sole command substitution among 366 pending box specs, box dir is
+scp-populated with NO git clone — argparse aborts pre-dispatch
+(executed); G4's mandated pre-write stop_file_path self-check absent
++ fabricated per_K + wrong sentinel path; 3 schema fields never
+populated (2 are the design's substitute-disclosure). PASSED with
+evidence: suites re-run clean from checkout (4/4, 33/33 zero
+divergence, 10/10), byte-port claim verified stricter than stated
+(one getsource hunk = signature+docstring), GATE-REFUSED fix's
+negative test has teeth (revert → fail), gate arithmetic, write-ahead
++ copy-then-fold, all 4 crash windows, row-coverage invariant
+(adversarial states abort loudly), harvest no-patch reasoning, ≥7
+item-(j) re-derivations, additive-only patches. Verdict FAIL adopted;
+build Rev-1 dispatched (F1+M1-M4+minors per report); audit R2 next;
+NO deploy, NO smokes, NO pool promotion until R2 PASS. Report:
+`kwall_build/BUILD_AUDIT_R1.md` (verified deploy sequence recorded
+for the next round).
