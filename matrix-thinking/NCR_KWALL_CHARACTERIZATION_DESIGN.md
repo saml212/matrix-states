@@ -4917,3 +4917,44 @@ executed fix, no new logic gap was introduced (the one internal
 near-miss was caught and fixed before this block was written, not
 left for Round 9 to find), and the build charter (§8, restated by the
 R8 report) remains the only deliberately-deferred item.
+
+---
+
+## §A9-ADJUDICATION (coordinator, 2026-08-12) — audit R9 = REV-REQUIRED (0F/1M/7m) ADOPTED; K1–K7 SUBSTANCE CERTIFIED DISCHARGED; Rev-9 dispatched
+
+- **Report:** `NCR_KWALL_ATTACK_R9.md`, against DRAFT-R8 at `671d83a`.
+- **The gauntlet's core is done:** ZERO FATALs. The auditor
+  independently re-transcribed the amended `validity_check` (0/24
+  disagreements with Rev-8's harness) and traced every named
+  conditional-arm shape to its correct outcome (3/4-throttled PASS,
+  4/4 PASS, 0/4-refused PASS both `launched` values, band-on-3/4
+  FAIL, band-null-on-4/4 FAIL, ledger-count FAIL, crash-shortfall
+  variant); K2 admits no zero-cost pass at any site; the A6 negative
+  test dies on exactly `EB J4` with U1/U2/U3/U8 passing first; K5's
+  MD5 reproduces against BOTH `7a0917d` and `ad2bf48`; K6 consistent
+  at every `attempt_n` site with both bootstrap rows reachable
+  (24+48 of 72); frozen zone byte-identical (1179 lines); both
+  suites re-ran clean (24/24 both sides; 30/6→0/0, 72, max-rows 3,
+  Class-2 cap 2); Rev-8's MD5 rows and line arithmetic reproduce;
+  the tail diff is exactly the one disclosed K5 line.
+- **KW10.1 MAJOR — ADOPTED as charged:** K3's own assertion 8
+  falsifies the in-text L6 payload (`:2545`, "frac 0.71 — PASSES"):
+  executed, it FAILS on `U8-frac(0.71 != 0.00)`, and 0.71×14.55 =
+  10.3305 is unreachable from ceiling-charged rows ∈ {1.20k + 2.32m}
+  — the payload spec itself is arithmetically impossible. Rev-8's
+  harness silently substituted a rebuilt L6 (frac 1.0000) while
+  disclosing only A6/A6' rebuilds — the KW9.4 class in the positive
+  direction. Since no `.py` exists under `matrix-thinking/`, the
+  in-text payload list IS the durable spec: it must be corrected
+  in-text with the substitution disclosed.
+- **Seven minors ADOPTED** (six-not-five delta count + B3-AMENDED
+  non-flip; §5-headline vs pre-registered $0 `K_trig=32` band
+  contradiction; K1-mirror bypass via `conditional=null`/
+  `launched:false` with 4 canonical files on disk; A6 `0.9296`
+  rounding vs U8's 1e-6; `elapsed_s` qualification at the charging
+  rule + crash-window table; overloaded `diag` slot;
+  `COMPLETE`/strict ledger clause).
+- **DISPOSITIONS: M1 + m1–m7 per the report's §6 adopted verbatim as
+  the Rev-9 charter.** Round-10 scope per the same §6: M1/m1
+  verification only, TERMINAL ON INSPECTION. Build charter (§8 of
+  the report) release is round-10's to grant.

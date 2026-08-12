@@ -9517,3 +9517,19 @@ SYMMETRIC precision freedom (fp16-A7 ⇒ fp16-S at matched bytes, with
 accumulation-drift check). R2 charter: verify §6 figures, M1,
 aggregate-query external validity, F6 resolution fairness, append
 integrity. Still zero GPU-h spent on this lane.
+
+## 2026-08-12 #6 — K-wall audit R9: REV-REQUIRED (0F/1M/7m) — K1-K7 SUBSTANCE CERTIFIED; one payload-spec impossibility + 7 one-clause minors; Rev-9 dispatched, round-10 terminal-on-inspection
+
+Zero FATALs; the K-discharge core certified by independent
+re-transcription (0/24 disagreements) + full conditional-arm shape
+tracing; both suites clean; frozen zone byte-identical. MAJOR KW10.1:
+the in-text L6 payload's claimed 0.71 fraction is ARITHMETICALLY
+UNREACHABLE (rows ∈ {1.20k+2.32m}; 0.71×14.55=10.3305 impossible) and
+assertion 8 correctly fails it — Rev-8's harness silently substituted
+a rebuilt L6 (frac 1.0000) disclosing only A6/A6' rebuilds; since no
+.py exists in-repo the in-text list IS the durable spec → correct
+in-text + disclose. 7 minors incl. six-not-five delta count and a
+§5-headline vs $0 K_trig=32 band contradiction. Dispositions M1+m1-m7
+adopted verbatim (§A9-ADJUDICATION); Rev-9 dispatched; round-10 =
+M1/m1 only, TERMINAL ON INSPECTION; build-charter release is
+round-10's to grant. Report: `NCR_KWALL_ATTACK_R9.md`.

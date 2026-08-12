@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #6 (Fable): K-wall audit R9 = REV-REQUIRED (0F/1M/7m)
+— K1–K7 SUBSTANCE CERTIFIED DISCHARGED (independent re-transcription
+0/24 disagreements, all conditional-arm shapes trace correctly, suites
+clean, frozen zone intact). Sole MAJOR: in-text L6 payload's 0.71
+fraction arithmetically unreachable + silently-substituted harness
+rebuild (KW9.4 class, positive direction). M1+m1–m7 adopted verbatim
+(§A9-ADJUDICATION); Rev-9 dispatched; ROUND-10 = M1/m1 ONLY, TERMINAL
+ON INSPECTION — build-charter release imminent. Consolidation attack
+R2 (precision-symmetry adjudication) still in flight.**
+
 **2026-08-12 tick #5 (Fable): consolidation Rev-1 RETURNED — regimes
 (i) overload + (iii) correction-survival KILLED by executed numpy
 (marquee correction demo retired UNVALIDATED, honest-assessment rule);
