@@ -161,6 +161,18 @@ for _K_check in (14, 15, 16, 24):
 for _K_new in (20, 32, 48, 64, 96, 128, 192, 256):
     GRIDS[_K_new] = _gen_grid(_K_new)
 
+# NCR_KWALL_CHARACTERIZATION_DESIGN.md §2 "Build note" (additive-only,
+# identical pattern to the loop directly above -- K∈{26,28,30} for the
+# wall-characterization build). `nt.claim_config(K, ...)` (:196-208) and
+# `_cell_gate2`'s `nt.GRIDS[K]["h_star"]` lookup both require K already be a
+# GRIDS key; a raw `d=K+1` far-depth ladder point (e.g. h*=8*26-3=205 with
+# ladder_residue=23) is checked mechanically against `29 % 26 == 3` etc. in
+# the design doc and hard-fails the inherited periodicity assert, so the
+# hand-typed K=8/12 ladders cannot be reused here -- `_gen_grid`'s closed
+# form is required, exactly as it already was for the 2026-07-11 extension.
+for _K_new in (26, 28, 30):
+    GRIDS[_K_new] = _gen_grid(_K_new)
+
 for _K, _g in GRIDS.items():
     for _h in _g["ladder"]:
         assert _h % _K == _g["ladder_residue"], (_K, _h)

@@ -1,5 +1,18 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #11 (Fable): K-wall BUILD COMPLETE —
+`matrix-thinking/kwall_build/` (orchestrator + kwall_lib + 3 suites,
+all tests run to completion; 33/33 verdict-identity vs the unmodified
+R11-audited payload suites; genuine SIGKILL crash-recovery integration
+test; real fwd/bwd/grad smoke on NCREarlyLNModel at K∈{26,28,30}; one
+real bug — GATE-REFUSED attempt-1 mis-derived NON-TERMINAL — caught,
+fixed, negative-tested in-build) + additive-only K-grid patches to the
+live recipe (23 ins/0 del). One disclosed deviation = the design's own
+audited single-orchestrator delivery model. BUILD AUDIT + PLACEMENT
+RED-TEAM DISPATCHED (10-50 GPU-h tier); on PASS: deploy to box +
+micro-smokes → fallback_pool queue-eligible. Box: gh_* still holds all
+8 GPUs; Jacobians staged behind auto-unpause.**
+
 **2026-08-12 tick #10 (Fable): K-WALL GAUNTLET TERMINAL — audit R11
 CLEAR (0F/0M/0m), BUILD CHARTER RELEASED after 11 rounds
 (§A11-ADJUDICATION; design STATUS flipped to RELEASED). Scope: the

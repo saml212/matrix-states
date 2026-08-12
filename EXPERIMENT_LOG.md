@@ -9631,3 +9631,32 @@ red-team (10-50 GPU-h tier) → fallback_pool. Gauntlet arc: DRAFT-R0
 08-06 → eleven audit rounds converging monotonically (R8 1F/5M/5m →
 R9 0F/1M/7m → R10 0F/1M/3m → R11 0/0/0) → RELEASED 6 days later,
 science unimpugned since R8.
+
+## 2026-08-12 #11 — K-wall BUILD COMPLETE (matrix-thinking/kwall_build/); 33/33 payload verdict-identity vs the audited suites; one real bug caught in-build; build audit + placement red-team dispatched
+
+Built: orchestrator.py (full ORCHESTRATOR CONTRACT — cell order, 15.00/
+12.00 gates, write-ahead ledger, crash recovery, G2 copy-then-fold,
+trigger/band, report emission), kwall_lib/ (constants, classify,
+reconstruction, disk_io, ledger, harvest_bridge, validity_check),
+CPU-stub cell runner, 3 test suites, micro-smoke spec doc, ONE
+orchestrator job-spec JSON (the design's own audited delivery model —
+Rev-3 killed separate-specs as FATAL; disclosed, not a shortcut), + 2
+additive-only patches (GRID_SHAPES/GRIDS keys for K=26/28/30 in
+ncr_earlyln_scale.py/ncr_task.py, 23 insertions 0 deletions). Tests
+ALL RUN TO COMPLETION: 125-outcome partition + 1000-vector trigger
+split reproduce at import; 24-state totality + OLD-guard 30/6 vs
+NEW-guard 0/0 reproduce against the REAL reconstruction fn;
+production validity_check_core verdict-identical 33/33 vs the
+UNMODIFIED R11-audited kwall_suites/ payloads (incl. every negative
+control + the R11 L6 fixture); 10 real-subprocess integration tests
+incl. genuine SIGKILL mid-attempt crash recovery + end-to-end run();
+real CPU forward/backward/grad-finite/optimizer.step for K∈{26,28,30}
+on the actual NCREarlyLNModel. BUG FOUND+FIXED IN BUILD: GATE-REFUSED
+attempt-1 row derived NON-TERMINAL → spurious second dispatch;
+fixed in reconstruction.py, 200-state sweep unaffected, new negative
+test. Deferred to box w/ exact commands (BUILD_REPORT.md): the 3
+literal 500-step micro-smokes (CPU-infeasible), artifact deploy to
+/home/nvidia/ncr/, CUDA/multi-GPU red-team items. Build audit next:
+line-by-line orchestrator-contract fidelity, determine_run_status
+row-coverage invariant, harvest_bridge no-patch claim, trigger diag,
+item-(j) throughout (BUILD_REPORT.md §7 list).

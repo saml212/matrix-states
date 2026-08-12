@@ -90,6 +90,17 @@ GRID_SHAPES = {
     128: dict(d=256, h=64),
     192: dict(d=384, h=64),
     256: dict(d=512, h=64),
+    # NCR_KWALL_CHARACTERIZATION_DESIGN.md §2 "Build note" (additive-only,
+    # mirrors the 2026-07-11 extension above exactly): K∈{26,28,30} for the
+    # wall-characterization build. `d` here is the Condition-A d=2K default
+    # and is UNUSED at runtime -- every kwall cell passes `--d-override K+1`
+    # (27/29/31), which overrides `d_eff` in run_earlyln_cell regardless of
+    # this table -- kept only for schema consistency (every GRID_SHAPES key
+    # must resolve for `--K choices=sorted(GRID_SHAPES)`, :857, and for the
+    # `shape = GRID_SHAPES[K]` lookup at cell-construction time, :234).
+    26: dict(d=52, h=64),
+    28: dict(d=56, h=64),
+    30: dict(d=60, h=64),
 }
 DEFAULT_SEEDS = (0, 1, 2, 3)
 CONVERGED_INDIST_BAR = 0.9
