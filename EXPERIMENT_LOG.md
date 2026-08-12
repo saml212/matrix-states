@@ -9417,3 +9417,24 @@ dependency watch live). Chain: gh_* ends → ≤2 min unpause → workers
 claim 3×~3.5 GPU-h trainings → 1204 auto-promotes. K-wall audit R8
 re-dispatched (original 08-06 auditor died with its session; Rev-7
 commit 7a0917d stands as the dispatch of record).
+
+## 2026-08-12 #2 — K-wall audit R8: REV-REQUIRED (1F/5M/5m); J2/J3/J6 discharged BY EXECUTION; Rev-8 dispatched
+
+Auditor re-ran both suites and reproduced every claimed figure to the
+digit (0.2-guard 30/6→0/0; 14/14 payloads; 15.3737 bound + s=0.0053
+exact; frozen zone byte-identical 1179 lines; three disclosed contacts
+exactly as disclosed). FATAL KW9.1 = adjudication of Rev-7's disclosed
+J5 scope note AGAINST the design: the partial-conditional qualifier it
+dismissed as hypothetical is pre-registered live (G4 sub-cases
+(ii)/(iii), :1659) and §5 mandates the band whenever the trigger fires
+— a legitimate 3/4-throttled conditional run fails universal assertion
+7 after the full ≤15 GPU-h spend (KW7.4/KW8.2 shape).
+Coordinator spot-verified the FATAL's citations against the raw doc
+before adoption. MAJORs KW9.2-9.6: zero-cost GATE-REFUSED rows still
+satisfy COMPLETE's evidence clause; ceiling_charged_fraction
+self-report trusted where recomputable; A6 negative test arithmetic
+wrong (10.80 not 14.40) + not wired forced-fail; §R7 live-body MD5
+non-reproducing (bookkeeping); attempt_n=3 vs schema 1|2 undisclosed.
+Dispositions K1-K7 (report §6) adopted verbatim
+(§A8-ADJUDICATION); round-9 scope = K-discharge + both suites;
+terminal expected. Report: `NCR_KWALL_ATTACK_R8.md`.

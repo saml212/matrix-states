@@ -1,5 +1,14 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #2 (Fable): K-wall audit R8 = REV-REQUIRED (1F/5M/5m,
+`NCR_KWALL_ATTACK_R8.md`) ADOPTED w/ dispositions K1–K7 verbatim
+(§A8-ADJUDICATION). J2/J3/J6 discharged BY EXECUTION (auditor re-ran
+both suites, every figure reproduced); FATAL KW9.1 = the disclosed J5
+scope note adjudicated AGAINST the design (partial-conditional
+qualifier is a LIVE pre-registered outcome; 3/4-throttled run fails
+assertion 7 post-spend). Rev-8 dispatched; round-9 = K1–K7 + both
+suites, terminal expected; build charter still NOT released.**
+
 **2026-08-12 tick (Fable): CONSOLIDATION-POLICY WATERFALL OPENED (PI GO
 08-11) — novelty gate DISCHARGED (triple sweep + δ-mem/R8ZbLi3oUv
 full-text legs; Tensor Cache arXiv:2605.22884 = closest-architecture

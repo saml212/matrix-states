@@ -4456,3 +4456,54 @@ placement, promotion preemption's ORDERING guarantee, the 6 legitimate
 validity outcomes' PASSING, integrity/citations) is excluded and was
 not re-opened by any edit above beyond the narrow, named MINOR wording
 fixes (KW8.11) J7 authorized.**
+
+---
+
+## §A8-ADJUDICATION (coordinator, 2026-08-12) — audit R8 = REV-REQUIRED (1F/5M/5m) ADOPTED; Rev-8 dispatched
+
+- **Report:** `NCR_KWALL_ATTACK_R8.md` (re-dispatched round — the
+  original 2026-08-06 auditor died with its session; Rev-7 commit
+  `7a0917d` stands as the dispatch of record). Design pinned
+  `cb08c47 → 7a0917d`; auditor confirmed the intervening commit
+  `e6ffe05` has no contact with this document.
+- **Execution-verified discharges stand:** the auditor independently
+  re-transcribed and RE-RAN both suites — J2/J3/J6 are discharged by
+  execution, not assertion (200-state composition: OLD 30 orphans /
+  6 abort-trips → NEW 0/0, reproduced to the digit; 14/14 payloads;
+  `15.0157+0.1884+0.1696 = 15.3737` exact with `0.1263` headroom;
+  `s = 0.021−0.0157 = 0.0053` exact; `t0`-at-`:257` verified
+  line-for-line and the top-level `elapsed_s` span at `:302`
+  confirmed; frozen zone byte-identical, 1179 lines). All three
+  disclosed settled-section contacts exactly as disclosed. Nothing
+  settled was reopened.
+- **KW9.1 FATAL — ADOPTED, coordinator spot-verified against the raw
+  doc before adoption** (direct grep: `:1659` G4 "1-4 of the
+  conditional arm's 4 cells' FIRST attempts were refused";
+  `:2517-2522` the assertion-7 rejection path): the J5 scope note
+  dismissed the partial-conditional qualifier as "hypothetical
+  future," but G4 pre-registers it as `COMPLETE-DEGRADED` sub-cases
+  (ii)/(iii), §5 mandates the qualifier band unconditionally whenever
+  the trigger fires, and `harvest()` returns a `rate` for a sub-4
+  directory — so a legitimate 3/4-throttled conditional run carrying
+  its band fails universal assertion 7 and routes to `failed/` AFTER
+  the full ≤15 GPU-h spend. Same legitimate-run-rejected-post-spend
+  shape as KW7.4/KW8.2, both previously classed FATAL.
+- **KW9.2–KW9.6 MAJORs ADOPTED as charged** (evidence-of-a-row vs
+  evidence-of-WORK at zero GPU-h; `validity_check` trusting a
+  self-reported `ceiling_charged_fraction` it can recompute; the A6
+  negative test's arithmetic — `9×1.20 = 10.80`, not `14.40` — dying
+  on assertion 3 before the J4 clause it exists to exercise, plus the
+  charter-mandated forced-fail wiring; §R7's "live body, after" MD5
+  matching no prefix range of the committed file (bookkeeping — the
+  frozen half verifies, nothing settled disturbed); `attempt_n=3`
+  emitted in 72/200 states vs the `:1499` schema's `1|2`,
+  undisclosed). **KW9.7–KW9.11 minors ADOPTED.**
+- **DISPOSITIONS: K1–K7 per the report's §6 adopted VERBATIM as the
+  binding Rev-8 charter.** K1 (the FATAL): band-carrying
+  partial-conditional runs become defined, VALID terminal states —
+  §5 defines the qualifier for sub-case (ii)/(iii), assertion 7
+  accepts them with evidence witnesses. K2–K6 map to KW9.2–KW9.6;
+  K7 = the five one-clause MINOR fixes.
+- **Round-9 scope (narrow):** K1–K7 discharge verification + re-run
+  of BOTH suites. Terminal expected. Build charter (§8 of the
+  report) remains NOT released.
