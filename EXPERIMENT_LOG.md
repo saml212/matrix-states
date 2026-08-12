@@ -9468,3 +9468,26 @@ overload/aggregate/accumulation regimes where superposition wins by
 math (the PI's capability framing, now load-bearing). Rev-1
 dispatched (numpy, zero compute); attack R2 follows; Mac pilot builds
 only after R2 clears. Report: `CONSOLIDATION_ATTACK_R1.md`.
+
+## 2026-08-12 #4 — K-wall Rev-8 returned: K1-K7 discharged w/ executed traces; narrow audit R9 dispatched (terminal expected)
+
+§R8 block appended (468+/58- on the design doc only —
+coordinator-verified via git diff). K1 (FATAL KW9.1): qualifier band
+reported ONLY on 4/4 conditional completion; throttled arms report
+qualifier_band=null with a validity_check mirror clause; the
+previously-failing legitimate 3/4-throttled payload traces to PASS
+in-text AND by execution. K2: >=1 distinct COMPLETED-primary-pair
+evidence clause at 4 sites (zero-cost GATE-REFUSED no-op killed). K3:
+new universal assertion 8 recomputes ceiling_charged_gpu_h/fraction
+from ledger.attempts. K4: A6 negative test rebuilt self-consistent
+(realized=14.20, charged=13.20, fraction=0.9296) and dies on exactly
+J4's clause. K5: stale §R7 MD5 corrected (55ba3e9a...), disclosed
+contact. K6: attempt_n schema widened. K7: five minors fixed at named
+sites. Suites: 24-payload differential harness 24/24 with exactly 5
+intended behavioral deltas; 200-state composition reproduces every R8
+figure unchanged (30/6→0/0, 72/200 bootstrap). Frozen zone
+byte-identical (md5 3805e7da..., diff vs git HEAD). Disclosed
+residue: two near-misses caught IN-SESSION (U8 div-by-zero guard;
+stale self-referential MD5 — the KW9.5 shape, caught this time).
+Build charter still NOT released. R9 = K-discharge verification +
+both suites + frozen-zone diff; terminal expected.

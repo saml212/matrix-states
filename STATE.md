@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #4 (Fable): K-wall Rev-8 RETURNED — K1–K7 all
+discharged with executed traces (3/4-throttled payload now PASSES;
+zero-cost no-op killed; assertion 8 recomputes charging; A6 negative
+test self-consistent + dies on J4's clause; frozen zone byte-identical
+vs HEAD). Suites: 24/24 differential w/ exactly 5 intended deltas;
+200-state composition unchanged. Narrow audit R9 DISPATCHED (K1–K7 +
+both suites + frozen-zone diff), TERMINAL EXPECTED — on CLEAR the
+build ceremony opens and the fallback pool gets its refill path.
+Consolidation Rev-1 (falsifier-backwards numpy) still in flight.**
+
 **2026-08-12 tick #3 (Fable): consolidation attack R1 = BLOCKED
 (6F/16M/7m, `CONSOLIDATION_ATTACK_R1.md`) ADOPTED — DRAFT-R0 dead as
 parameterized at zero GPU cost: the byte-matched KV falsifier is
