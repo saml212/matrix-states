@@ -1,5 +1,17 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #5 (Fable): consolidation Rev-1 RETURNED — regimes
+(i) overload + (iii) correction-survival KILLED by executed numpy
+(marquee correction demo retired UNVALIDATED, honest-assessment rule);
+regime (ii) aggregate/regression SURVIVES vs fp32-index-coded steelman
+A7 (+0.230 = 20× seed noise @ d=32/M=128/ρ=0.7, gate-on, provable
+E[cos]≤√(C/M) backbone) but ≈0 vs fp16-A7. ADOPTED w/ coordinator
+amendment M1: precision symmetry — R2 adjudicates the falsifier with
+BOTH arms free to optimize coding at fixed bytes (fp16-S doubles state
+too). Attack R2 dispatched (verify figures, M1, external validity, F6
+fairness). Lane still at zero GPU-h. K-wall R9 audit still in
+flight.**
+
 **2026-08-12 tick #4 (Fable): K-wall Rev-8 RETURNED — K1–K7 all
 discharged with executed traces (3/4-throttled payload now PASSES;
 zero-cost no-op killed; assertion 8 recomputes charging; A6 negative

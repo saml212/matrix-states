@@ -9491,3 +9491,29 @@ residue: two near-misses caught IN-SESSION (U8 div-by-zero guard;
 stale self-referential MD5 — the KW9.5 shape, caught this time).
 Build charter still NOT released. R9 = K-discharge verification +
 both suites + frozen-zone diff; terminal expected.
+
+## 2026-08-12 #5 — Consolidation Rev-1 returned: 2 of 3 regimes KILLED by executed math; aggregate/regression survives w/ +0.230 margin; attack R2 dispatched w/ precision-symmetry amendment
+
+DRAFT-R1 appended (§6, pure 408-line append, coordinator-verified 0
+deletions). Falsifier-backwards derivation, 7 stable numpy scripts:
+steelman A7 = index-coded fp32 (31 slots @ d=32) / fp16 (63) /
+entropy-coding ceiling (<1 extra slot — value precision is the lever,
+not ID cleverness). Regime (i) overload: KILLED (192+48-cell sweeps;
+winning cells sit in the 0.13-0.34 both-arms-useless band; matrix
+off-target margin goes NEGATIVE under interference). Regime (iii)
+correction-survival: KILLED (45-cell exact-binomial sweep, 0 winning
+cells) — §1's marquee "correction survives 500K tokens" demo retired
+as UNVALIDATED. Regime (ii) aggregate/regression: SURVIVES vs fp32-A7
+— provable bound E[cos] ≤ √(C/M) + 8-point M/d sweep; registered
+headline d=32/M=128/ρ=0.7 margin +0.230 (20× seed noise n=20, 29× at
+n=50), gate IMPROVES it at higher overload; but margin ≈0 vs fp16-A7.
+L1-L6 discharged w/ traces (coherence polarity REVERSED vs the killed
+regime — cross-lane tension w/ NCR ortho-write, disclosed; 12.5×
+FLOP dominance analysis shows margin isn't hidden compute); all 29
+attack findings dispositioned by ID. ADOPTED (§7) with coordinator
+amendment M1: the fp16 risk was derived with the precision lever
+granted to the cache ONLY — R2 must adjudicate the falsifier under
+SYMMETRIC precision freedom (fp16-A7 ⇒ fp16-S at matched bytes, with
+accumulation-drift check). R2 charter: verify §6 figures, M1,
+aggregate-query external validity, F6 resolution fairness, append
+integrity. Still zero GPU-h spent on this lane.
