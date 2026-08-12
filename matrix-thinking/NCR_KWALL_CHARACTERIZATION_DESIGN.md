@@ -2547,7 +2547,12 @@ verdict is UNCHANGED, PASS under both transcriptions; pre-Rev-8 §5's
 unconditional wording gave a compliant implementer no way to EMIT a
 `null` band in the first place, which is precisely the FATAL K1
 closed — these SIX flips plus B3-AMENDED's newly-sanctioned emission
-are the ONLY behavioural deltas; nothing else regressed (§R9 m1 —
+are the ONLY behavioural deltas WITHIN THE 24-PAYLOAD SUITE (§A10/n1
+scoping, per KW11.2: the four §R9 teeth-probes OUTSIDE the suite —
+D1/D1', m7's `COMPLETE`/strict ledger clause, and D2/D2', m3's U7
+Otherwise-arm assertion — also flip PASS(OLD)→FAIL(NEW), by
+construction and by design, as the forced-fail demonstrations of
+their new clauses); nothing else regressed (§R9 m1 —
 corrects KW10.2's "five, and B3-AMENDED is one of them" miscount; the
 prior tally hid B2' and B3-NEG because the driver auto-matched an
 `"N/A(old had no rule)"` OLD-expectation string as a pass regardless
@@ -2598,23 +2603,34 @@ KW10.1) — no other payload among the 24 is a rebuild.**
   `GATE-REFUSED`), so `0.71×14.55=10.3305` was never reachable while
   holding L5's `realized=14.55` fixed — this bullet therefore uses its
   OWN disk state, not L5's, exactly as K4 built A6's own state rather
-  than reusing L5's):** 12 primary `(K,seed)` pairs — 10 single-attempt
-  `CRASHED-RECOVERED` (`ceiling_charged=true`, `1.20` each →
-  `12.00`), 1 pair `COMPLETED` (measured, `elapsed_h=2.00`, 1
-  canonical file), 1 pair `GATE-REFUSED` at `attempt_n=1` (`0.0`) —
-  `10+1+1=12` pairs. Self-reported `charged_vs_measured`:
-  `ceiling_charged_gpu_h=12.00` (`=10×1.20`, matching the 10
+  than reusing L5's; composition restated per §A10/N1 — the §R9
+  draft's `COMPLETED` row declared `elapsed_h=2.00`, which NO primary
+  attempt can produce under the design's own rules (`--ceiling-gpuh
+  1.20` + τ=0.0157 tail + s=0.0053 startup allowance ⇒ maximum
+  reachable primary row `1.2210`; KW11.1); replaced with R10 §4's
+  option (A), executed PASS by the R10 audit — which is the
+  composition Rev-8's harness ACTUALLY ran, so the in-text spec and
+  the historically-executed payload are now IDENTICAL, fully retiring
+  the KW9.4/KW10.1/KW11.1 substitution lineage):** 12 primary
+  `(K,seed)` pairs — 10 single-attempt `CRASHED-RECOVERED`
+  (`ceiling_charged=true`, `1.20` each → `12.00`), 1 pair `CRASHED`
+  on BOTH attempts (`ceiling_charged=true` on each row,
+  `1.20+1.20=2.40`, 0 canonical files), 1 pair `GATE-REFUSED` at
+  `attempt_n=1` (`0.0`) — `10+1+1=12` pairs, 0 canonical files
+  total. Self-reported `charged_vs_measured`:
+  `ceiling_charged_gpu_h=14.40` (`=12×1.20`, matching the 12
   `ceiling_charged=true` rows exactly, so universal assertion 8
-  PASSES), `realized_gpu_h_final=14.00` (`=12.00+2.00+0.00`, so
-  universal assertion 3 PASSES: `|14.00−14.00|=0`),
-  `ceiling_charged_fraction=12.00/14.00` exactly (`0.8571` to 4 dp —
-  the EXACT quotient, per m4's same rounding discipline). Claimed
+  PASSES), `realized_gpu_h_final=14.40` (`=12.00+2.40+0.00`, so
+  universal assertion 3 PASSES: `|14.40−14.40|=0`),
+  `ceiling_charged_fraction=14.40/14.40` exactly (`=1.0000` — the
+  EXACT quotient, per m4's same rounding discipline). Claimed
   `run_status="EXHAUSTED-BUDGET-SUSPECT-OVERCHARGE"`: the three base
-  clauses hold (`14.00>13.80` ✓, canonical count `1<12` ✓, the
+  clauses hold (`14.40>13.80` ✓, canonical count `0<12` ✓, the
   `GATE-REFUSED` pair's row has `attempt_n==1` ✓), PLUS the mirror
-  clause `ceiling_charged_fraction>0.50` → `12.00/14.00>0.50` ✓ —
+  clause `ceiling_charged_fraction>0.50` → `14.40/14.40>0.50` ✓ —
   **PASSES**, with U1/U2/U3/U8 and all three base clauses confirmed
-  PASSING first, by execution (failure-reason list: `[]`).
+  PASSING first, by execution (R10's `r10_l6fix.py`, option (A):
+  failure-reason list `[]`; round 11 to re-derive independently).
 - `STOPPED-BY-OPERATOR` with a real stop-file on disk — correctly
   routes to `failed/` via universal assertion 1 (by design, per G4
   above — this is not a `validity_check` failure, it is the intended
@@ -5117,10 +5133,15 @@ its offset) — see the MD5 table, below.
   redundant, not load-bearing.
 - **The 200-state cell-level composition/reconstruction procedure was
   NOT re-run this revision — OUT OF SCOPE, explicitly**: none of
-  M1/m1–m7 touch `G1`/`G2`/`0.0`/`0.1`/`0.2`/the recovery procedure;
-  R9's own execution already re-confirmed it exactly against the
-  current (K1–K7-amended) text, and no edit this revision lands
-  inside that procedure.
+  M1/m1–m7 touch `G1`/`G2`/`0.0`/`0.1`/`0.2`/the recovery procedure's
+  LOGIC. (§A10/n2 correction, per KW11.3: one m5 clause — the
+  `elapsed_s` disambiguation — does land TEXTUALLY inside step `0.1`'s
+  charging-rule sentence; it renames WHICH field is read (top-level
+  `rec["elapsed_s"]`, not the nested `rec["train"]["elapsed_s"]`)
+  without altering any arithmetic, threshold, or row rule, so it
+  cannot move a composition figure.) R9's own execution already
+  re-confirmed the procedure exactly against the current
+  (K1–K7-amended) text.
 
 ### MD5 / line-count table
 
@@ -5191,3 +5212,53 @@ not assertion, matching the same discipline K1–K7 were held to.
 None of the three items above is a defect this revision introduced or
 left broken — they are scope boundaries, stated so round-10 can verify
 by inspection rather than assume.
+
+---
+
+## §A10-ADJUDICATION (coordinator, 2026-08-12) — audit R10 = REV-REQUIRED (0F/1M/3m) ADOPTED; N1+n1–n3 implemented BY THE COORDINATOR as transcriptions of audited artifacts; round-11 dispatched (N1 only, terminal on inspection)
+
+- **Report:** `NCR_KWALL_ATTACK_R10.md`, against DRAFT-R9 at
+  `3d339bf`. M1's chartered condition was MET (the auditor re-derived
+  the rebuilt L6's arithmetic and executed it to PASS `[]`, with the
+  rounded-literal variant correctly failing U8) and m1 was FULLY
+  discharged (28-payload differential re-execution, 0 mismatches,
+  six-flip set-equality, both B2/B2' narrations matching mechanism).
+  Frozen zone byte-identical; every §R9 MD5/line row reproduced;
+  m2–m7 present and correct; D-probes re-executed and flip as
+  claimed.
+- **KW11.1 MAJOR — ADOPTED:** the L6 rebuild's `COMPLETED` primary
+  row (`elapsed_h=2.00`) is unproducible — the design's own ceiling +
+  τ tail + startup allowance cap a primary row at `1.2210`. Third
+  instance of the fixture class (KW9.4 → KW10.1 → KW11.1). **Charter
+  addition (j) ADOPTED as proposed: every in-text fixture must be
+  PRODUCIBLE under the design's own rules** — the build charter
+  gains it.
+- **Disposition N1 implemented with R10 §4's option (A)** — chosen
+  over (B)/(C) because it is the composition Rev-8's harness
+  ACTUALLY executed (spec and history now identical, substitution
+  lineage fully retired) and its clause trace maps 1:1 onto the
+  existing bullet's structure (GATE-REFUSED base clause included) —
+  minimizing fresh-transcription risk. All three options were
+  executed PASS by the R10 audit (`r10_l6fix.py`).
+- **n1** (KW11.2): the "ONLY behavioural deltas" sentence scoped to
+  the 24-payload suite with the four D-probe flips named alongside.
+  **n2** (KW11.3): the m5 `elapsed_s` clause's textual contact with
+  step `0.1`'s charging-rule sentence disclosed, with the why-it-
+  cannot-move-a-figure argument. **n3** (KW11.4): the transcription
+  scripts are now COMMITTED at `matrix-thinking/kwall_suites/`
+  (`r9rev_{vcheck,payloads,drive}.py`,
+  `r10_{vcheck,payloads,probes,l6fix}.py`) — the "no durable `.py`"
+  fragility flagged since R9 is closed; §R9's residue declaration is
+  hereby amended by this block (not by editing §R9) to record that
+  m7's commit-the-scripts half completed HERE.
+- **Process note (disclosed for round 11):** these four edits were
+  implemented by the COORDINATOR — transcribing compositions and
+  clauses the R10 audit had already executed to verdict — not by a
+  fresh revision agent. Implementer ≠ verifier is preserved: round
+  11 independently re-derives N1 against `:460`/`:977-984`/`:1091`/
+  `:1902-1912`/`:2141-2156` and re-executes it, plus the byte-range
+  integrity re-check, per R10's binding scope. n1–n3 are verifiable
+  by reading the diff.
+- **Round-11 scope (binding, per R10 §6): N1 ONLY + integrity;
+  TERMINAL ON INSPECTION. On CLEAR the §8 build charter — now
+  including item (j) — RELEASES.**

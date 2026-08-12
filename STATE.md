@@ -1,5 +1,18 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #9 (Fable): K-wall audit R10 = REV-REQUIRED
+(0F/1M/3m) — M1/m1 chartered conditions MET, but a THIRD
+fixture-producibility catch (L6's 2.00h row vs the 1.2210 max
+reachable; KW9.4→KW10.1→KW11.1 class) forces one more narrow round.
+Charter addition (j) adopted (fixtures must be producible). N1+n1-n3
+implemented by the coordinator as transcriptions of R10-executed
+artifacts (option (A) — spec now IDENTICAL to what Rev-8's harness
+ran; suite scripts committed to matrix-thinking/kwall_suites/,
+closing the no-durable-.py fragility); §A10 disclosure; R11
+dispatched — N1 re-derivation + integrity ONLY, TERMINAL ON
+INSPECTION; on CLEAR the build charter releases. Science explicitly
+unimpugned through ten rounds.**
+
 **2026-08-12 tick #8 (Fable): K-wall Rev-9 RETURNED — M1+m1-m7 all
 discharged by execution (L6 rebuilt self-consistent + substitution
 disclosed; six-flip delta set confirmed by independent transcription

@@ -9584,3 +9584,28 @@ untouched by convention; composition suite + A2-A5/A7 out of scope).
 Doc now DRAFT-R9, 5193 lines. R10 = M1/m1 verification, TERMINAL ON
 INSPECTION; on CLEAR the §8 build charter releases → build ceremony →
 fallback-pool refill (the PI's GPU-hot runway).
+
+## 2026-08-12 #9 — K-wall audit R10: REV-REQUIRED (0F/1M/3m); third fixture-producibility catch; N1+n1-n3 coordinator-implemented from audited artifacts; R11 dispatched (N1 only, terminal)
+
+M1's chartered condition MET (auditor re-derived + executed rebuilt
+L6 to PASS []) and m1 FULLY discharged (28-payload differential, 0
+mismatches, six-flip set-equality) — but KW11.1 (MAJOR, new at the
+same site): the rebuild's COMPLETED primary row declared
+elapsed_h=2.00, unproducible under the design's own rules (1.20
+ceiling + τ=0.0157 + s=0.0053 ⇒ max reachable row 1.2210). Third
+instance of the KW9.4/KW10.1 fixture class; auditor's proposed
+charter addition (j) — fixtures must be PRODUCIBLE — ADOPTED. Fix:
+L6 restated per R10 §4 option (A) (the composition Rev-8's harness
+ACTUALLY ran: 10×1.20 CRASHED-RECOVERED + 1 both-attempts-CRASHED
+2.40 + 1 GATE-REFUSED; realized=ccgh=14.40, fraction=14.40/14.40
+exact; executed PASS by the audit) — spec and history now identical,
+substitution lineage retired. 3 minors: delta sentence scoped to the
+suite w/ the 4 D-probe flips named; m5's textual 0.1 contact
+disclosed w/ the cannot-move-a-figure argument; transcription
+scripts COMMITTED to matrix-thinking/kwall_suites/ (closing the
+no-durable-.py fragility). All four edits coordinator-implemented as
+transcriptions of audited artifacts, disclosed in §A10; implementer≠
+verifier preserved — R11 re-derives N1 independently + integrity;
+TERMINAL ON INSPECTION; on CLEAR the build charter (now w/ item (j))
+RELEASES. Science untouched: R10 explicitly impugns nothing in the
+budget derivation, reconstruction, or band logic.
