@@ -9609,3 +9609,25 @@ verifier preserved — R11 re-derives N1 independently + integrity;
 TERMINAL ON INSPECTION; on CLEAR the build charter (now w/ item (j))
 RELEASES. Science untouched: R10 explicitly impugns nothing in the
 budget derivation, reconstruction, or band logic.
+
+## 2026-08-12 #10 — K-WALL GAUNTLET TERMINAL: audit R11 CLEAR (0F/0M/0m); BUILD CHARTER RELEASED after 11 rounds; build ceremony dispatched
+
+R11 re-derived N1 from a FRESH transcription (exact trajectory hit on
+all 5 declared figures; all 13 rows producible vs the 1.2210 cap; PASS
+[] under both its transcription and the committed r10_l6fix.py; 7/7
+negative controls detect the superseded figures as wrong), verified
+n1-n3 (committed suite scripts md5-identical to what R9-rev/R10
+actually ran, re-executions reproduce every recorded figure), and
+closed integrity line-exactly. VERDICT CLEAR; the §8 build charter
+incl. item (j) is RELEASED (§A11-ADJUDICATION): validity_check +
+recovery/reconstruction + trigger/band + report schema + the
+≤15.00-gated dispatch loop bounded T ≤ 15.3737; 12-cell
+K∈{26,28,30}×4-seed recovery-leg wall characterization on the live
+K=24 recipe + conditional 160K arm behind the three micro-smokes;
+15.50 GPU-h declared pool ceiling. 5 non-blocking observations: 2
+folded into the release edit, 3 ACCEPTED-COSMETIC by precedent, all
+named. Build ceremony OPEN: build agent → build audit + placement
+red-team (10-50 GPU-h tier) → fallback_pool. Gauntlet arc: DRAFT-R0
+08-06 → eleven audit rounds converging monotonically (R8 1F/5M/5m →
+R9 0F/1M/7m → R10 0F/1M/3m → R11 0/0/0) → RELEASED 6 days later,
+science unimpugned since R8.

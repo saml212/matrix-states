@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #10 (Fable): K-WALL GAUNTLET TERMINAL — audit R11
+CLEAR (0F/0M/0m), BUILD CHARTER RELEASED after 11 rounds
+(§A11-ADJUDICATION; design STATUS flipped to RELEASED). Scope: the
+12-cell K∈{26,28,30}×4-seed recovery-leg wall characterization on the
+live K=24 recipe, ≤15.50 GPU-h pool ceiling, bound T ≤ 15.3737, item
+(j) fixtures-producible now charter law. BUILD CEREMONY DISPATCHED
+(build agent → build audit + placement red-team → box fallback_pool =
+the PI's durable GPU-hot runway). Jacobians still staged behind the
+gh_* PAUSE; grant window ~2.5 weeks.**
+
 **2026-08-12 tick #9 (Fable): K-wall audit R10 = REV-REQUIRED
 (0F/1M/3m) — M1/m1 chartered conditions MET, but a THIRD
 fixture-producibility catch (L6's 2.00h row vs the 1.2210 max

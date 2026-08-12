@@ -1,7 +1,10 @@
 # NCR K-WALL CHARACTERIZATION — K∈{26,28,30} ON THE LIVE K=24 RUNG
 
-**STATUS: DRAFT-R9 — POST-AUDIT-9, AWAITING NARROW AUDIT ROUND 10 (not
-build-released, not queue-eligible).**
+**STATUS: RELEASED — AUDIT ROUND 11 CLEAR (0F/0M/0m, 2026-08-12,
+`NCR_KWALL_ATTACK_R11.md`). The §8 build charter INCLUDING item (j)
+(fixtures must be producible) is RELEASED; build ceremony OPEN
+(§A11-ADJUDICATION at tail). Not queue-eligible until the build passes
+its own audit + the three micro-smokes.**
 
 **Mandate.** `NCR_KLADDER_DESIGN.md` §A4-ADJUDICATION (2026-08-06,
 `matrix-thinking/NCR_KLADDER_DESIGN.md:1999-2004`) stamped the K-ladder
@@ -5262,3 +5265,56 @@ by inspection rather than assume.
 - **Round-11 scope (binding, per R10 §6): N1 ONLY + integrity;
   TERMINAL ON INSPECTION. On CLEAR the §8 build charter — now
   including item (j) — RELEASES.**
+
+---
+
+## §A11-ADJUDICATION (coordinator, 2026-08-12) — audit R11 = CLEAR (0F/0M/0m); GAUNTLET TERMINAL AFTER 11 ROUNDS; BUILD CHARTER RELEASED; build ceremony dispatched
+
+- **Report:** `NCR_KWALL_ATTACK_R11.md` (606 lines), against
+  `e7d29f0`. N1 re-derived from a FRESH transcription: 12 pairs, ccgh
+  12×1.20=14.40, realized 12.00+2.40+0.00=14.40, U3/U8 residuals
+  exactly 0, fraction 14.40/14.40=1 (the 4-dp literal IS the exact
+  quotient — the rounding hazard cannot arise); term-for-term match
+  to R10 §4 option (A); all 13 rows producible against the re-derived
+  1.2210 cap with ZERO `COMPLETED` rows, fully retiring KW11.1;
+  PASS `[]` under both the fresh transcription and the committed
+  `r10_l6fix.py`; 7/7 negative controls show teeth (both superseded
+  figures now DETECTED as wrong). Beyond charter: §4's strictly-
+  sequential contract simulated — the declared figures are an EXACT
+  TRAJECTORY HIT on all five. n1–n3 verified (D-probes re-executed
+  and correctly attributed; the `0.1` containment re-measured;
+  all 7 committed scripts md5-identical to the originals R9-rev/R10
+  ran, re-executions reproducing 0/19 + six-flip set-equality + the
+  full 24-row table). Integrity exact (frozen zone byte-identical
+  both commits; the whole-file diff accounts to precisely the
+  disclosed hunks).
+- **RELEASE (the auditor's statement, adopted as the verdict of
+  record):** the design is BUILD-RELEASABLE; the §8 build charter,
+  including item (j), is RELEASED — covering `validity_check`, the
+  recovery/reconstruction procedure, trigger/band procedures, the
+  report schema, and the ≤15.00-gated dispatch loop bounded by
+  T ≤ 15.3737, with the 12-cell K∈{26,28,30}×4-seed recovery-leg
+  wall characterization on the live K=24 recipe plus the conditional
+  160K arm queue-eligible BEHIND the three micro-smokes, under the
+  15.50 GPU-h declared pool ceiling.
+- **The five non-blocking observations:** each verified by the
+  auditor's own execution to move no figure, clause, verdict, or
+  bound. Two are folded into THIS release edit (the stale status
+  header, corrected above; this MD5-less §A10/§A11 layer note —
+  recorded here: the adjudication layers carry no MD5 table by
+  design, they are coordinator records verified by round diff, and
+  R11 verified this one line-exactly). The remaining three
+  (pair-partition narration wording; the one-word
+  `CRASHED`→`CRASHED-RECOVERED` literal; the under-filtered
+  self-check line in the shipped `r10_payloads.py`) are
+  ACCEPTED-COSMETIC per the KW3.15/KW4.11/KW5.8 precedent — named
+  here so no future round re-discovers them, chargeable to the build
+  stage if its harness reuse ever touches them.
+- **BUILD CEREMONY: dispatched 2026-08-12.** Build agent implements
+  per the released §8 charter (runner + job specs + validity_check +
+  the three micro-smokes + every forced-fail negative test, item (j)
+  enforced); then the build's OWN audit + pre-launch
+  resource/placement red-team (10–50 GPU-h ceremony tier); specs
+  enter the box `fallback_pool/` ONLY after that audit passes.
+  Eleven rounds, R0→R11; the science (budget derivation,
+  reconstruction, band logic) unimpugned since R8.
