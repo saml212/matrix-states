@@ -8,6 +8,15 @@ is unoccupied as of 2026-08-12; the surrounding skeleton is occupied
 (Tensor Cache) and carries mandatory cite-and-distinguish obligations
 (list below). Attack stage released.
 
+**LANE OUTCOME (2026-08-12, same day): PARKED — KILLED-AT-DESIGN.**
+The claim was novel but the mechanism failed the design gauntlet
+(attack R2 BLOCKED, `matrix-thinking/CONSOLIDATION_POLICY_WATERFALL.md`
+§8): no regime beats a steelmanned (ridge-tuned, index-coded)
+byte-matched exact-KV baseline, and the usage gate measures
+null-to-harmful vs a constant-η control. Novelty ≠ merit — this memo
+stays as the do-not-redo record and cite inventory; revival conditions
+in registry §8. Zero GPU-h spent.
+
 ## Candidate claim (verbatim registration)
 
 > While a KV pair resides in a sliding attention window, accumulate a

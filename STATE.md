@@ -1,5 +1,16 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #7 (Fable): CONSOLIDATION LANE PARKED —
+KILLED-AT-DESIGN (attack R2 BLOCKED 5F/6M/5m, adopted; registry §8).
+The +0.230 was a min-norm-vs-ridge conditioning artifact (fair A7 →
++0.066 < bar); precision symmetry answered NO (linear d×d map is
+Bayes-optimal; A7's coding lever unbounded); the usage gate is null-
+to-harmful vs constant-η in its own best regime. Novel ≠ meritorious;
+0 GPU-h spent end to end. Salvage: ridge-baseline discipline,
+index-coded-cache steelman (new program-wide standard baseline), fp16
+delta drift result. Revival conditions pre-registered. K-wall Rev-9
+still in flight (round-10 terminal-on-inspection next).**
+
 **2026-08-12 tick #6 (Fable): K-wall audit R9 = REV-REQUIRED (0F/1M/7m)
 — K1–K7 SUBSTANCE CERTIFIED DISCHARGED (independent re-transcription
 0/24 disagreements, all conditional-arm shapes trace correctly, suites

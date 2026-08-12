@@ -1,11 +1,14 @@
 # CONSOLIDATION POLICY WATERFALL — usage-gated eviction writes into fast-weight memory
 
 Opened 2026-08-11 on PI GO (conversation of 2026-08-11; idea developed
-with a second agent, verified here). **Lane status: SUPPORT LANE under
-the one-spearhead doctrine** — the NCR real-LM spearhead
-(write-conditioning design round, K-wall characterization) is not
-displaced; this lane draws idle/queue-filler compute only, unless the PI
-re-ratifies priorities.
+with a second agent, verified here). **LANE STATUS: PARKED —
+KILLED-AT-DESIGN 2026-08-12 (§8), zero GPU-h spent.** The claim
+survived the novelty gate (genuinely unoccupied) but not the steelman
+falsifier: every task regime is dead or under-bar against a
+fairly-tuned byte-matched exact-KV baseline, and the usage gate itself
+measures null-to-harmful in the sole surviving regime. Revival
+conditions and salvage inventory in §8. Do not rebuild without a NEW
+claim through a fresh waterfall.
 
 ## §0 Waterfall position
 
@@ -664,3 +667,70 @@ it); (4) the F6 "write-attempt vs commit" matching resolution —
 fair reading or dodge; (5) §3/§5/§6 append-integrity + the 29-item
 disposition table's completeness. Verdict CLEAR ⇒ Stage 4 validation
 + Mac pilot build ceremony; REV-REQUIRED ⇒ Rev-2.
+
+---
+
+## §8 ATTACK-R2 ADJUDICATION (coordinator, 2026-08-12) — BLOCKED (5F/6M/5m) ADOPTED IN FULL; LANE PARKED, KILLED-AT-DESIGN
+
+Report: `CONSOLIDATION_ATTACK_R2.md` (seven executed `r2_*.py`
+demonstrations, scratchpad). Adopted without reservation — the
+findings are structural:
+
+1. **The +0.230 was a conditioning artifact.** DRAFT-R1's A7 used
+   min-norm `lstsq` at C=31 pairs in d=32 — smallest singular value
+   on the Marchenko–Pastur hard edge, `pinv` amplifying unstored-item
+   query components ~11×. A ridge baseline with λ tuned OFFLINE on
+   synthetic replicates (matches oracle λ to 4 dp — fair) lifts A7
+   0.061→0.222: margin +0.066 < 0.15 bar, at fp32, before precision.
+2. **M1 answered NO.** E[t|q] = VᵀK(KᵀK)⁻¹q is linear, so a d×d map
+   is already Bayes-optimal — symmetric "double state" buys 0.0000
+   (fp16 2-head 0.4909 vs fp32 ceiling 0.4911); nonlinear features
+   WORSE (0.198). The one real lever (fp16 streaming RLS, 0.288→
+   0.477, drift honest to T≈2000) HAS NO GATE — adopting it deletes
+   the lane's subject. Meanwhile A7's coding lever is unbounded
+   (fp16 −0.035, int8 −0.193; best-possible matrix dies at 12-bit
+   coding). The √(C/M) "backbone" is vacuous: fp32 index coding puts
+   A7 at C = d−1, bound 0.4921 vs matrix ceiling 0.4911 (verified
+   d ∈ {16,32,64,128}).
+3. **The lane's SUBJECT is null in its own surviving regime:**
+   gated−shuffled = +0.007 (bar 0.013); ρ-sweep flat (+0.2299 @ ρ=0
+   vs +0.2234 @ ρ=1); constant η at the gate's mean beats the gate
+   0.409 vs 0.288 — the gate is a (harmful) step-size effect. §6.6's
+   L4/F4/M5 FIXED-BY-CONSTRUCTION dispositions were run on the
+   killed regime's metric and do not hold.
+4. **Margin inverts under sparse queries** (k=1: A7 0.614 vs matrix
+   0.465) — the query family that makes the matrix win is precisely
+   the one that makes a per-item policy meaningless.
+5. Provenance MAJOR (R2-F): §6.9's "single parametrized calls into
+   `run_cell`" is false (η hardcoded, no ρ/gate/precision args);
+   the auditor's independent reconstruction lands +0.227 vs +0.230 —
+   figures honest, provenance not. Disposition-table over-claims on
+   M10/F4/F6/M5/M9 noted for the record.
+6. Unbroken by the attack (stands as fact): both regime kills, the
+   capacity/entropy accounting, the headline VALUE, §3/§5 integrity.
+
+**VERDICT OF RECORD: the mechanism does not beat a steelmanned
+byte-matched exact-KV baseline anywhere mapped, and the usage-gating
+policy contributes nothing measurable where the matrix is closest.
+Parked pre-build. Total lane cost: 0 GPU-h, ~1 day of agent time.**
+
+**Revival conditions (any one, via a FRESH waterfall + novelty
+re-entry):** (a) a claim re-scoped to a regime where the reader is
+provably NONLINEAR in the stored content (voiding the Bayes-optimal
+d×d argument); (b) a workload family with externally-validated dense
+aggregate queries where precision floors are PRINCIPLED (e.g.
+hardware-fixed activations), not stipulated; (c) the gate re-aimed at
+a quantity writes actually control in-regime (e.g. interference
+allocation under correlated keys), demonstrated ≥2× seed noise
+against the constant-η control FIRST.
+
+**Salvage inventory (recorded in the R2 report; free to other
+lanes):** the ridge-vs-min-norm falsifier discipline (any lane
+comparing against lstsq baselines must tune them — direct relevance
+to M*/axis-2 replication standards); the fp16 delta-rule
+drift-self-correction result (~1.6e-3 independent of stream length —
+relevant to any future fp16 fast-weight serving claim); the
+index-coded-cache steelman itself (a reusable, stronger byte-matched
+baseline for EVERY future memory comparison in this program,
+including a potential critique-paper angle on Tensor-Cache-class L2
+memories).

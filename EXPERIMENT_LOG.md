@@ -9533,3 +9533,33 @@ in-text + disclose. 7 minors incl. six-not-five delta count and a
 adopted verbatim (§A9-ADJUDICATION); Rev-9 dispatched; round-10 =
 M1/m1 only, TERMINAL ON INSPECTION; build-charter release is
 round-10's to grant. Report: `NCR_KWALL_ATTACK_R9.md`.
+
+## 2026-08-12 #7 — Consolidation attack R2: BLOCKED (5F/6M/5m) — LANE PARKED, KILLED-AT-DESIGN at 0 GPU-h
+
+Structural kill, adopted in full (registry §8). (1) The +0.230 margin
+was a conditioning artifact: DRAFT-R1's A7 used min-norm lstsq at the
+Marchenko-Pastur hard edge (~11× noise amplification); a fairly-tuned
+ridge A7 (offline λ = oracle to 4dp) reads 0.222 → margin +0.066,
+under the 0.15 bar, at fp32. (2) M1 precision-symmetry = NO: the d×d
+linear map is Bayes-optimal (E[t|q] linear) so symmetric extra state
+buys 0.0000; the only real lever (fp16 streaming RLS, 0.288→0.477,
+drift honest to T≈2000) has NO gate — deletes the subject; A7's
+coding lever unbounded (int8 → matrix −0.193); the √(C/M) backbone
+vacuous (fp32 index coding ⇒ C=d−1; bound 0.4921 vs matrix ceiling
+0.4911, verified d∈{16..128}). (3) The gate itself: gated−shuffled
++0.007 (bar 0.013), ρ-sweep flat, constant-η BEATS the gate 0.409 vs
+0.288 — a harmful step-size effect; §6.6's L4/F4/M5 dispositions ran
+on the killed regime's metric. (4) Margin inverts under sparse
+queries (k=1: A7 0.614 vs 0.465). Provenance MAJOR: headline cell not
+reproducible from the stable scripts as claimed (reconstruction
++0.227 — figure honest, provenance not); 5/9 disposition spot-checks
+over-claimed. Unbroken: both regime kills, capacity/entropy
+accounting, headline value, §3/§5 integrity. Verdict of record:
+mechanism loses to a steelman byte-matched cache everywhere mapped;
+policy contributes nothing where the matrix is closest. Revival
+conditions (nonlinear reader / principled precision floors /
+interference-aimed gate vs constant-η first) + 3-item salvage
+inventory (ridge-baseline discipline; fp16 delta drift ~1.6e-3
+self-correcting; the index-coded-cache steelman as this program's new
+standard baseline) in §8. The waterfall did its job: idea → verified
+novel → killed by executed math in ~1 day, before any build.
