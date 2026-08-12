@@ -15,9 +15,11 @@ re-ratifies priorities.
   `research/consolidation-policy-novelty-2026-08-11.md`: claim
   COVERED-FRESH, Tensor Cache is the mandatory closest-architecture
   cite, R8ZbLi3oUv reclassified as a motivation cite).
-- **Stage 3 Attack: DISPATCHED 2026-08-12** (Opus-class, charter §4) →
-  report `CONSOLIDATION_ATTACK_R1.md`, adjudication pending. Target:
-  §3's DRAFT-R0 pre-registration.
+- **Stage 3 Attack: R1 = BLOCKED (6F/16M/7m) ADOPTED 2026-08-12** —
+  report `CONSOLIDATION_ATTACK_R1.md`; §3's DRAFT-R0 is DEAD AS
+  PARAMETERIZED (adjudication + dispositions L1–L6 in §5 below).
+  Rev-1 dispatched: falsifier-backwards numpy re-derivation at zero
+  compute → DRAFT-R1 → attack R2.
 - **Stage 4 Validation: —**
 - Build only on survival of all four stages.
 
@@ -136,13 +138,74 @@ by construction (pigeonhole spec, not vibes); (iv) eviction must be
 hard (blank-out-verified), else attention leaks; (v) λ decay half-life
 vs stream length interaction; (vi) seed variance at small d.
 
-## §4 Attack round — pending Stage-2 gate discharge
+## §4 Attack round R1 — RAN 2026-08-12, verdict BLOCKED
 
-Charter (draft): attack the DRAFT-R0 pre-registration frame-first
-(is the partition of arms airtight? can any arm silently see the
-usage signal? is A7's defeat truly by construction?), then the
-arithmetic (bytes/write-mass matching), then the instrument (recovery
-metric, collapse watch). Opus-class. Report to
-`CONSOLIDATION_ATTACK_R1.md`. Dispatch ONLY after
-`research/consolidation-policy-novelty-2026-08-11.md` records the
-R8ZbLi3oUv adjudication and this file's §0 flips Stage 2 to DONE.
+Charter as drafted (frame → arithmetic → instrument), Opus-class,
+report `CONSOLIDATION_ATTACK_R1.md` with four re-runnable numpy
+demonstrations. Verdict BLOCKED, 6 FATAL / 16 MAJOR / 7 minor.
+
+## §5 ATTACK-R1 ADJUDICATION (coordinator, 2026-08-12) — ADOPTED IN FULL; dispositions L1–L6 = the Rev-1 charter
+
+**Coordinator verification before adoption:** F1's capacity arithmetic
+re-derived directly — matrix bytes d²=1024 floats; byte-matched KV
+slot cost 2d=64 floats ⇒ 16 slots = M exactly (A7 stores the whole
+useful set verbatim, scores 1.000); index-coding (6-bit id + d-float
+value ≈ 33 floats) ⇒ 31 slots. Correct. DRAFT-R0's "pigeonhole defeat
+by construction" was NOT instantiated by its own parameters — the
+coordinator's error, caught for free. §3 DRAFT-R0 is retained above
+UNEDITED as the historical record; it is superseded by DRAFT-R1.
+
+**Dispositions:**
+- **L1 (F1+F2 — the task-family pivot).** Per-item verbatim recall at
+  byte-matched state is the WRONG battlefield: superposition wins only
+  in regimes DRAFT-R0 never operationalized. DRAFT-R1 re-derives the
+  task FROM THE FALSIFIER BACKWARDS in numpy (zero compute, before any
+  model code): (i) overload regime — M_useful ≫ index-coded cache
+  slots, scored by usage-weighted recovery energy (graceful
+  degradation IS the claim); (ii) aggregate/regression queries over
+  novel keys drawn from the written items' key manifold (a lookup
+  table cannot answer by construction — construction must be stated,
+  not vibed); (iii) accumulation/correction — repeated exposures
+  refine (residual write), caches duplicate. ALL margins and bars
+  re-registered from the DERIVED frontier, not aspiration; the
+  attack's own sweep scripts are the starting point.
+- **L2 (F2 — coherence as enabling condition).** Single-pass delta
+  recovery is a function of M/d and key coherence; mean coherence
+  ≲0.05 becomes an EXPLICIT, MEASURED enabling condition with a
+  pre-registered instrument, and the coupling to NCR's open
+  ortho-write problem is a DISCLOSED cross-lane dependency (cite the
+  c*·I conformal-scaffold Z-dump finding, 64c59d9).
+- **L3 (F3 — the §G3-B26 pattern, second appearance).** Off-target
+  margin, N-way retrieval vs chance, and value-space pairwise-cosine
+  collapse watch are FIRST-CLASS pre-registered metrics with bars; a
+  mean-cosine score alone is a saturated instrument (rank-1 reader
+  scores 0.956 with zero per-item information).
+- **L4 (F4 — the isolating contrast).** A5 (shuffled) ≡ A6 (random)
+  under top-M selection — drop one, disclosed. The real contrast is
+  A4-vs-A5, which exists ONLY if in-window usage is CAUSALLY
+  PREDICTIVE of post-eviction query probability while independent of
+  key/value geometry — DRAFT-R0's blanket independence requirement
+  destroyed its own treatment signal. DRAFT-R1 must construct
+  usage→query correlation explicitly and state the estimand.
+- **L5 (F5 — no learned gate in phase-1).** The phase-1 gate is a
+  FIXED pre-registered monotone function of the measured trace (no
+  BPTT through eviction; λ^16W ≈ 3.4e-5 kills any such gradient).
+  Learned-g is deferred to its own phase with an explicit
+  credit-assignment design; the instrument-null vs policy-null
+  distinction the attack demanded is thereby structural.
+- **L6 (F6 — matching hierarchy).** "Matched on bytes/count/mass/
+  FLOPs" simultaneously is proven unsatisfiable. DRAFT-R1 registers a
+  hierarchy: state bytes EXACT, write count EXACT, write mass and
+  FLOPs REPORTED with bounds + a dominance analysis; the numpy stage
+  derives which equalities are jointly satisfiable and the
+  sensitivity of each headline margin to the unmatched residue
+  (attack measured ±0.33 — 2.2× the old decision margin — so this is
+  load-bearing).
+- The 16 MAJORs and 7 minors ride with their parent dispositions;
+  Rev-1's disposition table must address each by ID.
+
+**Rev-1 deliverable:** DRAFT-R1 appended below — numpy-derived margins
+table (script paths + figures recorded in-text), re-registered arms,
+bars, and success/kill criteria, all six L-items discharged with
+traces. Then attack R2 (fresh agent). Still zero GPU-h spent; the
+Mac pilot builds only after R2 clears.

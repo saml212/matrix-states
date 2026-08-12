@@ -9438,3 +9438,33 @@ non-reproducing (bookkeeping); attempt_n=3 vs schema 1|2 undisclosed.
 Dispositions K1-K7 (report §6) adopted verbatim
 (§A8-ADJUDICATION); round-9 scope = K-discharge + both suites;
 terminal expected. Report: `NCR_KWALL_ATTACK_R8.md`.
+
+## 2026-08-12 #3 — Consolidation attack R1: BLOCKED (6F/16M/7m); DRAFT-R0 dead as parameterized; Rev-1 = falsifier-backwards numpy re-derivation
+
+The waterfall killed the phase-1 design at zero GPU cost. F1
+(coordinator re-derived directly before adoption): at d=32/N=64/M=16
+the byte-matched exact-KV falsifier A7 has d²/(2d)=16 slots = M — it
+stores the whole useful set verbatim and scores 1.000; index-coding
+lifts it to 31 slots; max matrix-over-A7 margin ANYWHERE in the (d,M)
+sweep is +0.031 vs the pre-registered 0.15 bar. DRAFT-R0's "pigeonhole
+defeat by construction" was never instantiated by its own parameters
+(coordinator error, owned). F2: single-pass delta recovery is a
+function of M/d + key coherence; beating even weak A7 needs M/d≳0.72
+where recovery ≈0.75 — mutually exclusive with the A3≥0.95 kill switch
+unless mean key coherence ≲0.05 (couples to NCR ortho-write; now a
+disclosed cross-lane dependency). F3: mean-cosine recovery saturates
+under value-space collapse (0.956 with zero per-item info) — §G3-B26's
+pattern, second appearance. F4: A5≡A6 under top-M; worse, DRAFT-R0's
+own usage-independence requirement destroyed the treatment signal —
+usage must be causally predictive of post-eviction queries while
+geometry-independent. F5: no gradient reaches a learned gate through
+λ^16W≈3.4e-5 — phase-1 gate re-registered as FIXED monotone function.
+F6: 4-way matching provably unsatisfiable; matching hierarchy
+registered (bytes/count exact; mass/FLOPs bounded+dominance),
+sensitivity ±0.33 = 2.2× old margin. Adopted in full, dispositions
+L1-L6 (registry §5); per-item verbatim recall abandoned as the
+battlefield — task re-derived from the falsifier backwards in the
+overload/aggregate/accumulation regimes where superposition wins by
+math (the PI's capability framing, now load-bearing). Rev-1
+dispatched (numpy, zero compute); attack R2 follows; Mac pilot builds
+only after R2 clears. Report: `CONSOLIDATION_ATTACK_R1.md`.

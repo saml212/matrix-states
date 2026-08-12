@@ -1,5 +1,18 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #3 (Fable): consolidation attack R1 = BLOCKED
+(6F/16M/7m, `CONSOLIDATION_ATTACK_R1.md`) ADOPTED — DRAFT-R0 dead as
+parameterized at zero GPU cost: the byte-matched KV falsifier is
+UNDEFEATABLE at d=32/M=16 (16 slots = M, verbatim 1.000; max matrix
+margin +0.031 vs 0.15 bar — F1 coordinator-re-derived), A5≡A6, no
+gradient reaches a learned gate (λ^16W), 4-way matching unsatisfiable,
+mean-cosine instrument saturates (§G3-B26 pattern #2). Dispositions
+L1–L6 (registry §5): task pivots to overload/aggregate/accumulation
+regimes derived FROM THE FALSIFIER BACKWARDS in numpy; coherence ≲0.05
+= measured enabling condition (disclosed NCR ortho-write coupling);
+fixed gate in phase-1. Rev-1 dispatched → DRAFT-R1 → attack R2; Mac
+pilot only after R2 clears.**
+
 **2026-08-12 tick #2 (Fable): K-wall audit R8 = REV-REQUIRED (1F/5M/5m,
 `NCR_KWALL_ATTACK_R8.md`) ADOPTED w/ dispositions K1–K7 verbatim
 (§A8-ADJUDICATION). J2/J3/J6 discharged BY EXECUTION (auditor re-ran
