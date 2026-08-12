@@ -1,5 +1,17 @@
 # STATE — Current Project State
 
+**2026-08-12 tick #14 (Fable): K-wall build audit R2 = PASS —
+DEPLOY-RELEASED (0F/0M/3m; every R1 discharge re-verified through the
+REAL production chain; 0/3375 disclosure-invariant violations; r2-m1
+caught deploy.sh's DRY_RUN trap — §9 manual sequence adopted). DEPLOY
+EXECUTED steps 1-3: recipe patches landed via stage→md5→atomic-rename,
+orchestrator+kwall_lib on box w/ import probe PASS, m8 sweep clean;
+spec stamped (0 placeholders, CLEAN) and STAGED outside the queue.
+REMAINING: 3 micro-smokes (≤0.15 GPU-h, need ONE idle GPU — all 8
+hold gh_* engines) → then mv to pending/ (deliberate O-R2-3 choice:
+fire with the Jacobians on gh_* teardown, not behind the 3h fallback
+gate). Grant ~2.5 weeks.**
+
 **2026-08-12 tick #13 (Fable): K-wall build Rev-1 RETURNED — all
 findings discharged w/ executed teeth checks; F1's full-enumeration
 sweep 1440/3375 → 1/3375 (= the known design-inherited O1 residual,

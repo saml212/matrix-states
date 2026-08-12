@@ -9715,3 +9715,32 @@ disclosed). O1-O3 dispositioned as the design's with the audit's own
 reasoning. Suites green: 5/5, 33/33 (0 divergence, untouched), 15/15
 (80 checks). Scope: kwall_build/ only (11 files). Audit R2 next; NO
 deploy until R2 PASS.
+
+## 2026-08-12 #14 — K-wall build audit R2: PASS — DEPLOY-RELEASED (0F/0M/3m new); deploy steps 1-3 + spec stamping executed; micro-smokes + pool promotion await a free GPU
+
+R2 re-verified every R1 discharge through the REAL production chain
+(not the reviser's mirrors): 3375-sweep via evaluate_trigger_and_band
+→ build_report → validity_check_core = exactly 1 failing state =
+verbatim O1 design-inherited (0,0,0); PLUS the sharper
+necessary-and-sufficient invariant named == {K: n_completed<4} at
+0/3375 violations (no disclosure-dropping state can exist in the
+reachable space). M1 0/1000 vs an independently re-implemented G5
+reference + mutation test proving the three trigger functions share
+_compute_K_trigs (all flip together under a patched symbol). M2
+stamping executed verbatim through real bash expansion. M3/M4 27/27
+incl. a 4/4-conditional U7-clause-(a) case R1 never reached. Suites
+5/5 + 33/33 + 15/80. NEW: r2-m1 — deploy.sh's DRY_RUN=1 default
+exits BEFORE staging the recipe patches (run literally, nothing
+copies; DRY_RUN=0 would also sync unrelated local specs into
+pending/) — §9's replacement stage→md5→atomic-rename sequence adopted
+(atomic rename load-bearing: ncr_earlyln_scale.py is imported by
+every queued job; scp truncates the live inode under a mid-read
+worker). Coordinator DELIBERATE CHOICE per O-R2-3: promotion target =
+pending/ (not fallback_pool/) — the PI's get-GPUs-hot directive wants
+the wave to fire with the Jacobians the moment gh_* clears, not after
+an additional 3h idle gate. Pool-promotion gates: (i) steps 1-2 +
+import probe ✓ (ii) m8 sweep clean ✓ (iii) 3 micro-smokes PASS —
+PENDING (needs one idle GPU; all 8 hold gh_* vLLM engines) (iv)
+stamped spec 0 placeholders + CLEAN ✓. Stamped spec STAGED on box at
+~/ncr/kwall_char_orchestrator.STAGED.json (NOT in any queue dir);
+promotion after smokes = one mv.
