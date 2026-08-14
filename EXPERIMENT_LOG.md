@@ -9941,3 +9941,25 @@ published paper's MAIN result (gradient rank-blindness) is untouched;
 ~11 GPU-h total. Artifacts:
 experiment-runs/2026-08-14_jacobian_erank/ (repo+SSD). Negative
 results are data — promise closed honestly.
+
+## 2026-08-14 #2 — Supervised-write attack R4: REV-REQUIRED (4F/11M/10m) — MECHANISM CERTIFIED CLEAN (V1-V13 frozen); all residue instrument-level w/ named repairs; amended Stage 0′ = the wave-deciding gate; Rev-5 dispatched
+
+The turn: D1.3's zero-set collapse re-derived + executed clean at
+measured geometry; partition 18,018 outcomes zero-hole. FATALs (all
+instrument): F1 scale-quotient dropped in transcription (1.5·Z_ideal
+retrieves 1.0 yet fails Band 2; collapsed ‖Z‖≈1 passes at chance —
+c*-rescale repair); F2 gradient-orthogonality false through the real
+encoder's params (cos 0.17-0.45; λ_t=1.0 turns retr@61 0.89→0.14 —
+λ_t now decided by probe, never assumed); Band-0 voids CONTROL B;
+CONTROL C enters no predicate (0.70-vs-0.71 counter-example). M2
+promoted: L_key ≤ 3e-4 achievability UNDEMONSTRATED (real encoder
+plateaus 0.22-0.40 in isolation = the Band-4 signature) — the
+amended Stage 0′ achievability/λ_t probe (~0.2 GPU-h) is now the
+gate that decides the 24.94 GPU-h wave. Stage 0′ as carded: BLOCKED
+(wrong ckpt paths — the premise battery's exact disease; nonexistent
+function; .encoder route) → CLEARED after A1-A8. pinv truncation
+cliff at cond≈3.4e5 adopted as a Stage-0′ item; Tikhonov fallback
+struck (moves minimum 81-100% off target). Build-preparables
+authorized in parallel (loss module, checkers, scripts — no Stage-1
+cells, no λ_t, no thresholds). Rev-5 dispatched; R5 expected
+terminal on the instrument layer.

@@ -3955,3 +3955,62 @@ Stage 0′ (independently authorized pre-CLEAR per `§A3-ADJUDICATION`)
 run next, per the coordinator's own dispatch. No GPU spend, no STATE.md/
 EXPERIMENT_LOG.md update, no commit, no box contact from this document.
 
+---
+
+## §A4-ADJUDICATION (coordinator, 2026-08-14) — attack R4 = REV-REQUIRED (4F/11M/10m) ADOPTED; MECHANISM CERTIFIED CLEAN; instrument repairs = Rev-5 charter; amended Stage 0′ becomes the wave-deciding gate
+
+Report: `NCR_WRITECOND_ATTACK_R4.md` (834 lines) vs DRAFT-R4 at
+`8c665f7`. **The qualitative turn: the mechanism is CLEAN** — D1.3's
+zero-set collapse independently re-derived AND executed at compB's
+measured geometry (L_key flat to 1.9e-12 across ‖u‖ 0→100; Z_ideal·w
+= 1.7e-05; joint zero only at u=0); D1.2's w construction, D3's
+detach coverage incl. the SVD route, D5.2's partition (18,018
+constructed outcomes, zero holes/double-fires), raw-anchor table,
+budget to the digit, language sweep — V1–V13 FROZEN for R5.
+
+**FATALs adopted, each with the report's named repair:**
+- F1: the global-scale quotient was DROPPED IN TRANSCRIPTION (R3's
+  bound was "‖Zw‖ ≲ 3 AT ‖Z‖_F ≈ 25"); executed: Z = 1.5·Z_ideal
+  retrieves 1.0000 yet fails Band 2, while a collapsed ‖Z‖_F≈1
+  encoder passes the gate at chance. Repair: the four-line c*-rescale
+  (scale-free transverse reading ‖Zw‖/‖Z‖_F·√d-normalized per the
+  report).
+- F2: gradient-orthogonality is exact in Z-space (cos 0.000) and
+  FALSE through the encoder's 173,209 parameters (cos 0.17–0.45 vs
+  0.0017 null); λ_t=1.0 turned retr@61 0.8906 → 0.1406 at equal
+  budget. Repair: λ_t is DECIDED BY THE AMENDED STAGE 0′ parametrized
+  probe (A6), never assumed benign.
+- F3 (as numbered in the report) + F4: Band 0 voids CONTROL B by
+  construction (no self-correcting path); CONTROL C funded but enters
+  no adjudicating predicate (counter-example: C=0.70, PRIMARY=0.71
+  still WIN). Repairs: the report's Band-0 CONTROL-B branch + a
+  C-vs-PRIMARY margin predicate in the verdict grid.
+- M2 (promoted to load-bearing): L_key ≤ 3e-4 has NO demonstrated
+  achievability — the real encoder plateaus at 0.22–0.40 in
+  write-side isolation with the pre-registered Band-4 signature.
+  The AMENDED Stage 0′ achievability/λ_t probe (~0.2 GPU-h,
+  eval+probe-only) is hereby the WAVE-DECIDING GATE: the 24.94 GPU-h
+  Stage 1 launches only on its pass bands.
+- Also adopted: the pinv truncation cliff at cond(keys) ≈ 3.4e5
+  (target lands 100× outside WIN — a Stage-0′ item), and the
+  Tikhonov-fallback rejection (moves the minimum 81–100% off
+  target — struck).
+
+**Stage 0′: BLOCKED AS CARDED → CLEARED AFTER A1–A8** (checkpoint
+paths corrected to the battery's recorded `…_contrastive/…_s0_ckpts/`
+convention; the `.encoder` attribute route; the nonexistent
+`score_operator_at_hops` replaced per A-list; item 6 → the
+parametrized achievability/λ_t probe; probe-batch retention).
+
+**BUILD-PREPARABLES (authorized in parallel per the report):** the
+loss module (detach + scale-free transverse), d−K generalization,
+config provenance, Band-0 checker w/ CONTROL-B branch, write_diag
+emission, CONTROL B's clean-eval script, the amended Stage-0′
+script. NOT authorized: any Stage-1 cell, any λ_t value, any band
+threshold.
+
+**DISPOSITIONS: the report's repairs + A1–A8 adopted verbatim as the
+Rev-5 charter.** Rev-5 → coordinator runs amended Stage 0′ →
+R5 narrow verification (expected terminal on the instrument layer) →
+build ceremony on its CLEAR + Stage-0′ pass.
+

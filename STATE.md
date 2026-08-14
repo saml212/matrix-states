@@ -1,5 +1,18 @@
 # STATE — Current Project State
 
+**2026-08-14 tick #2 (Fable): supervised-write attack R4 =
+REV-REQUIRED (4F/11M/10m) — THE MECHANISM IS CERTIFIED CLEAN (zero-set
+collapse executed at measured geometry; V1-V13 frozen); every residual
+is instrument-level with a named repair (scale quotient dropped in
+transcription; λ_t decided-by-probe after the 0.89→0.14 demo; Band-0/
+CONTROL predicates; Stage-0′ path/function fixes A1-A8). KEY: the
+amended Stage 0′ achievability/λ_t probe (~0.2 GPU-h) is now the GATE
+that decides the 24.94 GPU-h wave — L_key ≤ 3e-4 achievability is
+undemonstrated (encoder plateaus 10³ away in isolation). Rev-5 in
+flight (repairs + build-preparables); R5 expected terminal → Stage 0′
+→ wave on pass. Box: K-wall still on GPU 5; 7 GPUs awaiting the
+wave.**
+
 **2026-08-14 tick (Fable): JACOBIAN ERANK DONE — §5.3 HYPOTHESIS
 FALSIFIED** (bilinear_gelu 117.6 / quadratic 158.8 / svd_aug 237.0 vs
 falsify bar 4.0; flatten control exact; the rank-1-Jacobian-bottleneck
