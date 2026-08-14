@@ -9744,3 +9744,28 @@ PENDING (needs one idle GPU; all 8 hold gh_* vLLM engines) (iv)
 stamped spec 0 placeholders + CLEAN ✓. Stamped spec STAGED on box at
 ~/ncr/kwall_char_orchestrator.STAGED.json (NOT in any queue dir);
 promotion after smokes = one mv.
+
+## 2026-08-13 — BOX TAKEOVER (PI verbal go): gh_* teardown, Jacobian wave LAUNCHED, K-wall micro-smokes 3/3 PASS, orchestrator PROMOTED and RUNNING — the audited runway is LIVE
+
+PI: "GPUs fully vacant — take them all over... get the evidence we
+need for commercial and academic application." Verified 8×0% util
+(engines idle-resident); killed the four gh_serve_* sessions (exact
+tmux names, zero surviving compute apps); rm PAUSE. Within 70s
+workers claimed all three Jacobians (g0/g2/g3 → GPUs 0/2/3, 80.6GB
+each, 98% util — the ICML-MI §5.3 promised analysis finally running,
+~3.5 GPU-h each, 1204 auto-promotes on completion via the
+idle_launcher dependency watch). K-wall micro-smokes run per
+BUILD_AUDIT_R2 §9 step 4 verbatim on GPU 7 (tmux kwall_smoke):
+COMPLETED ×3, check_smoke = {K26 PASS, K28 PASS, K30 PASS} — gate
+(iii) closed, all four promotion gates met. STAGED spec mv'd to
+pending/ → claimed by g5 within 70s → the 12-cell K∈{26,28,30}
+recovery-leg wall characterization is RUNNING on GPU 5 (≤15.50
+GPU-h ceiling, T ≤ 15.3737, first cell up). NOTE: ~2 min after
+teardown the PI's other workstream auto-launched a NEW single-GPU
+server (gh_serve_base_comp, GPU 1) — left untouched; co-tenancy is
+clean (workers self-gate per-GPU). Box now: GPUs 0/2/3 Jacobians,
+5 K-wall, 1 PI's server, 4/6/7 free pending next audited payload.
+Next lever for the free GPUs = the §G3-B32 write-conditioning
+design round (spearhead claim pivot; DRAFT-R0 agent dispatched —
+design → triple novelty gate → attack → build feeds the box before
+the current wave drains, per the zero-GPU-gap doctrine).

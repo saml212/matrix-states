@@ -1,5 +1,17 @@
 # STATE — Current Project State
 
+**2026-08-13 tick (Fable): THE WAVE IS LIVE.** PI ordered full box
+takeover; gh_* torn down clean; Jacobians 1200/1202/1203 RUNNING
+(GPUs 0/2/3, 98% util; 1204 auto-follows); K-wall micro-smokes 3/3
+PASS → orchestrator PROMOTED, RUNNING on GPU 5 (12 cells, ≤15.50
+GPU-h). PI's workstream auto-respawned one server (GPU 1,
+gh_serve_base_comp — left alone, clean co-tenancy). GPUs 4/6/7 free;
+next payload = §G3-B32 write-conditioning design round (DRAFT-R0
+agent dispatched; full gauntlet before any GPU). Harvest duties when
+waves complete: Jacobian 1204 verdict (ICML-MI §5.3 promise) +
+K-wall band adjudication vs the frozen verdict bands. Grant ~2.5
+weeks — the runway doctrine is finally executing end to end.**
+
 **2026-08-12 tick #14 (Fable): K-wall build audit R2 = PASS —
 DEPLOY-RELEASED (0F/0M/3m; every R1 discharge re-verified through the
 REAL production chain; 0/3375 disclosure-invariant violations; r2-m1
