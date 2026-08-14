@@ -9769,3 +9769,33 @@ Next lever for the free GPUs = the §G3-B32 write-conditioning
 design round (spearhead claim pivot; DRAFT-R0 agent dispatched —
 design → triple novelty gate → attack → build feeds the box before
 the current wave drains, per the zero-GPU-gap doctrine).
+
+## 2026-08-13 #2 — Write-conditioning gauntlet round 1: novelty DISCHARGED-WITH-OBLIGATIONS, attack BLOCKED (5F/11M/7m) — DRAFT-R0 dead as drafted; premise cell mandated; mechanism family replaced; ceremony escalated to full gauntlet
+
+Four same-day verdicts adjudicated (§A1-ADJUDICATION + memo
+`research/writecond-novelty-2026-08-13.md`). NOVELTY: by-task OPEN
+(DeltaProduct 2502.10297 = mandatory early distinction:
+transition-evolution vs written-operator-instance); by-mechanism
+PARTIALLY-OCCUPIED — MuonSSM 2606.30461 (ICML26 Oral!) does NS-polynomial
+write-time conditioning of fast-weight injections (mandatory cite;
+differentiators: exactness family + composition-READ motivation);
+the identity/conformal-anchoring + condition-number-penalty wedges
+are OPEN; internal CLEAN except the draft omitted the PI-ratified
+§N2 demotion of the expm track. ATTACK (BLOCKED): F1 FRAME KILL —
+the §G3-B32 cells read 24-way retrieval AT CHANCE AT h=1
+(0.031/0.109/0.016 vs 0.0417), so no depth-destroyed capability
+exists to restore until h=1 works; F2 the draft's sinθ=0 target IS
+the collapse signature; F3 the c·I anchor penalizes the IDEAL
+K-cycle write (0.998 relative distance; Band-2 saturates at 1.0);
+F4 ρ_target=1.10 provably fails (only ≤1.02 prevents collapse); F5
+the placebo administers the active ingredient. Also: fitted C≈9,900
+inadmissible (sinθ>1 ∀h≤48 — mis-specified model, calibration would
+re-fit garbage); compB VIOLATES Band-1 at h=40 + already shows the
+"never observed" PARTIAL signature (raw-JSON-verified). Dispositions
+W1-W7: premise cell FIRST (≤2 GPU-h, the only authorized spend);
+§1 rewritten; (b)+(c) replaced by the attack's entity-block
+conformality penalty ‖AᵀA−(tr/K)I‖² (smooth, SVD-free, zero at the
+ideal write, inside the open novelty wedge); mechanism (a) CUT from
+wave-1 (MuonSSM/DeltaProduct crowding + §N2 + zero support); control
+re-specified as a true null; bands re-anchored to raws; FULL
+multi-round gauntlet (publication-bound). Rev-1 dispatched.

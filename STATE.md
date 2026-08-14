@@ -1,5 +1,18 @@
 # STATE — Current Project State
 
+**2026-08-13 tick #2 (Fable): write-conditioning round 1 adjudicated —
+novelty gate DISCHARGED-WITH-OBLIGATIONS (MuonSSM 2606.30461 +
+DeltaProduct 2502.10297 mandatory cites; conformal/condition-number
+wedges OPEN), attack R1 BLOCKED (5F/11M/7m; F1 frame kill: §G3-B32
+retrieval was at chance AT h=1 — no depth story exists until a premise
+cell shows h=1 retrieval at all). W1-W7 adopted: premise cell first
+(≤2 GPU-h, only authorized spend), §1 rewrite, mechanisms replaced by
+the entity-block conformality penalty ‖AᵀA−(tr/K)I‖², (a) CUT (stays
+under §N2's idle-filler ruling), true-null control, raw-anchored
+bands, FULL gauntlet (publication-bound). Rev-1 in flight. Records:
+`NCR_WRITECOND_ATTACK_R1.md`, §A1-ADJUDICATION,
+`research/writecond-novelty-2026-08-13.md`.**
+
 **2026-08-13 tick (Fable): THE WAVE IS LIVE.** PI ordered full box
 takeover; gh_* torn down clean; Jacobians 1200/1202/1203 RUNNING
 (GPUs 0/2/3, 98% util; 1204 auto-follows); K-wall micro-smokes 3/3

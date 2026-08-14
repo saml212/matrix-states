@@ -691,3 +691,89 @@ setting, which would be a genuine scoop requiring re-scoping.
 audit round → build ceremony (10–50 GPU-h tier, pending §6 item 6's
 resolution) → Stage 0 launch. No GPU spend, no STATE.md/EXPERIMENT_LOG.md
 update, no commit from this document — coordinator dispatches next.
+
+---
+
+## §A1-ADJUDICATION (coordinator, 2026-08-13) — attack R1 = BLOCKED (5F/11M/7m) ADOPTED; DRAFT-R0 dead as drafted; novelty gate discharged-with-obligations; Rev-1 dispatched; CEREMONY ESCALATED to full gauntlet
+
+All four same-day verdicts adjudicated together. Novelty:
+`research/writecond-novelty-2026-08-13.md` (by-task OPEN; by-mechanism
+PARTIALLY-OCCUPIED with the (b)/(c) wedges open — MuonSSM
+arXiv:2606.30461 and DeltaProduct arXiv:2502.10297 are mandatory
+cite-and-distinguish anchors; internal CLEAN with the §N2 omission).
+Attack: `NCR_WRITECOND_ATTACK_R1.md`, ADOPTED IN FULL.
+
+**The five FATALs, accepted as charged:**
+- **F1 (frame kill, governs everything):** the §G3-B32 cells read
+  24-way retrieval AT CHANCE AT h=1 (0.031/0.109/0.016 vs 0.0417,
+  n=64) — one application of Z, zero composition. There is no
+  depth-destroyed capability for conditioning to restore until h=1
+  retrieval exists. §3.6's all-NULL clause would have published a
+  wrong structural conclusion off a wave that could not show
+  otherwise.
+- F2: §1.1's `sin θ_h = 0` success target is the COLLAPSE signature
+  (verified: Z=cQ holds sin θ ≈ 0.99 constant; ρ=1 in §1.1's own
+  formula yields C, not 0). The §1 analysis is rewritten, not
+  patched.
+- F3: mechanism (b)'s penalty is minimized by the identity map — the
+  IDEAL K-cycle write scores ≈max penalty (3.99e-2 vs 0 at c·I;
+  ‖Z*−ĉI‖²/‖Z*‖² = 0.998) and Band-2 reads 1.00000 down to zero
+  capability (saturated instrument); the cited Z-dump entry itself
+  records the scaffold as "dispensable… not load-bearing."
+- F4: ρ_target=1.10 does not prevent the collapse it exists to
+  prevent (o_pc@h61 = 0.877 at r=1.10 AND r=1.21; only r ≤ 1.02
+  works).
+- F5: the placebo anchors toward a random ORTHOGONAL matrix — the
+  active ingredient class — inverting the control's reading.
+Selected MAJORs: the fitted C≈9,900 is mathematically inadmissible
+(sin θ > 1 for all h ≤ 48 — the MODEL is mis-specified, so
+calibration would re-fit garbage, confirming the audit charter's
+worry); the λ-vs-s substitution (s1/s2=1.21 with |λ₂/λ₁|=1 and zero
+collapse is a live counterexample); a zero-cost rank-2 route through
+(c)'s hinge; the ‖Z‖_F² normalization is a runaway escape hatch
+(§10.7 measured σ_max 5→13); and **compB VIOLATES Band-1's paired
+bar at h=40 (0.22725 vs 0.22637, raw-JSON-verified) and already
+exhibits the "never yet observed" depth-decay PARTIAL signature
+(0.094@h20 → 0.016@h61)** — the draft's own baseline anchors were
+mis-transcribed from the raws. Verified clean: budget arithmetic,
+the 9a93198b runner pin, expm/SO(d) citation, placement.
+
+**Dispositions (binding Rev-1 charter):**
+- **W1 (F1): PREMISE CELL FIRST.** Stage 0 becomes a cheap
+  h=1-retrieval diagnostic on the real-LM graft (does ANY
+  configuration retrieve above chance at h=1; if not, WHY — the wave
+  is unauthorized until this cell reads positive or the claim is
+  re-scoped to whatever it reveals). Design it with its own bands.
+- W2 (F2 + MAJORs): §1 rewritten from scratch — correct success
+  geometry, admissible decay model, s-vs-λ distinction carried
+  honestly; the calibration sweep re-registered against the
+  REWRITTEN model.
+- **W3 (F3+F4 + attack D3): mechanisms (b) and (c) as drafted are
+  DEAD; replaced by the attack's entity-block conformality penalty
+  ‖AᵀA − (tr(AᵀA)/K)·I‖² on the written entity block** — zero at the
+  ideal K-cycle write, smooth, SVD-free, scale-aware. Novelty: inside
+  the swept-open identity/conformal-anchoring wedge (memo records the
+  mapping); MuonSSM/DeltaProduct distinctions stated in §2 up front.
+- **W4 (three-line convergence): mechanism (a) is CUT from wave-1**
+  — external crowding (MuonSSM, DeltaProduct), the PI-ratified §N2
+  demotion (idle-filler only, which the draft failed to cite), and
+  zero empirical support. It stays exactly where §N2 put it; its
+  seeds reallocate to the W3 mechanism.
+- W5 (F5): the control is re-specified as a true null (e.g. a
+  matched-magnitude penalty toward a random NON-conformal,
+  NON-orthogonal target with the same gradient-norm budget), with
+  its reading pre-registered un-invertibly.
+- W6: every band re-anchored to the RAW artifacts (the compB
+  Band-1/PARTIAL findings incorporated as recorded facts), the c*·I
+  architecture-conditionality caveat carried forward explicitly, and
+  the §N2 ruling cited wherever the ortho track is mentioned.
+- **W7 (ceremony): ESCALATED to the full multi-round adversarial
+  gauntlet** (publication-bound spearhead; the attack's own
+  recommendation) — Rev-1 → attack R2 → iterate to CLEAR before any
+  build ceremony; the premise cell (W1) is the only GPU spend
+  authorized ahead of a CLEAR, as its own ≤2 GPU-h stage with 1
+  audit round.
+
+Rev-1 dispatched 2026-08-13. The novelty memo's re-entry conditions
+apply: any headline reframe after the premise cell resolves re-enters
+the gate.
