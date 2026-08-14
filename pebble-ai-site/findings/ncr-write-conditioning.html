@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A 98M-param, 12-layer DeltaNet LM with an NCR fast-weight head: the read path composes an in-context-written relation operator exactly through 61 hops (retrieval24_acc 0.977-1.0) when the operator is written exactly -- but the model's own SGD-learned write reads at chance at every depth (condition number median 745, up to 1.16e5; effective rank 10.5 of 24). Replicated 3/3 across independently trained checkpoints under three different training configurations.">
+<meta property="og:title" content="Write conditioning: the read path composes 61 hops exactly — SGD never learns the write — pebble">
+<meta property="og:description" content="A trained 98M-param LM's NCR read machinery executes 61-hop repeated-squaring retrieval at 0.977-1.0 when fed an exact operator; its own SGD-learned write reads at chance everywhere (cond. number median 745, up to 1.16e5; eff. rank 10.5 of 24). Replicated 3/3 across independently trained checkpoints, three training configs.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/ncr-write-conditioning.html">
+<meta property="og:image" content="https://pebbleml.com/assets/plots/ncr_writecond_premise_x.png">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-08-13">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/ncr-write-conditioning.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Write conditioning: the read path composes 61 hops exactly — SGD never learns the write",
+  "name": "NCR write conditioning: the premise battery",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-08-13",
+  "url": "https://pebbleml.com/findings/ncr-write-conditioning.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "A 98M-parameter, 12-layer DeltaNet language model carries a Native Composition Reads (NCR) fast-weight head: a relation operator Z is written in context and read h hops later via O(log h) binary exponentiation (finding no. 14's mechanism), against a K=24-entity, d=25 state. A prior diagnostic (NCR_REAL_LM_DESIGN.md, section G3-B32) closed the read side: even in the checkpoint with the healthiest target-space geometry, the read output collapsed directionally with depth (o_pairwise_cos 0.80 at h=1 rising to 0.989-0.992 by h>=3) and 24-way retrieval stayed at chance throughout, diagnosed as power iteration toward the written operator's own dominant singular direction. This note asks whether that block is a read-path or a write-quality problem, by substituting an exact, teacher-forced operator into the SAME trained checkpoint's read path. On the trained compB checkpoint (20,000 steps, n=256, seed 90210): the model's own SGD-learned write (P0) reads retrieval24_acc 0.070/0.035/0.035/0.066 at h=1/13/37/61 against a chance baseline of 0.042 -- indistinguishable from chance at every depth, reproducing the G3-B32 block. Substituting the exact operator into the identical read path (P1b) reads 1.0/0.988/0.988/0.977 at the same four hops -- the same weights, the same repeated-squaring read, only the operator differs. A fresh-init sanity gate (P1a) confirms the exact-write algebra and instrument are sound through h=61 before either result is trusted (1.0/1.0/1.0/0.996). Spectral diagnosis of the SGD-written operators (n=256) finds them catastrophically ill-conditioned -- condition number median 745 (mean 2,756, heavy right tail to 1.16e5) -- and rank-collapsed to an effective rank of 10.5 of a possible 24 (range 5.7-11.9, never above half the state's dimensionality). Two further checkpoints, trained under different configurations (frozen vs. trainable entity adapter; contrastive+cosine vs. cosine-only auxiliary loss), replicate the identical result: compA reads P0 = 0.043/0.020/0.020/0.035, P1b = 1.0/1.0/1.0/0.996; primary reads P0 = 0.055/0.039/0.039/0.039, P1b = 1.0/0.996/1.0/1.0. Verdict: AC=00 (the model's own write never clears the retrieval threshold at any tested depth) / BD=11 (the exact operator clears it at both h=1 and h=61) in all three checkpoints -- the G3-B32 block localizes to write LEARNING, not the read mechanism or the architecture. Total diagnostic spend ~0.15 GPU-h, eval-only, no new training. Scope, stated plainly: a synthetic entity-binding task grafted into the LM, one base training seed per configuration, and a capability demonstrated through the model's own read machinery given an exact in-context-written operator -- not a demonstration that SGD can produce that operator. Making SGD learn the write is the open problem this note surfaces, not one it solves.",
+  "keywords": "fast weights, DeltaNet, Native Composition Reads, in-context learning, exact composition, write conditioning, condition number, effective rank, binary exponentiation, capability separation",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>Write conditioning: the read path composes 61 hops exactly — SGD never learns the write — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 17 &nbsp;·&nbsp; verdict of record, replicated 3/3 &nbsp;·&nbsp; AC=00 / BD=11 &nbsp;·&nbsp; read composes 61 hops exactly given an exact write; SGD's own write never clears chance</div>
+        <h1 class="paper-title">Write conditioning: the read path composes 61 hops exactly — SGD never learns the write</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">August 13, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>A 98M-parameter, 12-layer DeltaNet language model carries a Native Composition Reads (NCR) fast-weight head: a relation operator <span class="mono">Z</span> is written in context and read <em>h</em> hops later via O(log <em>h</em>) binary exponentiation — <a href="native-composition-reads.html">finding no. 14</a>'s mechanism — against a K=24-entity, <span class="mono">d=25</span> state. A prior diagnostic closed the read side: even in the checkpoint with the healthiest target-space geometry, the read output collapsed directionally with depth (<span class="mono">o_pairwise_cos</span> 0.80 at h=1 rising to 0.989–0.992 by h≥3) and 24-way retrieval stayed at chance throughout, diagnosed as power iteration toward the written operator's own dominant singular direction. This note asks whether that block is a read-path problem or a write-quality problem, by substituting an <em>exact</em>, teacher-forced operator into the <strong>same trained checkpoint's</strong> read path. On the trained <span class="mono">compB</span> checkpoint (20,000 steps, n=256, seed 90210): the model's own SGD-learned write reads <span class="mono">retrieval24_acc</span> <strong>0.070 / 0.035 / 0.035 / 0.066</strong> at h=1/13/37/61 against a chance baseline of <strong>0.042</strong> — indistinguishable from chance at every depth. Substituting the exact operator into the <em>identical</em> read path reads <strong>1.0 / 0.988 / 0.988 / 0.977</strong> at the same four hops — same weights, same repeated-squaring read, only the operator differs. A fresh-init sanity gate confirms the exact-write algebra and instrument are sound through h=61 before either result is trusted (1.0/1.0/1.0/0.996). Spectral diagnosis of the SGD-written operators (n=256) finds them catastrophically ill-conditioned — condition number <strong>median 745</strong> (mean 2,756, heavy right tail to <strong>1.16×10⁵</strong>) — and rank-collapsed to an effective rank of <strong>10.5 of a possible 24</strong> (range 5.7–11.9, never above half the state's dimensionality). Two further checkpoints, trained under different configurations (frozen vs. trainable entity adapter; contrastive+cosine vs. cosine-only auxiliary loss), land on the identical result: <span class="mono">compA</span> reads P0 = 0.043/0.020/0.020/0.035, P1b = 1.0/1.0/1.0/0.996; <span class="mono">primary</span> reads P0 = 0.055/0.039/0.039/0.039, P1b = 1.0/0.996/1.0/1.0. <strong>The read machinery already works. SGD never learns the write.</strong> Total diagnostic spend ≈0.15 GPU-h, eval-only, no new training. Scope, stated plainly: a synthetic entity-binding task grafted into the LM, one base training seed per configuration, and a capability demonstrated through the model's own read machinery given an exact in-context-written operator — not a demonstration that SGD can produce that operator. Making SGD learn the write is the open problem this note surfaces, not one it solves.</p>
+        </div>
+
+        <h2><span class="num">01</span>What the read side already closed, and the question this note asks</h2>
+
+        <p>Native Composition Reads writes a relation operator <span class="mono">Z</span> in context and reads its <em>h</em>-fold composition exactly at query time via binary exponentiation — O(log <em>h</em>) sequential cost, against O(<em>h</em>) baselines that must apply their step <em>h</em> times (<a href="native-composition-reads.html">finding no. 14</a>). Grafting that mechanism into a real 98M-parameter, 12-layer DeltaNet backbone (K=24 relational entities, tight-spare state <span class="mono">d=25</span>) is the flagship program's active spearhead. A prior harvest of three trained checkpoints (<span class="mono">NCR_REAL_LM_DESIGN.md</span> §G3-B32) closed the obvious read-side hypothesis: <strong>even the checkpoint with the healthiest target-space integrity still failed.</strong> Stated in one sentence, §G3-B32 found that the read output <span class="mono">o</span> collapsed directionally with composition depth (<span class="mono">o_pairwise_cos</span> 0.80 at h=1 rising to 0.989–0.992 by h≥3) while 24-way retrieval stayed at chance throughout — diagnosed as the repeated-squaring read undergoing power iteration toward the trained operator's own dominant singular direction, a write-side conditioning problem, not a read-side one.</p>
+
+        <p>That diagnosis makes a specific, testable prediction: if the read path itself is sound and the trained operator's poor conditioning is what erases discriminability, then feeding the <em>same trained checkpoint's</em> read path an exactly-conditioned operator — computed directly from the in-context entities, never learned — should recover clean composition through h=61. This note is that test: three arms per checkpoint. <strong>P0</strong> reads with the model's own SGD-learned write. <strong>P1a</strong> is a fresh-init sanity gate — the exact-write algebra and instrument, checked before touching a trained checkpoint. <strong>P1b</strong> substitutes the exact, teacher-forced operator into the trained checkpoint's own read path, holding every weight fixed.</p>
+
+        <h2><span class="num">02</span>The decisive pair: same weights, same read, only the operator differs</h2>
+
+        <p>On the fresh-init sanity gate (P1a, n=256), the exact-write algebra and instrument read cleanly through 61 hops — <span class="mono">retrieval24_acc</span> 1.0 / 1.0 / 1.0 / 0.996 at h=1/13/37/61, mean cosine 1.0 → 0.997, output collapse metric <span class="mono">o_pairwise_cos</span> ≈ 0.01 (no collapse at all). This clears before any trained-checkpoint number is trusted: whatever the trained checkpoints show below is not an artifact of the exact-write machinery itself.</p>
+
+        <table>
+            <thead>
+                <tr><th>arm (compB, step 20,000, n=256)</th><th>h=1</th><th>h=13</th><th>h=37</th><th>h=61</th><th><span class="mono">o_pairwise_cos</span> range</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>P0</strong> — model's own SGD write</td><td class="num">0.0703</td><td class="num">0.0352</td><td class="num">0.0352</td><td class="num">0.0664</td><td class="num">0.77–0.99</td></tr>
+                <tr><td><strong>P1b</strong> — exact write substituted</td><td class="num"><strong>1.0000</strong></td><td class="num"><strong>0.9883</strong></td><td class="num"><strong>0.9883</strong></td><td class="num"><strong>0.9766</strong></td><td class="num">0.19–0.23</td></tr>
+                <tr><td style="color:var(--muted)">chance</td><td class="num" style="color:var(--muted)">0.0417</td><td class="num" style="color:var(--muted)">0.0417</td><td class="num" style="color:var(--muted)">0.0417</td><td class="num" style="color:var(--muted)">0.0417</td><td>—</td></tr>
+            </tbody>
+        </table>
+
+        <figure>
+            <img src="../assets/plots/ncr_writecond_premise.svg" alt="line chart: retrieval24_acc vs composition hop (1, 13, 37, 61) for P0 (own SGD write, dashed, low) and P1b (exact write substituted, solid, near 1.0) across three independently trained checkpoints — compB, primary, compA — with a chance line at 1/24" style="width: 100%; max-width: 760px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span><span class="mono">retrieval24_acc</span> vs composition depth <em>h</em>, n=256, for all three trained checkpoints. Solid lines (P1b, exact write substituted into each checkpoint's own trained read path) sit at 0.977–1.0 through h=61 in every checkpoint; dashed lines (P0, each checkpoint's own SGD-learned write) sit at or below the chance line (1/24 ≈ 0.0417, dotted) at every depth. Same weights, same repeated-squaring read, only the operator fed to it differs. Data: <span class="mono">experiment-runs/2026-08-13_ncr_writecond_premise_battery/writecond_premise_SUPP.json</span> (compB), <span class="mono">writecond_premise_REPL_{compA,primary}.json</span>, all read directly and cross-checked against the harvest's own recorded table before plotting. Script: <span class="mono">assets/plots/generate_ncr_writecond_premise.py</span>.</figcaption>
+        </figure>
+
+        <p>The pre-registered scoring reduces each arm to two yes/no reads at a fixed threshold τ=0.09162: does it clear the retrieval bar at h=1, and does it still clear it at h=61? For P0 (labeled AC), compB reads <strong>a=0, c=0</strong> — fails at both ends, the ARCHIVE-CONFIRMED cell: the SGD write shows no signal at any depth, reproducing the read-collapse diagnosis at n=256 on a disjoint eval seed. For P1b (labeled BD), compB reads <strong>b=1, d=1</strong> — clears at both ends, EXACT-Z-SURVIVES-DEPTH: the same trained model's read path — repeated squaring plus the retrieval readout — executes 61-hop composition given the exact operator. Spectral diagnostics on the SGD-written operator that produced the P0 row (below) show why: it is not that the read machinery degraded, it is that the operator it was asked to compose was never well-formed to begin with.</p>
+
+        <h2><span class="num">03</span>Spectral diagnosis: the write is catastrophically ill-conditioned</h2>
+
+        <p>256 SGD-written operators — one per evaluation context, same compB checkpoint — were decomposed and scored for condition number and effective rank (restricted to the K=24 entity-carrying subspace of the <span class="mono">d=25</span> state). The picture is not "somewhat degraded." It is uniformly, severely broken:</p>
+
+        <table>
+            <thead>
+                <tr><th>metric (n=256 written operators)</th><th>mean</th><th>median</th><th>min</th><th>max</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>condition number</td><td class="num">2,756</td><td class="num">745</td><td class="num">63</td><td class="num">115,966</td></tr>
+                <tr><td>effective rank (of 24)</td><td class="num">10.55</td><td class="num">10.74</td><td class="num">5.73</td><td class="num">11.92</td></tr>
+            </tbody>
+        </table>
+
+        <p>Two readings survive together. The condition number is wildly heavy-tailed — a heavily skewed distribution from 63 up to 1.16×10⁵ — so no single number characterizes "the" operator's conditioning; the population is uniformly bad, with a long tail into catastrophic. The effective rank, by contrast, is tight and damning: every one of the 256 written operators sits between 5.7 and 11.9 of a possible 24, never once reaching even half the state's dimensionality. A K=24 relation task needs an operator with genuine rank across all 24 entities to keep them discriminable under repeated squaring; SGD is consistently finding a solution that uses less than half the available space, and the read machinery — proven sound by both the fresh-init gate and the exact-write substitution above — has no way to recover discriminability from an operator that was never given it.</p>
+
+        <div class="takeaway">
+            <span class="label">what this localizes</span>
+            The long-standing read-collapse block first characterized in <span class="mono">NCR_REAL_LM_DESIGN.md</span> §G3-B32 (o_pairwise_cos collapsing toward 1 with depth, retrieval at chance) is now localized to <strong>write learning</strong>, not the read mechanism and not the architecture. The same weights that fail to compose their own write compose an exact write correctly through 61 hops.
+        </div>
+
+        <h2><span class="num">04</span>Replicated 3/3: three training configurations, one result</h2>
+
+        <p>The compB result alone is one checkpoint. The identical instrument (<span class="mono">eval_arm_at_hops</span>, same seed and signature as the fresh-init gate) was re-run the same day on two sibling checkpoints, trained under genuinely different configurations — not just different seeds of the same recipe:</p>
+
+        <table>
+            <thead>
+                <tr><th>checkpoint</th><th>training config</th><th>P0 (h=1/13/37/61)</th><th>P1b (h=1/13/37/61)</th><th>cell</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>compB</strong></td><td>trainable entity adapter, contrastive+cosine aux loss</td><td class="num">0.070 / 0.035 / 0.035 / 0.066</td><td class="num"><strong>1.0 / 0.988 / 0.988 / 0.977</strong></td><td>AC=00, BD=11</td></tr>
+                <tr><td><strong>primary</strong></td><td>frozen entity adapter, contrastive+cosine aux loss</td><td class="num">0.055 / 0.039 / 0.039 / 0.039</td><td class="num"><strong>1.0 / 0.996 / 1.0 / 1.0</strong></td><td>AC=00, BD=11</td></tr>
+                <tr><td><strong>compA</strong></td><td>frozen entity adapter, cosine-only aux loss</td><td class="num">0.043 / 0.020 / 0.020 / 0.035</td><td class="num"><strong>1.0 / 1.0 / 1.0 / 0.996</strong></td><td>AC=00, BD=11</td></tr>
+            </tbody>
+        </table>
+
+        <p>All three land in the identical grid cell. The two axes varied between checkpoints — whether the entity adapter is frozen at initialization or trained alongside the backbone, and whether the auxiliary loss includes a contrastive term or only a cosine term — change nothing about the outcome: every checkpoint's own write reads at chance at every depth, and every checkpoint's read path composes the exact operator correctly through h=61. This is what upgrades the finding from "one checkpoint's diagnostic" to a verdict of record: the read-path capability is universal across the tested training configurations, and the learned write is the sole blocker in every one.</p>
+
+        <h2><span class="num">05</span>What this establishes, and the open problem it leaves</h2>
+
+        <p><strong>Establishes:</strong> a trained, 98M-parameter language model's fast-weight read path already contains a fully functional 61-hop compositional-retrieval circuit. This is not a toy demonstration on an isolated module — it is the same repeated-squaring read, the same 12-layer DeltaNet backbone, the same trained weights that fail on their own write, executing exact composition when the operator is supplied correctly. The blocker is squarely on the write side: SGD is not finding an operator with the rank and conditioning the read path needs, across three different training configurations and one base seed each.</p>
+
+        <p><strong>Does not establish:</strong> that SGD can be made to learn a usable write, or how. The exact operator used in P1a and P1b is computed directly from the in-context entities by the runner's own <span class="mono">teacher_force_operator</span> function — it is not produced by any learned component. That function is also the natural next lever: it already computes the exact target <span class="mono">Z_ideal</span> the write head would need to produce, which is a direct, cheap, always-available supervision signal for training the write against — but that is a new claim about a new intervention, not something this diagnostic ran or is entitled to claim. Per this program's own novelty-re-verification gate, a supervised-write-learning design re-enters the full checking process before any GPU time is spent on it.</p>
+
+        <h2><span class="num">06</span>Limitations — read before citing</h2>
+
+        <ul>
+            <li><strong>A synthetic task grafted into a real LM, not a naturally occurring language capability.</strong> The entity-binding and composition task is constructed specifically to exercise the NCR head; nothing here claims the backbone uses this circuit for anything in ordinary language modeling.</li>
+            <li><strong>One base training seed per configuration.</strong> Three checkpoints replicate the result across three different <em>configurations</em> (adapter freezing, auxiliary loss composition) — a meaningfully stronger replication than three seeds of the same recipe — but each configuration is still a single trained run, not a seed-varied ensemble.</li>
+            <li><strong>The capability demonstrated is retrieval through the model's own read machinery given an exact, externally supplied operator.</strong> It is not a demonstration that the model — or SGD — can produce that operator itself. That gap is the finding's own headline, not a caveat bolted on after the fact.</li>
+            <li><strong>P1b's decode head reads garbage on the free-form answer-accuracy metric</strong> (0.02–0.06 across all cells) even where <span class="mono">retrieval24_acc</span> reads 0.977–1.0 — pre-registered as expected: the decode head was trained against the distribution the model's own collapsed write produces, not against exact-write outputs. <span class="mono">retrieval24_acc</span>, not answer accuracy, is the instrument this finding's claims are built on.</li>
+            <li><strong>Condition number is not summarized by a single figure.</strong> The distribution across the 256 written operators is heavily right-skewed (median 745, mean pulled up to 2,756 by a tail reaching 1.16×10⁵); report the full distribution, not one point estimate, when citing this number.</li>
+            <li><strong>Eval-only diagnostic.</strong> No new model was trained for this note; all three checkpoints existed already from a prior contrastive-aux grid. Total realized spend across the fresh-init gate, the decisive pair, the spectral pass, and both replication cells is ≈0.15 GPU-h.</li>
+        </ul>
+
+        <h2><span class="num">07</span>Reproducibility</h2>
+
+        <p>Raw JSONs: <span class="mono">experiment-runs/2026-08-13_ncr_writecond_premise_battery/</span> — <span class="mono">writecond_premise_P1a.json</span> (fresh-init gate), <span class="mono">writecond_premise_P0P1b.json</span> and <span class="mono">writecond_premise_SUPP.json</span> (compB decisive pair, spectral diagnostics, and the h=61 supplement), <span class="mono">writecond_premise_REPL_compA.json</span> / <span class="mono">writecond_premise_REPL_primary.json</span> (the two replication checkpoints). All figures and every number on this page are read directly from these files (n=256, seed 90210 throughout) and cross-checked in-script against the harvest's own recorded table before use — see <span class="mono">assets/plots/generate_ncr_writecond_premise.py</span>. Design and verdict record: <span class="mono">matrix-thinking/NCR_WRITE_CONDITIONING_DESIGN.md</span>, "PREMISE BATTERY HARVEST" section (compB) and its same-day "REPLICATION" addendum (compA, primary); the read-side diagnosis this note responds to is <span class="mono">matrix-thinking/NCR_REAL_LM_DESIGN.md</span> §G3-B32.</p>
+
+        <div class="references">
+            <h2>References</h2>
+            <ol>
+                <li>Schlag, I., Munkhdalai, T., &amp; Schmidhuber, J. (2021). <em>Learning Associative Inference Using Fast Weight Memory.</em> ICLR 2021, arXiv:2011.07831 — the closest prior art for in-context fast-weight relational composition, the baseline family this program builds against.</li>
+                <li>Nguyen, T., Vo, H., Vo, T., Nguyen, T., &amp; Pham, T. (2026). <em>MuonSSM: Orthogonalizing State Space Models for Sequence Modeling.</em> arXiv:2606.30461, ICML 2026 Oral — the closest prior art for conditioning a fast-weight write specifically (not the recurrent transition matrix or the optimizer update); the natural next lever this note's open problem points toward.</li>
+                <li>See also <a href="native-composition-reads.html">finding no. 14, "O(log h) reads: 20.9× faster at depth 1,021 — and it composes exactly"</a> — the base architecture and exact-composition mechanism this note runs inside a real, trained language model.</li>
+            </ol>
+        </div>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

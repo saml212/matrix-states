@@ -609,9 +609,18 @@ footer a { color: var(--accent); }
     <div class="container">
         <div class="eyebrow">research notes</div>
         <h2 class="section-title">Findings.</h2>
-        <p class="lede">Click any title for the full note. Numbers run 01–05, then 07–16 — no. 06 was a duplicate label caught and merged into no. 05 during a 2026-07 numbering cleanup, not a retracted finding.</p>
+        <p class="lede">Click any title for the full note. Numbers run 01–05, then 07–17 — no. 06 was a duplicate label caught and merged into no. 05 during a 2026-07 numbering cleanup, not a retracted finding.</p>
 
         <div class="results">
+            <a class="result" href="findings/ncr-write-conditioning.html">
+                <div class="body">
+                    <div class="result-date">no. 17 &nbsp;·&nbsp; august 13, 2026</div>
+                    <h4>Write conditioning: the read path composes 61 hops exactly — SGD never learns the write</h4>
+                    <p>A prior diagnosis (<span class="mono">NCR_REAL_LM_DESIGN.md</span> §G3-B32) closed the read side of a 98M-param, 12-layer DeltaNet LM's NCR head: even the checkpoint with the healthiest target-space geometry saw its read output collapse directionally with depth and 24-way retrieval stay at chance throughout. This note tests whether that block is read-path or write-quality by substituting an exact, teacher-forced operator into the SAME trained checkpoint's read path. On the trained <span class="mono">compB</span> checkpoint (n=256): the model's own SGD-learned write reads <span class="mono">retrieval24_acc</span> <span class="mono">0.070/0.035/0.035/0.066</span> at h=1/13/37/61 (chance <span class="mono">0.042</span>) — indistinguishable from chance at every depth. Substituting the exact operator into the identical read path reads <span class="mono">1.0/0.988/0.988/0.977</span> — same weights, same read, only the operator differs. A fresh-init sanity gate confirms the exact-write algebra is sound through h=61 before trusting either number. Spectral diagnosis: the SGD-written operators are catastrophically ill-conditioned (condition number median <span class="mono">745</span>, mean <span class="mono">2,756</span>, tail to <span class="mono">1.16×10⁵</span>) and rank-collapsed to effective rank <span class="mono">10.5 of 24</span>, never above half the state's dimensionality. Replicated 3/3 across checkpoints trained under different configurations (frozen vs. trainable entity adapter; contrastive+cosine vs. cosine-only aux loss) — all three land in the identical AC=00/BD=11 cell. The read machinery already works; SGD never learns the write. Open problem, not solved here: making SGD learn it. Read the research note →</p>
+                </div>
+                <span class="meta">verdict of record · replicated 3/3 · read-path capability localizes the block to write learning</span>
+            </a>
+
             <a class="result" href="findings/ncr-operator-bank.html">
                 <div class="body">
                     <div class="result-date">no. 16 &nbsp;·&nbsp; july 11, 2026 &nbsp;·&nbsp; updated july 12</div>
