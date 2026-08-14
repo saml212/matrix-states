@@ -2277,3 +2277,609 @@ learned write is the sole blocker in every one. (Scope note: three
 independent training runs, one base seed each — a multi-seed arm
 belongs to the follow-on wave, not this diagnostic.) Publisher
 dispatch UNBLOCKED per the standing per-finding directive.
+
+---
+
+## DRAFT-R3 — SUPERVISED WRITE LEARNING (2026-08-13)
+
+**Status: NEW CLAIM, novelty-gate re-entry required.** This section is
+written blind to any write-supervision code — none exists yet — per
+this round's own charter. It is a claim PIVOT from every prior mechanism
+in this file (§2(a)/(b)/(c), R1.3's `L_conf`), not a refinement of one:
+where those mechanisms shaped `Z`'s *spectral shape* (orthogonality,
+conformality, flatness) as a proxy for read-time robustness, this
+mechanism regresses `Z` directly onto the *computable exact operator*
+the runner already knows how to build (`teacher_force_operator`), never
+touching a singular value, an eigenvalue, or a subspace basis. Grounding
+read for this round, beyond the harvest/replication above: `§A2-
+ADJUDICATION` (F1: `L_conf` is dead because the correct write is not
+close to orthonormal at this geometry — `f(A*)≈149–195` across every
+measured config, `NCR_WRITECOND_ATTACK_R2.md:111-136`; F5: the runner
+already trains `0.1·‖ZᵀZ−I‖²/d²` on `Z` in all three §G3-B31 baselines
+and it did not prevent collapse, `runner.py:714-742`, confirmed
+`ortho_reg_weight=0.1` in all three `mob_g3b31_*.json:config`); `NCR_
+WRITECOND_ATTACK_R2.md` M2 (the corrected training-cell rate, load-
+bearing for §3's budget, see the flag below); `ncr_lm_wave1_runner.py`
+(`9a93198b…`, re-read in full this round for `ncr_lm_forward_ablatable`
+:360-398, `teacher_force_operator` — `ncr_lm_wave1_smoke.py:348-362` —
+`compute_arm_losses`:768-852, `ortho_regularization_loss`:714-742,
+`aux_read_supervision_loss`:599-632, the `--ortho-reg-weight`/`--aux-
+read-loss-weight` CLI docstrings:1779-1808); `matrix-thinking/chapter2/
+model_v4.py:25-64` (`BindingEncoder`, the transformer-based set encoder
+`ncr_head.encode` actually is — relevant to §6's reachability check).
+
+**A budget-derivation flag, stated up front because it is easy to miss.**
+§3's GPU-h below prices every TRAINING cell at the **M2-corrected 0.83–
+0.92 s/step** rate (`§A2-ADJUDICATION`/`NCR_WRITECOND_ATTACK_R2.md:1931-
+1938`, ⇒ 4.6–5.1 GPU-h per 20,000-step run), **not** R1.6/R1.7's `0.8293
+GPU-h/20k-step` figure (≈0.149 s/step) — that number was compB's own
+anomalously fast regime, shown by M2 (ADOPTED, attack R2) to be
+unrepresentative of general training cells by ~6×. R1.6/R1.7 are dead
+sections (X2 ON HOLD) whose stale figure is still sitting in this file;
+reusing it here would have under-priced this round's wave-1 by roughly
+6× — flagged explicitly so a future round does not repeat the mistake.
+
+### §1 The claim, one sentence, pre-registered
+
+> **Direct supervision of the write path against the computable exact
+> operator — `L_write := mean_B (1/K) Σᵢ ‖(Z_sgd − Z_ideal) kᵢ‖² / (‖vᵢ‖²
+> + ε)`, where `Z_ideal := integ.teacher_force_operator(keys_v,
+> values_v).detach()` is the SAME closed-form fit the runner already
+> computes, added as a training-time-only loss term that never touches
+> the forward read (`o = binexp_read(Z_sgd, q, h)` is unchanged; eval
+> NEVER teacher-forces) — closes the write-quality gap the premise
+> battery localized (SGD write: `A_cond≈9,959`, eff-rank `≈10/24`,
+> retrieval24 at chance to `h*=61`; exact write on the SAME checkpoint:
+> retrieval24 `0.977–1.0` at `h*=61`) and yields above-chance
+> UNSUPERVISED-at-eval deep retrieval, at a pre-registered fraction of
+> that measured gap (§3.6).**
+
+`Z_ideal` is defined purely from in-context content already visible to
+the model (the same `keys_v`/`values_v` `ncr_head.encode` itself
+consumes) — no oracle information, no test-time-only signal, and (§2(c))
+the eval protocol never uses it. This is a genuinely new claim relative
+to every prior mechanism in this file: §2(a)/(b)/(c) and R1.3 all
+regularized `Z`'s *shape*; this regresses `Z` toward a *specific,
+per-example, exactly-computable point*, which is why it evades F1 and
+F5 by construction, not by degree (§2(a)).
+
+### §2 Design decisions with math
+
+#### §2(a) — the distance: full-vector, per-key, scale-normalized regression to `Z_ideal` — not Frobenius-on-the-whole-matrix, not cosine, not a subspace projection
+
+**The exactness fact this whole design leans on, proved not assumed.**
+`teacher_force_operator` solves `k @ zᵀ ≈ v` for `zᵀ` via `pinv(k) @ v`,
+`k,v: (K,d)=(24,25)`. Per column this is `K=24` equations in `d=25`
+unknowns — **underdetermined** (one free direction per column,
+`d−K=1`), so whenever `k` has full row rank (`K=24` linearly independent
+adapted key vectors — true for essentially every batch since `K<d`, see
+§6's reachability check for the failure boundary), the system is exactly
+**consistent** and `pinv` returns the **zero-residual, minimum-norm**
+solution: `Z_ideal @ kᵢ = vᵢ` **exactly**, not approximately (matches
+attack R2's own independent simulation, residual `3.1e-16`,
+`NCR_WRITECOND_ATTACK_R2.md:225-227`, and the harvest's own GATE cell,
+retrieval24 `1.0/1.0/1.0/0.9961` at `h∈{1,13,37,61}`, the tiny departure
+from `1.0` at `h=61` being accumulated float error over 61 squarings,
+not fit error).
+
+**The chosen distance.**
+
+```
+rᵢ(b) := Z_sgd(b) @ kᵢ(b) − vᵢ(b)                          (∈ R^d, i=1..K)
+L_write(b) := (1/K) Σᵢ ‖rᵢ(b)‖² / (‖vᵢ(b)‖² + ε)
+L_write := mean_B L_write(b)
+```
+
+Because `Z_ideal(b) @ kᵢ(b) = vᵢ(b)` exactly (above), this is *literally*
+`(1/K) Σᵢ ‖(Z_sgd(b) − Z_ideal(b)) kᵢ(b)‖² / (‖vᵢ(b)‖² + ε)` — a distance
+to `Z_ideal`, **restricted to its action on the K observed keys**, scale-
+normalized per key. Three named alternatives from the task charter,
+each considered and rejected in favor of this one, stated so the choice
+reads as a decision, not a default:
+
+1. **Full Frobenius, `‖Z_sgd − Z_ideal‖²_F` (unrestricted).** REJECTED.
+   `Z_ideal`'s value on the `d−K=1`-dim complement of `span(keys)` is an
+   **arbitrary artifact of `pinv`'s minimum-norm choice** — it carries no
+   task information (no query in this task is ever drawn from outside
+   the K keys; `assert_read_target_write_key_same_op`, `runner.py:569-
+   599`, checked every launch in the base recipe, is the standing
+   witness that reads and writes share exactly this key set). Matching
+   `Z_sgd` to `Z_ideal` there spends gradient capacity forcing a
+   meaningless coincidence, and — unlike the restricted form below — is
+   not scale-normalized, so batches with larger `‖v‖` dominate the loss
+   for no principled reason.
+2. **Entity-block subspace projection, `A = UᵀZU` with `U` from SVD of
+   `Z_ideal`'s row space (R1.3's own construction, reused).** REJECTED,
+   two independent reasons. First, it is unnecessary: `L_write`'s
+   AMBIENT (not subspace-projected) per-key residual already fully
+   constrains `Z_sgd`'s action at the K points that matter — a query
+   entity is always one of the K keys by construction, and repeated
+   squaring from a key with small residual stays close to the discrete
+   orbit `{k₁,…,k_K}` at every depth precisely because the residual is
+   bounded in the FULL ambient space, not merely its in-span component
+   (a projected loss could leave complement-direction leakage
+   unpenalized; this form cannot, by not projecting at all). Second, it
+   re-imports the exact machinery attack R2's M11/M12 found NOT to be a
+   pure conditioning statistic (`f(A)` "charges for non-invariance of
+   the entity subspace, undisclosed," `NCR_WRITECOND_ATTACK_R2.md:757-
+   810`) — `L_write` needs no fixed subspace basis `U`, no SVD of
+   anything, at all; there is no subspace object in this loss for a
+   subspace-invariance critique to attach to.
+3. **Cosine, matching `aux_read_supervision_loss`'s own house
+   convention (`runner.py:607-612`: "NOT MSE… an MSE term would also
+   pressure `o`'s NORM toward the target's norm").** REJECTED for this
+   use, a **deliberate, disclosed departure** from that precedent, not
+   an oversight. `aux_read_supervision_loss` supervises the READ OUTPUT
+   `o`, whose norm is legitimately nuisance (`binexp_read` renormalizes
+   at every squaring, `nm.binexp_read`/`_renorm_vec`/`_renorm_mat`, so
+   `o`'s scale carries no task information and cosine — scale-invariant
+   by construction — is the right tool). `L_write` supervises the WRITE
+   OPERATOR's per-key ACTION, whose magnitude is exactly what compounds
+   under `h`-fold squaring: a `Z_sgd` that is directionally correct per
+   key but off by a per-key scale factor `cᵢ` still collapses under
+   repeated application (`cᵢ^h` compounding is a variant of the same
+   power-iteration mechanism `§G3-B26/B32` diagnosed for spectral
+   ratios) — a cosine write-loss would be blind to exactly the failure
+   mode this design exists to fix. `‖·‖²` is the right norm here;
+   dividing by `‖vᵢ‖²+ε` (not a fixed global scale) keeps different
+   documents' loss terms comparable without discarding magnitude
+   information the way cosine would.
+
+**Cost.** `Z_sgd @ keys_vᵀ`: one batched matmul, `(B,d,d)@(B,d,K)→(B,d,K)`,
+`≈ d²K = 25²·24 = 15,000` FLOPs/example. `teacher_force_operator` itself
+(`pinv` on a `(24,25)` matrix): negligible, sub-microsecond, no new
+forward pass — `keys_v`/`values_v` are already extracted by
+`ncr_lm_forward_ablatable` regardless of this loss. **Total ≈2×10⁴
+FLOPs/write**, the same order as every mechanism this document has
+costed, negligible next to the 98M backbone.
+
+**Gradient (verification derivation, matches house convention):**
+
+```
+∂L_write/∂Z_sgd = (2/BK) Σ_b Σᵢ [ rᵢ(b) / (‖vᵢ(b)‖²+ε) ] ⊗ kᵢ(b)
+```
+
+a standard bilinear-form outer-product gradient; PyTorch autodiff
+computes this in practice.
+
+**`ε`-guard.** `‖vᵢ‖²+ε` floors the denominator (same class of guard as
+§2(b)'s `ĉ`-floor and R1.3's `tr(G)`-floor) — degenerates only if a
+value-adapter output collapses toward zero, an unrelated pathology this
+guard does not mask (it is not in the numerator, so it cannot create a
+degenerate zero-loss escape route the way §2(c)'s un-normalized penalty
+or R1.3's earlier draft could).
+
+#### §2(b) — supervision schedule: ALWAYS-ON, and why annealing's own named risk cannot arise here
+
+The task charter names the risk directly: "the decode head co-trains
+against whatever `Z` distribution it sees, so annealing interacts with
+readout adaptation." This is a real, previously-observed effect in this
+exact program — DRAFT-R2 §R2.1 diagnosed it precisely: compB's decode
+head, having trained 20,000 steps against a COLLAPSED `o`
+(`o_pairwise_cos` 0.989–0.992), reads a teacher-forced `o` at EVAL as an
+**out-of-training-distribution input** (`retrieval24` and
+`answer_accuracy` DIVERGE at P1b, §PREMISE BATTERY HARVEST). That
+mismatch arises specifically because `--teacher-force-operator`
+**swaps `Z` in the forward pass** — the decode head is trained on one
+`Z`-distribution (whatever the flag produces) and could be evaluated on
+another.
+
+**`L_write` structurally cannot reproduce this risk, at any schedule.**
+It is a training-time-only ADDITIVE loss term on `Z_sgd`; the forward
+read always uses `Z_sgd = ncr_head.encode(keys_v, values_v)` — the SAME
+tensor, unconditionally, whether `L_write`'s weight is `0`, constant, or
+annealed. The decode head, `entity_adapter`, and backbone see and adapt
+to the REAL, actually-improving-or-not `Z_sgd` at every single training
+step, with or without supervision active — there is no second `Z`-
+distribution for the decode head to be out-of-distribution with respect
+to, because `L_write` never appears in the forward graph at all (compare
+`ortho_regularization_loss`/`aux_read_loss_weight`, both also training-
+loss-only, both also never swap the forward `Z` — same category, same
+absence-of-mismatch argument). **Chosen: constant `λ_w` throughout
+training** (matching house convention — `ortho_reg_weight` and `aux_
+read_loss_weight` are both flat scalars for the full 20,000 steps in
+every §G3-B31 cell, never annealed), justified on three independent
+grounds: (i) the mismatch risk the charter names cannot arise
+structurally, as just argued; (ii) it is the simplest choice and the
+one this program has used everywhere else; (iii) §2(c) below explicitly
+sanctions this: the pre-registered claim is "trainable-with-write-
+supervision," which does not require supervision to ever be absent
+during training, only that it be absent at EVAL — always-on satisfies
+that by construction, with the eval-time boundary doing all the honesty
+work.
+
+**What is deferred, not solved.** A DIFFERENT, genuinely open dynamical-
+stability question — does `Z_sgd` REGRESS once supervision is removed,
+i.e. is a well-conditioned write self-sustaining under CE alone once
+reached — is real and NOT answered by "always-on is schedule-safe."
+Registered as an explicit non-primary follow-on (an annealed-off arm,
+wave-2), not wave-1: answering it needs a converged write-supervised
+checkpoint to anneal FROM, which does not exist yet.
+
+#### §2(c) — why this is not cheating, stated as an honest boundary
+
+`Z_ideal` is a pure function of `(keys_v, values_v)` — quantities the
+model has ALREADY computed from the SAME in-context tokens
+`ncr_head.encode` consumes for the real write (`extract_kv`, `runner.py
+:310-329`); no additional information crosses into training that the
+model doesn't already have access to. The model is trained to EMIT this
+computable quantity via gradient descent — the same category of
+technique as teacher-forcing a sequence decoder against ground-truth
+previous tokens (an accepted, standard training technique whose whole
+point is that a decoder trained this way must still produce correct
+output at inference, when the crutch is gone) or state-space TTT losses
+that regress a fast-weight state toward a closed-form target during
+training only. **The eval protocol never teacher-forces — `Z_ideal` is
+computed nowhere in the eval path, `retrieval24`/`answer_accuracy` are
+scored on `Z_sgd = ncr_head.encode(...)` exactly as in every prior
+§G3-B31 cell.** The honest boundary, stated once and carried everywhere
+below: a WIN here establishes **"trainable-with-write-supervision"** —
+a real, still-capability-relevant, but weaker claim than "SGD alone,
+unsupervised, discovers a well-conditioned write" (which the harvest
+already falsified, 3/3 configs, chance at `h*=61`). The **no-supervision
+arm stays the recorded baseline** (P0, harvest, no rerun) precisely so
+this weaker claim is never conflated with the stronger one it replaces.
+
+### §3 Cells / seeds / budget
+
+**Loss wiring — additive-only, matching the runner's own established
+discipline exactly.** One new function, `write_supervision_loss(Z,
+keys_v, values_v, eps=1e-6)` (§2(a)'s formula), and one new gated branch
+in `compute_arm_losses` mirroring `ortho_regularization_loss`'s own
+insertion (`runner.py:849-851`) byte-for-byte in structure:
+
+```python
+if is_full_graft and write_supervision_weight > 0.0:
+    with torch.no_grad():
+        Z_ideal = arm["integ"].teacher_force_operator(keys_v, values_v)
+    write_loss = write_supervision_loss(Z, keys_v, values_v)
+    total_loss = total_loss + write_supervision_weight * write_loss
+```
+
+plus one new CLI flag, `--write-supervision-weight` (default `0.0` =
+OFF, byte-identical to today's runner — same "flag OFF ⇒ branch never
+runs" guarantee `ortho_reg_weight`/`aux_read_loss_weight` already carry,
+per `compute_arm_losses`'s own docstring, `runner.py:777-781`). No
+existing function or code path is modified. `keys_v`/`values_v` are
+already returned by `ncr_lm_forward_ablatable` — no extra forward pass.
+This is the "audited-runner precedent" the charter calls for: identical
+insertion pattern to §G3-B20's `ortho_reg_weight` and §G3-B31's
+`aux_loss_type`, both additive, both independently gated.
+
+**Warm-start vs. from-scratch — the three §G3-B31 arms, resolved as two
+DIFFERENT roles, not one choice.** *Warm-start* (resume an already-
+trained checkpoint, continue with `L_write` added) is CHEAP but
+CONFOUNDED — it cannot distinguish "the write learns well under
+supervision" from "supervision merely repairs an already-mostly-formed
+`Z`," and DRAFT-R2's own F1 precedent (a 25% gradient step from a
+partially-working point COLLAPSED retrieval 0.708→0.042 for a DIFFERENT,
+wrong-target penalty, `NCR_WRITECOND_ATTACK_R2.md:130-140`) shows
+gradient nudges near a trained checkpoint are not automatically benign.
+*From-scratch* (train the target config from step 0 with `L_write`
+active throughout) is the claim-bearing test — it matches CLAUDE.md's
+calibration rule ("one real training run at the target config") and
+avoids conflating repair with learning. **Resolution:** warm-start is
+CALIBRATION-ONLY (Stage 0.1, cheap, non-claim-bearing, resumes compB's
+own checkpoint for a short continuation as an early engagement check);
+from-scratch is the claim-bearing PRIMARY (Stage 1). The three
+§G3-B31 recipe families (primary: frozen+ctrcos; compA: frozen+cosine;
+compB: trainable+ctrcos) are used as **Stage 1's `n≥3` seeds — three
+independent from-scratch training runs, one per recipe, rather than
+three RNG seeds of one recipe.** Justified two ways: (i) it directly
+answers the task's own posed question (which of the three arms to use,
+and how) by using all three, each once; (ii) it mirrors this document's
+OWN established replication convention — the harvest's ROBUST verdict
+(§PREMISE BATTERY HARVEST, "REPLICATION… 3/3") was earned by three
+DIFFERENT recipes at one seed each, not three seeds of one recipe — so
+this design tests write-supervision's robustness on the exact axis
+(frozen vs. trainable adapter, cosine vs. contrastive aux) this
+program's own precedent treats as the meaningful replication dimension.
+A same-recipe multi-seed arm is a natural, cheaper wave-2 escalation if
+wave-1 reads a clean WIN on all three configs, not funded here.
+
+**Stage 0 — calibration, run BEFORE any Stage-1 cell (CLAUDE.md
+mandatory pre-experiment rule).**
+
+| cell | purpose | config | steps | seeds | GPU-h |
+|---|---|---|---|---|---|
+| 0.1 warm-start sanity | resume compB's checkpoint (step 20,000), add `L_write` @ `λ_w0` (from 0.3 below); does the per-key write-residual move at all, does retrieval24 not regress, within a short window, BEFORE any Stage-1 spend | compB, warm-start | +1,500 (continuation) | 1 | 0.365 |
+| 0.2 reachability / conditioning check | CPU/eval-only, ZERO training: compute `cond(keys_v)` (top/bottom singular value ratio of the `(K,d)=(24,25)` key matrix) across `n≈256` sampled episodes on all three recipes — is `Z_ideal` a numerically well-conditioned (learnable) function of context, or does `pinv` sit near a rank-deficiency boundary for a non-trivial fraction of episodes? (§6's reachability question, made concrete and cheap) | all 3 | — | — | 0 |
+| 0.3 residual-compounding derivation | analytic, zero GPU: using the harvest's OWN already-measured numbers (SGD-written `Z`: `A_cond≈9,959`, compB; `Z_ideal`'s own residual `≈3.1e-16`, attack-R2-simulated) and §1.3's `1/√d_ncr≈0.20` discriminability-floor derivation (reused, not re-derived), back out how small `L_write`'s own value must fall for `h*=61` retrieval to plausibly clear chance — sets `λ_w0` for 0.1, not guessed | — | — | — | 0 |
+
+**Stage-0 subtotal (mid-rate estimate, 0.875 s/step ⇒ 4.861 GPU-h per
+full-20,000-step-equivalent): 0.365 GPU-h.** Upper-bound check at 0.92
+s/step (5.111 GPU-h-equivalent): 0.383 GPU-h — both comfortably small.
+
+**Stage-0 gate.** 0.1 must show DIRECTIONAL engagement — `L_write`
+itself decreasing over the continuation window AND `retrieval24@{1,13,
+37,61}` not regressing below its pre-continuation reading — mirrors
+DRAFT-R0 §3.3's "0.3 mech(a) canary" convention (does the term engage
+at all before committing more spend). Zero engagement escalates to the
+audit before any Stage-1 GPU-h is spent, not a silent proceed. 0.2/0.3
+are informational (already-recorded evidence plus one cheap forward
+pass), non-gating unless 0.2 reveals outright numerical pathology
+(`cond(keys_v)` diverging/NaN for a large fraction of episodes) —
+that specific outcome DOES gate, per §6 item 3.
+
+**Stage 1 — main grid (gated on Stage 0).**
+
+| arm | config(s) | seeds | steps | GPU-h (mid-rate) |
+|---|---|---|---|---|
+| PRIMARY: write supervision @ `λ_w0` | all 3 §G3-B31 recipes, from-scratch | 1 each (3 independent runs) | 20,000 | 3 × 4.861 = 14.58 |
+| CONTROL A: wrong-fixed-operator placebo (§4) | compB recipe, from-scratch | 1 | 20,000 (SAME gradient budget as PRIMARY) | 4.861 |
+| CONTROL B: readout-adaptation-only (§4) | compB checkpoint, warm-start | 1 | +2,000 (continuation) | 0.486 |
+| blank-out / localization battery (§4, reused verbatim) | bundled, eval-only | — | — | 0.05 |
+
+**Stage-1 subtotal (mid-rate): 19.98 GPU-h.**
+
+```
+Stage 0 (mid-rate)                  0.365 GPU-h
+Stage 1 (mid-rate)                 19.977 GPU-h
+------------------------------------------------
+Nominal total (mid-rate estimate)  20.34 GPU-h
+Range across the M2 0.83-0.92 s/step uncertainty:
+  low  (0.83 s/step, 4.611 GPU-h/full-run-equiv)   ≈19.3 GPU-h
+  high (0.92 s/step, 5.111 GPU-h/full-run-equiv)   ≈21.4 GPU-h
+× 1.4 contingency (on the mid-rate nominal)        28.5 GPU-h
+------------------------------------------------
+Registered ceiling  ≤20 GPU-h nominal, hard cap ≤30 GPU-h
+```
+
+(Mirrors DRAFT-R0's own original ceiling convention — "≤20 GPU-h
+nominal, hard cap ≤30 GPU-h," §3.5 — a callback, not a coincidence: this
+is a leaner, single-mechanism design like R1.7's post-cut budget, but
+priced at the CORRECTED training rate R1.7 never got the chance to use.)
+
+**Placement.** GPUs 4/6/7, per this round's dispatch — three concurrent
+training/continuation jobs at a time (matching §G3-B31's own measured
+6.86 GB VRAM / 73–80% SM footprint per cell — same config family, same
+expectation, to be confirmed by an eval-VRAM/training-VRAM re-smoke
+before launch, per CLAUDE.md's "eval batch size can OOM even if training
+fits" rule applied here in the opposite direction — a NEW loss term
+adds a small forward+backward cost that should also be re-measured, not
+assumed zero, before trusting the GPU-h table above at full scale). One
+cell per GPU, no packing (identical reasoning to every prior stage in
+this file). Five Stage-1 jobs total (3 PRIMARY + 2 controls) across 3
+GPUs: the three PRIMARY recipes run concurrently first (they are the
+claim-bearing arm and share nothing that would benefit from
+sequencing), then Control A and Control B backfill the freed GPUs.
+
+### §3.6 Success / kill bands, scored at `h*=61`
+
+Reference anchors, taken directly from §PREMISE BATTERY HARVEST across
+all three replicated configs (no rerun): **`P0_ref = 0.07`** (rounds up
+from the measured range 0.035–0.066, the harder-to-beat end, chosen
+conservatively) and **`P1b_ref = 0.977`** (the measured range's lower
+end, compB, the harder-to-reach ceiling). `gap := P1b_ref − P0_ref =
+0.907`. `τ = 0.09162` (n=256, exact, §R2.3, reused — Stage 1 evals at
+the SAME `eval_batch_size=256`, `base_seed=90210` convention).
+
+```
+fraction_closed(x) := (retrieval24_acc(x, h*=61) − P0_ref) / gap
+```
+
+Checked in order (Band-1-first house convention):
+
+1. **TPC / target-space integrity** — monitored (reused verbatim,
+   R1.6's paired-CI form), non-gating unless the absolute `0.50`
+   tripwire fires (that tripwire discriminates true catastrophic
+   collapse by two orders of magnitude of slack and stays load-bearing
+   regardless of mechanism).
+2. **Write-engagement check** — `L_write` must show real descent from
+   its own step-0 value over training. FAIL ⇒ INCONCLUSIVE-BY-MECHANISM
+   (the intervention never engaged), distinct from a clean behavioral
+   NULL.
+3. **`retrieval24@h*=61`, PRIMARY:**
+   - **NULL:** `≤ τ = 0.09162` (statistically indistinguishable from
+     P0/chance).
+   - **PARTIAL:** `τ <` reading `≤ chance+0.15 = 0.19167` **OR**
+     `fraction_closed ∈ (0.024, 0.70)` — real, statistically significant
+     movement off chance, short of the WIN bar.
+   - **WIN:** reading `> chance+0.15 = 0.19167` (the established, 6+ SD
+     bar, M7's own justification, reused unmodified) **AND**
+     `fraction_closed ≥ 0.70` (closes at least 70% of the measured
+     P0→P1b gap) **AND** the GAP metric (`full_graft − backbone_only`)
+     also `> 0.15` at `h*` (rules out a `backbone_only`-side fluke,
+     §3.6's original convention, reused).
+   - **Depth-decay PARTIAL signature** (carried forward — ALREADY
+     observed once in this exact program, compB's own `0.09375@h=20 →
+     0.01562@h=61`, R1.6): clears WIN/PARTIAL at `h≤20` but decays
+     toward NULL by `h*=61` — labeled explicitly, not folded into NULL.
+4. **If PRIMARY reads NULL on ALL THREE recipes:** direct exact-operator
+   write-supervision, as specified, is FALSIFIED at this architecture/
+   scale — a materially more serious finding than a simple NULL
+   (echoes DRAFT-R0 §3.6's own escalation clause), requiring its own
+   honest write-up, not a quiet retry.
+
+### §4 Baselines and controls
+
+**No-supervision — the recorded P0 (harvest, all 3 configs), no rerun.**
+The pre-supervision null hypothesis every Stage-1 arm must beat.
+
+**Supervision-toward-a-wrong-fixed-operator (F1-informed placebo).**
+`Z_wrong(b) := teacher_force_operator(keys_v(b), values_v(b)[σ])`, where
+`σ` is a FIXED cyclic shift of the K value-slots (`σ(i) = (i+1) mod K`,
+applied identically to every batch/step — not resampled, so it is
+literally a different, wrong, but well-formed target every episode,
+since the task's own true answer-permutation varies per document while
+`σ` does not). `L_wrong` is the IDENTICAL functional form as `L_write`
+(§2(a)), same weight `λ_w0`, same 20,000 steps — **SAME gradient budget**
+by construction, not merely by claim, because it is the same loss
+computed on the same machinery with only the target CONTENT changed.
+This is a stronger match than R1.5's noise-injection null (which needed
+per-step recalibration and still failed F3, "141× weaker in coherent
+displacement") — here there is nothing to recalibrate; the placebo's
+gradient magnitude tracks `L_write`'s own by sharing its exact
+computation. Pre-registered reading: placebo IMPROVES retrieval ⇒
+generic "extra gradient pressure on `Z`" nuisance effect, independent of
+target correctness (the exact confound §G3-B22–B25 and F3 already
+diagnosed); placebo does NOT improve, `L_write` DOES ⇒ evidence specific
+to target CORRECTNESS, not merely "more supervision" — directly the
+axis F1 killed the prior mechanism on, now tested in this mechanism's
+own terms.
+
+**Readout-adaptation-only control.** Reuses `--teacher-force-operator`
+VERBATIM, unmodified: continue training the compB checkpoint (step
+20,000) for 2,000 further steps with `teacher_force=True` — `Z` is
+FORCIBLY replaced by `Z_ideal` in the forward pass throughout this
+continuation, so `ncr_head`/the encoder receive EXACTLY zero gradient
+(`teacher_force_check.ncr_zero_grad_checks_passed`, asserted every step,
+already-existing machinery) — only `entity_adapter`, `backbone`, and the
+decode head adapt. **Then evaluate with `teacher_force=False`** (`Z_sgd`
+restored, UNCHANGED throughout this continuation by the zero-grad
+guarantee just cited) and re-score `retrieval24@h*=61`. This isolates
+whether read-side/`entity_adapter` adaptation to a clean-`Z` training
+distribution, alone, moves the needle when reading with the OLD,
+uncorrected `Z_sgd` — the exact question the charter poses ("does the
+read-side alone explain any gain"). Pre-registered expectation, stated
+honestly before running it: given DRAFT-R2's own out-of-distribution
+finding (§R2.1 — a decode head trained on a collapsed `o` reads a clean
+`o` out-of-distribution, and the CONVERSE direction — a decode head
+further adapted toward a clean-`o` distribution reading an UNCHANGED
+collapsed `o` — plausibly worsens the mismatch, not improves it), the
+expected reading is NO improvement (or a regression) in P0's own
+number. A surprising IMPROVEMENT here would be an important competing
+finding (decode-side undertraining, independent of write quality) and
+is not pre-dismissed.
+
+**Blank-out / localization battery.** Reused verbatim (`NCR_ORTHO_WRITE.
+md` §9.0's raw-input-corruption-post-encoding invariant) — `L_write`
+only touches the encoder's `Z` output via an added loss term, so this
+invariant must hold UNCHANGED under every Stage-1 arm; bundled into
+existing eval, no dedicated GPU-h.
+
+### §5 Novelty-gate charter
+
+**Carry-forward, already-verified obligations (mandatory cite, not
+re-swept).** From `research/writecond-novelty-2026-08-13.md` and `NCR_
+WRITECOND_ATTACK_R2.md`'s own web-verified F5-B sweep: MuonSSM
+(2606.30461), DeltaProduct (2502.10297), Gated DeltaNet-2 (2605.22791),
+Preconditioned DeltaNet (2604.21100), Variational Linear Attention
+(2605.11196), Lattice (2504.05646), MeSH (2510.07739), Sanford
+(2402.09268) + Wang (2505.23683), the unitary-RNN/dynamical-isometry
+line (Arjovsky 1511.06464, Pennington 1711.04735, Xiao et al. ICML
+2018), and the full soft-orthogonality/RIP family F5-B located (SRIP/SO
+1810.09102, Parseval 1704.08847, Vorontsov 1702.00071, SICNC 2503.20454,
+Rényi-2/effective-rank 1808.07912 + 2406.11672, I-STAR/IsoScore
+2305.19358/2108.07344, Spectral Isotropy Regularization 2605.29987,
+uniformity-to-`(1/d)I` 2305.17326). **These are carried forward as
+context, not as occupants of THIS mechanism's own territory** — every
+one of them conditions `Z`'s SPECTRAL SHAPE (orthogonality, RIP,
+flatness, entropy); `L_write` is a direct per-example regression to a
+COMPUTED VALUE and touches no singular value anywhere. Stated plainly:
+this design does not re-enter the crowded spectral-regularizer wedge
+F5-A/F5-B just mapped — it exits that mechanism CLASS entirely.
+
+**New sweeps required before launch (PENDING — not run by this draft;
+the coordinator dispatches them next, per the task's own closing
+instruction).** Search terms, as specified by the charter and
+supplemented:
+- "test-time distillation of fast weights"
+- "auxiliary losses matching linear-attention states to closed-form
+  targets"
+- "teacher forcing for memory/state" / "teacher forcing fast weights"
+- "DeltaNet-family supervised state matching"
+- "TTT with explicit targets" / "test-time training closed-form
+  target"
+- NEW, added this round given §1's framing: "distillation toward
+  least-squares fast-weight solution," "supervised state-matching loss
+  linear attention," "in-context operator regression auxiliary loss"
+
+**Named candidates the sweep must check and either clear or convert to
+a cite-and-distinguish obligation (NOT verified by this draft — flagged
+per CLAUDE.md's research-grounding rule, "VERIFIED citations only,
+agent-checked, never from memory"):** Test-Time Training / TTT-family
+(Sun et al.) — an obvious candidate given "explicit target for a fast-
+weight state during training only, none at inference" is close to this
+design's own boundary (§2(c)); DeltaNet/Gated DeltaNet/RWKV-7's own
+delta-rule as an implicit "distance to a rank-1 target" (already
+distinguished by mechanism elsewhere in this file, but the SUPERVISED,
+non-recurrent-update framing here is a different question the sweep
+must ask fresh); any 2026 paper on auxiliary losses for associative-
+memory/fast-weight writes specifically scored against read-time
+compositional depth (the by-task axis, still OPEN per the memo — this
+draft's mechanism change does not by itself resolve that openness,
+it only changes what the by-mechanism sweep must check).
+
+**What would count as scooped.** A paper that (i) writes a fast-weight
+operator from in-context content, (ii) computes or has access to a
+closed-form/exact target for that operator from the SAME context, (iii)
+trains the learned write toward that target via an explicit auxiliary
+loss (not by swapping the target into the forward pass, i.e. not
+literal teacher-forcing of the whole read), and (iv) evaluates
+UNSUPERVISED read-time compositional depth. A hit on (i)-(iii) without
+(iv) is a positioning-only overlap (cite-and-distinguish, not a kill,
+mirroring how MuonSSM/DeltaProduct were handled for the prior
+mechanism). A hit on all four, especially at anything resembling this
+task's `K/d`/repeated-squaring-read structure, is a genuine scoop
+requiring re-scoping — not assumed absent here, left for the dispatched
+sweep to determine.
+
+**Internal-archive note (self-check, not a substitute for the dispatched
+sweep).** `L_write` is NOT `aux_read_supervision_loss` (that supervises
+the READ OUTPUT `o` post-composition, cosine, target = the true answer
+entity's adapted embedding) and NOT `ortho_regularization_loss` (that
+shapes `Z`'s spectrum, no notion of a specific correct value) — it
+supervises the WRITE OPERATOR directly, pre-composition, toward a
+per-example EXACT value. No existing loss in this program's archive
+does this; `KILL_LIST.md`/`NCR_ORTHO_WRITE.md`/`NCR_ORTHO_FALLBACK_
+DESIGN.md` contain no entry for exact-operator write regression (a
+targeted grep, not a substitute for the coordinator's own internal
+sweep, which this round's charter still requires).
+
+### §6 Self-attack — what would kill this at R3
+
+1. **Supervision may fix `Z` on the synthetic task while the LM's own CE
+   loss fights it.** `L_write` and `L_CE` both flow gradient into
+   `Z_sgd` (via the read `o`) and into `entity_adapter` (via `keys_v`/
+   `values_v`, shared with the write path) — if `entity_adapter`'s
+   CURRENT geometry makes the CE-optimal write genuinely different from
+   the geometric `Z_ideal` at that same training step (plausible early
+   in training, before `entity_adapter` has settled), the two losses
+   could pull in different directions, especially in compB's trainable-
+   adapter arm. **Cheap registered check:** log `cos(∇_Z L_write,
+   ∇_Z L_CE)` alongside training (near-zero extra cost, both gradients
+   are already computed) — a persistently negative cosine is the
+   diagnostic signature of this conflict, distinguishable from simple
+   under-training.
+2. **The `h*`-frontier may move.** `binexp_read` renormalizes magnitude
+   at every squaring (`_renorm_mat`/`_renorm_vec`) but does NOT fix
+   directional conditioning — so even a `Z_sgd` with a much-reduced
+   per-key residual could still have a large enough OWN condition
+   number (recall the harvest's measured `A_cond≈9,959` on the
+   unsupervised write) that residual amplification under six squaring
+   steps (`h=61` needs `⌈log₂61⌉=6`) overwhelms signal by `h*=61` even
+   while `h≤20` clears WIN/PARTIAL — exactly the depth-decay PARTIAL
+   signature §3.6 already carries forward as its own labeled outcome,
+   not folded into a clean WIN or silently ignored.
+3. **`Z_ideal` may be unreachable by `ncr_head.encode`'s own
+   parametrization.** `BindingEncoder` (`model_v4.py:25-64`) is a
+   transformer-based set encoder producing `Z` via attention over the K
+   (key,value) tokens — a smooth function of its inputs. `Z_ideal =
+   pinv(k)@v` is smooth almost everywhere but its Lipschitz constant
+   blows up as `k` approaches rank-deficiency (§2(a)'s exactness proof
+   requires `K` linearly independent keys; near that boundary, `pinv`
+   is numerically unstable and `Z_ideal` is a poorly-behaved function of
+   context for a gradient-trained approximator to match). **The cheap
+   analytic check this deserves, specified, not deferred (Stage 0.2):**
+   compute `cond(keys_v)` — the ratio of `keys_v`'s largest to smallest
+   singular value, a `(K,d)=(24,25)` matrix, one `torch.linalg.svdvals`
+   call per episode, zero training — across `n≈256` sampled episodes on
+   all three recipes, BEFORE Stage 1 launches. A consistently
+   moderate `cond(keys_v)` (say `<100`) supports reachability; a
+   heavy-tailed or diverging distribution is a live reachability risk
+   that should escalate to the audit (e.g. an auxiliary key-separation
+   term, or re-scoping) BEFORE Stage-1 budget commits, not discovered
+   after. Worth noting, disclosed rather than assumed either way: this
+   is a DIFFERENT quantity from the harvest's measured `A_cond≈9,959`
+   on `Z_sgd` itself (the WRITTEN operator's conditioning) — whether
+   `Z_sgd`'s poor conditioning is INHERITED from `keys_v`'s own geometry
+   or is a genuine `BindingEncoder` training failure independent of key
+   geometry is exactly what comparing these two numbers, once measured,
+   would reveal, and is not knowable from the archive as it stands.
+
+---
+
+Rev-3 dispatched 2026-08-13. Novelty sweeps (§5) and attack R3 next,
+per the coordinator's own closing instruction — no GPU spend, no STATE.
+md/EXPERIMENT_LOG.md update, no commit from this document.
