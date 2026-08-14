@@ -4636,3 +4636,60 @@ by the option-(a) adjudication above. The instrument layer is now
 certified BY EXECUTION where it counts (the committed artifacts);
 Stage 0′'s reading decides the 24.94 GPU-h wave per §A4.
 
+---
+
+## STAGE 0′ HARVEST (coordinator, 2026-08-14) — VERDICT OF RECORD: NO-GO-ON-CURRENT-BAND. The supervised-write lever is BLOCKED-ON-ACHIEVABILITY; the write HEAD's parametrization is the wall.
+
+Run 2026-08-14 on box GPU 7: timing probe 18s (gate passed:
+extrapolated grid cost sane) → full 8-cell grid 414s. Total Stage 0′
+spend ≈0.13 GPU-h. Raw artifacts:
+`experiment-runs/2026-08-14_writecond_stage0prime/` (repo+SSD). The
+F3 fix's A1+ pre-flight printed the per-checkpoint freeze flags
+exactly as the archived configs record (True/True/False).
+
+**The wave-deciding reading:** any_median = False, any_p90 = False ⇒
+`stage1_gate = NO-GO-ON-CURRENT-BAND` under the §A5-repaired
+conjunctive gate. Per §A4, THE 24.94 GPU-h STAGE-1 WAVE IS NOT
+LAUNCHED.
+
+**Per-cell facts (all 8 cells, n=256):** best L_key_med (final) =
+8.377e-2 (lr=1e-3, λ_t=0) — 280× ABOVE the 3e-4 bar — worst 6.7e-1;
+trajectories decelerating (cell-0: 9.76 → 0.196 over 8000 steps,
+power-law-ish slowdown). The transverse penalty WORKS as re-specified
+(Zw_ratio_med 0.005–0.014 at every λ_t > 0, vs 0.14–0.16 at λ_t=0 —
+the F1-repaired instrument reads correctly in both directions).
+Retrieval at chance in every cell at both hops (0.02–0.06) —
+approximate writes with 8–67% residual energy per key are useless
+for composition, exactly as the theory requires. Item 3's
+reachability instrument LOCALIZES the wall: the exact operator
+demands 13.2× median / 58.1× p99 / 76.1× max within-episode dynamic
+range, against the encoder `row_out` head's conditioning of ≈5.04 —
+the one-shot BindingEncoder emission architecturally cannot express
+V·K† at the measured key geometry.
+
+**What the full arc now establishes (three verdicts of record):**
+(1) the READ path is perfect at h=61 given exact Z (premise battery,
+3/3 checkpoints); (2) unsupervised training never learns the write
+(§G3-B32, replicated) and spectral conditioning doesn't fix it
+(§A2 F5); (3) DIRECT supervision doesn't fix it either at probe
+budgets — the blocker is the write head's PARAMETRIZATION, now
+quantified (dynamic-range deficit ≈ 3–15×).
+
+**Forward options (each a NEW claim ⇒ novelty/design gauntlet):**
+- **(a) Expressive write head** — replace the one-shot emission with
+  a construction that can EXPRESS the exact operator (a delta-rule /
+  key-orthogonalized outer-product-sum write can represent V·K† for
+  independent keys by construction). The research continuation;
+  fits the remaining grant window if its gauntlet clears.
+- **(b) Re-scope to the closed-form-write architecture** — the
+  premise battery's P1b arm IS this architecture evaluated
+  end-to-end (3/3 checkpoints, 0.977–1.0 at h=61 in the real LM):
+  claim = capability-separation DEMO with the model's own learned
+  extraction + read machinery and an exact in-context write, with
+  learnability honestly documented open (this section). FAAST
+  cite-and-distinguish mandatory (they disclaim composition; we
+  demonstrate it). Near-zero GPU cost — the evidence exists.
+Coordinator's recommendation: (b) feeds the flagship NOW (deadline
+~late Sept); (a) is the right use of the remaining box window IF its
+design survives the gauntlet. Neither launches without its gate.
+

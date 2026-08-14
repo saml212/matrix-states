@@ -1,5 +1,18 @@
 # STATE — Current Project State
 
+**2026-08-14 tick #4 (Fable): STAGE 0′ VERDICT = NO-GO — wave
+cancelled by a 0.13 GPU-h probe.** Best cell 280× above the
+achievability bar w/ decelerating curves; transverse penalty works;
+retrieval chance everywhere; item-3 quantifies the wall (exact
+operator needs 13-76× dynamic range vs the head's ≈5). ARC SETTLED:
+read perfect / unsupervised write fails / conditioned write fails /
+SUPERVISED write fails ⇒ the write head's PARAMETRIZATION is the
+blocker. Options recorded: (a) expressive write head (delta-rule sum
+expresses V·K† by construction) → new gauntlet for the box window;
+(b) flagship re-scope to the closed-form-write architecture (already
+evidenced 3/3 by P1b, FAAST-distinguished, ~zero GPU) → the paper
+NOW. K-wall still running GPU 5; harvest next.**
+
 **2026-08-14 tick #3 (Fable): attack R5 adopted (4F/6M/9m — all in the
 never-executed artifacts; everything Rev-5 executed verified right);
 repairs coordinator-implemented from the report's executed specs

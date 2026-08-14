@@ -9986,3 +9986,29 @@ per-ckpt freeze read, F4 option (a) (no-freeze + disclosed M4(b)
 confound + warning field), CLI knobs, SVD hoist, VOID guard + new
 soundness test. Suite 44/44. Stage 0′ CLEARED — timing probe first
 and GATING; its reading decides the 24.94 GPU-h wave.
+
+## 2026-08-14 #4 — STAGE 0′ RAN: NO-GO-ON-CURRENT-BAND — the 24.94 GPU-h wave is NOT launched; the write HEAD's parametrization is the quantified wall (0.13 GPU-h total)
+
+Timing probe 18s (gate passed) → full 8-cell grid 414s on GPU 7.
+any_median=False, any_p90=False ⇒ NO-GO under the §A5 conjunctive
+gate. Best cell L_key_med=8.38e-2 (280× above the 3e-4 bar; curves
+decelerating); transverse penalty works exactly as re-specified
+(Zw_ratio 0.005-0.014 at λ_t>0 vs 0.14-0.16 at λ_t=0); retrieval at
+chance in all 8 cells at both hops. Item-3 reachability LOCALIZES:
+the exact operator needs 13.2×/58.1×/76.1× (med/p99/max)
+within-episode dynamic range vs the one-shot encoder head's ≈5.04 —
+the BindingEncoder emission architecturally cannot express V·K†.
+ARC-LEVEL RECORD (three verdicts): read path perfect at h=61 given
+exact Z; unsupervised training never learns the write and spectral
+conditioning doesn't fix it; direct supervision doesn't fix it
+either — the blocker is the write head's PARAMETRIZATION (deficit
+quantified 3-15×). Forward options recorded (design-doc harvest):
+(a) expressive write head (delta-rule outer-product-sum CAN express
+V·K† by construction) — new design gauntlet, fits the grant window;
+(b) re-scope flagship claim to the closed-form-write architecture —
+ALREADY EVIDENCED by the premise battery's P1b (3/3, 0.977-1.0 @
+h=61), FAAST cite-and-distinguish, near-zero GPU. Coordinator rec:
+(b) → flagship now; (a) → the box window if its gauntlet clears.
+Artifacts: experiment-runs/2026-08-14_writecond_stage0prime/
+(repo+SSD). Probe economics: 0.13 GPU-h spent to correctly cancel a
+24.94 GPU-h wave that would have produced the Band-4 NULL.
