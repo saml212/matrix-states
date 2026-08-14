@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-13 tick #6 (Fable): PREMISE FINDING REPLICATED 3/3** — compA
+and primary land in the identical AC=00/BD=11 cell (P1b ≥0.996 at
+every hop incl. h=61; P0 chance everywhere). Three training configs,
+one verdict: the 61-hop composition READ capability exists in every
+trained checkpoint; SGD write-learning is the sole blocker. Verdict
+upgraded ROBUST (scope: 1 base seed per arm; multi-seed = follow-on
+wave). Publisher dispatch unblocked per the standing per-finding
+directive. Next design round = supervised write learning vs Z_ideal
+(novelty re-entry). Total diagnostic spend ≈0.15 GPU-h.**
+
 **2026-08-13 tick #5 (Fable): PREMISE BATTERY VERDICT = AC=00/BD=11 —
 FIRST POSITIVE REAL-LM NCR CAPABILITY EVIDENCE.** The trained compB
 checkpoint's read path executes 61-hop repeated-squaring retrieval at

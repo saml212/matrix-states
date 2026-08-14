@@ -9883,3 +9883,17 @@ computes exact Z_ideal from in-context content = a direct
 supervision target for the write path. Replication (compA/primary
 ckpts, <0.1 GPU-h) REQUIRED before publication-grade claims;
 publisher dispatch HELD pending it.
+
+## 2026-08-13 #6 — Premise-battery REPLICATION 3/3: compA + primary land in the SAME grid cell (AC=00/BD=11) — the localization is robust across all three training configurations
+
+Identical instrument on the sibling checkpoints (freeze_entity_
+adapter=True per their training configs, disclosed): compA P0
+0.043/0.020/0.020/0.035 vs P1b 1.0/1.0/1.0/0.9961; primary P0
+0.055/0.039/0.039/0.039 vs P1b 1.0/0.9961/1.0/1.0. Three independent
+training runs, three different arm configurations (aux losses, frozen
+vs trainable adapters) — one verdict: the read path executes 61-hop
+exact composition near-perfectly given a good operator; SGD never
+learns to write one. Scope: one base seed per arm (multi-seed belongs
+to the follow-on wave). Artifacts appended to the same
+experiment-runs dir (repo+SSD). Publisher dispatch unblocked.
+Total premise-battery + replication spend: ≈0.15 GPU-h.

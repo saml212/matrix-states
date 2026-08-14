@@ -2261,3 +2261,19 @@ primary/compA checkpoints exist in the same archive dir and a
 seed-replication cell is cheap (<0.1 GPU-h) — REQUIRED before any
 publication-grade claim. Publisher dispatch deliberately HELD until
 replication (coordinator call, PI may override).
+
+**REPLICATION (same day, 2026-08-13): 3/3 — VERDICT UPGRADED TO
+ROBUST.** The identical instrument (`pbe_repl`, archived; the frozen
+arms needed `freeze_entity_adapter=True` to restore — matching their
+training configs, disclosed) on the two sibling checkpoints:
+- compA (frozen-cosine arm, step 20000): P0 = 0.043/0.020/0.020/0.035
+  (chance); P1b = 1.0/1.0/1.0/0.9961. AC=00, BD=11.
+- primary (frozen-ctrcos arm, step 20000): P0 =
+  0.055/0.039/0.039/0.039; P1b = 1.0/0.9961/1.0/1.0. AC=00, BD=11.
+All THREE §G3-B31 training configurations — different aux losses,
+frozen AND trainable adapters — land in the same grid cell. The
+read-path capability is universal across trained checkpoints; the
+learned write is the sole blocker in every one. (Scope note: three
+independent training runs, one base seed each — a multi-seed arm
+belongs to the follow-on wave, not this diagnostic.) Publisher
+dispatch UNBLOCKED per the standing per-finding directive.

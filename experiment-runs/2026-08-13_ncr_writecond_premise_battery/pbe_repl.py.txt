@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+"""Premise-battery REPLICATION (coordinator, 2026-08-13): the identical
+SUPP instrument (eval_arm_at_hops, seed 90210, n=256, teacher_force both
+modes) applied to a sibling checkpoint given on argv. Pre-declared in the
+harvest record as required-before-publication replication."""
+import json, os, sys, time
+import torch
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ncr_lm_wave1_runner as R
+
+BASE_SEED = 90210
+HOPS = (1, 13, 37, 61)
+
+def main():
+    ckpt_path, tag = sys.argv[1], sys.argv[2]
+    freeze = len(sys.argv) > 3 and sys.argv[3] == "freeze"
+    t0 = time.time()
+    device = "cuda"
+    pools, cfg, pool_report = R.build_grammar_pools_and_cfg(seed=0)
+    pools = pools.to(device)
+    ckpt = R.load_checkpoint(os.path.expanduser(ckpt_path), device)
+    assert ckpt is not None, f"checkpoint missing at {ckpt_path}"
+    arms, opts, data_gen = R.restore_arms_and_opts(ckpt, pool_report["vocab_size_total"],
+                                                    lr=3e-4, device=device, freeze_entity_adapter=freeze)
+    with torch.no_grad():
+        p1b = R.eval_arm_at_hops(arms["full_graft"], pools, cfg, HOPS, 256, device,
+                                  BASE_SEED, read_ablate=False, teacher_force=True)
+        p0 = R.eval_arm_at_hops(arms["full_graft"], pools, cfg, HOPS, 256, device,
+                                 BASE_SEED, read_ablate=False, teacher_force=False)
+    out = os.path.expanduser(f"~/ncr_writecond/results/writecond_premise_REPL_{tag}.json")
+    rec = dict(cell=f"REPL_{tag}", ckpt=ckpt_path, ckpt_step=ckpt["step"], n=256,
+               P1b=dict(teacher_force=True, result=p1b),
+               P0=dict(teacher_force=False, result=p0),
+               elapsed_s=time.time() - t0)
+    with open(out, "w") as f:
+        json.dump(rec, f, indent=2, default=str)
+    print(f"REPL_{tag}_DONE")
+
+if __name__ == "__main__":
+    main()
