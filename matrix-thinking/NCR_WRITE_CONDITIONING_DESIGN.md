@@ -1530,3 +1530,660 @@ correction.
   correction stands in log #4.
 
 Rev-2 (X1 repairs only) dispatched 2026-08-13.
+
+---
+
+## DRAFT-R2 — PREMISE BATTERY (Rev-2, 2026-08-13)
+
+**Scope discipline, stated once.** This section implements ONLY X1(i)–(iv)
+(§A2-ADJUDICATION) = R-1…R-4 (`NCR_WRITECOND_ATTACK_R2.md` §LAUNCH-RULING).
+The mechanism track (X2) is untouched — §1–§6, `DRAFT-R1`, and every
+mechanism-specific subsection (R1.2/R1.3/R1.4/R1.5) stay exactly as attack
+R2 left them (F1-dead, X2 ON HOLD). Nothing below authorizes mechanism
+work. Sources read in full for this round, beyond the R1.1 battery spec:
+`sanity_g3b12_tf_s0.json` (raw, re-read directly), `NCR_REAL_LM_DESIGN.md`
+§G3-B13 (`:5591-5635`), `mob_g3b31_compB_s0.json` (raw `config`/`arms`),
+`ncr_lm_wave1_runner.py` (md5 `9a93198b642242f512ff8489e32b0a53`,
+re-verified — `eval_arm_at_hops`, `eval_both_arms`, `build_attribution`,
+`ncr_lm_forward_ablatable`, `save_checkpoint`/`load_checkpoint`/
+`restore_arms_and_opts`, `build_two_arms`, `build_grammar_pools_and_cfg`),
+`ncr_ortho_write.py:197-224` (`spectral_diagnostics`), `matrix-thinking/
+H100_SETUP.md`, `matrix-thinking/queue/QUEUE_README.md`.
+
+### R2.1 — Repair (i): P1a/P1b re-founded on §G3-B13
+
+**The raw fact (re-verified directly against the JSON, not an agent's
+prose).** `experiment-runs/2026-07-17_ncr_gate3_wave1/g3b12_smoke_results/
+sanity_g3b12_tf_s0.json`: `teacher_force_operator=true`, `params.integ=
+38400` (post-§G3-B12-fix single adapter), 3000 steps, CE-only (no
+`aux_read_loss_weight`/`ortho_reg_weight` keys present — the OLD
+pre-§G3-B27 runner). `full_graft.answer_accuracy = 1.0000` at every
+recorded hop — `h=1,2,3,5,12,20,29,40,61` — `mean_cos` 1.0000 (0.9971 at
+h=61), `recovered_frac@0.9` 1.0000 (0.9844 at h=61); `backbone_only`
+(o≡0 null) `answer_accuracy` 0.0–0.094 throughout. Written up as §G3-B13
+(`NCR_REAL_LM_DESIGN.md:5591`), verdict "DECODE PATH FULLY HEALTHY,"
+explicitly disclosing what it does NOT prove: *"that the model LEARNS to
+WRITE operators from context that compose to deep h"* (`:5625-5627`) —
+i.e. §G3-B13 is a WRITE-GIVEN result, not a WRITE-LEARNED one. This
+supersedes DRAFT-R1's `:851-852` claim ("never re-run post-fix"), which
+is struck. `retrieval24_acc`/`discriminability_metrics`/
+`target_pairwise_cos`/`o_pairwise_cos` did not exist when §G3-B13 ran
+(introduced §G3-B27, 2026-07-29) — confirmed by `grep -c retrieval24
+sanity_g3b12_tf_s0.json` = 0 — so none of those instruments were ever
+scored on this config. Nor did §G3-B13 touch aux/ortho losses, `n=256`,
+or `h∈{13,37}`.
+
+**Consequence for the bands.** Every band this document sets for a
+teacher-forced, post-training cell must reference `answer_accuracy → 1.0`
+(degradation-from-perfect), never chance (improvement-from-nothing).
+`retrieval24_acc`'s own reference is separately derived (below) — it is
+NOT automatically 1.0 merely because `answer_accuracy` is, because the
+two instruments are computed from different information (m1's exact
+`o = T_tgt` argument governs `retrieval24`; the tied LM head's OWN
+learned mapping governs `answer_accuracy`). Both metrics are co-scored on
+every cell below, never one without the other — closing F4(e)'s missing
+instrument-disagreement branch by construction, not by exception
+handling after the fact.
+
+**P1a and P1b redesigned — what NEW information each adds beyond
+§G3-B13.**
+
+- **P1a (fresh-init teacher-force, unchanged in spirit from R1.1.1).**
+  `--teacher-force-operator` at **step 0** (no training at all,
+  `build_two_arms` constructed and evaluated directly — no CLI training
+  loop entered, avoiding any "is step 1 close enough to step 0"
+  ambiguity). NEW beyond §G3-B13: (a) scores `retrieval24_acc`/
+  `discriminability_metrics` — instruments that did not exist at
+  §G3-B13's time — on the CURRENT pinned runner (`9a93198b`); (b) at
+  genuine `n=256` (§G3-B13 was `n=64`); (c) at `h∈{1,13,37,61}`, a
+  squaring-residue set §G3-B13 never scored (m6: `13≡37≡61≡13 mod 24`).
+  Reference: `retrieval24_acc(P1a,h) → 1.0` is an **exact analytic claim**
+  (attack R2's m1: `q_key≡keys_v[a_slot]` bit-identical by the §G3-B12
+  fix, `pinv` fits `K=24` constraints in `d=25` exactly ⇒
+  `o=values_v[a_slot]=T_tgt` exactly; simulated residual `3.1e-16`), valid
+  at a fresh, well-separated (`TPC≈0.0099`, §G3-B31 R1's own fresh-init
+  anchor) target space regardless of training. `answer_accuracy` at P1a
+  is **NON-GATING, diagnostic-only**: the backbone/LM-head are
+  UNTRAINED at step 0, so §G3-B13's `1.0` reference (measured on a
+  3000-step-trained decode head) does not transfer here — there is no
+  honest a-priori expectation for P1a's `answer_accuracy` and none is
+  registered.
+
+- **P1b (REDESIGNED — no fresh training run at all).** DRAFT-R1's P1b
+  ("teacher-force after 5,000 steps of fresh CE training") is dropped: it
+  would be a near-replica of §G3-B13 (M9's own point, now sharper — it is
+  not just confounded with training length, it is a **second measurement
+  of the same already-banked result**, on a recipe that omits the aux/
+  ortho terms compB actually runs). **P1b now evaluates the closed-form
+  teacher-forced `Z` on the RETAINED, ALREADY-TRAINED `mob_g3b31_compB_s0`
+  checkpoint** — the SAME checkpoint P0 (below) evaluates, swapping only
+  the source of `Z` (`integ.teacher_force_operator(keys_v,values_v)`
+  instead of `ncr_head.encode(keys_v,values_v)`; both calls go through
+  the identical `ncr_lm_forward_ablatable`, `runner.py:360`). This is the
+  literal "§G3-B31 contrastive-grid checkpoint's behavior under teacher
+  forcing" the repair calls for, and it is genuinely new along TWO axes
+  §G3-B13 never touched:
+  1. **The recipe.** compB trains with `aux_read_loss_weight=0.5`
+     (contrastive+cosine) and `ortho_reg_weight=0.1` for 20,000 steps;
+     §G3-B13 is CE-only for 3,000 steps on the OLD runner. compB's own
+     `entity_adapter`/`embed` are SGD-shaped by those losses; §G3-B13's
+     were not.
+  2. **The decode head's OWN training regime.** §G3-B13's LM head trained
+     on an EXACT `o` (teacher-forced) at every step of ITS training — it
+     learned, in-distribution, to read a discriminative `o` correctly.
+     compB's LM head trained on a COLLAPSED, uninformative `o`
+     (`o_pairwise_cos` 0.989–0.992, §G3-B32) for all 20,000 of ITS steps —
+     it never once saw a discriminative `o` during training. Handing
+     compB's LM head a teacher-forced `o` at EVAL time is therefore an
+     **out-of-training-distribution input to the decode head specifically**
+     — `retrieval24_acc`'s `→1.0` analytic reference (a pure geometric
+     argmax over `o`'s cosine to the K targets, computed independently of
+     the LM head, m1's derivation) still transfers to P1b, but
+     `answer_accuracy`'s `→1.0` reference (§G3-B13's) does **NOT**
+     automatically transfer, because it additionally requires the LM head
+     to correctly use an input-shape it never trained on. **This is
+     pre-registered as a first-class, expected possible outcome
+     (retrieval24 clears, answer_accuracy does not) — INSTRUMENT-
+     DIVERGENT, defined precisely in §R2.2 — not a surprise to explain
+     away after the fact.** This directly discharges F4(e).
+
+  **`retrieval24_acc(P1b,h)`'s own reference is NOT the same tight
+  analytic `1.0` as P1a's.** m1's exactness requires only that the K=24
+  ADAPTED KEY vectors be linearly independent (guaranteeing the `pinv`
+  fit is exact) — it says nothing about whether the K TARGET vectors
+  (what `retrieval24_acc`'s argmax scores against) are separated enough
+  for the argmax to pick the right one. At a FRESH-init adapter (P1a)
+  targets are near-orthogonal (`TPC≈0.0099`) so this is moot. At compB's
+  TRAINED adapter, `TPC_fg` is measured **healthy but non-zero**
+  (0.196–0.228, §G3-B32) — comfortably below the 0.50 collapse tripwire,
+  but not exactly orthogonal either. So P1b's `retrieval24_acc` is
+  registered as a genuine **empirical** question (same statistical
+  machinery as P0, §R2.2), not an assumed `1.0` — this is a deliberate,
+  disclosed correction to how R1.1.1 implicitly treated "teacher-forced"
+  as synonymous with "provably 1.0" everywhere.
+
+  **Paired-by-construction bonus (closes M9 by construction, not by
+  reasoning about it after the fact).** `eval_arm_at_hops`'s document
+  draw depends only on `(base_seed, h)` (`torch.Generator().manual_seed
+  (base_seed+EVAL_SEED_OFFSET+h)`, `runner.py:940`) — NOT on
+  `teacher_force`. Calling `eval_both_arms(arms, pools, cfg, 256, device,
+  base_seed, teacher_force=X)` twice at the SAME `base_seed` (once
+  `X=False` for P0, once `X=True` for P1b) draws **bit-identical
+  documents** for both. P0 and P1b are therefore paired not merely on
+  step-count (M9's original ask) but on the literal eval batch — a
+  strictly stronger fix.
+
+- **P0 — restated (repair iv, cross-referenced here since it shares the
+  checkpoint with P1b): artifact-analysis-only.** Evaluates compB's OWN
+  `ncr_head.encode`-produced `Z` (the actually-deployed SGD write) on the
+  retained checkpoint. NOT gated to `1.0` (this is the write the archive
+  already found at chance, F1) — gated to the chance-referenced `τ`,
+  §R2.3.
+
+**What is explicitly NOT re-litigated here.** The R2-settled-clean list
+(§A2-ADJUDICATION X3): closed-form/gradient, scale invariance, the rank-2
+route, `0.8293` GPU-h, all ten §W6 band anchors. F1 (mechanism dead) and
+F5 (novelty wedge internally occupied) stand untouched — this repair
+does not reopen the mechanism.
+
+### R2.2 — Repair (ii): the decision tree as an enumerated partition
+
+**Metrics, per cell `x∈{P0,P1b}`, per hop `h`:** `retrieval24_acc(x,h)`
+(PRIMARY, gating) and `answer_accuracy(x,h)` (co-scored, gating only via
+the divergence rule below) — both already returned by `eval_both_arms`/
+`build_attribution`, no new instrumentation.
+
+**Depth quantifier, resolved (closes F4(c)).** Every `CLEARS` predicate
+below is evaluated **at one named depth, never `∃h` or `∀h` over a set.**
+Two depths are load-bearing: `h=1` (zero composition — the frame
+question) and `h=61` (the pre-registered `h*`, §0/§1 — the depth-
+preservation question). `h∈{13,37}` are scored and RECORDED (the
+mod-24-residue corroborating check, m6) but are **not** part of the
+gating partition below — a divergence between `h=13/37` and `h=61`'s
+verdict is logged as a depth-decay note on the row, never silently
+changes the row's verdict, and never introduces a third depth into the
+partition's dimensionality (kept at 2 to stay in a checkable, exhaustive
+16-cell grid rather than an unauditable combinatorial blowup).
+
+**Band definitions (both cells, both depths — a single shared
+definition, not two different tests, per R2.1's correction that P1b is
+not assumed-`1.0`):**
+
+```
+chance   = 1/24            = 0.041667
+SD_256   = sqrt(chance*(1-chance)/256) = 0.012489      (n=256, GENUINE per R2.3)
+tau      = chance + 4*SD_256           = 0.09162
+CLEARS_h(x)  :=  retrieval24_acc(x,h) > tau
+HIGH_h(x)    :=  retrieval24_acc(x,h) > 0.95            (sub-label, does not change the row)
+```
+
+`0.95` is an engineering margin, not a statistical bound: m1's simulated
+analytic check reads retrieval24 exactly `1.0000` in float32 (residual
+`3.1e-16`); `0.95` is loose enough to absorb ordinary bf16/mixed-
+precision noise without over-triggering, and any reading in `(tau,0.95]`
+is labeled PARTIAL rather than HIGH — informative texture on a row,
+never a new partition axis.
+
+**The gate (checked FIRST, outside the partition — same convention as
+Band-1 TPC-before-Band-3, `NCR_REAL_LM_DESIGN.md` §G3-B31 R1).**
+
+```
+GATE:  HIGH_h(P1a) for ALL h in {1,13,37,61}    (i.e. retrieval24_acc(P1a,h) > 0.95 at every one)
+```
+
+FAIL ⇒ **VOID — PIPELINE/INSTRUMENT BROKEN.** Something regressed
+between §G3-B13's era and the current pinned runner, or in the fresh-
+init construction itself; the partition below is not interpreted; escalate
+to the coordinator before spending anything on P0/P1b's readings. PASS ⇒
+proceed. `{GATE fails} ∪ {GATE passes}` is a 2-way, exhaustive, disjoint
+split of the full outcome space by construction (a single boolean); the
+16-cell grid below is defined ONLY on the `{GATE passes}` branch, so it
+only needs to be exhaustive within that branch — which it is (next
+paragraph) — for the whole space to be covered.
+
+**The 16-cell partition (K-wall style — a Cartesian product of two
+already-exhaustive-disjoint 4-way partitions, proof below).** Define:
+
+```
+a := CLEARS_1(P0)     b := CLEARS_1(P1b)     c := CLEARS_61(P0)     d := CLEARS_61(P1b)
+AC := (a,c)  in  {00,01,10,11}      -- P0's own shallow/deep reading (re-verifies F1)
+BD := (b,d)  in  {00,01,10,11}      -- P1b's shallow/deep reading (isolates TARGET-GEOMETRY
+                                        given a PROVABLY-EXACT write, decoupling "is Z good"
+                                        from "is the adapter/embed geometry good")
+```
+
+`AC` is a truth table over 2 independent booleans (`a`,`c`) — trivially
+exhaustive (all 4 patterns enumerated) and disjoint (no bit-pattern
+equals another). Same for `BD`. The full outcome space is `(a,b,c,d) ∈
+{0,1}^4 = AC × BD` exactly, since `a,c` and `b,d` are measured on
+different cells with independent Generator draws relative to each
+other's Z-source axis. A Cartesian product of two exhaustive-disjoint
+partitions is exhaustive-disjoint: `∪ᵢⱼ(ACᵢ×BDⱼ) = (∪ᵢACᵢ)×(∪ⱼBDⱼ) =
+full×full = full`, and `(ACᵢ×BDⱼ)∩(ACᵢ'×BDⱼ') = ∅` whenever `i≠i'` or
+`j≠j'`. **QED — every one of the 16 `(a,b,c,d)` outcomes maps to exactly
+one grid cell, never zero, never two.**
+
+**AC axis (P0 — the deployed write, re-verifying F1 at genuine n=256):**
+
+| AC | reading | verdict |
+|---|---|---|
+| `00` (a=0,c=0) | fails everywhere | **ARCHIVE-CONFIRMED** — matches F1 exactly, at 4× the n |
+| `01` (a=0,c=1) | fails h=1, clears h=61 | **ANOMALY-RECHECK** — composition cannot manufacture signal absent at h=1 (h=61 applies the SAME Z, just more times); re-verify before trusting (bug candidate: shape/seed mismatch), do not report as a finding |
+| `10` (a=1,c=0) | clears h=1, fails h=61 | **DECAY-CONFIRMED** — the canonical collapse-with-depth signature this whole design targets; matches compB's OWN archived depth-decay instance (§R1.6: `0.09375@h20→0.01562@h61`) |
+| `11` (a=1,c=1) | clears everywhere | **SURPRISE-CLEARS** — contradicts F1's archived chance-at-h=1 (n=64); self-checking (this IS compB's own recipe re-measured, not a fresh confounded run) — re-anchor F1's h=1 claim to this run's own numbers (matches R1.1.1's original R-B logic) |
+
+**BD axis (P1b — target geometry given a provably-exact write):**
+
+| BD | reading | verdict |
+|---|---|---|
+| `00` (b=0,d=0) | exact write fails everywhere on compB's geometry | **GEOMETRY-BLOCKS** — implicates the trained adapter/embed/target space itself (the §G3-B17–B32 EXHAUSTED lane), independent of Z-conditioning; write-conditioning is MOOT here regardless of AC |
+| `01` (b=0,d=1) | fails h=1, clears h=61 | **ANOMALY-RECHECK** — same non-monotonicity argument as AC's `01`; re-verify before trusting |
+| `10` (b=1,d=0) | exact write clears h=1, fails h=61 | **MECHANISM-CONFIRMED-BY-EXACT-Z** — the sharpest reading this battery can produce (flagged below) |
+| `11` (b=1,d=1) | exact write clears everywhere | **EXACT-Z-SURVIVES-DEPTH** — tension with F1's own measured `f(A*)≈149–186`/`cond(A*)≈223–292` at compB's key geometry (`NCR_WRITECOND_ATTACK_R2.md` F1 table); worth recording as an instrument-sensitivity note (retrieval24's discrete argmax may tolerate more spectral spread than `o_pairwise_cos`'s continuous collapse implies) |
+
+**The single most information-dense reading in the battery, called out
+explicitly (BD=`10`).** F1 already measured, on compB's OWN key
+geometry, that the EXACT write is itself badly conditioned in the
+entity block (`cond(A*)≈223–292`, `f(A*)≈149–186` vs `c·I`'s `0`). If the
+write-conditioning premise (§0/§1) is right, an exact-but-ill-
+conditioned `Z` should ALSO decay under `binexp_read`'s repeated
+squaring — i.e. `b=1,d=0` is the theory's OWN predicted signature,
+produced with the confound of "did SGD even learn a good Z" removed
+entirely (P1b's Z is exact BY CONSTRUCTION). Observing BD=`10` is direct,
+clean, low-cost evidence FOR the founding hypothesis; observing BD=`11`
+is direct evidence that conditioning-as-measured-by-`f`/`cond` does not
+predict `retrieval24` collapse in practice at this config — either
+reading is a first-order finding, pre-registered here as such, not
+discovered incidentally.
+
+**The 16-cell grid (AC × BD), verdict = the ordered pair, action per
+cell:**
+
+| AC＼BD | `00` GEOMETRY-BLOCKS | `01` ANOMALY-RECHECK | `10` MECH-CONFIRMED | `11` EXACT-Z-SURVIVES |
+|---|---|---|---|---|
+| `00` ARCHIVE-CONFIRMED | Write-cond MOOT (geometry is the blocker); redirect to the exhausted target-space lane, out of scope here | Re-verify BD before any read; AC alone stands as ARCHIVE-CONFIRMED | Archive confirmed AND mechanism confirmed on exact Z — strongest joint case FOR conditioning, but P0 itself shows no signal to condition (both need addressing) | Archive confirmed, but geometry supports deep retrieval given exact Z — the ONLY missing piece is Z-quality; cleanest re-founding for a future (re-designed) mechanism |
+| `01` ANOMALY-RECHECK | Re-verify AC before any read; BD alone stands as GEOMETRY-BLOCKS | **Re-verify BOTH before drawing ANY conclusion** — two independent anomalies is a strong pipeline-bug signal, escalate immediately | Re-verify AC; BD alone stands as MECH-CONFIRMED | Re-verify AC; BD alone stands as EXACT-Z-SURVIVES |
+| `10` DECAY-CONFIRMED | Deployed write decays with depth AND geometry blocks even an exact write — write-conditioning is moot (geometry is the binding constraint), a MORE serious finding than the mechanism track anticipated | Re-verify BD; AC alone stands as DECAY-CONFIRMED | **Both axes show depth-decay, exact Z included — the cleanest joint confirmation of the founding hypothesis (§0/§1) this battery can produce; the strongest case for re-founding a mechanism cell (X1(a)/(b)/(c) of §A2) once one is designed** | Deployed write decays, but an exact write on the SAME geometry does NOT — decay is Z-QUALITY-specific, not a geometry/depth-composition-in-general problem; the sharpest possible localization to write-conditioning as the fix |
+| `11` SURPRISE-CLEARS | Deployed write already works, but exact-Z fails on the SAME geometry (inadmissible-looking on its face: SGD found something the closed-form fit didn't) — ANOMALY-RECHECK this cell specifically before trusting either half | Re-verify BD; AC alone stands as SURPRISE-CLEARS, re-anchor F1 | Deployed write already works at both depths; write-conditioning may not be needed at all — re-scope the whole document's premise (§0) | Deployed write AND exact write both succeed everywhere — write-conditioning was never the blocker; strongest case for closing this design as unnecessary |
+
+**Answer-accuracy divergence rule (co-scored on every one of the 16
+cells, closes F4(e) with a single reused threshold — item-(j) checked:
+the `+0.15` margin is the SAME absolute margin already justified
+elsewhere in this document — §R1.6/M7 — as `6.0`+ SD at `n=64`,
+comfortably larger at pooled `n=256`; re-verified here it stays valid
+for a binomial-proportion-shaped statistic at any plausible `p`, so no
+new number is invented):**
+
+```
+GAP(x,h) := answer_accuracy(x,h) - answer_accuracy(backbone_only,h)      -- SAME checkpoint, SAME batch
+DIVERGENT(x,h) := CLEARS_h(x) AND GAP(x,h) < 0.15
+```
+
+Any `(x,h)∈{(P0,1),(P0,61),(P1b,1),(P1b,61)}` with `DIVERGENT=true` is
+labeled **INSTRUMENT-DIVERGENT** on its row, in addition to (never
+instead of) its `AC`/`BD` verdict: the geometric read (`o`) carries
+discriminative information the DECODE PATH does not surface as an
+answer. This is EXPECTED for P1b in particular (R2.1's own argument: the
+LM head never trained on a discriminative `o`) and is not treated as a
+contradiction — it is a distinct, disclosed finding about the decode
+path, orthogonal to the write-conditioning question.
+
+**Modifier, unchanged from R1.1.1 (still valid, still orthogonal to the
+grid above).** R-E (common-mode-centered re-score, P2): applied to any
+cell reading `NULL` (fails to clear its `tau`) — re-score with the
+batch-mean direction removed from `o` before the argmax. Zero additional
+GPU-h (post-hoc re-analysis of already-stored tensors). A cell that
+clears under P2 but not raw is labeled `+COMMON-MODE` on its row; this
+never changes which of the 16 grid cells the ROW occupies (the raw
+reading still governs `a`/`b`/`c`/`d`), it only adds a mechanism note.
+
+### R2.3 — Repair (iii): the `n=256` statistics pinned honestly
+
+**The bug, confirmed by reading `eval_arm_at_hops` directly (`runner.py:
+934-964`).** `gen = torch.Generator(device=device).manual_seed(base_seed
++ EVAL_SEED_OFFSET + h)` — a pure function of `(base_seed, h)`. Four
+calls at the same `base_seed`/`h` (e.g. four periodic evals during a
+single training run, or four manually-pooled `eval_batch_size=64` calls
+as R1.1.1's prose implied) return **byte-identical batches**. Naive
+"pool 4×64" is `n_eff=64`, not `256` — M1's finding, reused verbatim.
+
+**The fix actually used here (not the 4-pooled-calls route).**
+`sample_batch_rd(cfg, batch_size, gen, ...)` (`grammar_rd.py:367`,
+imported as `gr` and called inside `build_task1_document`) draws
+`batch_size` items from ONE Generator in a single call — this is the SAME
+mechanism that already gives `eval_batch_size=64` its `n=64`
+independence (confirmed against the raw JSONs: retrieval24 values land on
+the `k/64` grid, e.g. `0.10938=7/64`, `0.01562=1/64` — a single call's
+`batch_size` items are independently drawn, not repeated). **A single
+call with `eval_batch_size=256` therefore draws 256 genuinely independent
+documents — this is the mechanism used for P0/P1a/P1b below, not four
+pooled 64-item calls.** No runner code change; `--eval-batch-size 256`
+(or, for the dedicated eval-only script below, `batch_size=256` passed
+directly to `eval_both_arms`) is already a first-class, tested argument
+path.
+
+**A second, deliberate independence choice (beyond what M1 asked for).**
+compB's own training used `seed=0`, and its periodic in-training evals
+also passed `base_seed=0` — so a battery eval ALSO run at `base_seed=0`
+would have its first 64 (of 256) items be byte-identical to compB's own
+already-archived `n=64` reading (a `Generator` reseeded identically
+replays its own stream from the start). Not wrong (still 256 genuinely
+i.i.d. draws from the task distribution — the n=256 statistical argument
+below holds regardless), but avoidable: **this battery's own eval calls
+use `base_seed=90210`** (arbitrary, disjoint from every seed value
+{0,1,2,3} used anywhere else in this program), so P0/P1b's n=256 reading
+is a fully fresh draw, not a superset of the archived n=64 one.
+
+**Statistical margin, restated at the genuine n=256 (M1's own numbers,
+now honestly earned):**
+
+```
+chance = 1/24 = 0.041667
+SD_256 = sqrt(0.041667 * 0.958333 / 256) = 0.012489
+tau    = 0.041667 + 4*0.012489 = 0.09162        (4 SD above chance)
+exact one-sided binomial tail at tau, n=256:  2.1e-4   (6.6x the normal approx 3.2e-5 --
+                                                          right-skew at p=1/24, M1's own
+                                                          finding, reused verbatim)
+```
+
+**Familywise, stated exactly.** Four `tau`-gated sub-tests govern the
+partition (`CLEARS_1(P0)`, `CLEARS_61(P0)`, `CLEARS_1(P1b)`,
+`CLEARS_61(P1b)`) ⇒ Bonferroni familywise FPR `≤ 4 × 2.1e-4 = 8.4e-4`.
+The `h∈{13,37}` corroborating checks (non-gating, §R2.2) add 4 more
+`tau`-tests if the coordinator elects to gate on them too — familywise
+`≤ 8 × 2.1e-4 = 1.68e-3` in that case. Either number is comfortably
+small; no further multiplicity correction is applied on top of the
+4-SD choice itself (M1's own proposed route).
+
+**Eval-VRAM re-smoke — MANDATORY pre-launch step, exact commands (closes
+the M1/CLAUDE.md "eval batch size can OOM even if training fits" gap; the
+6.86 GB figure, §G3-B31 PLACEMENT, was measured at `eval_batch_size=64`
+DURING training — i.e. WITH backward+AdamW state resident, which
+dominates that figure; P0/P1a/P1b run under `torch.no_grad()` with no
+optimizer at all, at `batch_size=256` — a different, unmeasured regime in
+BOTH directions and must be re-measured, not inferred either way):**
+
+```bash
+# On the box, BEFORE the real battery. Run the CHEAPEST real path (P1a,
+# fresh-init, no checkpoint needed) at the battery's actual batch size,
+# poll VRAM concurrently, and record the peak.
+ssh youthful-indigo-turkey '
+  cd ~/ncr_writecond && \
+  ( nvidia-smi --query-gpu=index,memory.used --format=csv -l 2 \
+      > vram_smoke_$(date +%s).csv & SMI_PID=$! ; \
+    CUDA_VISIBLE_DEVICES=0 /home/nvidia/tdenv/bin/python3 premise_battery_eval.py \
+      --cell P1a --eval-batch-size 256 --device cuda --smoke-only ; \
+    kill $SMI_PID )'
+```
+
+Confirm peak `memory.used` on the target GPU is comfortably under 80 GB
+(any single free H100 has ample headroom for a 98M-param eval-only
+forward pass at batch=256 — expected well under 10 GB given the
+6.86 GB WITH-backward figure at batch=64 as an upper-bound sanity check —
+but the number in the log, not this expectation, is what gates launch).
+If the smoke shows anything surprising (>20 GB, say), STOP and
+re-investigate before running P0/P1b at the same batch size.
+
+### R2.4 — Repair (iv): P0's retrain fallback dropped; ceiling re-derived
+
+**P0 is artifact-analysis-only, full stop — no retrain path inside this
+authorization.** R1.1.1's "else one fresh 20,000-step retrain" fallback
+is struck. M2's measured teacher-force/calibration-cell regime is
+**0.83–0.92 s/step** (five archived cells, including both prior
+teacher-force cells — the closest analogues), NOT compB's own **0.149
+s/step** fast regime R1.1.1 priced the fallback from. At 20,000 steps
+that is **4.6–5.1 GPU-h** — 2.3–2.6× this battery's own `≤2.0 GPU-h`
+hard cap, and a retrain launched under a 2.0 GPU-h ceiling in that regime
+would abort at `~2.0/4.6 ≈ 43%` of target, yielding a checkpoint that is
+**not** compB's recipe (M2's own finding).
+
+**Pre-flight contingency (checked BEFORE the battery is considered
+launch-ready — see LAUNCH CARD pre-flight):**
+
+```bash
+ssh youthful-indigo-turkey \
+  'find ~ -iname "mob_g3b31_compB_s0.ckpt.pt" -o -iname "mob_g3b31_compB_s0*.pt" 2>/dev/null'
+```
+
+- **Checkpoint FOUND:** P0/P1b run eval-only, as designed below — cheap,
+  no training, this battery's authorization covers it in full.
+- **Checkpoint NOT FOUND:** P0/P1b are **BLOCKED** from this
+  authorization. A fresh 20,000-step retrain at compB's exact recipe
+  (`aux_read_loss_weight=0.5 aux_loss_type=contrastive+cosine
+  ortho_reg_weight=0.1`, seed 0) returns to the coordinator for SEPARATE
+  authorization, priced at the slow-regime **4.6–5.1 GPU-h** (M2), not
+  silently substituted here. **Only P1a (needs no checkpoint) remains
+  launch-eligible standalone** in this contingency.
+
+**Ceiling re-derived (structurally different regime — all three cells
+eval-only, zero training steps, zero backward passes, zero optimizer
+steps; DISCLOSED: there is no archived eval-only cell of this exact
+shape to calibrate against — M2's `s/step` table is entirely
+training-regime data and does not transfer; the estimate below is a
+structural FLOP argument (a handful of forward passes vs. thousands of
+training steps) plus a wall-clock kill-switch, not an extrapolated
+measured rate):**
+
+```
+P1a  (fresh model + pool build, 1 forward-eval pass, 4 hops, no ckpt load)   ~0.10 GPU-h ceiling
+P0+P1b (shared ckpt load ~1 GB + 2x eval_both_arms passes + 1 probe pass
+         for the Z-dump/spectral_diagnostics)                               ~0.20 GPU-h ceiling
+                                                                             -----------------
+Nominal (structural estimate, both cells)                                    0.30 GPU-h
+x2 (no precedent for THIS shape -- conservative multiplier, not the
+    original's blanket 1.4x)                                                 0.60 GPU-h
+-----------------------------------------------------------------------------------------
+Registered ceiling  <=0.6 GPU-h nominal, HARD CAP <=1.0 GPU-h
+```
+
+Enforced via a wall-clock kill-switch INSIDE `premise_battery_eval.py`
+(reusing the `--ceiling-gpuh`/`ceiling_s` convention already in
+`ncr_lm_wave1_runner.py:1427-1440`): abort with `status=ABORTED-BUDGET`
+and dump whatever partial results exist if wall-clock exceeds 45 minutes
+on a single GPU (`45min/60 = 0.75 GPU-h < 1.0` hard cap, leaving margin
+for the kill-check's own polling granularity). **This is a large
+reduction from R1.1.1's `≤1.5/2.0 GPU-h`** — the honest consequence of
+removing every training step from the battery, not a re-assertion of the
+same number by inertia (mirrors this document's own §R1.7 "a leaner
+design earns a smaller ceiling" precedent).
+
+**Item-(j) self-check on this section's own fixtures (required
+discipline, applied here explicitly).** `0.6 GPU-h` nominal and `1.0
+GPU-h` hard cap are both PRODUCIBLE under the rules just stated: P1a's
+`0.10` + P0/P1b's `0.20` = `0.30` nominal, `×2 = 0.60` — arithmetic
+reproduced, not merely asserted. The `45-min` kill-switch (`0.75 GPU-h`)
+sits strictly inside the `1.0 GPU-h` hard cap with room for polling
+overhead, not flush against it.
+
+---
+
+### LAUNCH CARD
+
+**Pre-flight (run in order, before any GPU cell; all read-only or
+CPU/box-side, no GPU spend):**
+
+1. Checkpoint check (R2.4): the `find` command above. Branch per its
+   result.
+2. Eval-VRAM re-smoke (R2.3): the `nvidia-smi`-polled P1a smoke-only
+   run above. Confirm peak VRAM is sane before trusting batch=256 at
+   full scale.
+3. Runner pin re-verify: `md5sum
+   ~/ncr_g3b31/ncr_lm_wave1_runner.py` (or wherever it is deployed on
+   box) `== 9a93198b642242f512ff8489e32b0a53`. If it does not match,
+   STOP — this battery's every reference (retrieval24_acc formula,
+   `EVAL_SEED_OFFSET`, `eval_both_arms` signature) is pinned to this
+   exact file.
+4. Shape-check (CLAUDE.md: smoke test before spending GPU-h): run
+   `premise_battery_eval.py --cell P1a --smoke-only --device cpu` first
+   if box CPU time allows (98M params forward-only on CPU is slow but
+   tractable for ONE batch) — confirms no import/shape errors before
+   committing GPU time to any cell.
+
+**Cell spec (`premise_battery_eval.py` — to be written on the box by
+the build agent from this spec; NOT committed to this repo by this
+round, per this agent's scope; imports the pinned `9a93198b` runner's
+own functions, reused verbatim, nothing reinvented):**
+
+```python
+#!/usr/bin/env python3
+"""Premise battery (write-conditioning DRAFT-R2, X1(i)-(iv)). Eval-only,
+no training. Deploy alongside the pinned ncr_lm_wave1_runner.py
+(md5 9a93198b642242f512ff8489e32b0a53) -- imports its own functions,
+does not copy them (additive-only discipline)."""
+import argparse, json, os, sys, time
+import torch
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # dir holding the pinned runner
+import ncr_lm_wave1_runner as R
+import ncr_ortho_write as ow          # spectral_diagnostics
+import numpy as np
+
+BASE_SEED = 90210          # R2.3: deliberately disjoint from every training seed {0,1,2,3}
+HOPS = (1, 13, 37, 61)      # m6's squaring-residue set; corroborating only, not the ladder
+CKPT = os.path.expanduser("~/ncr_g3b31/results/mob_g3b31_compB_s0.ckpt.pt")  # confirm real path at pre-flight step 1
+OUT_DIR = os.path.expanduser("~/ncr_writecond/results")
+CEILING_S = 45 * 60         # R2.4 wall-clock kill-switch, 0.75 GPU-h < 1.0 hard cap
+
+def cell_p1a(device, batch_size, out):
+    t0 = time.time()
+    pools, cfg, pool_report = R.build_grammar_pools_and_cfg(seed=0)
+    pools = pools.to(device)
+    arms = R.build_two_arms(pool_report["vocab_size_total"], seed=0, device=device)
+    with torch.no_grad():
+        res = R.eval_arm_at_hops(arms["full_graft"], pools, cfg, HOPS, batch_size, device,
+                                  BASE_SEED, read_ablate=False, teacher_force=True)
+    rec = dict(cell="P1a", teacher_force=True, step=0, n=batch_size, result=res,
+               elapsed_s=time.time() - t0, gate="HIGH_h(P1a) for all h in {1,13,37,61}: "
+               "retrieval24_acc>0.95 required at every listed hop")
+    _write(out, rec)
+    return rec
+
+def cell_p0_p1b(device, batch_size, out):
+    t0 = time.time()
+    pools, cfg, pool_report = R.build_grammar_pools_and_cfg(seed=0)
+    pools = pools.to(device)
+    ckpt = R.load_checkpoint(CKPT, device)
+    assert ckpt is not None, f"checkpoint not found/invalid at {CKPT} -- rerun pre-flight step 1"
+    arms, opts, data_gen = R.restore_arms_and_opts(ckpt, pool_report["vocab_size_total"],
+                                                     lr=3e-4, device=device, freeze_entity_adapter=False)
+    with torch.no_grad():
+        p0  = R.eval_both_arms(arms, pools, cfg, batch_size, device, BASE_SEED, teacher_force=False)
+        p1b = R.eval_both_arms(arms, pools, cfg, batch_size, device, BASE_SEED, teacher_force=True)
+        attrib_p0, attrib_p1b = R.build_attribution(p0), R.build_attribution(p1b)
+        # Z-dump + spectral_diagnostics (verbatim reuse, ow.spectral_diagnostics):
+        gen = torch.Generator(device=device).manual_seed(BASE_SEED + R.EVAL_SEED_OFFSET + 61)
+        probe = R.graft.build_task1_document(cfg, pools, gen, batch_size, 61, device)
+        _, _, _, _, Z_sgd, keys_v, values_v = R.ncr_lm_forward_ablatable(
+            arms["full_graft"]["backbone"], arms["full_graft"]["ncr"], arms["full_graft"]["integ"],
+            probe, read_ablate=False, teacher_force=False)
+        Z_ideal = arms["full_graft"]["integ"].teacher_force_operator(keys_v, values_v)
+        U = ow.az.entity_subspace(Z_ideal[0].cpu().numpy())["U"]
+        spec = ow.spectral_diagnostics(dict(Z=Z_sgd.detach().cpu().numpy(),
+                                             z_ideal=Z_ideal.detach().cpu().numpy()))
+    rec = dict(cell="P0+P1b", ckpt_step=ckpt["step"], n=batch_size,
+               P0=dict(teacher_force=False, result=p0, attribution=attrib_p0),
+               P1b=dict(teacher_force=True, result=p1b, attribution=attrib_p1b),
+               spectral=spec, elapsed_s=time.time() - t0)
+    _write(out, rec)
+    return rec
+
+def _write(path, rec):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(rec, f, indent=2, default=str)
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--cell", choices=("P1a", "P0P1b"), required=True)
+    ap.add_argument("--eval-batch-size", type=int, default=256)
+    ap.add_argument("--device", default="cuda")
+    ap.add_argument("--smoke-only", action="store_true", help="batch_size=8, HOPS=(1,), sanity only")
+    args = ap.parse_args()
+    bs = 8 if args.smoke_only else args.eval_batch_size
+    hops = (1,) if args.smoke_only else HOPS
+    t_start = time.time()
+    out = os.path.join(OUT_DIR, f"writecond_premise_{args.cell}{'_smoke' if args.smoke_only else ''}.json")
+    fn = cell_p1a if args.cell == "P1a" else cell_p0_p1b
+    fn(args.device, bs, out)
+    if time.time() - t_start > CEILING_S:
+        print(f"WARNING: exceeded {CEILING_S}s wall-clock ceiling", file=sys.stderr)
+```
+
+**Exact box-side launch commands (direct tmux, per `H100_SETUP.md`
+convention — this battery is 2 short/cheap sequential cells, not a
+parallel sweep, so no queue-job-spec/packing decision is needed, matching
+R1.1.1's own placement note):**
+
+```bash
+# One-time deploy (after pre-flight steps 1-4 all pass):
+scp premise_battery_eval.py youthful-indigo-turkey:~/ncr_writecond/
+
+# Cell 1 -- P1a (gate; run and inspect BEFORE launching cell 2):
+ssh youthful-indigo-turkey \
+  'tmux new-session -d -s writecond_p1a \
+   "cd ~/ncr_writecond && CUDA_VISIBLE_DEVICES=0 /home/nvidia/tdenv/bin/python3 \
+    premise_battery_eval.py --cell P1a --eval-batch-size 256 --device cuda \
+    2>&1 | tee p1a.log"'
+
+# Poll: tmux has-session -t writecond_p1a (exits nonzero once done)
+# Read: ~/ncr_writecond/results/writecond_premise_P1a.json --
+#   gate = ALL of retrieval24_acc(h) > 0.95 for h in {1,13,37,61}.
+# GATE FAIL -> STOP, escalate. GATE PASS -> cell 2.
+
+# Cell 2 -- P0+P1b (only after cell 1's gate PASSES and checkpoint confirmed present):
+ssh youthful-indigo-turkey \
+  'tmux new-session -d -s writecond_p0p1b \
+   "cd ~/ncr_writecond && CUDA_VISIBLE_DEVICES=0 /home/nvidia/tdenv/bin/python3 \
+    premise_battery_eval.py --cell P0P1b --eval-batch-size 256 --device cuda \
+    2>&1 | tee p0p1b.log"'
+```
+
+**GPU class.** Any single free H100 among 0–7 — no placement decision
+needed (eval-only, small footprint per R2.3's re-smoke; run cell 1 then
+cell 2 SEQUENTIALLY on the SAME GPU index for simplicity, not because
+parallelism is unsafe). Never `pkill` — `tmux kill-session -t
+writecond_p1a` / `writecond_p0p1b` by exact name if either needs to be
+stopped.
+
+**Expected wall-time.** Cell 1 (P1a): well under 5 minutes (model+pool
+build dominates; no checkpoint I/O). Cell 2 (P0+P1b): well under 10
+minutes (checkpoint load + a handful of forward-only passes). Combined
+well under the `45`-minute wall-clock kill-switch (R2.4) and the `1.0
+GPU-h` hard cap.
+
+**Output paths.**
+`~/ncr_writecond/results/writecond_premise_P1a.json`,
+`~/ncr_writecond/results/writecond_premise_P0P1b.json` (plus
+`*_smoke.json` variants from pre-flight step 4/the VRAM re-smoke). Scp
+both real-run JSONs back into `experiment-runs/2026-08-13_ncr_writecond_
+premise_battery/` (repo, small-file, per the hybrid archive policy) once
+COMPLETE.
+
+**Pre-registered bands the harvest is scored against (restated,
+self-contained — no need to re-derive at harvest time):**
+
+1. **GATE:** `retrieval24_acc(P1a,h) > 0.95` for all `h∈{1,13,37,61}`. FAIL
+   ⇒ VOID, escalate, stop. Do not read P0/P1b's cell.
+2. **Compute** `a=CLEARS_1(P0)`, `b=CLEARS_1(P1b)`, `c=CLEARS_61(P0)`,
+   `d=CLEARS_61(P1b)` at `tau=0.09162` (exact, `n=256`, genuine — §R2.3).
+3. **Look up** `(a,c)→AC` and `(b,d)→BD` in §R2.2's two 4-row tables, then
+   the `AC×BD` 16-cell grid for the composite verdict + recommended
+   action. `BD=10` (`b=1,d=0`) is the single highest-value reading —
+   flag it explicitly in the harvest write-up if it occurs.
+4. **Co-score** `DIVERGENT(x,h) := CLEARS_h(x) AND GAP(x,h)<0.15` on
+   every one of the 4 `(x,h)` pairs; label INSTRUMENT-DIVERGENT rows
+   accordingly (expected, not anomalous, for P1b per R2.1).
+5. **Modifier:** apply P2 (common-mode-centered re-score, zero
+   additional GPU-h) to any cell reading NULL; label `+COMMON-MODE` if
+   it flips, without changing the row's grid cell.
+6. **Report, do not silently pick:** every reading (AC, BD, divergence
+   flags, P2 modifiers, the `h∈{13,37}` corroborating checks) goes into
+   the harvest write-up verbatim — this battery's job is to populate the
+   grid honestly, not to pre-decide which cell "should" occur.
+
+**What this launch does NOT authorize.** No mechanism revision (X2 stays
+ON HOLD, §A2-ADJUDICATION). No fresh 20,000-step retrain (R2.4). No
+scope beyond the two cells above. The harvest's own routing (§R2.2's
+grid) determines what, if anything, is dispatched next — including
+whether a re-scoped premise (§0) or a re-founded mechanism cell is even
+warranted — and that determination is the coordinator's, not
+pre-decided in this document.
