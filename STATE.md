@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-14 tick (Fable): JACOBIAN ERANK DONE — §5.3 HYPOTHESIS
+FALSIFIED** (bilinear_gelu 117.6 / quadratic 158.8 / svd_aug 237.0 vs
+falsify bar 4.0; flatten control exact; the rank-1-Jacobian-bottleneck
+explanation for rank-blindness is dead by its own pre-registered bars;
+the published main result untouched; ~11 GPU-h; promise to the ICML-MI
+paper closed honestly). Box: K-wall still running (GPU 5); 7 GPUs idle
+pending the supervised-write gauntlet (attack R4 in flight, expected
+convergent → Stage 0′ 0.1 GPU-h → wave-1 ~25 GPU-h fills GPUs on
+CLEAR). Artifacts archived repo+SSD.**
+
 **2026-08-13 tick #7 (Fable): supervised-write gauntlet round 3 —
 novelty DISCHARGED-W-OBLIGATIONS (FAAST 2605.04651 anchor; "why train
 toward the target rather than compute it" pre-registered; claim

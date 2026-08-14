@@ -9919,3 +9919,25 @@ BLOCKED; 0.2/0.3 → Stage 0′ (≈0.1 GPU-h eval-only) runnable
 pre-CLEAR post-Rev-4. 13 items frozen clean (exactness proof; full
 row rank structurally guaranteed; budget; τ; decode-immunity).
 D1-D8 verbatim = Rev-4 charter; gauntlet continues.
+
+## 2026-08-14 — JACOBIAN ERANK COMPLETE (the ICML-MI §5.3 promise): HYPOTHESIS FALSIFIED — all three nonlinear readouts read erank ≫ the 4.0 falsify bar
+
+All four box jobs completed (1200/1202/1203 trainings + 1204
+measurement, auto-promoted by the launcher at 03:39Z, launcher
+self-terminated clean). Pre-registered prediction: erank(J(Z)) ≈ 1
+(confirm ≤1.5, falsify any ≥4.0) for the nonlinear-in-Z readouts.
+MEASURED (n=128 examples, 6 latent positions): bilinear_gelu 117.586
+(std 13.06; finite-diff crosscheck loose at 9.87 — noted, verdict
+robust: two orders of magnitude above the bar), quadratic 158.822
+(std 1.01, crosscheck 0.31), svd_aug 236.958 (std 0.012, crosscheck
+0.008). Linear flatten control: 237.955 constant across all
+instances (linearity self-check exact — J is Z-independent as
+required; instrument sane). VERDICT: the §5.3 candidate refined
+mechanism (rank-1 Jacobian bottleneck as the rank-blindness
+explanation) is DEAD by its own pre-registered bars — the readouts'
+Jacobians are HIGH-rank; the mechanism question re-opens. The
+published paper's MAIN result (gradient rank-blindness) is untouched;
+§5.3's candidate explanation requires revision in any follow-up.
+~11 GPU-h total. Artifacts:
+experiment-runs/2026-08-14_jacobian_erank/ (repo+SSD). Negative
+results are data — promise closed honestly.

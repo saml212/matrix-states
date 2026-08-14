@@ -1,0 +1,307 @@
+{
+  "status": "COMPLETED",
+  "n_examples_requested": 128,
+  "readouts": [
+    "flatten",
+    "bilinear_gelu",
+    "svd_aug",
+    "quadratic"
+  ],
+  "confirm_bar_erank_leq": 1.5,
+  "falsify_bar_erank_geq": 4.0,
+  "falsifiable_readouts": [
+    "bilinear_gelu",
+    "quadratic",
+    "svd_aug"
+  ],
+  "results": {
+    "flatten": {
+      "readout": "flatten",
+      "checkpoint": "/home/nvidia/jacobian_erank_exp/results/flatten/best_run_b_matrix.pt",
+      "n_examples": 128,
+      "n_latent_positions": 6,
+      "jacobian_erank_mean": 237.95489501953125,
+      "jacobian_erank_std": 1.5268733477569185e-05,
+      "jacobian_erank_min": 237.9549102783203,
+      "jacobian_erank_max": 237.9549102783203,
+      "jacobian_erank_by_latent_position": [
+        237.95486450195312,
+        237.95486450195312,
+        237.95486450195312,
+        237.95486450195312,
+        237.9548797607422,
+        237.9548797607422
+      ],
+      "linearity_selfcheck": {
+        "expected": "erank(J) constant across all instances (J is Z-independent)",
+        "observed_spread_max_minus_min": 0.0,
+        "consistent": true
+      },
+      "finite_diff_crosscheck": {
+        "n_checked": 5,
+        "max_erank_abs_error": 0.001251220703125,
+        "max_jacobian_relative_frobenius_error": 0.01103719046632491,
+        "per_instance": [
+          {
+            "example_idx": 0,
+            "latent_position": 0,
+            "erank_autograd": 237.9549102783203,
+            "erank_finite_diff": 237.95616149902344,
+            "erank_abs_diff": 0.001251220703125,
+            "jacobian_relative_frobenius_error": 0.01103719046632491
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 1,
+            "erank_autograd": 237.9549102783203,
+            "erank_finite_diff": 237.955810546875,
+            "erank_abs_diff": 0.0009002685546875,
+            "jacobian_relative_frobenius_error": 0.0024710692523566375
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 2,
+            "erank_autograd": 237.9549102783203,
+            "erank_finite_diff": 237.95547485351562,
+            "erank_abs_diff": 0.0005645751953125,
+            "jacobian_relative_frobenius_error": 0.002497855395253122
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 3,
+            "erank_autograd": 237.9549102783203,
+            "erank_finite_diff": 237.95559692382812,
+            "erank_abs_diff": 0.0006866455078125,
+            "jacobian_relative_frobenius_error": 0.0024645100976637014
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 4,
+            "erank_autograd": 237.9549102783203,
+            "erank_finite_diff": 237.95559692382812,
+            "erank_abs_diff": 0.0006866455078125,
+            "jacobian_relative_frobenius_error": 0.0023456569513538505
+          }
+        ]
+      },
+      "gated_by_paper_falsifier": false,
+      "verdict": "NOT GATED BY THE FALSIFIER (linear-in-Z control readout; paper's SS5.3 erank~=1 prediction and erank>=4 falsifier apply only to {bilinear_gelu, svd_aug, quadratic})",
+      "measure_wall_time_sec": 64.3259208202362
+    },
+    "bilinear_gelu": {
+      "readout": "bilinear_gelu",
+      "checkpoint": "/home/nvidia/jacobian_erank_exp/results/bilinear_gelu/best_run_b_matrix.pt",
+      "n_examples": 128,
+      "n_latent_positions": 6,
+      "jacobian_erank_mean": 117.58624267578125,
+      "jacobian_erank_std": 13.057971954345703,
+      "jacobian_erank_min": 84.7117919921875,
+      "jacobian_erank_max": 125.63774108886719,
+      "jacobian_erank_by_latent_position": [
+        88.53836822509766,
+        123.21158599853516,
+        123.36619567871094,
+        123.41837310791016,
+        123.46917724609375,
+        123.51374053955078
+      ],
+      "linearity_selfcheck": null,
+      "finite_diff_crosscheck": {
+        "n_checked": 5,
+        "max_erank_abs_error": 9.865547180175781,
+        "max_jacobian_relative_frobenius_error": 0.026606497030900473,
+        "per_instance": [
+          {
+            "example_idx": 0,
+            "latent_position": 0,
+            "erank_autograd": 87.27098083496094,
+            "erank_finite_diff": 97.13652801513672,
+            "erank_abs_diff": 9.865547180175781,
+            "jacobian_relative_frobenius_error": 0.026606497030900473
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 1,
+            "erank_autograd": 121.38026428222656,
+            "erank_finite_diff": 121.88973236083984,
+            "erank_abs_diff": 0.5094680786132812,
+            "jacobian_relative_frobenius_error": 0.005825974146733878
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 2,
+            "erank_autograd": 121.56537628173828,
+            "erank_finite_diff": 122.08488464355469,
+            "erank_abs_diff": 0.5195083618164062,
+            "jacobian_relative_frobenius_error": 0.0058006129624125985
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 3,
+            "erank_autograd": 121.6480712890625,
+            "erank_finite_diff": 122.1455078125,
+            "erank_abs_diff": 0.4974365234375,
+            "jacobian_relative_frobenius_error": 0.0057380842800096995
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 4,
+            "erank_autograd": 121.71358489990234,
+            "erank_finite_diff": 122.21746063232422,
+            "erank_abs_diff": 0.503875732421875,
+            "jacobian_relative_frobenius_error": 0.005745213868454078
+          }
+        ]
+      },
+      "gated_by_paper_falsifier": true,
+      "verdict": "FALSIFIED vs stated bar (erank>=4.0) -- interpret ONLY against the flatten linear-baseline erank in the same run (G3-audit R4: erank(J) does not discriminate rank-blind from rank-aware; see EXPERIMENT_LOG 2026-07-30)",
+      "measure_wall_time_sec": 116.41955542564392
+    },
+    "svd_aug": {
+      "readout": "svd_aug",
+      "checkpoint": "/home/nvidia/jacobian_erank_exp/results/svd_aug/best_run_b_matrix.pt",
+      "n_examples": 128,
+      "n_latent_positions": 6,
+      "jacobian_erank_mean": 236.9580078125,
+      "jacobian_erank_std": 0.011646319180727005,
+      "jacobian_erank_min": 236.92697143554688,
+      "jacobian_erank_max": 236.9813232421875,
+      "jacobian_erank_by_latent_position": [
+        236.9405975341797,
+        236.97305297851562,
+        236.95578002929688,
+        236.96165466308594,
+        236.9580078125,
+        236.9588623046875
+      ],
+      "linearity_selfcheck": null,
+      "finite_diff_crosscheck": {
+        "n_checked": 5,
+        "max_erank_abs_error": 0.007904052734375,
+        "max_jacobian_relative_frobenius_error": 0.01716190233382531,
+        "per_instance": [
+          {
+            "example_idx": 0,
+            "latent_position": 0,
+            "erank_autograd": 236.9362335205078,
+            "erank_finite_diff": 236.9379425048828,
+            "erank_abs_diff": 0.001708984375,
+            "jacobian_relative_frobenius_error": 0.01716190233382531
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 1,
+            "erank_autograd": 236.98019409179688,
+            "erank_finite_diff": 236.98019409179688,
+            "erank_abs_diff": 0.0,
+            "jacobian_relative_frobenius_error": 0.005203764476997076
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 2,
+            "erank_autograd": 236.96800231933594,
+            "erank_finite_diff": 236.9759063720703,
+            "erank_abs_diff": 0.007904052734375,
+            "jacobian_relative_frobenius_error": 0.0068470532719587555
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 3,
+            "erank_autograd": 236.9727325439453,
+            "erank_finite_diff": 236.9686737060547,
+            "erank_abs_diff": 0.004058837890625,
+            "jacobian_relative_frobenius_error": 0.006976891702112269
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 4,
+            "erank_autograd": 236.96890258789062,
+            "erank_finite_diff": 236.963134765625,
+            "erank_abs_diff": 0.005767822265625,
+            "jacobian_relative_frobenius_error": 0.006877859775542478
+          }
+        ]
+      },
+      "gated_by_paper_falsifier": true,
+      "verdict": "FALSIFIED vs stated bar (erank>=4.0) -- interpret ONLY against the flatten linear-baseline erank in the same run (G3-audit R4: erank(J) does not discriminate rank-blind from rank-aware; see EXPERIMENT_LOG 2026-07-30)",
+      "measure_wall_time_sec": 109.81974744796753
+    },
+    "quadratic": {
+      "readout": "quadratic",
+      "checkpoint": "/home/nvidia/jacobian_erank_exp/results/quadratic/best_run_b_matrix.pt",
+      "n_examples": 128,
+      "n_latent_positions": 6,
+      "jacobian_erank_mean": 158.8223876953125,
+      "jacobian_erank_std": 1.0102792978286743,
+      "jacobian_erank_min": 157.3542022705078,
+      "jacobian_erank_max": 162.73287963867188,
+      "jacobian_erank_by_latent_position": [
+        160.8536376953125,
+        158.3992919921875,
+        158.4364471435547,
+        158.42425537109375,
+        158.41580200195312,
+        158.40487670898438
+      ],
+      "linearity_selfcheck": null,
+      "finite_diff_crosscheck": {
+        "n_checked": 5,
+        "max_erank_abs_error": 0.3102569580078125,
+        "max_jacobian_relative_frobenius_error": 0.01440081221649607,
+        "per_instance": [
+          {
+            "example_idx": 0,
+            "latent_position": 0,
+            "erank_autograd": 160.4242401123047,
+            "erank_finite_diff": 160.7344970703125,
+            "erank_abs_diff": 0.3102569580078125,
+            "jacobian_relative_frobenius_error": 0.01440081221649607
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 1,
+            "erank_autograd": 157.96405029296875,
+            "erank_finite_diff": 158.0072021484375,
+            "erank_abs_diff": 0.04315185546875,
+            "jacobian_relative_frobenius_error": 0.0032811831511338333
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 2,
+            "erank_autograd": 157.97744750976562,
+            "erank_finite_diff": 158.01632690429688,
+            "erank_abs_diff": 0.03887939453125,
+            "jacobian_relative_frobenius_error": 0.0032278620421465056
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 3,
+            "erank_autograd": 157.9617156982422,
+            "erank_finite_diff": 158.003662109375,
+            "erank_abs_diff": 0.0419464111328125,
+            "jacobian_relative_frobenius_error": 0.0032340445574128808
+          },
+          {
+            "example_idx": 0,
+            "latent_position": 4,
+            "erank_autograd": 157.95018005371094,
+            "erank_finite_diff": 157.98965454101562,
+            "erank_abs_diff": 0.0394744873046875,
+            "jacobian_relative_frobenius_error": 0.003251941945219583
+          }
+        ]
+      },
+      "gated_by_paper_falsifier": true,
+      "verdict": "FALSIFIED vs stated bar (erank>=4.0) -- interpret ONLY against the flatten linear-baseline erank in the same run (G3-audit R4: erank(J) does not discriminate rank-blind from rank-aware; see EXPERIMENT_LOG 2026-07-30)",
+      "measure_wall_time_sec": 163.21609377861023
+    }
+  },
+  "metric": "jacobian_erank_mean",
+  "jacobian_erank_mean_by_readout": {
+    "flatten": 237.95489501953125,
+    "bilinear_gelu": 117.58624267578125,
+    "svd_aug": 236.9580078125,
+    "quadratic": 158.8223876953125
+  },
+  "any_falsified": true
+}
