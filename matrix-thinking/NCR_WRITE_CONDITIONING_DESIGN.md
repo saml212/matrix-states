@@ -4014,3 +4014,576 @@ Rev-5 charter.** Rev-5 → coordinator runs amended Stage 0′ →
 R5 narrow verification (expected terminal on the instrument layer) →
 build ceremony on its CLEAR + Stage-0′ pass.
 
+---
+
+## DRAFT-R5 (Rev-5, 2026-08-14)
+
+**Charter.** `§A4-ADJUDICATION` above, adopted in full, binding: the
+report's E1/E2/E4/E6 repairs + Stage-0′ amendments A1–A8, applied as
+instrument-level fixes only. **V1–V13 (R3) and F1–F4/M1–M11 (R4's own
+CERTIFIED-CLEAN mechanism verdict) are FROZEN and NOT re-derived below** —
+every number cited from the report is reproduced from
+`NCR_WRITECOND_ATTACK_R4.md`, never re-measured. This section supersedes
+DRAFT-R4 (lines 2946–3957) for every downstream purpose; DRAFT-R4 stays
+verbatim as the historical record of what attack R4 killed (house
+convention).
+
+**Grounding read for this round.** `NCR_WRITECOND_ATTACK_R4.md` in full
+(834 lines); the pinned runner
+`experiment-runs/2026-07-30_ncr_g3b31_contrastive_grid/ncr_lm_wave1_runner.py`
+(md5 `9a93198b642242f512ff8489e32b0a53`, re-confirmed this round by direct
+`md5` on the archived file — unchanged); the premise battery's own archived
+scripts (`experiment-runs/2026-08-13_ncr_writecond_premise_battery/
+pbe_repl.py.txt`, `pbe_supplement.py.txt`, `premise_battery_eval.py.txt`,
+and the three `writecond_premise_REPL_*.json` / `writecond_premise_SUPP.json`
+result files — read directly for their own recorded `ckpt`/`ckpt_step`
+fields, not assumed); `matrix-thinking/ncr/ncr_models.py`,
+`matrix-thinking/ncr/ncr_earlyln_scale.py`, `matrix-thinking/chapter2/
+model_v4.py` (read in full for the exact class hierarchy — `NCREarlyLNModel
+(nm.NCRModel)` → `self.encoder = BindingEncoder(...)` → `self.row_out =
+nn.Linear(h, d)`, `self.row_norm = nn.LayerNorm(h)` with
+`elementwise_affine=True` by default, `model_v4.py:41-52`).
+
+Every function/attribute this section or its build artifacts reference was
+**cross-checked against the pinned runner's and the real model classes'
+ACTUAL source** this round (not the design text's own prior claims) —
+`discriminability_metrics` (runner.py:480-537), `ortho_regularization_loss`
+(runner.py:714-742), `eval_arm_at_hops` (runner.py:934-964),
+`build_task1_document` (`ncr_lm_wave1_smoke.py:441-464`), `query_key`
+(`ncr_lm_wave1_smoke.py:331-346`), `teacher_force_operator`
+(`ncr_lm_wave1_smoke.py:348-362`), `load_checkpoint`/`restore_arms_and_opts`
+(runner.py:1122-1179), and the checkpoint-path convention itself (read
+directly off `pbe_supplement.py.txt:16` and
+`writecond_premise_REPL_{compA,primary}.json`'s own `ckpt` fields, not
+inferred).
+
+---
+
+### R5.1 — F1 repair: the scale quotient restored exactly
+
+D4/D1.5's Band 2 is rewritten scale-invariantly, exactly per the report's
+binding repair (E1):
+
+```
+Band 2 (F1-repaired):
+  gate (i)  L_key(c* . Z_sgd)  <=  3e-4                       [D1.5, unchanged]
+  gate (ii) ||Z_sgd W^T||_F / ||Z_sgd||_F  <=  0.12            [= 3/25, R3's OWN
+                                                                  "at ||Z||_F ~= 25"
+                                                                  12% statement,
+                                                                  RESTORED with its
+                                                                  conditioning]
+  c* = sum_i <Z_sgd k_i, v_i> / sum_i ||Z_sgd k_i||^2   (per episode, closed form)
+  reduction statistics NAMED: median AND p90 across the eval batch, both gates
+  applies at h* (eval batch); neither quantity is a function of h
+```
+
+`W` is M11's `d-K` generalization of `w` (`Vh[:, K:, :]`, reducing to the
+carded single `w = Vh[:, -1, :]` exactly at `K = d-1`) — folded in here
+rather than deferred, since D4's own rewrite and M11's generalization touch
+the identical quantity.
+
+**Executed re-verification** (`matrix-thinking/writecond_build/
+write_supervision_loss.py` + `test_write_supervision_loss.py`, real
+`K=24,d=25` dims, fp32, CPU, 35/35 checks PASS):
+
+- **Case 1 (the report's own table).** `Z = c . Z_ideal` for
+  `c in {0.01, 0.1, 1, 1.5, 10, 100}`: the repaired gate (i)
+  `L_key(c*.Z) <= 3e-4` PASSES at **every** `c` (`L_key_cstar` max
+  `4.35e-11` to `4.27e-11` across all six, vs. the **raw**, un-repaired
+  gate — reproduced alongside as a regression check — which FAILS at
+  every `c != 1` exactly as F1's table shows, e.g. `L_key_raw = 2.500e-01`
+  at `c=1.5`, `9.801e+03` at `c=100`).
+- **The collapsed-`||Z||` counter-example, closed.** An operator with a
+  transverse component whose norm is FIXED (independent of any global
+  rescale `c`) — the shape of the report's own case
+  (`||Z||_F~1, ||Zw||=0.20`, "passes the bare 3.0 comfortably, reads at
+  chance") — is scored at `c in {1, 0.1, 0.01}`: the RATIO gate (ii)
+  FAILS at every `c` (`Zw_ratio` median `0.9933`, scale-invariant by
+  construction), while the OLD bare `||Zw|| <= 3.0` reading would have
+  **PASSED 81% of episodes** at `c=0.01` — the exact loophole F1
+  diagnosed, reproduced and closed in the same test.
+- **M11's `d-K` generalization**, verified independently at `K=3,d=6`
+  (a genuinely multi-dimensional null space, `d-K=3`): `Z_ideal` is still
+  the exact zero of the generalized loss (`L_write=1.03e-13`); a
+  null-space-only perturbation (`Delta = U W`, `U` random) keeps `L_key`
+  at `~0` and makes `L_transverse` strictly positive; a span(keys)-only
+  perturbation does the reverse — the same V1–V5 pattern, now proven at
+  `K < d-1`, not just the carded `K=24,d=25` point.
+
+`band2_check()` in `write_supervision_loss.py` is the single, tested
+implementation; its two threshold defaults (`3e-4`, `0.12`) are asserted
+directly against the report's own numbers in the test suite (`inspect.
+signature` check) so a future edit cannot silently drift them.
+
+---
+
+### R5.2 — F2 repair: λ_t nowhere assumed; the parameter-space conflict is a monitored risk
+
+`write_supervision_loss()` (the shipped loss module) takes `lambda_t` as a
+**required** argument with **no default value** — every call site,
+including Stage 0′ item 6, must supply it explicitly; there is no code
+path in this build where a value is silently assumed (F2's repair, E2).
+
+**The parameter-space gradient-conflict fact, recorded, not re-derived**
+(V1–V13/F1–F4 frozen per the charter — these are the report's own
+executed numbers, `NCR_WRITECOND_ATTACK_R4.md` F2(a)/(d)):
+
+```
+cos(grad_theta L_key, grad_theta L_transverse):
+  Z-space (D1.3's literal claim)         0.000000
+  parameter space, at init               0.4458
+  parameter space, after 200 steps       0.1695
+  parameter space, after 600 steps       0.2845
+  random-pair null, same 173,209-dim space   0.0017
+```
+
+100–260× the null — the terms are coupled (cooperatively, per the
+report's own measurement) in the space the optimizer actually works in,
+even though D1.3's Z-space orthogonality is exact. **This is now a
+monitored risk, with a named instrument, not an assumption papered over:**
+
+1. **Stage 0′ item 6's own learning curves ARE the first-line instrument.**
+   `item_6_achievability_probe()` records `L_key_med`, `L_transverse_med`,
+   and `Zw_ratio_med` **every `log_every` steps across all `n_steps`**, per
+   `(lr, lambda_t)` cell — not just the final value. A parameter-space
+   competition strong enough to matter would show up as non-monotone or
+   stalled convergence in these curves, on real geometry, **before** any
+   Stage-1 GPU-h is spent, at every grid point Stage 0′ runs.
+2. **The BUILD-PREPARABLES list's own D7 repair is the Stage-1-time
+   instrument** (authorized, not yet wired — see R5.5): per-step
+   *separated* `||grad_Z L_key||` / `||grad_Z L_transverse||` logging for
+   both PRIMARY and CONTROL A — D7's own point, now doubly load-bearing
+   because F2 showed the parameter-space relationship is the open
+   question, not a settled orthogonality.
+3. **No band threshold is set on this risk** (per the charter's own
+   constraint) — it is carried forward as an explicitly named, instrumented
+   risk for the harvest to read, not resolved by assumption or by an
+   invented numeric gate.
+
+---
+
+### R5.3 — Band-0/CONTROL repairs
+
+**Band 0, F4-repaired (E4), restated in full:**
+
+```
+Band 0 (leak gate), F4-repaired:
+
+  PRIMARY / CONTROL A / CONTROL C  (unchanged from D5.3):
+    config.teacher_force_operator == False
+    AND teacher_force_check.active == False
+    AND teacher_force_check.ncr_zero_grad_checks_passed == 0
+    FAIL => VOID the cell (re-run, never scored)
+
+  CONTROL B  (INVERTED, F4's repair):
+    config.teacher_force_operator == True
+    AND teacher_force_check.active == True
+    AND teacher_force_check.ncr_zero_grad_checks_passed == steps_run
+    AND a SEPARATE D7 clean-eval artifact exists with its OWN
+        config.teacher_force_operator == False
+    FAIL => VOID (same remedy)
+```
+
+CONTROL B's own D7 definition ("reuses `--teacher-force-operator`
+VERBATIM... so `ncr_head` receives EXACTLY zero gradient, asserted every
+step") **necessarily** produces the inverted triple — the un-repaired gate
+VOIDs a *correctly-run* CONTROL B by construction, with no self-correcting
+path (F4's own finding, reproduced below).
+
+**Executed re-verification** (`band0_checker.py` + `test_band0_checker.py`,
+13/13 checks PASS, no torch needed):
+
+- **F4's bug, reproduced first.** `band0_check_current()` (the pre-repair
+  gate, kept ONLY as a regression fixture) VOIDs a well-formed CONTROL B
+  record (`teacher_force_operator=True, active=True,
+  ncr_zero_grad_checks_passed=2000`) — confirming the defect existed
+  before asserting the fix.
+- **The repaired gate PASSES the identical record.**
+- **Six negative tests, all executed, all fire correctly:** missing D7
+  clean-eval artifact → VOID; a clean-eval artifact itself mis-flagged
+  (`teacher_force_operator=True`) → VOID; a continuation that did NOT
+  actually teacher-force throughout (`active=False`) → VOID (the
+  inversion is not "always pass CONTROL B"); a partial
+  `1999/2000` zero-grad-check count → VOID (off-by-one has teeth); a
+  missing `steps_run` → VOID rather than silently defaulting; PRIMARY/
+  CONTROL A/CONTROL C's own unchanged branch still VOIDs a leaked cell.
+
+**The C-vs-PRIMARY margin predicate (M3, E7), added to the verdict grid:**
+
+```
+D5.2's WIN predicate, M3-repaired:
+
+  compB:            WIN  iff  win_base(x)  AND  (x - CONTROL_C(compB)) > 0.15
+  compA / primary:  WIN  iff  win_base(x)         [unchanged predicate --
+                                                     no matched CONTROL C
+                                                     funded this wave]
+                     -> labeled ortho_confounded_disclosed = True whenever
+                        this WIN fires (the report's OWN second option,
+                        taken here since no new Stage-1 cell is authorized)
+
+  win_base(x) := x > 0.19167  AND  fraction_closed_recipe(x) >= 0.70
+                 AND  GAP(full_graft - backbone_only, h*) > 0.15   [D5.2, unchanged]
+
+  NULL := x <= tau (0.09162)          PARTIAL := NOT NULL AND NOT WIN
+```
+
+**M3's own worked counter-example, reproduced and closed**
+(`band_partition.py` + `test_band_partition.py`): a PRIMARY reading
+`x=0.7100` at compB anchors (`fraction_closed = 0.7071 >= 0.70`) —
+`win_base` is identical whether `CONTROL_C` reads `0.0664` or `0.7000`
+(confirmed: `win_base_before_c_margin` is `True` in both cases,
+identically, reproducing exactly the defect the report diagnosed). After
+the repair: `CONTROL_C=0.0664` (margin `0.6436 > 0.15`) still scores
+**WIN**; `CONTROL_C=0.7000` (margin `0.01 <= 0.15`) now scores
+**PARTIAL** — the confound the cell was funded to close is now actually
+closed by the scoring rule, not just by the cell existing.
+
+**Partition re-verified hole/double-fire-free AFTER the addition** (the
+charter's own explicit requirement — re-run, not asserted): **50,736
+constructed outcomes** (43,452 for compB across a fine `x`-grid ×
+`{GAP, C-margin-offset}` boundary sweep including the exact `0.15`
+boundary on BOTH the GAP and the new C-margin clause; 7,284 for
+compA/primary across the same `x`×`GAP` sweep) — **zero holes, zero
+double-fires**, in both sweeps. The disclosure flag
+(`ortho_confounded_disclosed`) is verified to fire if-and-only-if a
+compA/primary cell reads WIN, on three representative cases (WIN/NULL/
+PARTIAL). `classify()` refuses to run for `recipe="compB"` without a
+`control_c_reading` argument (an `AssertionError`, executed) — M3's repair
+cannot be silently skipped by omission.
+
+---
+
+### R5.4 — Stage 0′ FINAL CARD (A1–A8 applied)
+
+**A1 — checkpoint paths, corrected to the battery's own recorded
+convention** (verified directly against `pbe_supplement.py.txt:16` and
+`writecond_premise_REPL_{compA,primary}.json`'s own `ckpt` fields, not
+inferred):
+
+```
+~/ncr_g3b31_contrastive/results/mob_g3b31_{tag}_s0_ckpts/mob_g3b31_{tag}_s0.ckpt.pt
+   for tag in {primary, compA, compB}
+```
+
+**A2 — the `.encoder` attribute route**, verified against the real class
+hierarchy this round (`ncr_models.py:165`, `ncr_earlyln_scale.py:115-126`,
+`model_v4.py:52`): `arms["full_graft"]["ncr"].encoder.row_out`, NOT
+`arms["full_graft"]["ncr"].row_out` — executed:
+`hasattr(NCREarlyLNModel_instance, 'row_out')` is `False`,
+`hasattr(NCREarlyLNModel_instance.encoder, 'row_out')` is `True`
+(`test_stage0prime_helpers.py`).
+
+**A3 — item 3's statistic.** All four candidate statistics are reported
+(global max/median, global max/min, within-episode max/min median/p99/
+max); the gate uses the **within-episode p99** (the spec statistic) rather
+than the carded global max/median. M4(b)'s LayerNorm-affine correction is
+applied — `encoder.row_norm` is `nn.LayerNorm(h)` with
+`elementwise_affine=True` (verified: default, unset in `model_v4.py`), so
+the achievable ceiling is `sigma_max(row_out.weight) . (||gamma||_inf .
+sqrt(h) + ||beta||) + ||row_out.bias||`, restored (M4(c)) alongside the
+ratio framing rather than replacing it.
+
+**A4 — item 4's semantics.** Emits `transverse_gain_med/_p90` (absolute,
+informational per F1) **and** `transverse_ratio_med/_p90`
+(`||ZW||_F/||Z||_F`, the quantity that actually adjudicates Band 2). M10's
+polarity fix: no more inverted `gate_pass` — renamed
+`transverse_gain_exceeds_3` (`True` = CONFIRMS D1's mechanism is
+necessary). Verified with a positive AND a negative case (`Z_ideal` reads
+`False`; a large transverse perturbation flips it to `True`).
+
+**A5 — item 5's numeric predicate + the 1/B fix.** `conflict_reproduces :=
+ortho_loss(Z_ideal) > 1e3 AND grad_norm_per_example > 0`
+(the report's own stated example, taken verbatim — no threshold invented
+beyond it), with M8's correction applied: `ortho_regularization_loss`
+batch-mean-reduces, so `torch.autograd.grad` yields per-example gradients
+scaled by `1/B`; multiplying by `B` undoes exactly that factor — verified
+**exactly**: the correction ratio measured `64.000` at `B=64`, to the
+digit. R3's own joint-minimization `lambda_w` curve is **disclosed as NOT
+reproduced** this round (M8's second substitution, now flagged explicitly
+— `joint_min_curve_reproduced: False` is a literal field in every item-5
+result, not a silent omission); D2's `ortho=0` decision rests on this
+item's real-geometry reconfirmation plus F2's own synthetic evidence.
+
+**A6 — item 6, the substantive replacement.** The free-`Z` sweep (which
+F2(c) proved cannot fail, so cannot choose `lambda_t`) is replaced by a
+**parametrized achievability/λ_t probe**: a FRESH
+`els.NCREarlyLNModel(d=25,h=64)` instance per `(lr, lambda_t)` grid cell
+(`lr in {3e-4, 1e-3}`, `lambda_t in {0, 0.1, 1.0, 3.0}` — 8 cells), trained
+on `L_key + lambda_t.L_transverse` for `>=8000` Adam steps on the
+extracted `(keys_v, values_v)`, scored on a **separate, hop-matched
+held-out set** via the real path (`nm.binexp_read` →
+`R.discriminability_metrics`).
+
+**Cost-driven scoping decision, disclosed (a deviation from a literal
+reading of the report's own words, not a silent one — see R5.6).** The
+report says "build one batch per hop and fit per hop." Read literally,
+that means retraining the whole 8-cell grid once per scored hop. This
+build instead trains **once** per cell (`keys_v`/`values_v` content is
+K raw bind-clause entity vectors — not itself hop-conditioned; only the
+query/target construction is, per `build_task1_document`'s own
+`hop_set` mechanism) and scores **each** trained cell against
+hop-**matched held-out documents at every hop** — closing exactly the
+defect F3.5 diagnosed (an h=61-fit `Z` scored against a document built
+for a different `h`) at half the training cost of a literal per-hop
+retrain. Band 2's own reading is reported **per held-out hop** (not just
+one, cherry-picked) — `held_out_band2_by_hop`, keyed by hop — and the
+GATE requires **all** scored hops to pass, not just one.
+
+**F3.4's probe-batch-retention fix.** `extract_real_kv()` now returns the
+full `probe` batch dict (not just `Z_sgd, keys_v, values_v`), so
+`entity_ids`/`tgt_slot`/`query_key_col` survive for scoring — the un-amended
+card discarded them, making item 6 unable to score retrieval at all (F3.4).
+A dedicated `extract_held_out()` draws a disjoint-seeded batch **per hop**
+(`seed + EVAL_SEED_OFFSET + hop + 500_000`, disjoint from the training
+draw's own `seed + EVAL_SEED_OFFSET + 61`).
+
+**`R.score_operator_at_hops` (the non-existent function F3.3 flagged) is
+replaced** by the real composition the pinned runner actually exposes:
+`nm.binexp_read(Z, q_key.unsqueeze(1), h)["o"].squeeze(1)` (real, verified
+signature) followed by `R.discriminability_metrics(integ, embed, o,
+entity_ids, tgt_slot)` (real, verified signature, lines 480–537 — the SAME
+function the design's own dead citation pointed at the wrong lines for).
+
+**A7 — item 1 becomes gating** on `cond(keys_v)` (med/p99/max) **and** the
+fraction of episodes whose own target `L_key(Z_ideal)` violates the WIN
+band (M5's pinv-truncation cliff). No numeric pass/fail cutoff is invented
+for "non-trivial fraction" (the report's own language is qualitative) —
+the fraction and `cond` stats are reported for the coordinator's own
+reading, per the charter's "no band thresholds beyond what the report
+fixes" constraint. **The cliff itself is reproduced**: a near-collinear
+key pair drives `cond_max` past `10^4` and moves
+`frac_episodes_target_violates_win` off zero from a well-conditioned
+baseline of exactly `0.0` (`test_item_1_2_pinv_truncation_cliff`,
+executed).
+
+**A8 — housekeeping, all applied:** `os.makedirs(OUT_DIR, exist_ok=True)`;
+seed corrected to `+ EVAL_SEED_OFFSET + 61` for the training extraction
+(m2 — the un-amended card drew a *different* episode distribution than the
+one that produced `P0=0.0664`, making item 4's readings non-comparable to
+the harvest's own numbers); `CEILING_S` reframed as a post-hoc warning only
+(the real ceiling is the `timeout 2400` wrapper on the box launch command,
+m3); `CUDA_VISIBLE_DEVICES`/GPU-class note unchanged from the card ("any
+single free H100 among 0-7", m4 — left as the card's own choice, not
+re-litigated); item 6's finals are read from the trained model's own
+post-training state, not a stale pre-`opt.step()` snapshot (m5, structurally
+avoided by this build's own control flow — training and scoring are
+separate loops, not interleaved).
+
+**Gating bands for THE WAVE-DECIDING READING:**
+
+```
+Item 1 (cond + pinv-cliff fraction):    reported, non-gating (A7 — informational,
+                                          coordinator judgment call, per the report's
+                                          own qualitative language)
+Item 3 (reachability):                  GATES. FAIL (cond(row_out) < required
+                                          within-episode-p99 dynamic range)
+                                          => STOP, escalate -- rescope before Stage 1.
+Item 4 (transverse gain on TRAINED
+        checkpoints):                   informational (transverse_gain_exceeds_3=True
+                                          CONFIRMS necessity, elevated confidence,
+                                          never a blocker).
+Item 5 (ortho conflict):                GATES as a sanity re-confirmation.
+                                          conflict_reproduces=False => open question for
+                                          the audit, D2's ortho=0 removal then rests on
+                                          F2's synthetic evidence alone (flagged, not
+                                          silently proceeded past).
+Item 6 (achievability/lambda_t):        THE WAVE-DECIDING GATE.
+   stage1_gate = "GO" iff ANY (lr, lambda_t) cell reaches BOTH of Band 2's
+      repaired gates (L_key_cstar<=3e-4 AND Zw_ratio<=0.12), at BOTH the
+      median AND the p90, AT EVERY SCORED HOLD-OUT HOP.
+   GO           => Stage 1 launches; the winning (lr, lambda_t) is the
+                    provisional Stage-1 value UNLESS a Stage-1 lambda_t
+                    axis / lambda_t=0 necessity arm is separately funded
+                    (F2 repair (iii), still an open pre-registration
+                    choice for the coordinator, not resolved by this
+                    build).
+   NO-GO-ON-CURRENT-BAND => Stage 1 does NOT launch on Band 2 as currently
+                    calibrated. Two re-scope paths, both pre-registered by
+                    the report, neither chosen here: (a) re-derive Band 2
+                    from item 6's own achievable frontier (disclosed as a
+                    post-hoc recalibration), or (b) the mechanism is
+                    rescoped. This build makes NO GO/NO-GO call itself --
+                    it has not been run on real checkpoints (no box
+                    contact this round, per the charter).
+```
+
+**Item (j) — every fixture producible.** Every item's core function is
+exercised end-to-end in `test_stage0prime_helpers.py` using **synthetic**
+fixtures that match the real tensor shapes exactly (`K=24, d=25, h=64`,
+real `els.NCREarlyLNModel`/`nm.binexp_read` — not hand-reimplemented
+stand-ins): a well-conditioned key/value pair (item 1/2's baseline), a
+deliberately near-collinear pair (item 1's cliff), a synthetic
+`entity_adapter`/`embed` pair with a fixed lookup table (items 5/6's
+scoring rig, `make_scoring_rig()`), and an all-zero held-out set (a
+negative fixture proving item 6's held-out path is genuinely exercised,
+not skipped). The ONE fixture this build cannot produce off-box is a real
+trained checkpoint — `stage0prime_eval.py`'s own `load_checkpoint` call
+asserts loudly (not silently) if one is missing, per A1's pre-flight `ls`
+step.
+
+---
+
+### R5.5 — BUILD-PREPARABLES (authorized artifacts, all written, all tests RUN to completion)
+
+All files live under `matrix-thinking/writecond_build/`. **131 individual
+assertions plus a 50,736-outcome constructed sweep, all executed this
+round, zero failures** (CPU, fp32, torch 2.8.0, no GPU, no box contact —
+every negative test executed to completion, not merely written, per
+CLAUDE.md):
+
+| file | purpose | tests | result |
+|---|---|---|---|
+| `write_supervision_loss.py` | D1/D3/D4-F1/M11: the loss module — `null_directions`, `write_supervision_loss`, `band2_check` | `test_write_supervision_loss.py` | 35/35 PASS |
+| `band0_checker.py` | F4: Band-0 gate with the CONTROL-B branch | `test_band0_checker.py` | 13/13 PASS |
+| `band_partition.py` | D5.2 + M3: the NULL/WIN/PARTIAL partition + C-margin predicate | `test_band_partition.py` | 12/12 PASS (+ 50,736-outcome sweep, 0 holes/0 double-fires) |
+| `write_diag.py` | M7: Band 2's emission point (`compute_write_diag`) | `test_write_diag.py` | 18/18 PASS |
+| `config_provenance.py` | D8/M8/m4: config fields, mutual-exclusion assert, resume-mismatch asserts | `test_config_provenance.py` | 10/10 PASS |
+| `stage0prime_helpers.py` | A1–A8: every item's box-independent core math (items 1–6) | `test_stage0prime_helpers.py` | 43/43 PASS |
+| `stage0prime_eval.py` | the amended box launch script (A1–A8 wired) | box-only, cannot import off-box (`fla`) — see below | compiles clean (`py_compile`) |
+| `control_b_clean_eval.py` | D7: CONTROL B's separate teacher_force=False clean-eval script, on the `pbe_repl.py` pattern | box-only | compiles clean (`py_compile`) |
+
+**Why two files are box-only and untested end-to-end (disclosed, not
+hidden).** `ncr_lm_wave1_runner.py` cannot be imported off this machine —
+confirmed directly: `import ncr_lm_wave1_runner` raises
+`ModuleNotFoundError: No module named 'fla'` (its own `graft ->
+lm_pretrain_rd -> fla.ops.delta_rule.chunk_delta_rule` chain; the runner's
+own module docstring already says "chunk_delta_rule has no CPU path").
+`stage0prime_helpers.py` exists precisely to factor every item's **testable
+math** out of that dependency chain (verbatim duplicates of
+`discriminability_metrics`/`ortho_regularization_loss` — both already
+fla-independent themselves, only the RUNNER MODULE's own import chain is
+the blocker — matching the runner file's own established "duplicate,
+don't drift" convention, `cosine_and_recovered_frac`'s own precedent).
+`stage0prime_eval.py` and `control_b_clean_eval.py` import the REAL pinned
+runner and are therefore box-only by construction; both `py_compile`
+clean, both were cross-checked line-by-line against the pinned runner's
+verified signatures (R5.4), and `stage0prime_eval.py` imports
+`stage0prime_helpers` unmodified — the box run uses the SAME tested code
+path this round's tests exercised, not a duplicate that could drift.
+
+**Also shipped per the D7/M7/M8 build brief (specs, not yet wired into
+the archived runner file — editing that file is outside this round's
+authorized repo-write scope, `§A4-ADJUDICATION`):**
+- `write_diag.py`'s `compute_write_diag(Z, keys_v, values_v)` — the exact
+  six named fields (M7): `L_key, L_key_cstar, Zw_norm, Z_fro, Zw_ratio,
+  keys_cond, keys_null_gap`. Wiring point named explicitly:
+  `eval_arm_at_hops`, full_graft only, right after its own
+  `ncr_lm_forward_ablatable` call (runner.py:942).
+- `config_provenance.py`'s `assert_no_teacher_force_write_supervision_conflict`
+  (m4) and `assert_writecond_resume_match` (M8) — both executed against
+  positive AND negative cases, including the old-checkpoint-defaults case
+  (M8's own "only NEW checkpoints are checked" guarantee).
+- Per-step separated `||grad_Z L_key||`/`||grad_Z L_transverse||` logging
+  (D7) is NOT yet a standalone artifact — `write_supervision_loss()`
+  already returns both sub-losses un-summed (`L_key`, `L_transverse`,
+  each `(B,)`), which is the one line of plumbing a Stage-1 build needs to
+  call `.backward()` on each separately for the log; not written as a
+  separate file since it is a direct, mechanical consequence of the loss
+  module's own return shape, not new logic.
+
+**Not authorized and not written this round** (per the charter): any
+Stage-1 cell, any committed `lambda_t` value, any band threshold beyond
+what the report already fixed.
+
+---
+
+### R5.6 — Budget/tail bookkeeping
+
+**This round's own cost: zero GPU-h, zero box contact.** Every test above
+ran CPU-only, fp32, torch 2.8.0, on the local machine — no SSH, no tmux, no
+checkpoint read, matching the charter's own "no box contact" instruction.
+
+**Stage 0′'s own cost, HONEST CORRECTION (flagged, not smoothed over).**
+`§A3-ADJUDICATION`/`§A4-ADJUDICATION` both carry forward a "still ≲0.2
+GPU-h" estimate for the amended Stage 0′ ("A6 adds a few minutes of
+single-GPU training on a 173K-param head"). That estimate under-counts
+A6's realized shape: items 1–5 remain cheap (forward passes + SVDs on
+existing checkpoints, seconds, per V12); **item 6 is now 8 grid cells
+(2 lr × 4 λ_t) × ≥8000 real Adam steps EACH, training an actual
+173,209-param transformer encoder (not a free-`Z` elementwise
+optimization)** — 64,000 gradient steps total (halved from a literal
+per-hop-retrain reading of the report's own words by R5.4's disclosed
+scoping decision). This build has **no real H100 timing for this specific
+op** (no box contact this round) — a rough bound: the premise battery's
+own comparable **forward-only** passes measured `elapsed_s` 5.75–15.02 at
+`n=256` through the FULL 98M-param backbone; item 6 touches only the
+173K-param head (no backbone forward/backward at all) and its own
+diagnostics (SVD calls) are logged only every `log_every=500` steps, not
+every step — so per-step cost should be materially *below* a full backbone
+forward pass, but 64,000 steps is still a real number of steps, not
+"seconds." **Recommendation to the coordinator (not resolved here):**
+before committing to the full 8-cell/8000-step grid, run a short timing
+probe (e.g. `n_steps=500` on one cell) to get a real H100 ms/step figure
+and re-derive Stage 0′'s own ceiling from it, rather than trusting the
+pre-A6 "~0.2 GPU-h" figure — this is cheap (minutes) and removes the last
+unverified number in this build. Even a generously-priced Stage 0′ (say,
+up to ~1 GPU-h) stays negligible against the 24.94 GPU-h nominal / ≤35
+GPU-h hard-capped Stage-1 wave and does not change the ceremony tier.
+
+**Stage 1's own pricing is UNCHANGED by this round** — D6's `24.841 +
+0.10 = 24.94` GPU-h nominal, `≤25` GPU-h registered ceiling, `≤35` GPU-h
+hard cap, all carried forward verbatim; this revision touches only the
+Band-2/Band-0/D5.2 definitions and the Stage-0′ script, none of which
+change Stage-1's own per-cell cost.
+
+---
+
+### R5.7 — Fresh self-attack: what kills this at R5
+
+1. **The item-6 "train once, score per hop" scoping decision (R5.4) is
+   this build's single most exposed engineering judgment call.** It rests
+   on an inference — "keys_v/values_v content is not itself
+   hop-conditioned, only the query/target construction is" — read off
+   `build_task1_document`'s own code, never verified empirically on real
+   box data (no box contact this round). If a document drawn under
+   `hop_set=(1,)` differs systematically in its K bind-clause CONTENT
+   (not just its query/target) from one drawn under `hop_set=(61,)`, then
+   training on h=61-extracted episodes and scoring at h=1 could read an
+   artificially pessimistic (or optimistic) achievability signal for h=1
+   specifically. A narrow audit could kill this by either (a) reading
+   `grammar_rd.sample_batch_rd`'s own construction directly for a
+   hop-conditioned content dependency, or (b) an on-box A/B: train once
+   on h=1-drawn episodes vs h=61-drawn episodes and diff the two
+   achievability curves.
+2. **`band2_check`'s `c*` formula (F1's repair, adopted verbatim) is a
+   proxy, not necessarily `L_key`'s own true minimizer over a global
+   rescale.** It minimizes the UNNORMALIZED sum-square residual, not
+   `L_key`'s per-key-normalized objective; the design doc itself flags
+   this ("a legitimate, cheap proxy... not necessarily identical"). If the
+   true normalized-`L_key` minimizer differs meaningfully from this `c*`
+   on real geometry, an operator that is "really" fine at ITS OWN optimal
+   rescale could still fail gate (i) — a false NEGATIVE the current form
+   cannot self-diagnose. Inherited from the binding adjudication text (not
+   a defect this build introduced), but worth a fresh look if item 6's
+   real-geometry `L_key_cstar` readings look surprisingly far from 0 even
+   at low `lambda_t`.
+3. **Item 5's numeric predicate (`ortho_loss(Z_ideal) > 1e3`) is an "e.g."
+   in the source report, applied here as if it were load-bearing.** F2's
+   original ortho-loss measurement (`15,147` at `Z_ideal`) was on
+   synthetic Hamiltonian-cycle keys; real extracted geometry could
+   plausibly read materially lower (hundreds, not thousands) while the
+   underlying conflict is still real — this predicate would then report
+   `conflict_reproduces=False` on a real conflict, an instrument false
+   negative baked into a threshold nobody rigorously derived.
+4. **The verbatim-duplicate discipline (`discriminability_metrics`,
+   `ortho_regularization_loss` in `stage0prime_helpers.py`) has no
+   automated drift check.** If the pinned runner is ever revised (a
+   future round fixes a bug in either function), nothing in this repo
+   flags that `stage0prime_helpers.py`'s own copy has silently gone
+   stale. Mitigation registered, not built: a future round with box
+   access should diff the two bodies directly (or better, hash-pin the
+   runner's own md5 and assert it in `stage0prime_helpers.py`'s own
+   module docstring/test, the same discipline this build already applies
+   to citing `9a93198b642242f512ff8489e32b0a53`).
+5. **`item_6_achievability_probe`'s all-hops-must-pass gate (this
+   round's own strengthening over an earlier single-hop draft) could make
+   the GO/NO-GO gate MORE conservative than the report intended** — the
+   report's own words ask whether "no λ_t reaches Band 2's targets," not
+   explicitly whether it must do so at every scored hop simultaneously. If
+   a narrow audit judges this too strict (e.g. an operator that is clean
+   at h=61 but slightly over Band 2's ratio bound at h=1, due to ordinary
+   held-out sampling noise on a small `n`), the fix is a one-line relaxation
+   (any-hop instead of all-hops) — flagged here as a real, disclosed design
+   choice this build made beyond the report's literal text, not hidden
+   inside the gate's own boolean logic.
+
