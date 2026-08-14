@@ -1,0 +1,55 @@
+{
+  "cell": "P1a",
+  "teacher_force": true,
+  "step": 0,
+  "n": 256,
+  "result": {
+    "h=1": {
+      "recovered_frac@0.9": 1.0,
+      "mean_cos": 1.0,
+      "answer_accuracy": 0.0,
+      "n": 256,
+      "offtarget_margin": 0.9966772198677063,
+      "retrieval24_acc": 1.0,
+      "o_pairwise_cos": 0.010127020999789238,
+      "target_pairwise_cos": 0.01279523316770792
+    },
+    "h=13": {
+      "recovered_frac@0.9": 1.0,
+      "mean_cos": 0.9999982118606567,
+      "answer_accuracy": 0.0,
+      "n": 256,
+      "offtarget_margin": 0.9960079789161682,
+      "retrieval24_acc": 1.0,
+      "o_pairwise_cos": 0.015260214917361736,
+      "target_pairwise_cos": 0.013443279080092907
+    },
+    "h=37": {
+      "recovered_frac@0.9": 1.0,
+      "mean_cos": 0.9999993443489075,
+      "answer_accuracy": 0.0,
+      "n": 256,
+      "offtarget_margin": 1.0014766454696655,
+      "retrieval24_acc": 1.0,
+      "o_pairwise_cos": 0.009213543497025967,
+      "target_pairwise_cos": 0.010873179882764816
+    },
+    "h=61": {
+      "recovered_frac@0.9": 0.99609375,
+      "mean_cos": 0.9966003894805908,
+      "answer_accuracy": 0.0,
+      "n": 256,
+      "offtarget_margin": 0.9989328384399414,
+      "retrieval24_acc": 0.99609375,
+      "o_pairwise_cos": 0.012123512104153633,
+      "target_pairwise_cos": 0.009051337838172913
+    },
+    "mean_recovered_frac@0.9": 0.9990234375,
+    "mean_mean_cos": 0.9991494864225388,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": 0.9982736706733704,
+    "mean_retrieval24_acc": 0.9990234375
+  },
+  "elapsed_s": 11.295194625854492,
+  "gate": "HIGH_h(P1a) for all h in {1,13,37,61}: retrieval24_acc>0.95 required at every listed hop"
+}

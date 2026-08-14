@@ -2187,3 +2187,77 @@ grid) determines what, if anything, is dispatched next — including
 whether a re-scoped premise (§0) or a re-founded mechanism cell is even
 warranted — and that determination is the coordinator's, not
 pre-decided in this document.
+
+---
+
+## PREMISE BATTERY HARVEST (coordinator, 2026-08-13) — VERDICT OF RECORD: AC=00 / BD=11 — "EXACT-Z-SURVIVES: the ONLY missing piece is Z-quality"
+
+Run 2026-08-13 (box GPU 7, eval-only, total spend ≈0.1 GPU-h vs the
+1.0 hard cap). Raw artifacts:
+`experiment-runs/2026-08-13_ncr_writecond_premise_battery/` (repo +
+SSD, hybrid policy). All readings verbatim, per band rule 6.
+
+**GATE (P1a, fresh init, teacher-forced, n=256):** PASS —
+retrieval24_acc 1.0 / 1.0 / 1.0 / 0.9961 at h=1/13/37/61; mean_cos
+1.0→0.9966; o_pc ≈ 0.01 (no collapse). The exact-write algebra +
+instrument are sane through 61 hops.
+
+**The decisive pair (trained compB checkpoint, step 20000, n=256,
+seed 90210):**
+| | h=1 | h=13 | h=37 | h=61 | o_pc range |
+|---|---|---|---|---|---|
+| **P0 (own SGD writes)** | 0.0703 | 0.0352 | 0.0352 | 0.0664 | 0.77→0.99 |
+| **P1b (exact writes substituted)** | 1.0000 | 0.9883 | 0.9883 | 0.9766 | 0.19–0.23 |
+
+CLEARS @ τ=0.09162: a=0, c=0, b=1, d=1 ⇒ **AC=00 (ARCHIVE-CONFIRMED:
+the SGD write shows no signal at ANY depth — §G3-B32 replicated at
+n=256 on a disjoint eval seed), BD=11 (EXACT-Z-SURVIVES: the SAME
+trained model's read path — binexp repeated squaring + retrieval
+readout — executes 61-hop composition at 0.9766 when fed the exact
+operator).** Spectral on the SGD-written Z: A_cond ≈ 9,959, eff-rank
+≈ 10.0 of 24 — the learned write is catastrophically ill-conditioned;
+the read machinery is NOT the blocker.
+
+**Pre-registered cell verdict (16-cell grid, row AC=00 × col BD=11,
+verbatim):** "Archive confirmed, but geometry supports deep retrieval
+given exact Z — the ONLY missing piece is Z-quality; cleanest
+re-founding for a future (re-designed) mechanism."
+
+**DIVERGENT flags (band rule 4):** P1b@h=1 and P1b@h=61 are
+INSTRUMENT-DIVERGENT (retrieval 1.0/0.977 vs answer_accuracy
+0.047/0.035) — pre-registered as expected for P1b (R2.1): the decode
+head was trained against the collapsed-write distribution. The
+retrieval24 readout is the premise-relevant instrument. **P2
+modifier (band rule 5):** not computable from the stored record (raw
+read-output vectors not archived) — residual, re-runnable in minutes
+if ever needed; NULL cells (all P0) are chance-level by a wide
+margin, so no plausible P2 flip.
+
+**Disclosed deviations:** (i) the audited script's `--smoke-only`
+computed a reduced hop set but the cell functions read the global
+HOPS — smoke ran all 4 hops (harmless, more data); (ii)
+`eval_both_arms` takes no hops argument, so cell 2 measured h∈{1,2,3}
+only — the h=61 coordinates come from a SUPPLEMENT
+(`pbe_supplement`, archived) applying the IDENTICAL instrument
+(`eval_arm_at_hops`, same seed/signature as P1a) to the restored
+arms; (iii) the CKPT constant was patched to the verified real path
+(`…_ckpts/` subdir) per pre-flight step 1's own instruction.
+
+**What this changes (the first POSITIVE real-LM NCR capability
+evidence in the program):** the trained 98M-param LM CONTAINS the
+O(log h) composition-read capability — fully functional at h=61 —
+and the sole blocker is that SGD does not learn a usable write
+(cond ≈ 10⁴, rank collapse to ~10/24). The §G3-B32 "structural
+block" is now LOCALIZED to write-learning. Spectral penalties at
+write time are already evidenced-against (§A2 F5); the obvious
+re-founded lever is SUPERVISED WRITE LEARNING — the runner's own
+`teacher_force_operator(keys, values)` computes the exact target
+Z_ideal from in-context content, giving a direct, cheap,
+always-available supervision signal for the write path (train the
+write to hit Z_ideal; the read already works). That is a NEW claim ⇒
+novelty-gate re-entry per the memo, then design → attack → build.
+Replication note: this battery is n=1 checkpoint (compB s0);
+primary/compA checkpoints exist in the same archive dir and a
+seed-replication cell is cheap (<0.1 GPU-h) — REQUIRED before any
+publication-grade claim. Publisher dispatch deliberately HELD until
+replication (coordinator call, PI may override).

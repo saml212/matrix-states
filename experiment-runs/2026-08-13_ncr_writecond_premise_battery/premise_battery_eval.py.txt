@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Premise battery (write-conditioning DRAFT-R2, X1(i)-(iv)). Eval-only,
+no training. Deploy alongside the pinned ncr_lm_wave1_runner.py
+(md5 9a93198b642242f512ff8489e32b0a53) -- imports its own functions,
+does not copy them (additive-only discipline)."""
+import argparse, json, os, sys, time
+import torch
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # dir holding the pinned runner
+import ncr_lm_wave1_runner as R
+import ncr_ortho_write as ow          # spectral_diagnostics
+import numpy as np
+
+BASE_SEED = 90210          # R2.3: deliberately disjoint from every training seed {0,1,2,3}
+HOPS = (1, 13, 37, 61)      # m6's squaring-residue set; corroborating only, not the ladder
+CKPT = os.path.expanduser("~/ncr_g3b31_contrastive/results/mob_g3b31_compB_s0_ckpts/mob_g3b31_compB_s0.ckpt.pt")  # confirm real path at pre-flight step 1
+OUT_DIR = os.path.expanduser("~/ncr_writecond/results")
+CEILING_S = 45 * 60         # R2.4 wall-clock kill-switch, 0.75 GPU-h < 1.0 hard cap
+
+def cell_p1a(device, batch_size, out):
+    t0 = time.time()
+    pools, cfg, pool_report = R.build_grammar_pools_and_cfg(seed=0)
+    pools = pools.to(device)
+    arms = R.build_two_arms(pool_report["vocab_size_total"], seed=0, device=device)
+    with torch.no_grad():
+        res = R.eval_arm_at_hops(arms["full_graft"], pools, cfg, HOPS, batch_size, device,
+                                  BASE_SEED, read_ablate=False, teacher_force=True)
+    rec = dict(cell="P1a", teacher_force=True, step=0, n=batch_size, result=res,
+               elapsed_s=time.time() - t0, gate="HIGH_h(P1a) for all h in {1,13,37,61}: "
+               "retrieval24_acc>0.95 required at every listed hop")
+    _write(out, rec)
+    return rec
+
+def cell_p0_p1b(device, batch_size, out):
+    t0 = time.time()
+    pools, cfg, pool_report = R.build_grammar_pools_and_cfg(seed=0)
+    pools = pools.to(device)
+    ckpt = R.load_checkpoint(CKPT, device)
+    assert ckpt is not None, f"checkpoint not found/invalid at {CKPT} -- rerun pre-flight step 1"
+    arms, opts, data_gen = R.restore_arms_and_opts(ckpt, pool_report["vocab_size_total"],
+                                                     lr=3e-4, device=device, freeze_entity_adapter=False)
+    with torch.no_grad():
+        p0  = R.eval_both_arms(arms, pools, cfg, batch_size, device, BASE_SEED, teacher_force=False)
+        p1b = R.eval_both_arms(arms, pools, cfg, batch_size, device, BASE_SEED, teacher_force=True)
+        attrib_p0, attrib_p1b = R.build_attribution(p0), R.build_attribution(p1b)
+        # Z-dump + spectral_diagnostics (verbatim reuse, ow.spectral_diagnostics):
+        gen = torch.Generator(device=device).manual_seed(BASE_SEED + R.EVAL_SEED_OFFSET + 61)
+        probe = R.graft.build_task1_document(cfg, pools, gen, batch_size, 61, device)
+        _, _, _, _, Z_sgd, keys_v, values_v = R.ncr_lm_forward_ablatable(
+            arms["full_graft"]["backbone"], arms["full_graft"]["ncr"], arms["full_graft"]["integ"],
+            probe, read_ablate=False, teacher_force=False)
+        Z_ideal = arms["full_graft"]["integ"].teacher_force_operator(keys_v, values_v)
+        U = ow.az.entity_subspace(Z_ideal[0].cpu().numpy())["U"]
+        spec = ow.spectral_diagnostics(dict(Z=Z_sgd.detach().cpu().numpy(),
+                                             z_ideal=Z_ideal.detach().cpu().numpy()))
+    rec = dict(cell="P0+P1b", ckpt_step=ckpt["step"], n=batch_size,
+               P0=dict(teacher_force=False, result=p0, attribution=attrib_p0),
+               P1b=dict(teacher_force=True, result=p1b, attribution=attrib_p1b),
+               spectral=spec, elapsed_s=time.time() - t0)
+    _write(out, rec)
+    return rec
+
+def _write(path, rec):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(rec, f, indent=2, default=str)
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--cell", choices=("P1a", "P0P1b"), required=True)
+    ap.add_argument("--eval-batch-size", type=int, default=256)
+    ap.add_argument("--device", default="cuda")
+    ap.add_argument("--smoke-only", action="store_true", help="batch_size=8, HOPS=(1,), sanity only")
+    args = ap.parse_args()
+    bs = 8 if args.smoke_only else args.eval_batch_size
+    hops = (1,) if args.smoke_only else HOPS
+    t_start = time.time()
+    out = os.path.join(OUT_DIR, f"writecond_premise_{args.cell}{'_smoke' if args.smoke_only else ''}.json")
+    fn = cell_p1a if args.cell == "P1a" else cell_p0_p1b
+    fn(args.device, bs, out)
+    if time.time() - t_start > CEILING_S:
+        print(f"WARNING: exceeded {CEILING_S}s wall-clock ceiling", file=sys.stderr)

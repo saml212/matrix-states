@@ -1,5 +1,20 @@
 # STATE — Current Project State
 
+**2026-08-13 tick #5 (Fable): PREMISE BATTERY VERDICT = AC=00/BD=11 —
+FIRST POSITIVE REAL-LM NCR CAPABILITY EVIDENCE.** The trained compB
+checkpoint's read path executes 61-hop repeated-squaring retrieval at
+0.9766 (n=256) when fed the EXACT operator; its own SGD writes read
+chance at every hop (cond≈10⁴, eff-rank 10/24). The §G3-B32 block is
+LOCALIZED to write-learning; the composition capability EXISTS in the
+model. Pre-registered grid cell: "the ONLY missing piece is
+Z-quality." Next lever = SUPERVISED WRITE LEARNING (Z_ideal from
+teacher_force_operator as direct write supervision) — new claim,
+novelty re-entry required. Replication on compA/primary ckpts
+(<0.1 GPU-h) required pre-publication; publisher HELD. Battery spend
+≈0.1 GPU-h. Box: Jacobians still on 0/2/3, K-wall on 5. Records:
+design-doc HARVEST section + log #5;
+experiment-runs/2026-08-13_ncr_writecond_premise_battery/.**
+
 **2026-08-13 tick #4 (Fable): write-conditioning attack R2 = BLOCKED
 (5F/12M/8m) ADOPTED — and a RECORD CORRECTION: tick #3's "teacher-force
 never re-run post-fix" was FALSE (§G3-B13's sanity_g3b12_tf_s0.json:

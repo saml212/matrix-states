@@ -9856,3 +9856,30 @@ mechanism track ON HOLD pending battery data (key-geometry vs
 joint-training-dynamics vs re-scope decided by evidence, not
 enthusiasm); X3 record correction stands. Rev-2 (X1 only)
 dispatched.
+
+## 2026-08-13 #5 — PREMISE BATTERY RUN + HARVESTED: AC=00/BD=11 — THE READ PATH WORKS AT h=61 (0.9766); THE LEARNED WRITE IS THE SOLE BLOCKER. First positive real-LM NCR capability evidence.
+
+Battery ran same-day on GPU 7, eval-only, ≈0.1 GPU-h total (vs 1.0
+cap). GATE PASS (P1a fresh-init teacher-forced: 1.0/1.0/1.0/0.9961
+at h=1/13/37/61, o_pc≈0.01, n=256). DECISIVE PAIR on the trained
+compB checkpoint (step 20000, n=256, disjoint seed 90210): P0 (own
+SGD writes) 0.070/0.035/0.035/0.066 ≈ chance at every hop, o_pc
+0.77→0.99 — §G3-B32 replicated; P1b (exact writes substituted into
+the SAME model) 1.0/0.988/0.988/0.977 through h=61, o_pc 0.19-0.23.
+Grid verdict (pre-registered cell, verbatim): "geometry supports deep
+retrieval given exact Z — the ONLY missing piece is Z-quality."
+Spectral: SGD-written Z has cond≈9,959, eff-rank≈10/24. The §G3-B32
+"structural block" is LOCALIZED: the trained 98M LM's binexp read
+machinery executes 61-hop exact composition at 97.7% when fed a good
+operator — SGD just never learns to write one. DIVERGENT flags on
+P1b (answer_accuracy ~0.04 vs retrieval ~1.0) pre-registered
+expected (decode head trained on collapsed writes). Deviations
+disclosed in the harvest record (smoke-hops quirk; eval_both_arms
+hop-set gap → same-instrument SUPPLEMENT; CKPT path patch per
+pre-flight). Artifacts: experiment-runs/2026-08-13_ncr_writecond_
+premise_battery/ (repo+SSD). NEXT LEVER (new claim ⇒ novelty
+re-entry): SUPERVISED WRITE LEARNING — teacher_force_operator
+computes exact Z_ideal from in-context content = a direct
+supervision target for the write path. Replication (compA/primary
+ckpts, <0.1 GPU-h) REQUIRED before publication-grade claims;
+publisher dispatch HELD pending it.
