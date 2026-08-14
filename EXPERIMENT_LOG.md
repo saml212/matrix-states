@@ -9963,3 +9963,26 @@ struck (moves minimum 81-100% off target). Build-preparables
 authorized in parallel (loss module, checkers, scripts — no Stage-1
 cells, no λ_t, no thresholds). Rev-5 dispatched; R5 expected
 terminal on the instrument layer.
+
+## 2026-08-14 #3 — Attack R5 REV-REQUIRED (4F/6M/9m) adopted; repairs coordinator-implemented + verified by execution; Stage 0′ CLEARED (timing probe gating)
+
+R5's stark pattern: everything Rev-5 executed was RIGHT (auditor's
+harder impostor killed 100%; independent 51,170-outcome
+re-enumeration 0/0/0; 131/131 clean) — all three never-executed
+artifacts broke: F1 the shipped stage1_gate used any_median where
+the card registers median AND p90 (strictly weaker exactly on R4-M2's
+predicted outcome shape); F2 CPU encoder vs CUDA data (reproduced
+live); F3 freeze_entity_adapter hardcoded False where primary/compA
+record True — the battery's own pbe_repl lesson dropped in
+transcription (param-group ValueError before item 1); F4 CONTROL B
+unproducible via flag-collision with the runner's resume assert.
+Also: no timing-probe knob (M1); 19%/step spent recomputing a
+constant SVD (M2); zero-value hops free-PASS the all-hops gate (M3).
+The train-once inference CLOSED AS PROVABLE (bind tensors
+bit-identical across hop sets). Coordinator implemented all repairs
+per the report's executed specs (§A5, K-wall §A10 precedent):
+conjunctive gate (divergence case re-run → NO-GO), device fix,
+per-ckpt freeze read, F4 option (a) (no-freeze + disclosed M4(b)
+confound + warning field), CLI knobs, SVD hoist, VOID guard + new
+soundness test. Suite 44/44. Stage 0′ CLEARED — timing probe first
+and GATING; its reading decides the 24.94 GPU-h wave.

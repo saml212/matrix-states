@@ -1,5 +1,14 @@
 # STATE — Current Project State
 
+**2026-08-14 tick #3 (Fable): attack R5 adopted (4F/6M/9m — all in the
+never-executed artifacts; everything Rev-5 executed verified right);
+repairs coordinator-implemented from the report's executed specs
+(conjunctive GO gate — divergence case re-runs NO-GO; device fix;
+per-checkpoint freeze read; CONTROL-B option (a); CLI knobs; SVD
+hoist; VOID guard + soundness test; suite 44/44). STAGE 0′ CLEARED —
+timing probe first (gating). Deploying to box now; the probe's
+reading decides the 24.94 GPU-h wave. K-wall still on GPU 5.**
+
 **2026-08-14 tick #2 (Fable): supervised-write attack R4 =
 REV-REQUIRED (4F/11M/10m) — THE MECHANISM IS CERTIFIED CLEAN (zero-set
 collapse executed at measured geometry; V1-V13 frozen); every residual

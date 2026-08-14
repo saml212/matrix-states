@@ -253,11 +253,39 @@ def test_item_6_wiring_and_qualitative_lambda_t_effect():
 
 def test_item_6_per_hop_scoring_uses_the_matching_held_out_set():
     """Confirms the h=1 score and the h=61 score genuinely come from
-    DIFFERENT held-out tensors (F3.5's fix has teeth): feed h=1 an
-    all-zero held-out set and h=61 a real one, and confirm the h=1 reading
-    degenerates (score_fn sees all-zero input) while h=61 does not."""
+    DIFFERENT held-out tensors (F3.5's fix has teeth). R5 M3 repair
+    changed the fixture: both hops now carry VALID (nonzero) held-out
+    sets from different seeds, since an all-zero fixture is VOIDed by the
+    M3 guard (see the new soundness test below)."""
     B_train, K, d, vocab = 16, K_NCR, D_NCR, 40
     keys_train, values_train, _, _, _, score_fn = make_scoring_rig(B_train, K, d, vocab, seed_offset=5)
+    keys_held1, values_held1, ids_held1, tgt_held1, qkey_held1, _ = make_scoring_rig(6, K, d, vocab, seed_offset=7)
+    keys_held61, values_held61, ids_held61, tgt_held61, qkey_held61, _ = make_scoring_rig(6, K, d, vocab, seed_offset=6)
+
+    calls = []
+
+    def spy_score_fn(o, entity_ids, tgt_slot):
+        calls.append(o.clone())
+        return dict(retrieval24_acc=0.0)
+
+    held_out_by_hop = {
+        1: (keys_held1, values_held1, qkey_held1, ids_held1, tgt_held1),
+        61: (keys_held61, values_held61, qkey_held61, ids_held61, tgt_held61),
+    }
+    item_6_achievability_probe(keys_train, values_train, held_out_by_hop, spy_score_fn,
+                                lambda_t_grid=(1.0,), lr_grid=(1e-3,), n_steps=50, log_every=50)
+    check("item_6 called score_fn exactly twice (once per hop)", len(calls) == 2, len(calls))
+    check("item_6's h=1 and h=61 scoring calls used DIFFERENT `o` tensors (per-hop held-out sets are actually distinct)",
+          not torch.equal(calls[0], calls[1]))
+
+
+def test_item_6_zero_values_hop_voids_and_blocks_gate():
+    """R5 M3 soundness (the assertion the old fixture never made): an
+    all-zero held-out hop must VOID -- score_fn never sees it, the hop
+    carries VOID=True, and the cell can NOT reach band2 (no free PASS),
+    so the stage1_gate cannot read GO off a hop that measured nothing."""
+    B_train, K, d, vocab = 16, K_NCR, D_NCR, 40
+    keys_train, values_train, _, _, _, _ = make_scoring_rig(B_train, K, d, vocab, seed_offset=5)
     keys_held61, values_held61, ids_held61, tgt_held61, qkey_held61, _ = make_scoring_rig(6, K, d, vocab, seed_offset=6)
 
     calls = []
@@ -270,11 +298,17 @@ def test_item_6_per_hop_scoring_uses_the_matching_held_out_set():
         1: (torch.zeros(6, K, d), torch.zeros(6, K, d), torch.zeros(6, d), ids_held61, tgt_held61),
         61: (keys_held61, values_held61, qkey_held61, ids_held61, tgt_held61),
     }
-    item_6_achievability_probe(keys_train, values_train, held_out_by_hop, spy_score_fn,
-                                lambda_t_grid=(1.0,), lr_grid=(1e-3,), n_steps=50, log_every=50)
-    check("item_6 called score_fn exactly twice (once per hop)", len(calls) == 2, len(calls))
-    check("item_6's h=1 and h=61 scoring calls used DIFFERENT `o` tensors (per-hop held-out sets are actually distinct)",
-          not torch.equal(calls[0], calls[1]))
+    out = item_6_achievability_probe(keys_train, values_train, held_out_by_hop, spy_score_fn,
+                                      lambda_t_grid=(1.0,), lr_grid=(1e-3,), n_steps=50, log_every=50)
+    check("zero-values hop VOIDs: score_fn called exactly once (h=61 only)", len(calls) == 1, len(calls))
+    cell = out["cells"][0]
+    check("VOIDed hop carries VOID=True in band2_by_hop",
+          cell["held_out_band2_by_hop"]["h=1"].get("VOID", False) is True)
+    check("a cell with a VOIDed hop cannot reach band2 at median",
+          cell["reaches_band2_median"] is False)
+    check("a cell with a VOIDed hop cannot reach band2 at p90",
+          cell["reaches_band2_p90"] is False)
+    check("stage1_gate is not GO off a VOIDed hop", out["stage1_gate"] != "GO", out["stage1_gate"])
 
 
 if __name__ == "__main__":
@@ -288,6 +322,7 @@ if __name__ == "__main__":
     test_item_5_1B_correction_and_predicate()
     test_item_6_wiring_and_qualitative_lambda_t_effect()
     test_item_6_per_hop_scoring_uses_the_matching_held_out_set()
+    test_item_6_zero_values_hop_voids_and_blocks_gate()
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURE(S): {FAILURES}")

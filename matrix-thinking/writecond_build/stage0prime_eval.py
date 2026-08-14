@@ -101,13 +101,21 @@ def extract_held_out(arms, pools, cfg, device, n, seed, hop):
     return keys_v, values_v, q_key, batch["entity_ids"], batch["tgt_slot"]
 
 
-def run_one_checkpoint(name, ckpt_path, device, n):
+def run_one_checkpoint(name, ckpt_path, device, n,
+                       lambda_t_grid=(0.0, 0.1, 1.0, 3.0), lr_grid=(3e-4, 1e-3), n_steps=8000):
     pools, cfg, pool_report = R.build_grammar_pools_and_cfg(seed=0)
     pools = pools.to(device)
     ckpt = R.load_checkpoint(ckpt_path, device)
     assert ckpt is not None, f"checkpoint not found/invalid at {ckpt_path} -- run the A1 pre-flight `ls` step first"
+    # R5 F3 repair: freeze_entity_adapter is PER-CHECKPOINT (True for
+    # primary/compA, False for compB -- recorded in each config and in the
+    # checkpoint itself); read it off the checkpoint, never hardcode. The
+    # battery's own pbe_repl took `freeze` as argv[3] for exactly this
+    # reason. Printed per A1's extended pre-flight.
+    fe = bool(ckpt.get("freeze_entity_adapter", False))
+    print(f"[pre-flight A1+] {name}: freeze_entity_adapter={fe} (read from checkpoint)")
     arms, _, _ = R.restore_arms_and_opts(ckpt, pool_report["vocab_size_total"], lr=3e-4,
-                                          device=device, freeze_entity_adapter=False)
+                                          device=device, freeze_entity_adapter=fe)
     integ = arms["full_graft"]["integ"]
     backbone = arms["full_graft"]["backbone"]
     ncr_head = arms["full_graft"]["ncr"]
@@ -140,7 +148,7 @@ def run_one_checkpoint(name, ckpt_path, device, n):
         held_out_by_hop = {h: extract_held_out(arms, pools, cfg, device, n=n, seed=BASE_SEED, hop=h) for h in (1, 61)}
         result["item6"] = item_6_achievability_probe(
             keys_v, values_v, held_out_by_hop, score_fn,
-            lambda_t_grid=(0.0, 0.1, 1.0, 3.0), lr_grid=(3e-4, 1e-3), n_steps=8000)
+            lambda_t_grid=lambda_t_grid, lr_grid=lr_grid, n_steps=n_steps)
 
     return result
 
@@ -149,14 +157,28 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--smoke-only", action="store_true")
+    # R5 M1 repair: the timing probe (and any grid restriction) must be
+    # runnable WITHOUT editing the deployed copy.
+    ap.add_argument("--n-steps", type=int, default=8000)
+    ap.add_argument("--lr-grid", type=str, default="3e-4,1e-3")
+    ap.add_argument("--lambda-t-grid", type=str, default="0.0,0.1,1.0,3.0")
+    ap.add_argument("--timing-probe", action="store_true",
+                    help="1 cell (first lr x first lambda_t) x 500 steps, write JSON, exit")
     args = ap.parse_args()
     n = 8 if args.smoke_only else N_EPISODES
+    lr_grid = tuple(float(x) for x in args.lr_grid.split(","))
+    lam_grid = tuple(float(x) for x in args.lambda_t_grid.split(","))
+    n_steps = args.n_steps
+    if args.timing_probe:
+        lr_grid, lam_grid, n_steps = lr_grid[:1], lam_grid[:1], 500
     os.makedirs(OUT_DIR, exist_ok=True)   # A8: was never created in the un-amended card
     t0 = time.time()
     out = {}
     for name, ckpt_path in CKPTS.items():
-        out[name] = run_one_checkpoint(name, ckpt_path, args.device, n)
-    with open(os.path.join(OUT_DIR, "stage0prime.json"), "w") as f:
+        out[name] = run_one_checkpoint(name, ckpt_path, args.device, n,
+                                       lambda_t_grid=lam_grid, lr_grid=lr_grid, n_steps=n_steps)
+    suffix = "_timing" if args.timing_probe else ("_smoke" if args.smoke_only else "")
+    with open(os.path.join(OUT_DIR, f"stage0prime{suffix}.json"), "w") as f:
         json.dump(out, f, indent=2, default=str)
     elapsed = time.time() - t0
     if elapsed > CEILING_S:

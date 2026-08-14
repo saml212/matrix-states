@@ -58,19 +58,23 @@ def main():
     ckpt = R.load_checkpoint(os.path.expanduser(ckpt_path), device)
     assert ckpt is not None, f"checkpoint missing at {ckpt_path}"
 
-    # D7/M4(b): the continuation MUST have been trained with
-    # freeze_entity_adapter=True -- this is not merely a launch-flag choice
-    # for THIS clean-eval invocation, it is a property of the CHECKPOINT
-    # itself (save_checkpoint records it, runner:1097-1105). A checkpoint
-    # missing or mismatching this flag is not a valid CONTROL_B artifact.
-    assert ckpt.get("freeze_entity_adapter", False) is True, (
-        f"CONTROL_B clean-eval expects a checkpoint trained with "
-        f"freeze_entity_adapter=True (D7's own M4(b) repair); got "
-        f"{ckpt.get('freeze_entity_adapter')!r} from {ckpt_path} -- this is "
-        f"not a CONTROL_B continuation checkpoint, or it predates the D7 fix.")
+    # R5 F4 repair, coordinator-adjudicated option (a): CONTROL B is a
+    # warm-start continuation of compB (freeze_entity_adapter=False in the
+    # checkpoint), and the pinned runner's resume assert (runner:1228-1232)
+    # ABORTS a freeze-flag mismatch -- so the D7 hard-assert here made the
+    # cell unproducible either way (R4 F4's void-by-construction, one layer
+    # down). Per §A5: run the continuation WITHOUT the freeze, disclose the
+    # R3 M4(b) drift confound as a weakening of the "isolates the read
+    # side" claim, and record verification as a WARNING FIELD, never abort.
+    fe = bool(ckpt.get("freeze_entity_adapter", False))
+    freeze_entity_adapter_verified = fe is True
+    if not freeze_entity_adapter_verified:
+        print(f"WARNING: CONTROL_B checkpoint records freeze_entity_adapter={fe!r} "
+              f"(compB's own recipe); the M4(b) adapter-drift confound applies and is "
+              f"DISCLOSED in the output record (R5 F4 option (a)).", file=sys.stderr)
 
     arms, opts, data_gen = R.restore_arms_and_opts(ckpt, pool_report["vocab_size_total"],
-                                                    lr=3e-4, device=device, freeze_entity_adapter=True)
+                                                    lr=3e-4, device=device, freeze_entity_adapter=fe)
     with torch.no_grad():
         # P0: the CLEAN readout -- teacher_force=False. THIS is the
         # artifact band0_checker.py's CONTROL_B branch requires as
@@ -91,7 +95,7 @@ def main():
     rec = dict(
         cell=f"CONTROL_B_CLEAN_{tag}", ckpt=ckpt_path, ckpt_step=ckpt["step"], n=256,
         config=dict(teacher_force_operator=False),   # THIS run's own flag -- what band0_checker.py's clean_eval_ok reads
-        freeze_entity_adapter_verified=True,
+        freeze_entity_adapter_verified=freeze_entity_adapter_verified,   # R5 F4(a): warning field, never an abort
         P0=dict(teacher_force=False, result=p0),
         P1b_informational=dict(teacher_force=True, result=p1b),
         elapsed_s=time.time() - t0,

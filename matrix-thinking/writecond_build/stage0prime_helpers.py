@@ -75,12 +75,13 @@ from write_supervision_loss import band2_check, null_directions, write_supervisi
 K_NCR, D_NCR, H_NCR = 24, 25, 64   # ncr_lm_wave1_smoke.py:225-227, the Wave-1 pin -- reproduced verbatim
 
 
-def build_fresh_encoder() -> els.NCREarlyLNModel:
+def build_fresh_encoder(device: str | torch.device = "cpu") -> els.NCREarlyLNModel:
     """Mirrors `graft.build_ncr_head()` (ncr_lm_wave1_smoke.py:424-425)
     exactly: `els.NCREarlyLNModel(d=D_NCR, h=H_NCR)`. A6: item 6 gets a
     FRESH instance per (lr, lambda_t) grid cell -- never shared/reused
-    across cells."""
-    return els.NCREarlyLNModel(d=D_NCR, h=H_NCR)
+    across cells. R5 F2 repair: the instance is moved to `device` so it
+    matches the CUDA tensors run_one_checkpoint hands the probe."""
+    return els.NCREarlyLNModel(d=D_NCR, h=H_NCR).to(device)
 
 
 # ---------------------------------------------------------------------------
@@ -360,21 +361,27 @@ def item_6_achievability_probe(keys_v_train: torch.Tensor, values_v_train: torch
     gate.
     """
     assert len(held_out_by_hop) >= 1, "item_6_achievability_probe requires at least one held-out hop"
+    # R5 M2 repair: keys_v_train is bit-identical across all 8,000 steps
+    # (verified by the R5 audit), so the batched SVD is hoisted ONCE for the
+    # whole grid -- the loss module exposes W= for exactly this purpose
+    # (19% of per-step cost measured as the recomputed constant SVD).
+    W_train = null_directions(keys_v_train.detach(), K=K)
     results = []
     for lr in lr_grid:
         for lam_t in lambda_t_grid:
-            encoder_module = build_fresh_encoder()
+            # R5 F2 repair: encoder built on the data's device, not CPU.
+            encoder_module = build_fresh_encoder(keys_v_train.device)
             opt = torch.optim.Adam(encoder_module.parameters(), lr=lr)
             curve = []
             for step in range(1, n_steps + 1):
                 opt.zero_grad()
                 Z = encoder_module.encode(keys_v_train, values_v_train)
-                out = write_supervision_loss(Z, keys_v_train, values_v_train, lambda_t=lam_t, K=K)
+                out = write_supervision_loss(Z, keys_v_train, values_v_train, lambda_t=lam_t, K=K, W=W_train)
                 out["L_write"].backward()
                 opt.step()
                 if step % log_every == 0 or step == 1 or step == n_steps:
                     with torch.no_grad():
-                        b2 = band2_check(Z.detach(), keys_v_train, values_v_train, K=K)
+                        b2 = band2_check(Z.detach(), keys_v_train, values_v_train, K=K, W=W_train)
                     curve.append(dict(step=step, L_key_med=out["L_key"].detach().median().item(),
                                        L_transverse_med=out["L_transverse"].detach().median().item(),
                                        Zw_ratio_med=b2["Zw_ratio_median"], L_key_cstar_med=b2["L_key_cstar_median"]))
@@ -383,15 +390,25 @@ def item_6_achievability_probe(keys_v_train: torch.Tensor, values_v_train: torch
             band2_by_hop = {}
             with torch.no_grad():
                 for h, (keys_h, values_h, qkey_h, ids_h, tgt_h) in held_out_by_hop.items():
+                    # R5 M3 repair: a hop whose extraction silently produced
+                    # empty/zero tensors must VOID, never free-PASS the
+                    # all-hops gate.
+                    n_valid = int((values_h.pow(2).sum(-1).min(dim=-1).values > 0).sum().item())
+                    if values_h.numel() == 0 or values_h.pow(2).sum(-1).min().item() <= 0:
+                        band2_by_hop[f"h={h}"] = dict(VOID=True, n_valid_episodes=n_valid)
+                        retr_by_hop[f"h={h}"] = dict(VOID=True, n_valid_episodes=n_valid)
+                        continue
                     Z_held = encoder_module.encode(keys_h, values_h)
                     o = nm.binexp_read(Z_held, qkey_h.unsqueeze(1), h)["o"].squeeze(1)
                     retr_by_hop[f"h={h}"] = score_fn(o, ids_h, tgt_h)
                     b2_h = band2_check(Z_held, keys_h, values_h, K=K)
                     band2_by_hop[f"h={h}"] = dict(L_key_cstar_med=b2_h["L_key_cstar_median"], L_key_cstar_p90=b2_h["L_key_cstar_p90"],
-                                                   Zw_ratio_med=b2_h["Zw_ratio_median"], Zw_ratio_p90=b2_h["Zw_ratio_p90"])
+                                                   Zw_ratio_med=b2_h["Zw_ratio_median"], Zw_ratio_p90=b2_h["Zw_ratio_p90"],
+                                                   n_valid_episodes=n_valid)
 
-            reaches_band2_median = all(v["L_key_cstar_med"] <= 3e-4 and v["Zw_ratio_med"] <= 0.12 for v in band2_by_hop.values())
-            reaches_band2_p90 = all(v["L_key_cstar_p90"] <= 3e-4 and v["Zw_ratio_p90"] <= 0.12 for v in band2_by_hop.values())
+            # R5 M3: any VOIDed hop fails the all-hops aggregation outright.
+            reaches_band2_median = all((not v.get("VOID", False)) and v["L_key_cstar_med"] <= 3e-4 and v["Zw_ratio_med"] <= 0.12 for v in band2_by_hop.values())
+            reaches_band2_p90 = all((not v.get("VOID", False)) and v["L_key_cstar_p90"] <= 3e-4 and v["Zw_ratio_p90"] <= 0.12 for v in band2_by_hop.values())
             results.append(dict(
                 lr=lr, lambda_t=lam_t, curve=curve,
                 held_out_band2_by_hop=band2_by_hop,
@@ -401,6 +418,9 @@ def item_6_achievability_probe(keys_v_train: torch.Tensor, values_v_train: torch
 
     any_median = any(r["reaches_band2_median"] for r in results)
     any_p90 = any(r["reaches_band2_p90"] for r in results)
+    # R5 F1 repair: the card pre-registers "median AND p90" -- the
+    # conjunctive form reads back against the card without an implication
+    # argument (any_p90 alone would be equivalent, since p90 >= median).
     return dict(cells=results, any_lambda_t_reaches_band2_median=any_median,
                 any_lambda_t_reaches_band2_p90=any_p90,
-                stage1_gate="GO" if any_median else "NO-GO-ON-CURRENT-BAND")
+                stage1_gate="GO" if (any_median and any_p90) else "NO-GO-ON-CURRENT-BAND")

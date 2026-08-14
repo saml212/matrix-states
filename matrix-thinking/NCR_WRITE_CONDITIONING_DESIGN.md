@@ -4587,3 +4587,52 @@ change Stage-1's own per-cell cost.
    choice this build made beyond the report's literal text, not hidden
    inside the gate's own boolean logic.
 
+---
+
+## §A5-ADJUDICATION (coordinator, 2026-08-14) — attack R5 = REV-REQUIRED (4F/6M/9m) ADOPTED; repairs COORDINATOR-IMPLEMENTED from the report's own executed specs; Stage 0′ CLEARED with timing probe gating
+
+Report: `NCR_WRITECOND_ATTACK_R5.md` vs DRAFT-R5 at `c77d6ef`. The
+pattern of record: everything Rev-5 EXECUTED was verified right (the
+auditor's own harder impostor killed by the repaired gate at 100%;
+the partition independently re-enumerated over 51,170 outcomes,
+0/0/0; 131/131 assertions clean) — everything never executed
+end-to-end broke. The train-once-score-per-hop inference was CLOSED
+AS PROVABLE by the auditor (all seven bind-clause tensors
+bit-identical across hop sets).
+
+**Repairs implemented BY THE COORDINATOR (K-wall §A10 precedent:
+transcriptions of the auditor's executed specs, disclosed here;
+verification = the re-run suite + the auditor's own divergence cases
+re-executed against the committed code + Stage 0′'s live run):**
+- F1 (`stage0prime_helpers.py` gate): `GO iff (any_median AND
+  any_p90)` — the auditor's edge case re-run through the committed
+  code now reads NO-GO (was GO).
+- F2: `build_fresh_encoder(device)` + `.to(device)`, called with
+  `keys_v_train.device`.
+- F3: `freeze_entity_adapter` read from EACH checkpoint
+  (`ckpt.get(...)`), never hardcoded — the battery's own
+  `pbe_repl` lesson, now in the script — with the per-checkpoint
+  value printed as the A1+ pre-flight.
+- F4 adjudicated OPTION (a) (the only one fitting the registered
+  budget): CONTROL B runs WITHOUT the freeze, the M4(b) drift
+  confound is a DISCLOSED weakening of the read-side-isolation
+  claim, and `control_b_clean_eval.py`'s hard assert is now a
+  warning + `freeze_entity_adapter_verified` record field (the
+  band0 checker keeps its branch; the artifact becomes producible).
+- M1: `--n-steps/--lr-grid/--lambda-t-grid/--timing-probe` CLI
+  (timing probe = 1 cell × 500 steps, own output file).
+- M2: the constant SVD hoisted once per grid (W= passed through
+  loss and band checks; the auditor measured 19%/step recomputed).
+- M3: zero/empty held-out hops VOID (never free-PASS), VOIDed hops
+  fail the all-hops aggregation; `n_valid_episodes` emitted. The
+  old fixture updated + a NEW soundness test asserting the VOID
+  path blocks the gate.
+- Suite: 44/44 after repairs (was 43 + the new test).
+**Stage 0′ RULING (per the report): CLEARED to run, TIMING PROBE
+FIRST and GATING** — the full 8-cell grid runs only if the probe's
+extrapolated cost is sane. Remaining M-items (M4 d−K bound note,
+etc.) ride to the harvest record; R4's F4-Stage-1 items are settled
+by the option-(a) adjudication above. The instrument layer is now
+certified BY EXECUTION where it counts (the committed artifacts);
+Stage 0′'s reading decides the 24.94 GPU-h wave per §A4.
+
