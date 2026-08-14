@@ -9897,3 +9897,25 @@ learns to write one. Scope: one base seed per arm (multi-seed belongs
 to the follow-on wave). Artifacts appended to the same
 experiment-runs dir (repo+SSD). Publisher dispatch unblocked.
 Total premise-battery + replication spend: ≈0.15 GPU-h.
+
+## 2026-08-13 #7 — Supervised-write round: novelty gate DISCHARGED-W-OBLIGATIONS (FAAST anchor + pre-registered "why-train-not-compute" answer; "provably"→"systematically"); attack R3 BLOCKED (3F/8M/8m) — the d−K free-direction family is fatal and the draft's Frobenius rejection was INVERTED; Rev-4 dispatched
+
+Novelty: external OPEN (FAAST 2605.04651 = same K†V math as RUNTIME
+mechanism, compositional capability disclaimed — our differentiators:
+training-only supervision of a LEARNED write path + extraction-is-
+the-learned-content + O(log h) composition target); internal CLEAN
+(KEY_ANCHORING same-class precedent + consolidation ridge-discipline
+inherited onto Z_ideal's own min-norm pinv). Attack F1 (executed):
+L_write's zero set = Z_ideal + u·wᵀ (25-dim family); walking it holds
+loss ≈ 3.8e-12 and h=1 retrieval at 1.0000 while h=61 falls 1.0 →
+chance as transverse gain rises (Lyapunov gain^61); pinv's min-norm
+Z_ideal·w=0 IS the stability constraint — Frobenius (rejected by the
+draft) is the fix; measured WIN calibration: L_write ≲ 3e-4 AND
+‖Zw‖ ≲ 3 (unconstrained ≈5). F2: recipes' live ortho_reg (0.1)
+conflicts — ortho_loss(Z_ideal)=15,147, joint minimizer at chance for
+all λ_w ≤ 10 → remove in supervised arms. F3: undetached targets
+admit entity collapse → detach + geometry watch. Stage-0 split: 0.1
+BLOCKED; 0.2/0.3 → Stage 0′ (≈0.1 GPU-h eval-only) runnable
+pre-CLEAR post-Rev-4. 13 items frozen clean (exactness proof; full
+row rank structurally guaranteed; budget; τ; decode-immunity).
+D1-D8 verbatim = Rev-4 charter; gauntlet continues.

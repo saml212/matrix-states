@@ -2883,3 +2883,60 @@ sweep, which this round's charter still requires).
 Rev-3 dispatched 2026-08-13. Novelty sweeps (§5) and attack R3 next,
 per the coordinator's own closing instruction — no GPU spend, no STATE.
 md/EXPERIMENT_LOG.md update, no commit from this document.
+
+---
+
+## §A3-ADJUDICATION (coordinator, 2026-08-13) — supervised-write gate DISCHARGED-WITH-OBLIGATIONS; attack R3 = BLOCKED (3F/8M/8m) ADOPTED; Rev-4 dispatched
+
+**Novelty (both sweeps same-day, verdicts in
+`research/writecond-novelty-2026-08-13.md` RE-ENTRY 2):** external
+OPEN — FAAST (arXiv:2605.04651) is the mandatory anchor (same K†V
+target math as the RUNTIME mechanism, compositional capability
+disclaimed) with the "why train toward it rather than compute it"
+answer now pre-registered (extraction is the learned content;
+runtime pinv brittleness); "provably fails" registered DOWN to
+"systematically fails." Internal CLEAN — KEY_ANCHORING same-class/
+different-lever precedent (soft-loss-underperformed + trained-content-
+dispensable cautionary pattern) cited into the controls; the
+consolidation lane's ridge-vs-min-norm discipline inherited onto
+Z_ideal's own pinv construction; the F1-range transcription slip
+(127.8 floor, not 149) to be corrected in Rev-4.
+
+**Attack R3 (`NCR_WRITECOND_ATTACK_R3.md`) ADOPTED IN FULL.** 13
+items verified clean and FROZEN for R4 (the exactness proof — full
+row rank structurally guaranteed by `grammar_rd._assert_injective_
+entities`; all code citations; budget to the digit; τ; §2(b)'s
+decode-immunity argument). The FATALs:
+- **F1 — the mis-specified minimum.** L_write's zero set is the
+  25-dim affine family Z_ideal + u·wᵀ (w = the kernel direction of
+  the observed keys at d−K=1): executed walk shows L_write ≈ 3.8e-12
+  and retrieval@h=1 = 1.0000 held constant while retrieval@h=61
+  falls 1.0 → 0.0625 (chance) as the transverse gain rises 0→100 —
+  a transverse Lyapunov instability (gain^61), not precision.
+  §2(a)'s Frobenius rejection was INVERTED: pinv's min-norm choice
+  (Z_ideal·w = 0) IS the stability constraint. WIN calibration
+  measured by the attack: L_write ≲ 3e-4 AND transverse gain ‖Zw‖
+  ≲ 3 (unconstrained expectation ≈ 5 — the free direction MUST be
+  supervised).
+- **F2 — loss conflict:** all three recipes still carry
+  `ortho_reg_weight=0.1` and ortho_loss(Z_ideal) = 15,147; the joint
+  minimizer reads chance at h=61 for every λ_w ≤ 10. The ortho term
+  must be REMOVED in supervised arms (it was already evidenced
+  useless by §A2 F5).
+- **F3 — undetached targets:** keys_v/values_v feeding Z_ideal
+  undetached ⇒ the zero set contains entity collapse (backbone_only
+  control proves the channel live). Targets detach; an
+  entity-geometry watch joins the instruments.
+**Stage-0 ruling adopted as split:** 0.1 BLOCKED pre-CLEAR
+(mis-specified loss, non-diagnostic gate); 0.2/0.3 replaced by the
+report's Stage 0′ (≈0.1 GPU-h eval-only, six items, three gating) —
+Stage 0′ MAY run pre-CLEAR once Rev-4 folds its spec.
+
+**DISPOSITIONS: D1–D8 per the report adopted verbatim as the Rev-4
+charter** (D1 = the loss re-specified to supervise the full operator
+— Frobenius or per-key + explicit ‖Zw‖ transverse penalty, decided
+by the report's own analysis; D2 = ortho term removed from
+supervised arms; D3 = detached targets + geometry watch; plus the
+novelty obligations and the two internal-sweep disciplines above
+folded in). Rev-4 → attack R4; the full gauntlet continues; wave-1
+still ≤30 GPU-h hard cap on GPUs 4/6/7 post-CLEAR.

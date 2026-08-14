@@ -1,5 +1,18 @@
 # STATE — Current Project State
 
+**2026-08-13 tick #7 (Fable): supervised-write gauntlet round 3 —
+novelty DISCHARGED-W-OBLIGATIONS (FAAST 2605.04651 anchor; "why train
+toward the target rather than compute it" pre-registered; claim
+language down-registered to "systematically fails"); attack R3
+BLOCKED (3F/8M/8m): L_write's minimum is a 25-dim family (d−K free
+direction) that holds h=1 perfect while h=61 → chance under gain^61 —
+the min-norm property IS the stability constraint, Frobenius is the
+fix (draft's rejection inverted); recipes' live ortho_reg conflicts
+(joint min at chance); undetached targets admit entity collapse.
+Measured WIN calibration: L_write ≲ 3e-4 AND ‖Zw‖ ≲ 3. D1-D8 adopted
+verbatim; Rev-4 in flight; Stage 0′ (0.1 GPU-h eval-only) runnable
+pre-CLEAR post-Rev-4. Box: Jacobians + K-wall still grinding.**
+
 **2026-08-13 tick #6 (Fable): PREMISE FINDING REPLICATED 3/3** — compA
 and primary land in the identical AC=00/BD=11 cell (P1b ≥0.996 at
 every hop incl. h=61; P0 chance everywhere). Three training configs,
