@@ -777,3 +777,678 @@ the 9a93198b runner pin, expm/SO(d) citation, placement.
 Rev-1 dispatched 2026-08-13. The novelty memo's re-entry conditions
 apply: any headline reframe after the premise cell resolves re-enters
 the gate.
+
+---
+
+## DRAFT-R1 (Rev-1, 2026-08-13)
+
+**Binding charter:** `§A1-ADJUDICATION` above, adopted in full. This
+section supersedes §1–§6 for every downstream purpose; §1–§6 are kept
+verbatim as the historical record of what attack R1 killed (house
+convention). Written against repo commit `59d03fb` plus fresh reads of
+`matrix-thinking/ncr/ncr_ortho_write.py` (`spectral_diagnostics`,
+`az.entity_subspace`/`block_decompose`), `matrix-thinking/chapter2/
+analyze_zdump.py` (`entity_subspace`, `block_decompose`,
+`effective_rank`), `experiment-runs/2026-07-30_ncr_g3b31_contrastive_
+grid/ncr_lm_wave1_runner.py` (the pinned `9a93198b…` runner — read in
+full for `ncr_lm_forward_ablatable`, `discriminability_metrics`,
+`ortho_regularization_loss`, the teacher-force branch, and the
+module-header disclosure that teacher-force is "a FAIL-diagnosis tool
+for AFTER a result is read, not part of this calibration's own two
+arms" — exactly the use W1 makes of it now that a result has been
+read), the raw JSONs `mob_g3b31_{primary,compA,compB}_s0.json`, and
+`NCR_REAL_LM_DESIGN.md` §G3-B9/B10 (old teacher-force diagnostic, PRE
+the §G3-B12 single-adapter fix) and §G3-B25/B26/B27/B28/B31/B32 (the
+fixed architecture, the collapse mechanism, and the frozen metric
+definitions).
+
+### R1.1 W1 — the premise cell
+
+**What the archive already answers, so no GPU is spent re-asking it.**
+`discriminability_metrics` (`ncr_lm_wave1_runner.py:480-537`) fixes
+`retrieval24_acc` as `argmax_k cos(o, entity_adapter(embed(entity_k)))
+== true_slot`, cosine-normalized both sides. The three §G3-B31 cells
+already vary **entity-adapter init** across their full tested range —
+0992/0993 frozen-at-init (§G3-B28's healthy-target-space control),
+0994 trainable — and all three read h=1 retrieval24 at chance (0.03125
+/ 0.10938 / 0.01562 vs chance 0.04167, n=64; attack R1 F1, re-verified
+against the raw JSONs this round). **This knob is exhausted; W1 spends
+no new GPU-h on it,** it is carried into the decision tree below as an
+already-answered branch.
+
+**The two knobs genuinely untested, and why each is diagnostic:**
+
+1. **Write path — SGD-learned `Z` vs. closed-form teacher-forced `Z`.**
+   `ncr_lm_forward_ablatable` (`runner.py:360-398`) already carries a
+   `teacher_force` branch (`Z = integ.teacher_force_operator(keys_v,
+   values_v)`, a closed-form least-squares operator fit that bypasses
+   `ncr_head.encode` entirely) — pre-wired, smoke-verified
+   (`NCR_REAL_LM_DESIGN.md:5033-5041`, "the audited closed-form op fit
+   that bypasses the encoder... encoder zero-grad, residual 7.3e-6"),
+   and explicitly scoped by the runner's own module docstring as **"a
+   FAIL-diagnosis tool for AFTER a result is read, not part of this
+   calibration's own two arms"** (`runner.py:29-32`) — i.e. exactly
+   what W1 is now, on schedule, per that same docstring's own design
+   intent. It was last exercised in §G3-B9/B10 (2026-07-18,
+   `g3b9_tf_diag.json`) and returned **READ/setup-broken, NOT a
+   WRITE-blocker** — but on the OLD architecture, which §G3-B11/§G3-B12
+   (`NCR_REAL_LM_DESIGN.md:5256-5297`) then proved was itself defective
+   in three ways load-bearing to that exact verdict: (3a) `q_key` and
+   the bind-clause key were different vectors (separate `key_adapter`
+   contexts), so the teacher-forced `Z` was fit to the wrong key and
+   necessarily failed at read time regardless of `Z`'s quality; (3b)
+   `value_adapter` received zero gradient under the old teacher-force
+   detach, so the read's own output basis was frozen at random init;
+   (3c) separate key/value adapter spaces made `h≥2` composition
+   undefined by construction. §G3-B12's fix — the single shared
+   `entity_adapter`, with `keys_v` and `q_key` BOTH built as
+   `entity_adapter(embed(input_ids[pos]))`, a context-free function of
+   token id — structurally repairs (3a): for the true answer entity,
+   `q_key` and `keys_v[a_slot]` are now bit-identical by construction
+   (this is exactly what `assert_read_target_write_key_same_op`,
+   `runner.py:569-599`, checks every launch — `same_op_check.verified =
+   true` in all three §G3-B31 JSONs, re-confirmed this round). **The
+   teacher-force diagnostic has never been re-run on the architecture
+   that fixed the bug that sank its last verdict.** §G3-B25's own open
+   question — "a STRUCTURAL block in the decode path... candidates: the
+   renormalized, scale-free `binexp_read` output may be
+   information-complete but magnitude-degenerate... a stop-gradient/
+   detach in the read→decode path" — is exactly what this isolates:
+   hand the read a Z that is *provably* not an SGD-learning artifact,
+   and see whether retrieval24 clears chance at h=1. §G3-B26 supplies
+   the motivating alternative (the SGD-learned `Z`'s own s1/s2 is the
+   fault); §G3-B32 supplies the trigger (retrieval24 at chance at h=1
+   in the CURRENT pipeline, with a discriminability metric that did not
+   exist when §G3-B9/B10 ran). Cost: near-zero (§R1.1.2).
+
+2. **Read normalization / retrieval-metric variant — common-mode
+   removal.** §G3-B25 flagged, unresolved: *"the renormalized,
+   scale-free `binexp_read` output may be information-complete but
+   magnitude-degenerate."* Attack R1's own M8 measured the mechanism
+   directly: `mean_cos` (full_graft − backbone_only) sits at **0.31–
+   0.38 at every hop including h=1** in compB — `o` is aligned to the
+   target *cone* by a large, roughly depth-independent amount, and to
+   the *correct* target by nothing (`offtarget_margin` ≈ 0 at every
+   hop). `discriminability_metrics` computes `retrieval24_acc` from raw
+   cosines (`cos_all`, `runner.py:517`) with **no common-mode removal**
+   — a batch-wide additive/multiplicative bias that inflates every
+   `cos(o, target_k)` roughly equally survives straight into the argmax
+   and is invisible to it (an argmax over `k` is shift-covariant only
+   if the shift is IDENTICAL across `k`, which a query-independent
+   common mode is by definition, so a naive re-read of the SAME cosines
+   changes nothing — the metric variant has to actually subtract the
+   mode before re-scoring). **Variant:** re-score retrieval24 with the
+   batch-mean direction removed from `o` (equivalently, mean-center
+   `on = F.normalize(o)` across the eval batch, renormalize, then
+   re-run the identical argmax) — a pure post-hoc re-analysis of stored
+   `o`/target tensors, zero additional GPU-h (§R1.1.2, cell P2). This
+   directly tests M8's own alternative reading: *"either the 1.21 does
+   not describe compB's `Z`, or the h=1 collapse has a non-spectral
+   cause (a query-independent additive component, which no spectral
+   penalty touches)."*
+
+#### R1.1.1 Cell battery (all on the pinned `9a93198b…` runner, additive flags only)
+
+| cell | what | steps | seeds | GPU-h |
+|---|---|---|---|---|
+| **P0** | Z-dump + spectral diagnostics (global `torch.linalg.svd`, entity-block `A=UᵀZU` via `spectral_diagnostics()` verbatim) + `discriminability_metrics` at raw `h∈{1,13,37,61}` (13,37 ≡13 mod 24, matching the deep-ladder's own residue — different squaring counts, same effective distance, m6's cheap discriminator), `n=256` (4× `eval_batch_size=64` pooled, still eval-only). Run on the RETAINED `mob_g3b31_compB_s0` checkpoint if it survives on box; else one fresh 20,000-step retrain at compB's exact recipe (D1's own fallback, reused verbatim). | 0 (eval) / 20,000 (fallback) | 1 | 0 / 0.8293 |
+| **P1a** | Teacher-force closed-form `Z` at **step 0** (fresh init, `--teacher-force-operator`, no training at all) — pure pipeline-sanity: does the closed-form fit + fixed read machinery retrieve above chance when `Z` is exact by construction and `q_key≡keys_v[a_slot]` by the §G3-B12 fix, decoupled from any learning question whatsoever. `discriminability_metrics` at `h∈{1,13,37,61}`, `n=256`. | 0 | 1 | ~0 |
+| **P1b** | Teacher-force closed-form `Z` **after training** (`--teacher-force-operator`, backbone+entity_adapter+embed trained via CE as normal, `ncr_head`/encoder never enters the graph — `teacher_force_check.ncr_zero_grad_checks_passed` asserted every step, reused from §G3-B9's own construction). 5,000 steps (matches the §3.3-precedent per-cell length for a short probe, not a full 20K commitment). `discriminability_metrics` at `h∈{1,13,37,61}`, `n=256`. | 5,000 | 1 | 0.2073 |
+| **P2** | Common-mode-centered re-score of P0/P1a/P1b's own stored `o`/target tensors (batch-mean-direction removal, re-normalize, re-argmax) at whichever `h∈{1,13,37,61}` sub-cell fails its raw margin. Pure post-hoc re-analysis. | — | — | 0 |
+
+**GPU-h subtotal:** 0.21 GPU-h (best case, retained ckpt survives) to
+1.04 GPU-h (worst case, P0 needs the fresh-retrain fallback). ×1.4
+contingency (covers exactly one pre-authorized second-seed re-run of
+P1b if its reading lands within 1 SD of the margin, not an open-ended
+escalation) → **0.29–1.46 GPU-h. Registered ceiling ≤1.5 GPU-h
+nominal, hard cap ≤2.0 GPU-h** — matches W7's own charter exactly
+("its own ≤2 GPU-h stage with 1 audit round"). Placement: one cell at
+a time is fine on a single free GPU (P0/P1a/P1b are sequential-cheap,
+not a parallel sweep); no packing decision needed at this size.
+
+#### R1.1.2 Statistical margin (one number, reused across every sub-test)
+
+Chance `p=1/24=0.041667`, per-item SD `=√(p(1−p)/n)`. At the battery's
+own `n=256` (4 pooled eval batches, eval-only so pooling is free): `SD
+= 0.024978/√4 = 0.012489`. **Margin: `τ = chance + 4·SD = 0.041667 +
+0.049956 = 0.09162`.** One-sided false-positive rate per test `≈3.2×
+10⁻⁵`; even summed naively (not independence-corrected) over the
+battery's ≤8 sub-tests (P0/P1a/P1b × raw+centered, minus the ones P2
+never needs to touch), familywise `≤2.6×10⁻⁴` — no further multiplicity
+correction needed on top of the 4-SD choice itself (D1's own proposed
+route, "raise the eval n and re-derive," taken here). `retrieval24_acc`
+stays PRIMARY/gating per house convention (§G3-B27); `offtarget_margin`
+is recorded alongside every sub-test as a corroborating (non-gating)
+signal.
+
+#### R1.1.3 Pre-registered bands (decision tree)
+
+Let **CLEARS(x)** mean `retrieval24_acc(x) > τ = 0.09162` at `n=256`.
+
+- **R-A — AUTHORIZE STAGE 1 AS SPECIFIED (§R1.3's mechanism, cleanest
+  reading).** `CLEARS(P1b)` **and NOT** `CLEARS(P0)`. A near-exact
+  closed-form `Z` retrieves; the actually SGD-learned `Z` does not ⇒
+  clean localization to write-QUALITY — exactly what a write-side
+  conditioning penalty targets. This is the reading the whole document
+  is betting on.
+- **R-B — AUTHORIZE STAGE 1, BASELINE RE-ANCHORED.** `CLEARS(P1b)`
+  **and** `CLEARS(P0)`. Surprising (contradicts F1's archived 3/3
+  chance-at-h=1 finding at `n=64`) — before trusting it, note P0 IS
+  itself a re-run of compB's exact recipe (or an eval of the retained
+  checkpoint), so this reading is self-checking, not free-floating. If
+  it holds, Stage 1 proceeds but every §3.6-successor band must be
+  recomputed against P0's own (now non-chance) h=1 reading, not F1's
+  archived numbers.
+- **R-C — RE-SCOPE, PIPELINE PROBLEM (kills write-conditioning as
+  specified).** **NOT** `CLEARS(P1a)`. Even a closed-form `Z` with
+  provably-exact key/query matching fails at step 0 — no learned
+  quantity is even in play yet. A perfect `Z` can't be the fix if a
+  perfect `Z` already fails; redirect to a pipeline/target-space
+  diagnosis, a different (cheaper) document, out of this design's
+  scope.
+- **R-D — RE-SCOPE, ADAPTER-TRAINING PROBLEM (kills write-conditioning
+  as specified).** `CLEARS(P1a)` **and NOT** `CLEARS(P1b)`. The
+  pipeline is sound at init but degrades once `entity_adapter`/`embed`
+  train, even handed an exact `Z` throughout — implicates the
+  adapter/embed's OWN discriminative training (already the subject of
+  the exhausted §G3-B22–B32 contrastive-aux road, R2's §G3-B31 R2
+  embed-factor finding is the live lead there), not `Z`'s conditioning.
+  Out of this document's scope.
+- **R-E — MECHANISM MUST ADDRESS THE COMMON MODE (a modifier, not a
+  standalone verdict — compose with A/B/C/D above).** `CLEARS(P2)` at
+  any sub-cell whose RAW counterpart did NOT clear. A pure
+  rotation/scale-invariant conformality penalty (§R1.3) does not touch
+  an additive common mode by construction; if removing one recovers
+  signal, §R1.3's mechanism needs an explicit common-mode term (e.g.
+  applying the penalty to the mean-centered entity block, or a
+  separate centering loss) added before Stage 1 launches, regardless
+  of which of R-A/B/C/D also fired.
+- **R-F — KILL THE LANE.** None of P0/P1a/P1b nor their P2-centered
+  variants clear `τ` at any `h∈{1,13,37,61}`. No configuration this
+  battery can reach shows above-chance discriminability anywhere;
+  write-conditioning (and §0's binding-lever frame itself) is
+  FALSIFIED, not merely NULL — closes this design, requires its own
+  write-up, exactly the "materially different and more serious
+  finding" DRAFT-R0 §3.6 gestured at, now correctly gated on a cell
+  cheap enough to actually justify saying so.
+
+### R1.2 W2 — §1 rewritten: the correct discriminability geometry
+
+**F2's fix, stated once and used everywhere below.** For `Z`
+diagonalizable with dominant eigenpair `(λ_1,v_1)`, second `λ_2`, and
+`q=Σc_iv_i`: `sinθ_h ≈ C·ρ^h`, `ρ=|λ_2/λ_1|`. **The success condition
+is `sinθ_h ≈ sinθ_0` (the angle stays where it started — `ρ≈1` gives
+`C`, not 0), not `sinθ_h→0`.** Verified numerically both ways this
+round (attack R1 §F2, re-derivable from the same formula): a
+scaled-orthogonal `Z=cQ` holds `sinθ_h` **constant** at `≈sinθ_0≈0.99`
+for a generic random query in `d=25` — it does not collapse toward the
+top direction (that IS the collapse signature), and it does not
+collapse toward zero either. This document's target is **`sinθ_h/
+sinθ_0 ≈ 1`** — no decay in the ratio, at any `h`.
+
+**M1's fix: the fitted constant is inadmissible, so it is deleted, not
+re-fit.** `C≈9,900` (DRAFT-R0 §1.2) implies `sinθ<1` only for `h≥48.2`
+— for every shallower `h` the model asserts an impossible `sinθ>1`.
+`C` is bounded, `C=tanθ_0∈(0,∞)`, generic value `√(d−1)=4.90` for a
+random query in `d=25`. **Deleted:** the `C≈9,900` fit and the
+`s1/s2≤1.19` bound built on it (DRAFT-R0 §1.3). They asserted a target
+that describes no achievable configuration.
+
+**M2's fix, carried honestly, not resolved.** `ρ=|λ_2/λ_1|` (eigenvalue
+moduli) is what the derivation needs; `s1/s2` (singular values) is what
+every downstream section measured. These are **not interchangeable**:
+attack R1's own counterexample embeds `[[0,1.21],[1,0]]` in `d=25` —
+`s1/s2=1.21` exactly, `|λ_2/λ_1|=1` exactly, **zero** directional
+collapse at any depth. Singular-value flatness is neither necessary nor
+sufficient for eigenvalue-ratio flatness in general. **This is why the
+mechanism (§R1.3) targets flatness of the WHOLE singular spectrum of a
+symmetric object (`AᵀA`), not a top-two ratio** — flattening all
+singular values of `A` forces `‖A‖=‖A⁻¹‖⁻¹`, which bounds every
+eigenvalue's modulus between the (now-equal) smallest and largest
+singular value (`|λ_i|≤s_1` always; `|λ_i|≥s_min` requires `A`
+invertible, true here since the ideal write is a permutation). **The
+residual risk is disclosed, not hidden:** a matrix can have a
+perfectly flat singular spectrum and still be far from normal (a
+scaled orthogonal matrix, `Z=cQ`, is automatically normal — `QᵀQ=QQᵀ=I`
+— so the TRUE task solution is not a counterexample to this claim, but
+a training trajectory could in principle pass through a flat-but-
+non-normal intermediate point). `depart_normality`
+(`spectral_diagnostics`, reused verbatim) is co-scored specifically to
+catch this residual gap — flagged as a live risk, not claimed solved
+(§R1.8).
+
+**D2's re-pre-registered instrument: `o_pairwise_cos(h)` directly, not
+`sinθ_h`.** Bounded `[-1,1]` by construction (no admissibility failure
+possible), already measured every eval call, directly coupled to
+`retrieval24` (both are computed from the same cosine machinery,
+`discriminability_metrics`). Define the **discriminability statistic**
+`D_h := 1 − o_pairwise_cos(h) ∈[0,2]` (0 = fully collapsed to one
+direction, larger = more spread among per-document reads — a
+*necessary* precondition for `retrieval24` to clear chance, since
+`argmax_k cos(o,T_k)` cannot discriminate `k` if every `o` is the same
+vector, though NOT sufficient by itself — retrieval also needs the
+spread to be aligned with the RIGHT `k`, which `D_h` alone cannot see;
+`retrieval24` stays the PRIMARY arbiter everywhere in this document,
+`D_h` is a diagnostic/interpretive aid, never a substitute pass
+criterion — the exact lesson F2 already taught this program once).
+compB's own measured trajectory: `D_1=0.2005 → D_2=0.03 → D_3..61≈
+0.008–0.011` (from `o_pairwise_cos` 0.7995/0.97/0.989–0.992).
+
+**Admissible decay law, fit directly on `D_h` (bounded by
+construction):** `D_h ≈ D_{h_ref}·r^{h−h_ref}`, `r∈(0,1]`, `h_ref` set
+by W1's premise-cell reading (the shallowest depth with a real,
+above-chance signal to preserve — never assumed to be `h=1` by
+default, per R-A/B/C/D above). `r=1` ⇒ no decay ⇒ perfect preservation
+of whatever discriminability exists at `h_ref`; `r<1` ⇒ decay. Per-run
+`(D_{h_ref}, r)` fit from the calibration sweep (§R1.6), THEN `r_fit`
+regressed against the measured entity-block spectrum (`s1/s2`,
+`depart_normality`) — M9's fix: **per-run fits, not one pooled (C,ρ)
+regression across six different `Z`'s** — and calibration runs at
+**20,000 steps, the target config** (CLAUDE.md's calibration rule; the
+old 5,000-step cells are retired), giving **54 (strength, h) points**
+(6 hops × 9... correction: the runner's own ladder is `train_hops
+(1,2,3)` + `deep_ladder (5,12,20,29,40,61)` = 9 hops per run; 6 runs
+(3 strengths × the mechanism, §R1.6) × 9 hops = **54 points**, m1's
+count, not DRAFT-R0's mis-stated 42).
+
+**The honest current numeric estimate (F4, admissibly backed out, not
+re-derived from scratch — M1's own admissible-constant table):** using
+`C=4.90` (generic query) or `C=1.00` (the document's own O(1)
+convention) and requiring `D_{61}` above a discriminability floor,
+the implied **effective whole-spectrum ratio is `s1/s2_eff ≤ 1.04–
+1.07`**, and F4's own direct simulation (best-case hinge spectrum
+`(r,1,…,1)`, queries at compB's measured TPC) shows `o_pc(h=61)`
+saturates to the collapsed value's own level (`≈0.877`) for `r≥1.10`
+and only **`r≤~1.02` keeps `o_pc(h=61)` near its `h=1` level**. Carried
+forward as the working target: **`s1/s2_eff ≤ 1.02–1.05`**, explicitly
+flagged as saturating sharply above `~1.02` — the target is stated on
+the **effective, whole-spectrum ratio** (what `§R1.3`'s mechanism
+actually controls), not the raw global top-two ratio M2 showed is
+decoupled from the true decay rate. **Re-derived from the REWRITTEN
+54-point calibration before any Stage-1 cell is scored against it** —
+this document does not freeze a number it cannot yet measure honestly.
+
+### R1.3 W3 — the mechanism: entity-block singular-value flatness
+
+**Exact definition of `A`.** `A := UᵀZ_rawU`, `Z_raw =
+ncr_head.encode(keys_v, values_v)` (the SAME tensor
+`ncr_lm_forward_ablatable` already returns — no extra forward pass),
+`U` the `d×K` orthonormal entity-subspace basis from
+`az.entity_subspace(z_ideal)` (`chapter2/analyze_zdump.py:184-197`,
+reused verbatim — SVD of the task's own ideal K-cycle operator,
+`k_eff=K=24` at this config, `V` the `d×(d−K)=d×1` complement, the
+SAME machinery `spectral_diagnostics()` already calls). `U` is treated
+as a **fixed constant per training step** (computed once from
+`z_ideal`, never differentiated through) — a design choice already
+implicit in the reused `spectral_diagnostics` convention, stated
+explicitly here since the loss now backpropagates through it.
+
+**The loss, and its closed form.** Let `G=AᵀA` (`K×K`, symmetric
+PSD), `t=tr(G)/K`:
+
+```
+L_conf = λ · ‖G − t·I_K‖²_F / t²                         (as specified, D3)
+```
+
+Expanding (`‖G−tI‖²_F = tr(G²) − 2t·tr(G) + t²K`, and `tr(G)=tK`):
+
+```
+L_conf = λ · [ K² · tr(G²) / tr(G)² − K ]                 (closed form — no SVD, no matrix inverse)
+       = λ · [ K² · Σᵢsᵢ⁴ / (Σᵢsᵢ²)² − K ]                (sᵢ = singular values of A, i=1..K)
+```
+
+By Cauchy–Schwarz, `(Σsᵢ²)² ≤ K·Σsᵢ⁴`, so the bracket is **`≥0`,
+`=0` iff every `sᵢ²` is equal** (i.e. `A=c·Q` for orthogonal
+`Q∈O(K)`, some scalar `c`) — this is exactly the flatness condition
+§R1.2 derived, now on the whole entity-block spectrum, not a top-two
+ratio, closing M3's rank-2-collapse loophole by construction (a
+`(1,1,ε,…,ε)` spectrum scores `f>0`, not the exact-zero M3 found for
+DRAFT-R0's hinge). **Zero at the ideal K-cycle write, proved, not
+asserted:** the true `z_ideal`'s entity block is (isomorphic to) a
+`K×K` permutation matrix — orthogonal, all `sᵢ=1` — so `L_conf(A^*)=0`
+exactly (matches attack R1's own numeric check, `L_correct(Z^*)=0`).
+`L_conf(c·I)=0` too (flat spectrum trivially), but — unlike F3's killed
+mechanism (b) — the TRUE solution is **equally** at the minimum, not
+penalized relative to it; there is no attractor competing with the
+task.
+
+**A useful reading of the same quantity.** `f(A)=K²Σsᵢ⁴/(Σsᵢ²)²−K =
+K·(K/PR−1)`, where `PR:=(Σsᵢ²)²/Σsᵢ⁴` is the participation ratio of
+the squared-singular-value distribution (a Rényi-2/collision-entropy
+flatness statistic — the same family as `effective_rank`
+(`analyze_zdump.py:166-171`, Shannon-entropy flatness) and
+`stable_rank` (`:174-178`, `Σsᵢ²/s₁²`) already computed elsewhere in
+this program, but differentiable and used here as a training signal
+rather than a diagnostic). `PR=K` (maximally flat) ⇒ `f=0`; `PR=1`
+(all mass on one singular value) ⇒ `f=K(K−1)`, the maximum.
+
+**Scale-invariance (M4's fix applies here too, verified the same way):**
+`f(αA)=f(A)` for any `α≠0` — the `t²` normalization is not an add-on
+guard, it falls out of the closed form. No separate `‖Z_raw‖_F²`
+denominator is needed or present (M4's runaway escape hatch cannot
+recur — there is nothing to normalize by that isn't already baked into
+`f`'s own ratio structure).
+
+**Gradient (verification derivation — PyTorch autodiff computes this
+in practice; shown so the formula is checkable, matching house
+convention for §2(b)'s `ĉ` derivation).** With `G=AᵀA`, `D=tr(G)`,
+`N=tr(G²)`:
+
+```
+∂f/∂A = (4K²/D³) · A · (D·G − N·I_K)              [standard: ∂tr(G)/∂A=2A, ∂tr(G²)/∂A=4AG]
+∂L_conf/∂Z_raw = U · (λ·∂f/∂A) · Uᵀ                [A=UᵀZU linear in Z, U fixed]
+```
+
+**Guard (carried from §2(b)'s failure-mode 3, applied to the new
+self-referential scale `t`):** floor `D=tr(G)` at a small `ε` in the
+denominator before the divide (`D` is the entity block's own squared
+Frobenius norm — degenerates only if `Z_raw`'s entity block collapses
+toward zero, the same class of degenerate-scale risk §2(b) already
+flagged, guarded identically).
+
+**Cost.** `A=UᵀZU`: two matmuls, `d²K+dK²` ≈ `25²·24+25·24²=29,400`
+FLOPs. `G=AᵀA`: `K³=13,824`. Gradient: same order. **Total ≈3×10⁴
+FLOPs/write** — negligible next to the 98M backbone, and cheaper than
+DRAFT-R0's rejected top-2 power-iteration route (`24d²×12≈1.8×10⁵`)
+while covering the WHOLE spectrum, not two singular values.
+
+**Why this evades §G3-B32's exhausted read-side road, letter and
+mechanism (stated here, not in an appendix, per charter).** The
+exhausted aux road (§G3-B17–B32) operates on `cos(o, target)` —
+comparisons between the READ OUTPUT after `h`-fold composition and a
+target/adapter space that itself can (and did, in 0992/0993) collapse.
+`L_conf` is computed **only from `Z_raw`'s own entity-block singular
+values** — no dependence on `o`, `binexp_read`, the target embedding,
+`entity_adapter`'s read-side role, or `h` at all. It **cannot** inherit
+the saturated-instrument pathology (a collapsed target space reading
+`recovered_frac@0.9=1.0` for an information-free read) because it
+never looks at the target space — the letter argument. It also
+attacks a **different mechanism**: §G3-B26/B32's collapse is a
+depth-composition artifact (power iteration under repeated squaring);
+`L_conf` shapes `Z_raw` once, at write time, before any squaring
+happens — the mechanism argument. Additionally (new this round, closes
+M3): it is **localized to the task-relevant subspace by construction**
+— `U` is fixed from `z_ideal`, so gradient flows only into the
+entity-block projection of `Z_raw`, not into whichever direction is
+cheapest to flatten globally (DRAFT-R0's mechanism (c) rejected
+exactly this loophole via the *global* ratio).
+
+**MuonSSM / DeltaProduct distinctions (in-section, per charter — the
+novelty memo's mandatory cite-and-distinguish anchors, `research/
+writecond-novelty-2026-08-13.md`).** **MuonSSM** (arXiv:2606.30461,
+ICML 2026 Oral) Newton–Schulz-orthogonalizes a **rank-1** fast-weight
+WRITE (a KV outer product) **inside the forward recurrence**, motivated
+by long-sequence gradient/memory stability of the *accumulated
+recurrent state* — no repeated-squaring read, no `h`-depth
+compositional-retrieval evaluation. `L_conf` acts on a **full `K×K`
+entity block of a `d×d` WRITTEN OPERATOR** (`K=24` singular values, not
+one), is a **soft Frobenius penalty**, not a hard NS-polar
+reparametrization, and is scored against **read-time compositional
+depth** (`retrieval24` at `h*=61`, `Z^h` applied at query time), a
+target class MuonSSM's own paper never evaluates. **DeltaProduct**
+(arXiv:2502.10297) constrains Householder-product TRANSITION matrices'
+token-by-token state EVOLUTION (provably norm ≤1, governs how the
+recurrent state updates step to step); `L_conf` conditions a WRITTEN
+operator INSTANCE, self-composed `h` times at query time, never
+touching how the state evolved to get there. Both distinctions match
+the novelty memo's own recorded mapping exactly (§ below).
+
+### R1.4 Novelty mapping (recorded per the memo's re-entry condition)
+
+The memo's by-mechanism sweep names two OPEN wedges verbatim: *"soft
+anchoring toward c·I for a written state — no external occupant"* and
+*"differentiable condition-number/restricted-isometry penalty on the
+written state — no external occupant."* `L_conf` is squarely the
+**second** wedge — a differentiable restricted-isometry-type penalty
+(flatness of `A`'s singular spectrum, i.e. `A` close to a scalar
+multiple of an isometry) on the entity-restricted written state — and
+explicitly **not** the first (no anchor point, no `c·I` target,
+sidestepping F3 entirely by construction, §R1.3). This is the SAME
+functional family attack R1's D3 disposition already placed inside the
+swept-open wedge; §R1.3 is D3's mechanism carried to a full spec (exact
+`A`, gradient, cost, proof-at-optimum), not a further mechanism change,
+so **no gate re-entry is triggered by this section**. The W5 control
+(§R1.5) is a control, not a claim, and does not trigger re-entry
+either. Standing cite obligations (MuonSSM, DeltaProduct,
+Preconditioned DeltaNet, Variational Linear Attention, Gated
+DeltaNet-2, MeSH, Sanford/Wang, RWKV-7/Grazzi, uRNN/scoRNN/expRNN)
+carry forward unchanged.
+
+### R1.5 W5 — the true-null control
+
+**Why the obvious fix (D4's spectrum-matched/structure-randomized
+anchor, or an entity-complement-block penalty) doesn't work at THIS
+config, disclosed rather than silently avoided.** The natural
+"apply the same penalty to an irrelevant subspace" null degenerates
+here: `V` (the complement of `U`) is `d×(d−K)=25×1` — **one-dimensional**
+at this tight-spare config. `D:=VᵀZ_rawV` is a `1×1` scalar, and `f`
+evaluated at `K'=1` is **identically zero for every value of `D`**
+(Cauchy–Schwarz is tight by definition when there is only one term) —
+a "complement-block flatness penalty" would be a no-op control, not a
+null with real gradient pressure. (This is the same `d=K+1` spare-
+direction fact `NCR_ORTHO_WRITE.md` §10.7 and DRAFT-R0 §2(c) failure-
+mode 3 already flagged from a different angle — recorded here as the
+reason the D-block route was considered and rejected, not silently
+skipped.)
+
+**Chosen construction: calibrated isotropic gradient-noise injection,
+matched at EVERY step, not just at init.** At each training step,
+compute `g_t := ‖∂L_conf/∂Z_raw‖_F` evaluated at the null arm's OWN
+current `Z_raw` using `L_conf`'s exact formula (§R1.3) — this is a
+calibration PROBE only (negligible added cost, same `≈3×10⁴` FLOPs as
+§R1.3), its VALUE is used, its GRADIENT is discarded. Sample `ε_t ~
+N(0, (g_t/d)²·I_{d×d})` fresh each step and add it **directly to
+`Z_raw`'s gradient** post-backward (not as a loss term, avoiding any
+interaction with the real loss's own backward graph):
+
+```
+Z_raw.grad += eps_t          # eps_t iid N(0, (g_t/d)^2), fresh per step
+```
+
+`E[‖ε_t‖_F²] = g_t²` by construction — the null injects a gradient
+perturbation with the SAME Frobenius-norm budget `L_conf` would have
+injected at that exact `Z_raw`, at every step (this also fixes a risk
+this round's own drafting caught: a FIXED-σ noise schedule would drift
+out of budget-match as `L_conf`'s own gradient naturally shrinks toward
+convergence — the per-step recalibration closes that gap by
+construction, not by assumption). **Un-invertible, provably:** `ε_t` is
+isotropic and mean-zero, so for ANY fixed direction `Δ` (in particular
+the flattening direction `∂f/∂A` itself), `E[⟨ε_t,Δ⟩]=0` — the null
+carries no systematic component toward flatness, toward the entity
+subspace, toward `Z_raw`'s own current value, or toward anything
+task-structured, in expectation at every single step, not merely on
+average over a run. This is a strictly cleaner invertibility argument
+than D4's originally-suggested spectrum-matched/structure-randomized
+anchor (which still anchors toward a specific, if randomized, target
+point each step — considered, not chosen, for exactly this reason).
+
+**Pre-registered interpretation (D4, restated under the corrected
+control).** Under this null: placebo-improves-retrieval ⇒ evidence for
+a generic "extra gradient pressure on `Z_raw`" nuisance effect,
+independent of flatness (the exact confound §G3-B22–B25 already
+diagnosed once for the aux term); placebo-does-not-improve AND
+`L_conf` DOES ⇒ structural evidence specific to spectral flatness, not
+merely "more regularization." The prior draft's control (F5) would
+have read this backwards; this one cannot, by the argument above.
+
+**Seeds:** `n=4`, `20,000` steps, `4×0.8293=3.32` GPU-h (§R1.6).
+
+### R1.6 W6 — every band re-anchored to raw artifacts
+
+**Band 1 (target-space integrity) — re-registered as a paired-mean CI,
+not an every-hop hard rule.** M5's finding stands and is not erased:
+under DRAFT-R0's literal rule, compB (0994) VIOLATES at `h=40`
+(`TPC_fg=0.22725` vs bar `0.22637`, `+0.00088`) — `§G3-B32`'s own
+letter-verdict already says so ("NULL-BY-COLLAPSE by the letter... the
+margin is within eval noise"). M5 also showed the every-hop rule has
+`≈31%` per-cell false-void probability from noise alone (paired-diff
+mean `0.13855`, SD `0.00657`, bar `1.74` SD above the mean). **Fix:**
+score the **one-sided 95% upper confidence bound on the mean paired
+difference** across the 9 hops (`t`-distribution, `n=9`, per-cell SD
+re-measured, not assumed fixed at compB's 0.00657): `INTEGRITY-OK` iff
+this upper bound `<0.15` **AND** no single hop exceeds a gross-outlier
+ceiling `0.15+3·SD_hop` **AND** `TPC_fg<0.50` absolute at every hop
+(tripwire retained verbatim, unaffected by this fix — it discriminates
+the true B26 catastrophic-collapse regime, `0.9925–0.9962`, by two
+orders of magnitude of slack). **Under the corrected rule, compB's own
+numbers: upper CI `=0.13855+1.860×(0.00657/3)=0.14263<0.15`** (passes),
+**no hop exceeds `0.15+3×0.00657=0.1697`** (the paired DIFFERENCE at
+h=40 is `0.22725−0.07637=0.15088`, which is `<0.1697`) — **compB reads
+INTEGRITY-OK under this
+document's rule while its own §G3-B32/attack-R1 letter-verdict under
+the OLD rule was NULL-BY-COLLAPSE-BY-THE-LETTER.** Both readings are
+recorded, per D5, rather than silently picking one; the old rule is
+retired as statistically uncontrolled (M5), not as wrong about the raw
+number.
+
+**Band 3 (retrieval) — re-derived, false "verbatim §G3-B29" provenance
+struck.** §G3-B29's own rule is `retrieval24 MAX over ALL eval points/
+splits ≤2×chance` — a DIFFERENT form (max-over-points) that compB
+itself fails (`0.09375@h=20>0.0833`), so it cannot be cited as matching
+compB "exactly" (M6). This document's Band 3 is a fresh derivation,
+scored ONLY at `h*=61`, seed-POOLED (not single-seed): with W3's `n=8`
+and W5's `n=4` (§R1.7), pooled `n=8×64=512` (arm b/c-successor) or
+`4×64=256` (null), SD`_{512}=0.024978/√8=0.008831`,
+SD`_{256}=0.012489`. **PARTIAL floor** (3 SD above chance, on the
+SMALLER pooled n so the floor is conservative for both arms):
+`0.041667+3×0.012489=0.07917`. **WIN bar unchanged** (`chance+0.15=
+0.19167`, M6's own "adequately conservative" verdict stands — `6.0`
+SD even at single-seed `n=64`, more so pooled) **AND** the GAP metric
+(`full_graft−backbone_only`) also `>0.15` at `h*` (unchanged, `≈8.5`
+SD pooled). **Depth-decay PARTIAL signature — recorded as a fact, not
+a target.** compB itself already shows `retrieval24_acc=0.09375@h=20 →
+0.01562@h=61` — inside DRAFT-R0's own PARTIAL band definition at h=20,
+decaying to chance by h*. This is `n=1`, single-seed; whether it
+replicates is exactly what W3's `n=8` (§R1.7) will show, disclosed here
+as the FIRST recorded instance of this signature (DRAFT-R0 §3.6 item 4
+called it "never yet observed anywhere" — that claim no longer holds
+against compB's own raw numbers, corrected per D5).
+
+**M7's fix — WIN margin justified on its own statistics, not
+transplanted.** The `+0.15` accuracy-margin WIN bar is `6.0` SD above
+chance at `n=64` and more at pooled `n`; this is now stated as the
+bar's OWN justification (a large-SD threshold on a binomial proportion)
+rather than citing TPC's paired-drift-tolerance precedent (M7's
+critique of the transplant stands and is not repeated).
+
+**Architecture-conditionality caveat, carried forward per charter.**
+The (now-retired) mechanism (b)'s `c*·I` motivation rested on the
+Z-dump complement finding measured in a config where the complement
+dimension is near-empty (`fD≤3×10⁻¹²` in DeltaNet-family states, per
+`research/writecond-novelty-2026-08-13.md`'s internal-sweep note) —
+**this caveat is largely MOOT for §R1.3's mechanism**, which never
+targets the identity direction or relies on that finding at all
+(F3's failure mode does not apply to a target-free flatness penalty).
+Disclosed per W6's instruction regardless, since the caveat is a
+standing obligation on any mention of the ortho/conformal track, not
+conditional on which specific mechanism is live this round.
+
+### R1.7 Wave-1 budget re-derivation
+
+**W1 (pre-CLEAR, §R1.1.1):** 0.29–1.46 GPU-h, registered ceiling
+**≤1.5 GPU-h nominal, hard cap ≤2.0 GPU-h**. This is the ONLY spend
+authorized ahead of gauntlet CLEAR (W7).
+
+**Stage 0 (calibration, gated on W1 AND full gauntlet CLEAR):**
+
+| cell | purpose | steps | strengths | GPU-h |
+|---|---|---|---|---|
+| 0.1 | decay-law fit for §R1.3's single mechanism (`λ` low/med/high) | 20,000 | 3 | `3×0.8293=2.488` |
+| 0.4 | pre-build CPU check — `az.entity_subspace`/`match_eigenvalues` on `z_ideal`, verifies the entity/K-cycle structure the flatness target's proof (§R1.3, "zero at the ideal write") assumes | — | — | 0 |
+
+Cell "0.0" (baseline replication) is **subsumed into W1's P0** (D1's
+own instruction), not double-spent here.
+
+**Stage-0 subtotal: 2.488 GPU-h.**
+
+**Stage 1 (main grid, gated on Stage 0's fit AND full gauntlet CLEAR)
+— W4's reallocation applied: mechanism (a) is cut ENTIRELY from
+wave-1 (no canary either — W4 supersedes attack R1's D7, which had
+kept a 0.12 GPU-h canary; the coordinator's adjudication put (a)
+fully at "exactly where §N2 put it," idle-filler-only), and the
+former TWO primary arms (b)+(c), `4+4=8` seeds total, consolidate into
+ONE mechanism (§R1.3) — freed budget reallocated to more seeds of the
+surviving arm, not held back:**
+
+| arm | seeds | steps | GPU-h |
+|---|---|---|---|
+| §R1.3 entity-block flatness (sole mechanism) | 8 | 20,000 | `8×0.8293=6.634` |
+| §R1.5 true-null (calibrated noise injection) | 4 | 20,000 | `4×0.8293=3.317` |
+| blank-out/localization battery (§4, reused verbatim) | bundled, eval-only | — | 0.05 |
+
+**Stage-1 subtotal: 10.001 GPU-h.**
+
+```
+Stage 0                         2.488 GPU-h
+Stage 1                        10.001 GPU-h
+---------------------------------------------
+Nominal total (post-CLEAR)     12.489 GPU-h
+× 1.4 contingency              17.485 GPU-h
+---------------------------------------------
+Registered ceiling  ≤18 GPU-h nominal, hard cap ≤25 GPU-h
+```
+
+Down from DRAFT-R0's ≤20/≤30 — a leaner design (one mechanism, not
+three) earns a smaller ceiling, not the same one carried by inertia.
+Both budgets (W1's ≤2 GPU-h and Stage 0/1's ≤25 GPU-h) are reported
+separately because they are authorized at different gates — W1 now,
+Stage 0/1 only after a full multi-round CLEAR (W7) — and are not to be
+summed into a single pre-authorization.
+
+**Placement.** Unchanged reuse of the §G3-B31 measurement (6.86 GB
+VRAM, 73–80% SM, one cell/GPU, no packing) for every Stage-0/1 cell;
+W1's battery is small enough (3 short/zero-cost cells) to run
+sequentially on one GPU without a placement decision.
+
+### R1.8 What kills this at R2 — a fresh, honest self-attack
+
+1. **The noise-injection null's per-step calibration could itself be
+   gamed or drift.** `g_t` is measured from `L_conf`'s formula applied
+   to the NULL arm's own (untouched) `Z_raw` — if the null arm's
+   `Z_raw` drifts toward a very different regime than the real arm's
+   (plausible: one arm is being actively flattened, the other is not),
+   `g_t` tracks "how far THIS arm's `Z` currently is from flat," not
+   "how much pressure the real arm is actually under" — the two could
+   decouple over training in a way that is not obviously wrong-signed,
+   but is not obviously innocuous either. Flagged as unresolved, not
+   claimed fixed; an R2 attacker should try to construct a trajectory
+   where this decoupling produces a systematically MIS-matched budget.
+   **This is the top risk of this revision.**
+2. **`K=24, d=25` makes the entity block ≈96% of the whole matrix** —
+   at this exact tight-spare config, "entity-block-restricted" barely
+   differs from "global" (M3's original localization concern), even
+   though §R1.3's construction is genuinely subspace-restricted in
+   general. The mechanism's specificity claim (evades M3 "by
+   construction") is TRUE as a mathematical statement about the
+   construction, but its PRACTICAL bite at K=d−1 is unverified and
+   could be nearly indistinguishable from a global penalty in practice
+   — an R2 attacker should check whether §R1.3's mechanism, AT THIS
+   CONFIG, actually behaves differently from a naive global-Z flatness
+   penalty, or whether the distinction is real only at smaller K/d
+   ratios this document never tests.
+3. **`D_h`'s admissible decay law (`D_h≈D_{h_ref}·r^{h-h_ref}`) is an
+   empirical fit choice, not derived from first principles** the way
+   the old (wrong) `sinθ_h≈Cρ^h` model at least tried to be — it could
+   itself turn out to be the wrong functional form (e.g. a
+   stretched-exponential or two-timescale decay), and §R1.2 does not
+   prove otherwise, only that it is bounded and admissible where the
+   old model was not. The calibration's own `R²` check (§R1.2,
+   inherited from DRAFT-R0 §3.3's gate) is the only safeguard; an R2
+   attacker should ask whether a single functional form fit across all
+   `λ` strengths is defensible before the 54-point sweep exists to
+   check it against.
+4. **W1's decision tree (R-A through R-F) assumes the six outcomes are
+   close to exhaustive and mutually informative** — a real result could
+   land in a genuinely ambiguous zone the tree does not anticipate
+   (e.g. `P1a` clears narrowly while `P1b` clears more narrowly still,
+   neither cleanly CLEARS nor fails, both near `τ`) with no registered
+   tie-break beyond the one pre-authorized P1b reseed. An R2 attacker
+   should pressure-test whether `τ`'s 4-SD margin is tight enough that
+   a real, non-degenerate signal could plausibly straddle it, which
+   would leave the whole design without a clean gate despite the
+   statistical care taken.
+
+---
+
+Rev-1 dispatched 2026-08-13. Attack R2 next; no build ceremony
+authorized until the full multi-round gauntlet (W7) reaches CLEAR.

@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-13 tick #3 (Fable): write-conditioning DRAFT-R1 returned —
+premise battery (4 cells ≤1.5/2 GPU-h, 6-branch decision tree, incl.
+the P1a/P1b re-run of the teacher-force diagnostic that had ONLY ever
+run on the later-proven-buggy §G3-B9/B10 architecture), §1 rewritten
+(success = sinθ preserved, not zeroed), mechanism = closed-form
+entity-block conformality penalty (gradient verified 2e-6),
+degenerate-null trap caught + replaced. Budget ≤18/25. Attack R2
+in flight. Box: Jacobians ~finishing, K-wall running, 4 GPUs free
+awaiting premise cell on gauntlet CLEAR.**
+
 **2026-08-13 tick #2 (Fable): write-conditioning round 1 adjudicated —
 novelty gate DISCHARGED-WITH-OBLIGATIONS (MuonSSM 2606.30461 +
 DeltaProduct 2502.10297 mandatory cites; conformal/condition-number

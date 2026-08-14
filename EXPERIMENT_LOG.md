@@ -9799,3 +9799,28 @@ ideal write, inside the open novelty wedge); mechanism (a) CUT from
 wave-1 (MuonSSM/DeltaProduct crowding + §N2 + zero support); control
 re-specified as a true null; bands re-anchored to raws; FULL
 multi-round gauntlet (publication-bound). Rev-1 dispatched.
+
+## 2026-08-13 #3 — Write-conditioning Rev-1 returned (DRAFT-R1, +675 lines): premise battery designed, §1 rewritten, mechanism closed-form-verified; attack R2 dispatched
+
+W1: 4-cell premise battery (P0 Z-dump/spectral baseline; P1a
+teacher-force-at-init; P1b post-training; P2 common-mode-removal
+metric) at 0.29-1.46 GPU-h, ceiling ≤1.5/2.0; 6-branch pre-registered
+decision tree (R-A authorize ... R-F kill), margin τ=chance+4SD=0.0916
+@ n=256. KEY ARCHIVE DISCOVERY: §G3-B9/B10's teacher-force diagnostic
+ran ONLY on the architecture §G3-B11/B12 later proved buggy
+(mismatched query/bind keys) — never re-run post-fix; P1a/P1b close
+that hole as the highest-value cheap cells. Entity-adapter-init knob
+correctly declared EXHAUSTED (all 3 §G3-B31 cells at chance at h=1 —
+no new spend on it). W2: success = sinθ_h≈sinθ_0 (F2's inversion
+fixed); inadmissible C-fit deleted; instrument re-registered as
+bounded D_h=1−o_pairwise_cos(h) w/ admissible geometric decay; s-vs-λ
+carried as open risk. W3: closed form f(A)=K²Σs_i⁴/(Σs_i²)²−K, ≥0
+with equality iff flat spectrum, zero at ideal K-cycle write,
+~3e4 FLOPs/write, gradient verified vs finite differences (2e-6);
+MuonSSM/DeltaProduct distinctions in-section. W5: complement-block
+null DEGENERATES at K=24/d=25 (1×1 spare ⇒ trivially flat) — caught
+by the reviser; replaced w/ calibrated isotropic gradient-noise null
+(E[⟨ε,Δ⟩]=0, budget re-matched per step). Budget ≤18/25 GPU-h (down
+from 20/30; freed seeds → n=8 on the surviving arm). Disclosed top
+R2 risk: null-arm budget calibration could decouple if Z trajectories
+diverge. Attack R2 dispatched (full-gauntlet cadence).
