@@ -1,5 +1,20 @@
 # STATE — Current Project State
 
+**2026-08-13 tick #4 (Fable): write-conditioning attack R2 = BLOCKED
+(5F/12M/8m) ADOPTED — and a RECORD CORRECTION: tick #3's "teacher-force
+never re-run post-fix" was FALSE (§G3-B13's sanity_g3b12_tf_s0.json:
+POST-FIX teacher-forced answer_accuracy=1.0000 at every hop to h=61 —
+the mechanism is PERFECT under teacher forcing; the failure is
+joint-training). L_conf DEAD AS SPECIFIED (zero-at-ideal-write needs
+orthonormal keys — LM-graft-false; penalty gradient collapses
+retrieval); noise null flattens spectra (dead); wedge INTERNALLY
+occupied (the pinned runner already ortho-regularizes Z at 0.1 — the
+§G3-B32 collapse happened WITH conditioning active). Mechanism track
+ON HOLD pending data. Premise battery: 4 documentary repairs (Rev-2
+in flight) then LAUNCHES pre-CLEAR on the free GPUs — bands re-founded
+vs the teacher-force-perfect fact. §A2-ADJUDICATION + log #4 carry
+the full record.**
+
 **2026-08-13 tick #3 (Fable): write-conditioning DRAFT-R1 returned —
 premise battery (4 cells ≤1.5/2 GPU-h, 6-branch decision tree, incl.
 the P1a/P1b re-run of the teacher-force diagnostic that had ONLY ever

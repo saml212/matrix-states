@@ -84,6 +84,21 @@ composition); RWKV-7 / Grazzi eigenvalue-range line (diagnostic
 precedent); uRNN/scoRNN/expRNN lineage (technique precedent, wrong
 object); the 07-27 program-wide gate's obligations carry forward.
 
+## CORRECTION (coordinator, 2026-08-13, post-attack-R2)
+
+Attack R2 (F5) found the "open wedge" claim above INCOMPLETE: the
+wedge is OCCUPIED INTERNALLY — the pinned wave-1 runner
+(`ncr_lm_wave1_runner.py`) already trains `0.1·‖ZᵀZ−I‖²/d²` on Z in
+all three §G3-B31 baselines, so a spectral-conditioning penalty on
+the written state is prior art IN OUR OWN ARCHIVE, and the §G3-B32
+collapse occurred WITH it active. Externally, R2 adds a functional
+identity between the DRAFT-R1 penalty and matrix Rényi-2 entropy
+(+ two further counts, see `NCR_WRITECOND_ATTACK_R2.md` F5). Any
+future mechanism claim in this family must treat "conditioning
+strength/form" as evidenced-against by default and clear BOTH this
+internal precedent and the Rényi-2 identity. The by-task OPEN verdict
+and the cite-and-distinguish list stand unchanged.
+
 ## Re-entry conditions
 
 Any mechanism change beyond D3's entity-block conformality penalty, or

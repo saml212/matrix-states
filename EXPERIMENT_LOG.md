@@ -9824,3 +9824,35 @@ by the reviser; replaced w/ calibrated isotropic gradient-noise null
 from 20/30; freed seeds → n=8 on the surviving arm). Disclosed top
 R2 risk: null-arm budget calibration could decouple if Z trajectories
 diverge. Attack R2 dispatched (full-gauntlet cadence).
+
+## 2026-08-13 #4 — Write-conditioning attack R2: BLOCKED (5F/12M/8m); CORRECTION of entry #3's "KEY ARCHIVE DISCOVERY"; mechanism DEAD-AS-SPECIFIED + track ON HOLD; premise battery repair-then-launch
+
+**CORRECTION (supersedes part of entry #3):** the "teacher-force
+never re-run post-fix" claim was FALSE — `sanity_g3b12_tf_s0.json`
+(§G3-B13, params.integ=38400, uncited by DRAFT-R1 AND attack R1)
+shows the POST-FIX teacher-forced pipeline at answer_accuracy=1.0000
+at EVERY hop to h=61. The mechanism is perfect under teacher forcing;
+the failure is a joint-training phenomenon. Entry #3's claim is
+retracted; P1a/P1b re-founded on §G3-B13 with bands vs 1.0.
+ATTACK VERDICT ADOPTED (§A2-ADJUDICATION): F1 — L_conf's
+zero-at-ideal-write requires ORTHONORMAL entity keys (toy-true by
+construction, LM-graft-false); ideal write scores f≈149-186 vs 24.5
+random / 0 at c·I; 25% down the penalty gradient collapses h=13
+retrieval 0.708→0.042 — the R1-F3 disease re-instantiated; mechanism
+DEAD AS SPECIFIED. F3 — the noise null FLATTENS spectra (341→275
+matched; →140 @4k steps) + 141× under-dosed: dead. F4 — tree
+double-fires 3/8 outcomes. F5 — wedge INTERNALLY OCCUPIED: the
+pinned runner already trains 0.1·‖ZᵀZ−I‖²/d² on Z in all baselines
+⇒ §G3-B32 collapsed WITH spectral conditioning active — direct
+evidence against conditioning-strength as the lever; + external
+Rényi-2-entropy identity. Verified-clean frozen for R3: closed
+form+gradient (3.5e-8), scale invariance, rank-2 closed, all ten
+band anchors to 5dp, compB facts carried. Dispositions: X1 premise
+battery repaired (4 documentary fixes: §G3-B13 re-founding;
+enumerated-partition tree w/ depth quantifier; n_eff=64 honesty +
+eval-VRAM re-smoke; P0 fresh-retrain dropped — 4.6 GPU-h measured,
+would abort at 43%) then LAUNCHES pre-CLEAR on free GPUs; X2
+mechanism track ON HOLD pending battery data (key-geometry vs
+joint-training-dynamics vs re-scope decided by evidence, not
+enthusiasm); X3 record correction stands. Rev-2 (X1 only)
+dispatched.

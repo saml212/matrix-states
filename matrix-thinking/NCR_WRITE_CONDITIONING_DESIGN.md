@@ -1452,3 +1452,81 @@ sequentially on one GPU without a placement decision.
 
 Rev-1 dispatched 2026-08-13. Attack R2 next; no build ceremony
 authorized until the full multi-round gauntlet (W7) reaches CLEAR.
+
+---
+
+## §A2-ADJUDICATION (coordinator, 2026-08-13) — attack R2 = BLOCKED (5F/12M/8m) ADOPTED; MECHANISM DEAD-AS-SPECIFIED + RECORD CORRECTION; premise battery repaired-then-launch; mechanism track ON HOLD pending battery data
+
+Report: `NCR_WRITECOND_ATTACK_R2.md`, four FATALs demonstrated by
+executed scratchpad code, one by raw artifacts both prior rounds
+missed. Settled-clean for R3 (do not re-litigate): the closed form +
+gradient (independently reproduced, rel-err 3.5e-8), scale
+invariance, the rank-2 route closed, the 0.8293 GPU-h figure, all
+ten §W6 band anchors to five decimals.
+
+**F1 — ADOPTED; L_conf is DEAD AS SPECIFIED.** "Zero at the ideal
+K-cycle write" requires ORTHONORMAL adapted entity keys — true in
+the toy by construction (`synthetic_keys_from_pi`), FALSE in the LM
+graft. At compB's measured target geometry the ideal write scores
+f ≈ 149–186 (random Gaussian 24.5; c·I = 0), and a 25% step along
+the penalty's gradient collapses h=13 retrieval 0.708 → 0.042. This
+re-instantiates the exact F3-class failure that killed mechanism (b)
+— and the only key-geometry-compatible repair lands inside the
+§G3-B17–B32 exhausted lane. No spectral-flatness penalty on the
+written state survives non-orthonormal key geometry.
+
+**F2 — ADOPTED, with a COORDINATOR RECORD CORRECTION.** DRAFT-R1's
+"teacher-force never re-run post-fix" claim — which tick #3 and
+EXPERIMENT_LOG 2026-08-13 #3 propagated as a "KEY ARCHIVE
+DISCOVERY" — is FALSIFIED by `sanity_g3b12_tf_s0.json` (§G3-B13,
+params.integ=38400): the POST-FIX teacher-forced pipeline reads
+`answer_accuracy = 1.0000 at every hop to h=61`. Cited zero times
+in DRAFT-R1 and zero times in attack R1. The correction is appended
+to EXPERIMENT_LOG (2026-08-13 #4) and superseded in STATE.md —
+never silently. Scientific import: the write/read MECHANISM is
+perfect under teacher forcing; the failure is a JOINT-TRAINING
+phenomenon. P1a/P1b are re-founded on §G3-B13 accordingly (bands
+referenced to 1.0, not chance).
+
+**F3 — ADOPTED:** the noise-injection null systematically FLATTENS
+the spectrum (E[f] 341→275 at matched budget; →140 over a
+4,000-step walk) while being 141× weaker in coherent displacement —
+contaminated AND under-dosed. Dead. **F4 — ADOPTED:** the 6-branch
+tree double-fires on 3/8 outcomes (twice AUTHORIZE-vs-KILL) and
+`CLEARS(·)` lacks a depth quantifier. **F5 — ADOPTED:** the wedge
+is OCCUPIED INTERNALLY — the pinned runner already trains
+`0.1·‖ZᵀZ−I‖²/d²` on Z in all three baselines (so §G3-B32's
+collapse happened WITH a spectral penalty active — direct evidence
+AGAINST conditioning-strength as the missing lever) — and
+externally on three counts (incl. functional identity with matrix
+Rényi-2 entropy). The novelty memo gains this internal-occupancy
+correction.
+
+**DISPOSITIONS:**
+- **X1 (premise battery: REPAIR THEN LAUNCH, pre-CLEAR, per the
+  attack's own ruling).** The four documentary repairs, none
+  needing GPU or a new audit round: (i) P1a/P1b re-founded on
+  §G3-B13 with bands referenced to 1.0 and `answer_accuracy`
+  co-scored; (ii) the decision tree rewritten as an enumerated
+  PARTITION with a depth quantifier on CLEARS; (iii) the n=256
+  pooling pinned against the runner's deterministic per-(seed,h)
+  eval seeding (naive pooling gives n_eff=64 / a 2.0-SD bar at ~5%
+  per-test FP — re-derive the bar honestly) + eval-VRAM re-smoke;
+  (iv) P0's fresh-retrain fallback DROPPED from the ≤2 GPU-h
+  authorization (measured 0.83–0.92 s/step ⇒ 4.6 GPU-h, aborts at
+  ~43%). On completion + coordinator spot-check, the battery
+  LAUNCHES on free GPUs — it is the highest-value cheap cell in
+  the queue, made MORE interesting by F2.
+- **X2 (mechanism track: ON HOLD).** L_conf as specified is dead
+  (F1) and the conditioning-strength story is evidenced against
+  (F5). No mechanism revision is dispatched until the premise
+  battery's data lands — its branches (now including the
+  teacher-force-perfect fact) determine whether the next lever is
+  key-geometry conditioning, joint-training dynamics, or a
+  re-scoped claim. Any new mechanism re-enters the novelty gate
+  (the memo's re-entry clause), which now also carries F5's
+  internal-occupancy fact.
+- X3: the R2-settled-clean list is frozen for R3; the record
+  correction stands in log #4.
+
+Rev-2 (X1 repairs only) dispatched 2026-08-13.
