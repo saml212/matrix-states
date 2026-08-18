@@ -1,3 +1,54 @@
+**2026-08-18 tick #6 (Fable) — CONSOLIDATED STATE (supersedes ticks
+#1-#5 of this day for orientation; full detail in EXPERIMENT_LOG
+2026-08-18 #1-#17).**
+
+**THE SCIENCE, as it now stands.**
+1. **Premise finding (the flagship's core), 39/39.** In a trained 98M
+   LM, substituting the EXACT in-context operator makes the model's
+   own read machinery execute 61-hop composition at 0.977-1.000;
+   its own SGD-learned writes read chance at every hop. Replicated
+   across 3 recipes and 36+ independent trainings.
+2. **Freeze effect, complete separation, exact p = 5.96e-11.**
+   Frozen entity-adapter arms compose at depth (min 0.9844, n=18);
+   trainable arms do not (compB median 0.7246 n=20; compD median
+   0.2793 n=8). Established at BOTH aux settings — cosine contrast
+   PRE-REGISTERED (#7/#9), contrastive contrast post-hoc (#5). The
+   2x2 is complete.
+3. **Mechanism: NOT adapter conditioning or drift.** Pre-registered
+   analysis, both blind legs null/wrong-signed (#11).
+4. **NEW (#17): every tensor reset in the entity pathway rescues
+   deep composition to 0.988-1.000** — adapter→init, embed→init,
+   both, or a frozen donor's embed, all equally. Coordinator-verified
+   independently. So the degradation is a LEARNED collapse of the
+   entity-pathway geometry that ANY component reset reverses; no
+   single tensor is a privileged cause. (Note TPC RISES on rescue,
+   0.016→0.179 — second independent sighting of that
+   counter-intuitive direction.) **This is a standalone mechanistic
+   result worth writing up, not merely a gate outcome.**
+5. **Closed this session:** K-wall = FRONTIER-AT-K*=30, trigger
+   fired on the $0 branch, integrity exact (#10 of 08-17); Jacobian
+   erank = §5.3 hypothesis FALSIFIED by its own bars; supervised-write
+   = NO-GO for 0.13 GPU-h; delta-rule option (a) = analytically dead.
+
+**LIVE LANE: embed-path intervention.** Archive gate CLEARED (#14,
+and it caught the weight-tied-LM-head confound); design found two
+gradient conduits incl. one never previously named (ortho_reg via Z —
+§G3-B31 R2's account of the leak was INCOMPLETE, #15); attack R1
+REV-REQUIRED 5F/8M/5m all executed (#16); Rev-1 discharged them and
+RAN the gating pre-test → **RE-SCOPE** (#17). Next: build round, then
+launch (9.84-13.20 GPU-h) — **PENDING PI DIRECTION.**
+
+**BOX:** 8 GPUs idle by choice since ~10:00Z. Queue/pool empty,
+0 failures, disk 68% root / 5% ephemeral, 8 workers + 4 crons alive,
+`gpu_hot_monitor.sh` cron'd (util log + idle-GPU refill + disk guard,
+all branch-tested). Grant closes ~end of Aug.
+**WHY IDLE IS CORRECT RIGHT NOW:** the seed program is closed
+(arms variance-saturated), and my last two self-invented waves were
+padding and a retrodiction respectively. Cheap gates have now killed
+or re-aimed three expensive waves (25 GPU-h cancelled for 0.13; a
+retrodiction caught by an archive sweep; this wave re-aimed for ~35 s
+of eval). Feeding the box further is a DIRECTION decision.
+
 ### BOX DISK POLICY (2026-08-18, after the 100%-full incident)
 Training checkpoints go to **`/ephemeral/`** (5.9T), NEVER to
 `results/*_ckpts` on `/dev/root` (193G). Results JSONs stay on root.
