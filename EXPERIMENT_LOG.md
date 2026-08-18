@@ -10661,3 +10661,46 @@ pre-registered test on FRESH seeds to mean anything.
 **Process lesson closed:** incident recovery must re-score derived
 artifacts, not just re-run training. Cost of the remediation: one
 eval pass, ~0.02 GPU-h, no retraining.
+
+## 2026-08-18 #14 — Archive gate on the embed-factor intervention: NOVEL-TO-US, but it surfaced a LOAD-BEARING CONFOUND that would have invalidated the obvious design. Design round dispatched with it binding.
+
+Gate run BEFORE design (the #7 lesson, now standing practice).
+**Verdict: NOVEL-TO-US.** The hypothesis is named three times in our
+own records — `NCR_REAL_LM_DESIGN.md:6997-7005` (§G3-B31 R2),
+EXPERIMENT_LOG #8 and #11, `COMPB_DRIFT_ANALYSIS.md:244-269` — and
+executed zero times. Box search of every completed job spec and
+CANDIDATE found no `freeze[_-]?embed` / `embed[_-]?factor` anywhere.
+Not a retrodiction.
+**THE CONFOUND (the reason this gate earned its keep).** "The embed
+factor" resolves to `backbone.embed.weight`
+(`~/chapter2/deltanet_rd/lm_pretrain_rd.py:1223`), and that single
+tensor is **weight-tied to the LM head** (`out = F.linear(x,
+self.embed.weight)`, line 1310). So it serves two roles at once:
+the aux/entity path's target `entity_adapter(embed(ids))`, AND the
+output projection for the primary CE loss. **Freezing it would not
+isolate the o-side path — it would simultaneously freeze the CE
+loss's own output projection and change primary LM training
+dynamics.** The naive "freeze the embed factor" experiment is
+therefore NOT a clean intervention, and any design that assumes it is
+would produce an uninterpretable verdict. Nobody had noticed this.
+**Also established:** this needs a CODE CHANGE, not a config flip —
+the pinned runner (md5 9a93198b, verified live against the repo copy)
+has exactly one freeze flag (`--freeze-entity-adapter`, line 1835)
+and nothing embed-related; adding one means mirroring
+`freeze_entity_adapter_()`, `build_optimizer`'s param-group
+exclusion, and the resume-assert bookkeeping. Precedented in shape,
+but new code ⇒ its own audit round before any launch.
+**Prior constraint (one direction only):** §G3-B32 records compA
+(adapter frozen, embed OPEN, bare cosine) as NULL-BY-COLLAPSE with
+TPC_fg 0.797-0.814, "confirms R2's prediction exactly: the EMBED
+factor re-opens the collapse route despite the frozen adapter." So
+the open condition is evidenced; the closed condition has never been
+tested.
+**Dispatched:** a design round whose binding constraint is resolving
+the tied-head confound — most likely by cutting the AUX loss's
+gradient into embed (detach in the aux target) rather than freezing
+the tensor, which tests R2's actual claim (embed receives aux-only
+gradient via the o-side path) while leaving CE untouched. The design
+must justify its choice, not assume one. No GPU spend; nothing
+launches without the design + attack + build-audit chain and PI
+approval.
