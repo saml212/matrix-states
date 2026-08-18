@@ -10302,3 +10302,42 @@ silently scored 0 cells for two consecutive ticks. Replaced with
 it immediately and correctly flagged primary_s15/s16, whose results
 JSONs survive from the failed pre-incident attempt while the requeued
 runs are still training. Archived alongside the results.
+
+## 2026-08-18 #6 — PRE-REGISTRATION (written and committed BEFORE any cell runs): does the freeze effect generalize across the aux-loss axis? The missing fourth arm.
+
+**Why this is not padding.** The §G3-B31 grid has three arms:
+primary = FROZEN+contrastive, compA = FROZEN+cosine,
+compB = TRAINABLE+contrastive. **The fourth cell of the 2x2 —
+TRAINABLE+cosine — was never built.** So the freeze contrast
+currently rests on ONE aux-loss setting (contrastive). If freezing
+the entity adapter is what protects deep composition, the effect must
+reappear at the cosine setting too; if it does not, the 08-18 #5
+result is entangled with the contrastive aux term and the flagship
+must say so.
+**PRE-REGISTERED PREDICTION (recorded before the cells exist; the
+frozen+cosine arm's values are ALREADY KNOWN from compA, n=6:
+0.996-1.000, so only the new arm's outcome is unknown):**
+- **WIN / effect generalizes:** the new TRAINABLE+cosine arm reads
+  P1b@h=61 with median ≤ 0.90 and max < 0.9844 (i.e. it separates
+  from compA the way compB separates from primary), at n ≥ 8.
+- **NULL / effect is aux-entangled:** the new arm reads median
+  ≥ 0.99 with min ≥ 0.9844 (i.e. it looks like the FROZEN arms) —
+  in which case the freeze effect is specific to the contrastive
+  setting and 08-18 #5 must be reported as such.
+- **PARTIAL:** anything between (median 0.90-0.99, or overlapping
+  distributions) — report as an attenuated/conditional effect with
+  the overlap quantified; no clean claim either way.
+- Scoring instrument: the SAME audited `pbe_repl` (seed 90210,
+  n=256, both write modes), scored with `run_repl_wave2.sh`.
+  Statistic: exact Mann-Whitney vs compA (n=6), reported with the
+  same post-hoc caveats as 08-18 #5 for the ORIGINAL contrast, but
+  this arm's comparison is PRE-REGISTERED here.
+- Cells: 8 seeds, config-only from compA's audited CANDIDATE with
+  `--freeze-entity-adapter` REMOVED (the single flag), checkpoints on
+  /ephemeral per the disk policy. ~8 GPU-h, <10 GPU-h ceremony tier.
+**Process note:** cells launch now (the box is idle and the standing
+directive is 100% utilization), but NO VERDICT is read until an
+independent audit of this pre-registration and the cell construction
+clears — dispatched in parallel. If the audit finds the prediction
+mis-specified or the arm mis-built, the cells are discarded rather
+than reinterpreted.
