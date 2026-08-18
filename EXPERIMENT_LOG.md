@@ -10584,3 +10584,45 @@ output. Also noted: the agent launched the job via `nohup` from a
 backgrounded SSH shell rather than tmux, against this repo's own hard
 rule — it survived, but the rule exists because that pattern can die
 on a control-master hiccup.
+
+## 2026-08-18 #12 — CORRECTION: two compB eval records (s3, s4) were STALE, scored against pre-incident step-10000 checkpoints. They appeared in compB distributions I reported in ticks #2/#3/#5. Headline verdict SURVIVES; numbers restated.
+
+The drift agent's full report (it filed after the coordinator had
+already written up its raw output) caught what I did not: the
+`writecond_premise_REPL_compB_s{3,4}.json` eval records read
+`ckpt_step == 10000`, **not** 20000. Both seeds' TRAINING runs show
+`status=COMPLETED, step=20000` — but they were among the 12 cells
+killed at their step-10000 save in the 08-18 #4 root-filesystem
+incident, requeued, and finished; their *eval* records on disk were
+never re-scored after the requeue and still describe the
+pre-incident snapshot. Coordinator-verified directly.
+**What I reported that is affected.** compB distributions quoted in
+2026-08-18 #2/#3/#5 included those two stale points — specifically
+the values **0.9531 (s3)** and **0.8516 (s4)**. The s3 value is
+load-bearing in a second way: it was one of the two "star seeds"
+that motivated leg (a)'s sighted observation, and there is NO
+step-20000 eval record for s3 anywhere in the archive, so that
+motivating datapoint cannot be checked at the seed's true final
+state. Seed s6 (0.9727), the other star seed, IS valid and
+reproduces.
+**Restated with the stale records filtered (all cells
+`ckpt_step==20000`):** compB n=18 — max **0.9727**, median 0.7070,
+min 0.6172; frozen arms (compA+primary) n=18 — min **0.9844**.
+**THE HEADLINE SURVIVES:** separation still complete
+(0.9727 < 0.9844), exact two-tailed Mann-Whitney
+p = 2/C(36,18) = **2.2e-10**. The freeze effect is unaffected in
+direction, separation, or significance; only the compB max and two
+individual points move.
+**Also disclosed by the agent, adopted:** a literal exhaustive-exact
+permutation p is infeasible at n=18 (18! ≈ 6.4e15), so all drift-leg
+p-values are 200,000-resample Monte Carlo (binomial SE ≲0.0011),
+cross-checked against scipy's asymptotic p to within ~0.005. Leg (c)
+clears the NULL cutoff by 0.0006 (ρ=+0.3006 vs the 0.3 band edge) —
+i.e. "PARTIAL" by the literal band but functionally null and
+wrong-signed, as recorded in #11.
+**Standing lesson:** an eval record is only as current as the
+checkpoint it was scored against. The `ckpt_step` guard caught this
+INSIDE the analysis, but nothing re-scored the requeued cells after
+the incident — the recovery restored training but not the derived
+evals. Any future incident recovery must re-score every affected
+cell, not just re-run it.
