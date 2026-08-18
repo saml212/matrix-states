@@ -6,6 +6,19 @@ auto-PAUSEs the queue at ≥92% (clears <85%). Existing reseed
 checkpoints live at `/ephemeral/reseed_ckpts/`; the three
 `*_s0_ckpts` originals remain on root as premise-battery evidence.
 
+**2026-08-18 tick #5 (Fable): FREEZE CONTRAST AT MATCHED n — complete
+separation (frozen n=14 all ≥0.9844 vs trainable n=16 all ≤0.9727),
+exact two-tailed p = 1.38e-08, median gap 0.268 @h=61. 36/36 fresh
+seeds AC=00/BD=11 (39/39 w/ originals). Still a DISCLOSED POST-HOC
+observation. **SEED PROGRAM CLOSED** — arms saturated, distribution
+characterized, contrast matched-n; further seeds = padding. Remaining
+high-value work: flagship write-up (no GPU) + an analysis-only
+mechanism question (does compB's spread track entity-adapter drift?
+answerable from archived cells at zero training cost). CONTINUING GPU
+SPEND IS NOW A DIRECTION DECISION. Third path-class bug fixed (eval
+script searched only the old ckpt dir after the /ephemeral move,
+silently scoring 0 for two ticks; replacement fails loudly).**
+
 **2026-08-18 tick #4 (Fable): INCIDENT + RECOVERY — root fs hit 100%,
 12 cells died at their step-10000 checkpoint save, ~15 min dark.
 Coordinator-caused (queued ~30 cells, 79G of checkpoints, never

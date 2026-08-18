@@ -10266,3 +10266,39 @@ and — verified explicitly — a HUMAN-written PAUSE is never removed
 **Standing lesson:** utilization monitoring without a disk guard is
 incomplete for any auto-refilling queue. Checkpoints belong on
 `/ephemeral`, results JSONs on root.
+
+## 2026-08-18 #5 — Freeze contrast at matched n (14 frozen vs 16 trainable): complete separation, exact p = 1.38e-08, median gap 0.268. 36/36 replication. Seed program CLOSED.
+
+Post-incident requeue ran clean (0 failures, disk steady 68%). Scored
+totals (P1b @ h=61, fresh seeds, same audited instrument):
+- primary (FROZEN),   n=14: med 0.9980, min 0.9844
+- compA   (FROZEN),   n=6:  med 1.0000, min 0.9961
+- compB   (TRAINABLE),n=16: med 0.7305, max 0.9727
+**36/36 fresh seeds AC=00/BD=11** — the premise finding is 39/39 with
+the originals, across three recipes and 36 independent trainings.
+**Freeze contrast (single differing flag):** distributions remain
+COMPLETELY SEPARATED at n=14 vs n=16 — every frozen seed ≥ 0.9844,
+every trainable seed ≤ 0.9727. Exact two-tailed Mann-Whitney
+p = 2/C(30,14) = **1.38e-08**; median gap **0.268** retrieval
+accuracy at h=61. Still held as a DISCLOSED POST-HOC OBSERVATION
+(not pre-registered, uncorrected p, arms built for a different
+question) — but at this separation and n it is the strongest
+non-preregistered signal in the program, and the flagship should
+report it as such with the caveat attached.
+**Seed program CLOSED.** compA/primary are variance-saturated,
+compB's distribution is characterized, and the contrast is estimated
+on matched n. Further seeds would be padding. The remaining
+high-value work is (i) the flagship write-up (option b, no GPU) and
+(ii) an analysis-only mechanism question — does compB's h=61 spread
+correlate with measurable entity-adapter drift? — answerable from the
+36 archived cells and the /ephemeral checkpoints at zero training
+cost. Continuing GPU spend beyond the 4 in-flight cells is a
+DIRECTION decision, not a scheduling one.
+**Third path-class bug fixed:** `run_repl_wave.sh` searched only
+`results/*_ckpts`, so after the disk-policy move to `/ephemeral` it
+silently scored 0 cells for two consecutive ticks. Replaced with
+`run_repl_wave2.sh` which searches BOTH locations and FAILS LOUDLY
+(`MISSING-CKPT`) when a finished cell has no checkpoint anywhere —
+it immediately and correctly flagged primary_s15/s16, whose results
+JSONs survive from the failed pre-incident attempt while the requeued
+runs are still training. Archived alongside the results.
