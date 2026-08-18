@@ -1,5 +1,21 @@
 # STATE — Current Project State
 
+**2026-08-17 tick #2 (Fable): K-WALL VERDICT OF RECORD =
+FRONTIER-AT-K*=30** (classify.py-computed; Gate-1 recovery 4/4/3;
+trigger FIRED at K_trig=32 on the $0 archive branch ⇒ qualifier
+CONFIRMED-WALL-AT-160K, zero cells launched; integrity exact —
+Σelapsed=realized=5.315480, 0 ceiling charges, 12/12 first-attempt,
+locks self-verify, validity re-run PASS w/ 3 negative controls).
+**COORDINATOR CORRECTION:** my "153→81→57 wall" tick was the BARRED
+Gate-2 metric compared on a K-DEPENDENT ladder (h=m·K−3, verified);
+in the comparable unit m the sequence incl. the K=24 anchor is
+4→6→3→2 = NON-monotone, no adjacent-K pair separates (K28v30
+p=1.000), NO SCALING LAW. Survivor: a pooled K≤26 vs K≥28 level
+shift (p=0.005) that is ρ≈0.9 confounded with convergence/
+conditioning. Standing limits: band is ONE SEED from GRADUAL-DECAY;
+no K is budget-qualified (always say "at 80K steps"). Full record:
+`matrix-thinking/NCR_KWALL_HARVEST.md`.**
+
 **2026-08-17 tick (Fable): GPUs RE-SATURATED + DURABLE UTILIZATION
 WATCHDOG INSTALLED.** K-wall ran clean 08-14 (COMPLETE, validity
 PASS, 5.32 of ≤15.37 GPU-h, 12/12 cells, blank-out 12/12; raw fronts

@@ -10078,3 +10078,50 @@ evidence — is now the PRIMARY path, and the wall is bounded on both
 sides (one-shot head can't express it; sequential delta can't reach
 it at real conditioning), which sharpens the paper's open-problem
 statement rather than weakening it.
+
+## 2026-08-17 #3 — K-WALL HARVEST (verdict of record: FRONTIER-AT-K*=30; trigger FIRED at K_trig=32 on the $0 branch) + COORDINATOR CORRECTION: my "153→81→57 wall" reading was the BARRED metric, compared on incomparable rungs
+
+Report: `matrix-thinking/NCR_KWALL_HARVEST.md`. **Band (computed by
+the committed kwall_lib/classify.py, self-checks passing):**
+Gate-1 recovery (r26,r28,r30) = (4,4,3); rule (1) fires
+(ROBUST(r30)=True, r32=0≤1) ⇒ study band **FRONTIER-AT-K*=30**,
+[NON-MONOTONE] False, interval_resolved_Ks=[], no INCOMPLETE-AT-K.
+11/12 cells read indist_min=1.0000; the single miss (K30_s1, 0.6947)
+fails the RECOVERY leg only (its rank leg passes, AER/K=0.9450); the
+rank leg never binds (AER/K ≥ 0.9984 elsewhere). **Trigger FIRED
+unanimously at K_trig=32 — the $0 ARCHIVE branch ⇒ zero cells
+launched, qualifier_band = CONFIRMED-WALL-AT-160K** (re-verified from
+the raw K=32 budget JSONs: 160K = 1/4; 320K = 2/4 disclosed as
+context only). **Integrity: exact.** Σelapsed_h = realized =
+5.315480; 0 ceiling charges; 12/12 first-attempt COMPLETED;
+GPU-h/wall = 0.99993 (strict sequencing held); 5.3155 ≪ the 15.3737
+bound; the 12 axis-C locks are correctly DISTINCT per cell, all
+self-verify and match their recorded sha256; canonical files
+md5-identical to attempt copies; validity_check re-run locally PASS
+with 3 negative controls correctly failing.
+**CORRECTION (coordinator, owned):** the 2026-08-17 tick reported
+"failure_front_h medians 153→81→57, the wall is real." That reading
+was wrong twice over. (i) `failure_front_h` is the Gate-2 SECONDARY
+far-depth metric which the design itself pre-registers as noisy and
+BARS FROM CLAIMS (§7) — it is not the recovery leg. (ii) Its rungs
+sit on a K-DEPENDENT ladder h = m·K − 3 (coordinator-verified
+exactly for all 12 cells, m ∈ {1,2,4,8}), so comparing raw h across
+K compares rungs of different sizes. In the comparable unit m:
+K=26 [4,4,8,8], K=28 [1,2,4,4], K=30 [1,2,2,4] — and with the K=24
+n=12 archive anchor (same harness/budget/d=K+1, median m=4) the
+sequence reads 4→6→3→2, i.e. NON-monotone. No adjacent-K pair
+separates (K26v28 p=0.171, K26v30 p=0.086, K28v30 p=1.000). **No
+scaling law is supportable.** What survives is a pooled level shift
+K≤26 vs K≥28 (depth-area p=0.005; "collapses before 3 K-cycles"
+1/16 vs 5/8, Fisher p=0.0069) — and it is CONFOUNDED: the front
+correlates ρ≈0.9 with final training loss, phase residual and the
+spectral trust horizon (all p≤2e-4) while K predicts those only
+weakly (p≈0.04–0.05), so the front reads convergence/conditioning,
+not an independent capability boundary. **Two standing limits for
+the flagship/K-ladder story:** the band sits ONE SEED from
+GRADUAL-DECAY (a second K=30 recovery failure would have flipped it
+and dispatched a paid 160K arm), and because the trigger spent the
+disambiguator at K=32, NO K in {26,28,30} is budget-qualified —
+every use of "K=30 is the last live rung" must carry "at 80K steps."
+No new GPU work is implied (the $0 branch); the box stays on the
+premise-replication wave.
