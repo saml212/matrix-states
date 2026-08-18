@@ -10012,3 +10012,40 @@ h=61), FAAST cite-and-distinguish, near-zero GPU. Coordinator rec:
 Artifacts: experiment-runs/2026-08-14_writecond_stage0prime/
 (repo+SSD). Probe economics: 0.13 GPU-h spent to correctly cancel a
 24.94 GPU-h wave that would have produced the Band-4 NULL.
+
+## 2026-08-17 — K-WALL RAN CLEAN (COMPLETE, validity PASS, 5.32 GPU-h); ~4 idle days found and closed; multi-seed premise wave launched; GPU-hot monitor installed
+
+**K-wall:** the 11-round-gauntlet design executed on 2026-08-14 —
+run_status=COMPLETE, VALIDITY_CHECK PASS, realized 5.3155 GPU-h vs
+the ≤15.3737 bound; all 12 cells COMPLETED; blank_out passed 12/12
+(bit_identical + grad_exactly_zero + write_path_alive); zero
+post-front revivals; trust tau=0.2. Raw failure_front_h by K:
+K=26 [101,101,205,205] (med 153), K=28 [109,109,25,53] (med 81),
+K=30 [117,27,57,57] (med 57) — medians fall with K but per-seed
+ranges overlap heavily; HARVEST AGENT dispatched to adjudicate
+against §5's own bands (incl. trigger status) rather than eyeball a
+monotone law the n=4 spread may not support.
+**Idle-gap failure (owned):** the queue ran dry at K-wall completion
+2026-08-14T05:37Z and four `gh_serve_*` servers from the PI's other
+workstream re-occupied all 8 GPUs at 0% util — ~4 days of dark GPUs
+before this tick. Root cause: no UTILIZATION watchdog existed (the
+auto-unpause watchdog only covers the PAUSE flag; the idle_fallback
+daemon needs 3h idle AND a non-empty pool, which was empty).
+**Actions:** stale servers torn down (4 sessions, zero surviving
+compute apps, 8×0 MiB verified); 12 multi-seed premise-replication
+cells generated config-only from the audited §G3-B31 CANDIDATEs on
+md5-pinned runner 9a93198b (seeds 1-4 → n=5/recipe, the
+pre-registered follow-on the 08-13 harvest required for
+publication-grade claims) — 8 claimed within 75 s, all 8 GPUs to
+75-88%; 6 more (seeds 5-6) staged in fallback_pool/ as runway.
+**Durable fix:** `matrix-thinking/queue/gpu_hot_monitor.sh` installed
++ cron'd (1 min, flock): logs per-GPU utilization + queue depth to
+gpu_hot.log; IMMEDIATELY promotes fallback_pool → pending when the
+live queue empties (no 3h wait — an empty queue with free GPUs is
+already the failure); raises GPU_UNDERUTILIZED after 10 consecutive
+minutes <50% mean with work claimed (the "sustained <50% is a bug"
+doctrine) and FALLBACK_POOL_DRY when runway is exhausted. Refill and
+alarm paths both tested before install. Survives coordinator death.
+Also dispatched: the expressive-write-head DRAFT-R0 (Stage-0′
+forward option (a) — a delta-rule write that can express V·K† by
+construction, dissolving the measured 13-76× dynamic-range wall).

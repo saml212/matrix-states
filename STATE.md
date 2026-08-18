@@ -1,5 +1,20 @@
 # STATE — Current Project State
 
+**2026-08-17 tick (Fable): GPUs RE-SATURATED + DURABLE UTILIZATION
+WATCHDOG INSTALLED.** K-wall ran clean 08-14 (COMPLETE, validity
+PASS, 5.32 of ≤15.37 GPU-h, 12/12 cells, blank-out 12/12; raw fronts
+med 153/81/57 for K=26/28/30 — harvest agent adjudicating the bands +
+trigger). THEN ~4 dark days: queue dried at K-wall completion and 4
+`gh_serve_*` servers re-held all 8 GPUs at 0%. Owned + fixed: servers
+torn down; 12 multi-seed premise-replication cells (config-only,
+audited recipe, md5-pinned runner) queued → 8 claimed in 75 s, all 8
+GPUs 75-88%; 6 more staged as pool runway;
+`queue/gpu_hot_monitor.sh` cron'd (utilization logging + INSTANT
+pool→pending refill on empty queue + GPU_UNDERUTILIZED /
+FALLBACK_POOL_DRY alarms), tested, survives coordinator death.
+Expressive-write-head design (Stage-0′ option (a)) dispatched as the
+next real payload. Grant window closes ~end of Aug.**
+
 **2026-08-14 tick #4 (Fable): STAGE 0′ VERDICT = NO-GO — wave
 cancelled by a 0.13 GPU-h probe.** Best cell 280× above the
 achievability bar w/ decelerating curves; transverse penalty works;
