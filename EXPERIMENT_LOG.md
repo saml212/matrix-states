@@ -10191,3 +10191,43 @@ shape is a direct flagship reporting input. Wave running; scoring
 uses the same audited instrument.
 Artifacts: `experiment-runs/2026-08-18_premise_multiseed/` (18 JSONs,
 repo+SSD).
+
+## 2026-08-18 #3 — FLAG AUDIT: the freeze axis is ALREADY single-axis-isolated (primary vs compB); compB extended to n=14; complete separation, exact p = 5.16e-05. 26/26 replication.
+
+**Flag audit (read from the archived CANDIDATE cmds, not assumed):**
+primary = FROZEN | contrastive+cosine | auxw 0.5 | ortho 0.1;
+compB = TRAINABLE | contrastive+cosine | auxw 0.5 | ortho 0.1;
+compA = FROZEN | **cosine** | auxw 0.5 | ortho 0.1. So **primary vs
+compB differ in exactly one flag — `--freeze-entity-adapter`** — and
+compA, differing on the AUX-LOSS axis, is the wrong comparator for
+the freeze question (my 08-18 #2 entry said "the one architectural
+difference is the trainable adapter" without establishing which pair
+isolates it; this audit establishes it).
+**Data (P1b @ h=61, fresh seeds, same audited instrument):**
+- frozen (primary), n=6: 0.996 0.996 0.996 1.000 1.000 1.000
+- frozen (compA), n=6: 0.996 0.996 1.000 1.000 1.000 1.000
+- trainable (compB), n=14: 0.617 0.648 0.668 0.680 0.688 0.723
+  0.727 0.738 0.750 0.762 0.777 0.852 0.953 0.973 (med 0.7324)
+**26/26 fresh seeds remain AC=00/BD=11** (P0 at chance everywhere,
+P1b = 1.0000 at h=1 in every cell) — the premise finding is 29/29
+with the originals.
+**Freeze contrast:** distributions COMPLETELY SEPARATED at n=6 vs
+n=14 (max trainable 0.973 < min frozen 0.996); U=84, z=3.42; exact
+two-tailed Mann-Whitney p = 2/C(20,6) = **5.16e-05**. The n=14 spread
+is continuous and left-skewed (median 0.732, most mass 0.62-0.78) —
+the earlier 0.953/0.973 readings are the tail, not the mode, which
+the n=4 sample had inverted.
+**STATUS: DISCLOSED OBSERVATION WITH A STATED p, NOT A CONFIRMED
+CLAIM.** The comparison is POST-HOC — it was not pre-registered, the
+p-value is reported without correction for the analyses this program
+ran to reach it, and the arms were built to answer a different
+question (§G3-B30's aux-loss grid). Promotion to a claim requires a
+pre-registered design round. Recorded so the flagship can report the
+arm-level spread honestly and so no future round re-derives it.
+**Payload rationale:** the frozen arm is under-sampled for the FREEZE
+question (n=6) even though it was variance-saturated for the
+REPLICATION question, so seeds 7-16 of `primary` were queued (6
+running + 4 pool) to estimate the effect on matched n — motivated
+work, not seed padding. Also fixed: `run_repl_wave.sh` looped seeds
+1-6 only, so the s7+ checkpoints scored zero on first pass (caught by
+the "scored 0 cells" reading, range extended to 1-16, re-run).

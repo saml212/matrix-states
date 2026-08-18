@@ -1,5 +1,16 @@
 # STATE — Current Project State
 
+**2026-08-18 tick #3 (Fable): FREEZE AXIS ISOLATED + QUANTIFIED.**
+Flag audit proves primary vs compB differ in ONE flag
+(--freeze-entity-adapter; compA differs on the aux-loss axis = wrong
+comparator). compB extended to n=14: P1b@h61 median 0.7324, spread
+0.617-0.973 continuous/left-skewed; frozen arms all 0.996-1.000.
+COMPLETE SEPARATION, exact two-tailed p = 5.16e-05 (n=6 vs 14).
+26/26 fresh seeds still AC=00/BD=11 (29/29 w/ originals). Held as a
+DISCLOSED POST-HOC OBSERVATION, not a claim — promotion needs a
+pre-registered round. Frozen arm now being balanced (primary s7-s16,
+6 running + 4 pool) for a matched-n effect size. Box 8/8 at 75-83%.**
+
 **2026-08-18 tick #2 (Fable): 21/21 replication (18 fresh seeds, n=6
 per arm) + the compB spread resolved as CONTINUOUS and arm-separated:
 compB P1b@h61 = [0.617 ... 0.973] med 0.789 vs compA/primary all
