@@ -654,3 +654,881 @@ point toward embed. A positive compE result confirms a
 already-suspected mechanism causally for the first time; it should be
 reported with that context (matching this campaign's own sightedness-
 disclosure convention), not framed as a cold discovery.
+
+---
+
+## DRAFT-R1
+
+**Status:** Rev-1, responding to `matrix-thinking/NCR_EMBED_PATH_ATTACK_R1.md`
+(repo commit `591301a`, REV-REQUIRED, 5 FATAL / 8 MAJOR / 5 minor, every
+finding demonstrated by execution). §0's frozen-correct list is NOT
+re-derived here (assembled gradient VALUES, `retain_graph` necessity,
+`allow_unused` safety, AdamW behaviour off a manual `.grad`, absence of
+AMP, `grad_ce[embed]` covering both tied roles). Every disposition below
+is labelled with its source ID (D-F1 etc.) so a future audit can check
+discharge 1:1 against the attack document.
+
+Everything in this section was produced against the live box
+(`youthful-indigo-turkey`), re-reading the pinned runner fresh (md5
+`9a93198b642242f512ff8489e32b0a53`, unchanged) rather than trusting
+either DRAFT-R0's or the attack's line-number citations. One correction
+to the attack's own premise came out of that re-read (§M6 below). The
+Stage-0 pre-test (§R1.1) was designed AND EXECUTED in this pass — it is
+not a paper design awaiting a future launch; its result is reported
+honestly below, including where it complicates rather than simply
+confirms the wave.
+
+---
+
+### R1.1 — STAGE 0: eval-only init-swap pre-test (D-M2b). EXECUTED. Verdict: RE-SCOPE.
+
+**Why this is possible at all (re-confirmed by direct code read, not
+re-taken on the attack's word alone).** Under P1b (`teacher_force=True`),
+tracing `ncr_lm_wave1_smoke.py:347-364` (`teacher_force_operator`: `Z =
+pinv(keys_v.detach()) @ values_v.detach()`, keys/values from
+`extract_kv` = `entity_adapter(embed(ids))`) and
+`ncr_lm_wave1_runner.py:480-521` (`discriminability_metrics`: targets `T
+= entity_adapter(embed(entity_ids))`; `o = binexp_read(Z, q_key, h)["o"]`,
+a parameter-free repeated-squaring read, `nm.binexp_read`, no learned
+weights of its own; `retrieval24_acc = argmax_k cos(o, T_k) ==
+tgt_slot`) — the scored quantity is a pure function of exactly two
+trained tensors, `integ.entity_adapter.weight` and `backbone.embed.weight`.
+Neither `ncr_head`, the DeltaNet stack, nor `read_injector` appear
+anywhere in this computation. So a **checkpoint's own P1b h=61 score can
+be recomputed after surgically replacing either or both of those two
+tensors, with zero training and zero new autograd code** — a strictly
+coarser but much cheaper analogue of what the wave's split-backward is
+trying to achieve by degree rather than by full substitution.
+
+**Reconstruction method (re-used, not re-derived):**
+`COMPB_DRIFT_ANALYSIS.md` (leg c) already established, sanity-gated at
+three seeds, that `build_arm(vocab_size_total, seed, device)` — called
+directly from the pinned runner, never reimplemented — reproduces a
+checkpoint's own seeded init **bit-identically** (`torch.equal`, verified
+at seeds 1/12/20). `ckpt["seed"]` is stored in every checkpoint
+(`save_checkpoint`, confirmed by direct read: `"seed": seed` in the
+saved dict), so the reconstruction needs no side channel.
+
+**The swap matrix — every cell actually run, no held-back cells:**
+
+| recipient (compB, `ckpt_step==20000`) | archived P1b h=61 |
+|---|---|
+| s2  | 0.6172 (near compB's own min) |
+| s5  | 0.7266 (≈ compB's own n=20 median 0.7246) |
+| s19 | 0.8203 (high) |
+| s6  | 0.9727 (compB's own n=20 max) |
+
+× 5 swap types, applied via `.data.copy_()` under `torch.no_grad()`
+between `restore_arms_and_opts` and `eval_arm_at_hops` (identical calls
+`pbe_repl.py` itself uses — `build_grammar_pools_and_cfg(seed=0)`,
+`load_checkpoint`, `restore_arms_and_opts`, `eval_arm_at_hops` at
+`HOPS=(1,61)`, `BASE_SEED=90210`, `teacher_force=True`, exactly P1b):
+
+- **none** — no swap. Pure parity check: must reproduce the archived
+  score, or the harness itself is broken and nothing else in this
+  section means anything.
+- **embed_init** — `backbone.embed.weight` ← that seed's own
+  `build_arm`-reconstructed init. `entity_adapter` stays at its real,
+  fully-trained compB value.
+- **adapter_init** — `entity_adapter.weight` ← that seed's own
+  reconstructed init. `embed` stays at its real, fully-trained
+  (fully aux+ortho-leaked-into) compB value.
+- **both_init** — both reset.
+- **embed_donor** — `backbone.embed.weight` ← `mob_g3b31_primary_s1`'s
+  own **trained** (not init) embed (ckpt_step 20000, archived P1b h=61 =
+  1.0) — embed that trained WITH the aux/ortho conduit open (primary is
+  not frozen on embed) but WITHOUT a co-adapting trainable
+  `entity_adapter` (primary freezes the adapter). The closest available
+  *real* counterfactual to "what would compB's embed look like if the
+  interaction hadn't been live," as opposed to a synthetic reset.
+  `entity_adapter` stays at compB's own trained value. Donor/recipient
+  embed shapes asserted equal before the copy (both built from the same
+  `build_grammar_pools_and_cfg(seed=0)` vocab).
+
+20 cells. Script (run via stdin over SSH, nothing written to the box —
+`ssh youthful-indigo-turkey "cd ~/ncr_writecond && CUDA_VISIBLE_DEVICES=0
+/home/nvidia/tdenv/bin/python3 -" < stage0_embed_swap.py`, local copy at
+`/private/tmp/claude-501/.../scratchpad/stage0_embed_swap.py` this
+session, not committed to the repo per the "only repo write is this
+file" constraint):
+
+```python
+#!/usr/bin/env python3
+"""STAGE-0 PRE-TEST (embed-path intervention, Rev-1, D-M2b): eval-only
+init-swap ablation on ARCHIVED compB checkpoints. Zero training. Reuses
+the audited pbe_repl instrument's own calls (build_grammar_pools_and_cfg,
+load_checkpoint, restore_arms_and_opts, eval_arm_at_hops) with exactly one
+inserted step between restore and eval: overwrite embed.weight and/or
+entity_adapter.weight .data in-place. No new forward-pass code, no new
+autograd code -- this script cannot exercise F2/F3/F5 at all, because it
+never calls backward().
+"""
+import json, os, sys, time
+sys.path.insert(0, os.path.expanduser("~/ncr_writecond"))
+import torch
+import ncr_lm_wave1_runner as R
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+BASE_SEED = 90210
+HOPS = (1, 61)
+OLD = os.path.expanduser("~/ncr_g3b31_contrastive/results")
+NEW = "/ephemeral/reseed_ckpts"
+
+RECIPIENTS = {
+    "s2":  {"seed": 2,  "archived_h61": 0.6171875},
+    "s5":  {"seed": 5,  "archived_h61": 0.7265625},
+    "s19": {"seed": 19, "archived_h61": 0.8203125},
+    "s6":  {"seed": 6,  "archived_h61": 0.97265625},
+}
+DONOR_NAME = "mob_g3b31_primary_s1"
+SWAP_TYPES = ("none", "embed_init", "adapter_init", "both_init", "embed_donor")
+
+
+def find_ckpt(tag, seed):
+    name = f"mob_g3b31_{tag}_s{seed}"
+    for root in (NEW, OLD):
+        p = f"{root}/{name}_ckpts/{name}.ckpt.pt"
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError(f"no checkpoint for {tag} s{seed} in {NEW} or {OLD}")
+
+
+def main():
+    pools, cfg, pool_report = R.build_grammar_pools_and_cfg(seed=0)
+    pools = pools.to(DEVICE)
+    vocab = pool_report["vocab_size_total"]
+
+    donor_path = find_ckpt("primary", 1)
+    donor_ckpt = R.load_checkpoint(donor_path, DEVICE)
+    assert donor_ckpt is not None, f"donor checkpoint missing at {donor_path}"
+    donor_arms, _, _ = R.restore_arms_and_opts(donor_ckpt, vocab, lr=3e-4, device=DEVICE,
+                                                freeze_entity_adapter=True)
+    donor_embed_w = donor_arms["full_graft"]["backbone"].embed.weight.data.clone()
+
+    results = []
+    for rname, rinfo in RECIPIENTS.items():
+        seed = rinfo["seed"]
+        ck_path = find_ckpt("compB", seed)
+        for swap in SWAP_TYPES:
+            t0 = time.time()
+            ckpt = R.load_checkpoint(ck_path, DEVICE)
+            assert ckpt is not None, f"missing {ck_path}"
+            assert ckpt["seed"] == seed, f"ckpt seed {ckpt['seed']} != expected {seed}"
+            assert ckpt["step"] == 20000, f"ckpt_step guard failed: {ckpt['step']}"
+            arms, _, _ = R.restore_arms_and_opts(ckpt, vocab, lr=3e-4, device=DEVICE,
+                                                  freeze_entity_adapter=False)
+            arm = arms["full_graft"]
+            if swap in ("embed_init", "adapter_init", "both_init"):
+                init_arm = R.build_arm(vocab, seed, DEVICE)   # bit-identical seeded
+                                                                # reconstruction (COMPB_DRIFT_ANALYSIS.md)
+            with torch.no_grad():
+                if swap == "embed_init":
+                    arm["backbone"].embed.weight.data.copy_(init_arm["backbone"].embed.weight.data)
+                elif swap == "adapter_init":
+                    arm["integ"].entity_adapter.weight.data.copy_(init_arm["integ"].entity_adapter.weight.data)
+                elif swap == "both_init":
+                    arm["backbone"].embed.weight.data.copy_(init_arm["backbone"].embed.weight.data)
+                    arm["integ"].entity_adapter.weight.data.copy_(init_arm["integ"].entity_adapter.weight.data)
+                elif swap == "embed_donor":
+                    assert arm["backbone"].embed.weight.shape == donor_embed_w.shape
+                    arm["backbone"].embed.weight.data.copy_(donor_embed_w)
+                elif swap == "none":
+                    pass
+                else:
+                    raise ValueError(swap)
+            with torch.no_grad():
+                p1b = R.eval_arm_at_hops(arm, pools, cfg, HOPS, 256, DEVICE,
+                                          BASE_SEED, read_ablate=False, teacher_force=True)
+            rec = dict(recipient=rname, seed=seed, swap=swap,
+                       h1=p1b["h=1"]["retrieval24_acc"], h61=p1b["h=61"]["retrieval24_acc"],
+                       archived_h61=rinfo["archived_h61"], elapsed_s=round(time.time() - t0, 2))
+            results.append(rec)
+            print(json.dumps(rec)); sys.stdout.flush()
+
+    print("--- PARITY CHECK (swap=none vs archived) ---")
+    for r in results:
+        if r["swap"] == "none":
+            diff = abs(r["h61"] - r["archived_h61"])
+            print(f"  {r['recipient']}: eval={r['h61']:.6f} archived={r['archived_h61']:.6f} "
+                  f"diff={diff:.2e} [{'OK' if diff < 1e-4 else 'MISMATCH'}]")
+    print("STAGE0_SWAP_DONE")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**Executed result (20/20 cells, ~35s wall-clock total, one GPU, zero box
+writes):**
+
+| recipient | none (archived) | embed_init | adapter_init | both_init | embed_donor |
+|---|---|---|---|---|---|
+| s2  | 0.6172 | 0.9922 | 0.9961 | 0.9961 | 1.0000 |
+| s5  | 0.7266 | 1.0000 | 1.0000 | 1.0000 | 0.9961 |
+| s19 | 0.8203 | 0.9922 | 0.9922 | 1.0000 | 0.9883 |
+| s6  | 0.9727 | 1.0000 | 1.0000 | 1.0000 | 0.9961 |
+| **median** | **0.7735** | **0.9961** | **0.9980** | **1.0000** | **0.9961** |
+
+`h=1` was 1.0 in all 20 cells (as archived) — ceiling, uninformative,
+consistent with the design's own h=1 co-condition rationale (D-F1).
+**Parity check: PASS, `diff = 0.00e+00` on all four `none` cells** — the
+harness reproduces the archived score exactly, so the swap results are
+not a construction artifact.
+
+**Reading.** This is NOT the KILL band `D-M2b` specified ("if [embed
+reset] does not recover retrieval... a non-rescue is close to
+dispositive against the hypothesis") — every swap type recovers
+retrieval, fully, at every recipient, regardless of where it started.
+But it is also not a clean AUTHORIZE for the wave **as specified**,
+because the rescue is **symmetric and saturating**: `adapter_init`
+(entity_adapter reset, embed left at its real, fully-trained,
+fully-aux+ortho-leaked-into compB value) recovers retrieval **just as
+completely** as `embed_init` does. If the wave's registered mechanism
+were right in its specific, asymmetric form — "embed's corrupted trained
+value is the carrier; entity_adapter's own full compB training is not
+itself the problem" — resetting adapter alone while leaving the
+allegedly-corrupted embed untouched should do little. It does not do
+little; it fully rescues, symmetrically with the embed-targeted swap.
+The informative asymmetry the wave's causal story depends on is not
+present in this evidence.
+
+**Pre-registered partition (defined from the measurement-graph structure
+above, extending D-M2b's own logic to the adapter arm the trace makes
+available — stated here, then applied to the table above; not
+re-fit to the numbers after the fact):**
+- **KILL:** `embed_init` median ≈ `none` median (no rescue) → embed's
+  trained VALUE is not implicated at all; do not build.
+- **AUTHORIZE (embed-specific, licenses the wave exactly as scoped):**
+  `embed_init` rescues AND `adapter_init` does NOT (stays near `none`)
+  → asymmetric, embed-specific evidence.
+- **RE-SCOPE (the observed reading):** BOTH `embed_init` and
+  `adapter_init` independently rescue → a joint/symmetric co-adaptation
+  effect, not an embed-specific one; the wave may proceed but MUST
+  include a co-equal entity_adapter-targeted arm before any compE-alone
+  result can be attributed to embed specifically.
+
+**Verdict: RE-SCOPE.** Binding consequence for §3/§4 (superseding
+DRAFT-R0's placebo choice and folding in D-M1/D-M2/D-M2b together, per
+D-M1's own stated fallback — *"if the fourth cell is not adopted, spend
+the 4 cells on the entity_adapter-target cut instead"* — now
+evidence-motivated rather than merely budget-motivated):
+
+1. **`compE_adapter` replaces `compE_placebo` entirely.** Drop the
+   `ncr_head` target (D-M2 — it was already causally off the measurement
+   graph; this pre-test gives an *additional*, independent reason to
+   prefer `entity_adapter`: it is not just "on-path," it is empirically
+   at least as strong a lever as embed itself). 4 cells, same budget
+   line the placebo already had.
+2. **M1's fourth 2×2 cell (frozen adapter + closed embed) is DEFERRED,
+   not funded this wave** — flagged the same way §6.4 already flags the
+   TPC_fg follow-on, not silently dropped. Partial justification from
+   this pre-test: `adapter_init` (adapter neutralized, embed left at its
+   real, fully-leaked compB value) already reaches ~1.0 in all 4 tested
+   seeds, which is evidence — not proof — for M1's own one-sided ceiling
+   assumption (a frozen-adapter cell with embed open is unlikely to show
+   degradation). Disclosed caveat: `adapter_init` is a *snapshot
+   substitution*, not a 20,000-step frozen-throughout-training run; it
+   does not reproduce whatever co-adaptation history a genuinely frozen
+   arm would or would not have had with embed. Revisit if `compE` /
+   `compE_adapter`'s real wave results are surprising.
+3. **The interaction claim (§1) is now conditioned on this evidence,
+   not just a disclosed possibility** — see the restated §1 in R1.9.
+
+**Coarseness caveat (disclosed, D-M2b's own):** this swap is a MAXIMAL
+intervention (100% divergence from the trained value) versus compE's
+much smaller, gradient-share-dependent divergence (only the aux+ortho
+marginal contribution to embed's total received gradient is removed;
+CE's larger share stays). A full-reset rescue does not guarantee
+compE's finer intervention moves embed's final value far enough to
+reproduce it — so this result does not by itself predict compE's
+*magnitude*. What it does settle, structurally, is that the *specificity*
+claim (only embed, not entity_adapter) is not supported by anything run
+so far, in either direction — which is exactly why `compE_adapter` is
+now mandatory rather than optional.
+
+---
+
+### R1.2 — D-F1: metric regime, named everywhere, with the h=1 co-condition and attrition rule
+
+Every occurrence of "retrieval24_acc @ h=61" in this document (§1, §3,
+bands, R1.1 above) means, precisely: **`P1b.result["h=61"]
+["retrieval24_acc"]`, regime P1b (`teacher_force=True`, exact-write
+substitution), `pbe_repl` instrument pinned at `seed=90210`, `n=256`,
+`ckpt_step==20000` guard.** P0 (`teacher_force=False`) numbers are never
+compared against P1b numbers or against the bands below; if a future
+report needs a P0 reading it must be labelled P0 explicitly, in the same
+sentence as the number, every time (this is the SECOND time this exact
+defect has been caught in this campaign — R1.1's own table above states
+"P1b" in its header for this reason).
+
+**Co-condition (adopted from #7/#9, restored):** every scored cell's
+own `median(P1b h=1) ≥ 0.95` or it is reported separately as an
+**instrument-validity failure**, not folded into the h=61 median. (All
+20 R1.1 cells and all archived compB/primary/compA cells checked so far
+score `h=1 = 1.0` — the co-condition is not live yet, but it stays in
+force for compE/compE_adapter.)
+
+**Attrition rule:** verdict is read at n≥7 of 8 for compE, n≥3 of 4 for
+compE_adapter; void below.
+
+---
+
+### R1.3 — D-F2: `non_ce` built from the returned tensors, never by subtraction; re-derived budget
+
+`compute_arm_losses` (confirmed at line 768, unchanged) already returns
+`aux_loss` and `ortho_loss` as separate tensors (`None` when their
+weight is ≤0 or the arm is not `full_graft` — confirmed by direct read,
+lines 833-851). Build `non_ce` from those directly:
+
+```python
+def _non_ce_term(aux_loss, ortho_loss, aux_read_loss_weight, ortho_reg_weight):
+    """None iff both branches are inactive this step (defensive; compE's
+    own launch config always has aux_read_loss_weight=0.5, ortho_reg_weight=0.1,
+    so this is always a real tensor in practice -- guarded anyway per D-F2."""
+    non_ce = None
+    if aux_loss is not None and aux_read_loss_weight > 0.0:
+        non_ce = aux_read_loss_weight * aux_loss
+    if ortho_loss is not None and ortho_reg_weight > 0.0:
+        term = ortho_reg_weight * ortho_loss
+        non_ce = term if non_ce is None else non_ce + term
+    return non_ce
+```
+
+This never subtracts `total_loss - ce_loss`, so it never re-walks the
+backbone with a seeded-zero gradient (F2's demonstrated failure mode).
+The full corrected assembly (which also folds in D-F5's cut-after-clip
+and D-A2's ratio check) is given whole in R1.6, since F2/F5/A2 are one
+function, not three independent patches.
+
+**Re-derived budget (D-F2's own measured rates, unchanged by R1.1's
+re-scope since cell COUNT is unchanged, only cell TARGET):**
+
+| construction | GPU-h/cell | cells | subtotal |
+|---|---|---|---|
+| direct (`non_ce` from returned tensors, +2-10% overhead) | 0.82-1.10 | compE ×8 | 6.56-8.80 |
+| direct | 0.82-1.10 | compE_adapter ×4 | 3.28-4.40 |
+| **wave-1 total** | | 12 | **9.84-13.20 GPU-h** |
+
+Within the ≤15 GPU-h cap, unlike DRAFT-R0's as-specified 14.4-20.0.
+
+**`grad_rest` `None`-set assertion (D-F2's own explicit ask):** since
+`allow_unused=True` is now genuinely load-bearing (backbone params
+become unreachable from `non_ce`, so they come back `None`, not
+zero-tensors), assert the SET of `None` entries is exactly the expected
+one — see `_assert_expected_none_set` in R1.6.
+
+---
+
+### R1.4 — D-F3: verification plan rewritten so it runs; two-tier check; F3 extends to `embed` too
+
+**(b) fix — `retain_graph`.** The construction in R1.6 already computes
+the targeted `grad_rest[target]` call with `retain_graph=True` BEFORE
+`total_loss.backward()` (which is the LAST graph traversal and does not
+need to retain). A standalone smoke sub-test recomputing `grad_ce_only`
+on the same graph must do the same:
+
+```python
+grad_rest_only = torch.autograd.grad(non_ce, [target_w], retain_graph=True, allow_unused=True)[0]
+total_loss.backward()   # populates the FULL combined .grad for every param, incl. target_w
+# grad_ce_only, derived (NOT a separate ce_loss.backward() call):
+grad_ce_only = target_w.grad.detach().clone() - (grad_rest_only if grad_rest_only is not None else 0.0)
+```
+
+**(c) is rewritten as a two-tier check, and F3's own numerical
+argument is extended to `embed` — a point DRAFT-R0 and the attack both
+missed.** F3 established that `entity_adapter`/`ncr_head` are NOT
+bit-identical between the subtraction/direct forms (float
+non-associativity at the shared `o_raw`/`Z` node, ~4.5e-8 max diff,
+`allclose`-true). **`embed.weight` sits at exactly the same kind of
+shared node** — it is reached by CE (three routes) AND by aux/ortho (via
+the same `o_raw`/`Z` path), so `grad_ce_only` derived by subtraction
+above is subject to the identical non-associativity, NOT bit-identical
+to a hypothetical standalone `ce_loss.backward()`. Concretely this means
+**the D-A2 has-teeth identity check below must use the same tolerance
+bound as `entity_adapter`, never `torch.equal`, for `embed` itself** —
+a correction to DRAFT-R0's own §5(2)(b), which asked for exact equality
+on `embed.weight.grad` and would have failed for the right reason for
+the wrong assumed reason.
+
+```python
+EXACT_TIER = {"backbone_block_params", "read_injector"}   # aux/ortho never reach these -- torch.equal
+TOL_TIER = {"embed", "entity_adapter", "ncr_head"}          # shared o_raw/Z node -- allclose bound
+
+RTOL, ATOL = 1e-5, 1e-6   # pinned; entity_adapter's own measured max|diff| 4.470e-08 sits far inside this
+
+def check_scope_preserved(off_grads: dict, on_grads: dict, param_tier: dict) -> None:
+    for name, tier in param_tier.items():
+        g_off, g_on = off_grads[name], on_grads[name]
+        if g_off is None and g_on is None:
+            continue
+        if tier == "EXACT_TIER":
+            assert torch.equal(g_off, g_on), f"{name}: expected EXACT match, got a difference"
+        else:
+            assert torch.allclose(g_off, g_on, rtol=RTOL, atol=ATOL), f"{name}: outside allclose bound"
+            rel = (g_off - g_on).abs().max() / g_off.abs().max().clamp_min(1e-12)
+            assert rel < 1e-5, f"{name}: relative diff {rel:.3e} exceeds 1e-5"
+```
+
+**Forced-fail negative test (run to completion, not merely written —
+repo's own standing rule):** deliberately mis-assemble one parameter
+(e.g. skip subtracting `grad_rest[target]` from `target_w.grad`, i.e.
+simulate a no-op cut) and confirm `check_scope_preserved`'s companion
+identity check on `target_w` itself (not the scope-preserved check,
+which is about OTHER params) fires `AssertionError`. Ship this as
+`test_negative_noop_cut()` in the same smoke module; the build agent
+runs it once at build time and pastes the raised traceback into the
+build report as proof the check has teeth, mirroring this repo's
+already-adopted convention for exactly this failure class.
+
+**Docstring fix:** delete "bit-for-bit what a normal `total_loss.backward()`
+would have produced" from `assemble_closed_grads_`'s docstring (R1.6);
+replace with "identical for backbone-block and read_injector params;
+within a pinned `allclose` bound (rtol 1e-5, atol 1e-6) for
+embed/entity_adapter/ncr_head, per float non-associativity at the
+shared o_raw/Z node — see D-F3."
+
+---
+
+### R1.5 — D-F4: eval harness. `run_repl_wave3.sh`, written whole, against the box's CURRENT state (re-verified, not the attack's snapshot)
+
+**Correction to the attack's own premise:** `run_repl_wave2.sh` on the
+box has been edited since the attack round (file mtime `Aug 18 08:30`,
+after the attack's `591301a` commit at `05:55`). The CURRENT version
+already loops `compA compB compD primary` with a `case` statement
+(`compB|compD) FZ="";; *) FZ="freeze";;`) — the attack's F4 quote (`for
+tag in compA compB primary`, hardcoded `if [ "$tag" = "compB" ]`) is
+stale. Verified directly: `md5sum` `dfba70bccd318074d95dbe698c40c77b`;
+`~/ncr_writecond/rescore.log` and `repl_w8.log` show it has already
+scored `compD` and re-scored two stale `compB` cells. `compE` and
+`compE_adapter` are still absent from the loop (confirmed: `grep -i
+compE ~/ncr_writecond/results/*.json` → no matches) — F4's core defect
+(compE invisible) is real and current; only the exact quoted diff was
+stale. `run_repl_wave3.sh` below is written against the box's actual
+current script, not the attack's quoted snapshot:
+
+```bash
+#!/usr/bin/env bash
+# run_repl_wave3.sh -- D-F4: adds compE / compE_adapter to the tag loop,
+# a per-tag freeze map (both trainable-adapter targets => FZ=""), the
+# /ephemeral/embed_path_ckpts root, the correct seed ranges, loud
+# MISSING-CKPT, and re-score-not-skip (a stale eval record surviving a
+# newer checkpoint is exactly what caused the #12/#13 stale-eval incident).
+set -u
+cd /home/nvidia/ncr_writecond
+export CUDA_VISIBLE_DEVICES=${SMOKE_GPU:-0}
+OLD=/home/nvidia/ncr_g3b31_contrastive/results
+MID=/ephemeral/reseed_ckpts
+NEW=/ephemeral/embed_path_ckpts
+declare -A SEEDS=( [compA]="1 24" [compB]="1 24" [compD]="1 24" [primary]="1 24" \
+                    [compE]="1 8" [compE_adapter]="9 12" )
+declare -A FZ=( [compA]="freeze" [compB]="" [compD]="" [primary]="freeze" \
+                [compE]="" [compE_adapter]="" )
+scored=0; missing=0; rescored=0
+for tag in "${!SEEDS[@]}"; do
+  read -r lo hi <<< "${SEEDS[$tag]}"
+  PREFIX="mob_gembed_${tag}"; [ "$tag" = "compA" -o "$tag" = "compB" -o "$tag" = "compD" -o "$tag" = "primary" ] && PREFIX="mob_g3b31_${tag}"
+  for s in $(seq "$lo" "$hi"); do
+    NAME="${PREFIX}_s${s}"
+    CK=""
+    for cand in "$NEW/${NAME}_ckpts/${NAME}.ckpt.pt" "$MID/${NAME}_ckpts/${NAME}.ckpt.pt" "$OLD/${NAME}_ckpts/${NAME}.ckpt.pt"; do
+      [ -f "$cand" ] && { CK="$cand"; break; }
+    done
+    RES="$OLD/${NAME}.json"
+    OUT="/home/nvidia/ncr_writecond/results/writecond_premise_REPL_${tag}_s${s}.json"
+    if [ -z "$CK" ]; then
+      [ -f "$RES" ] && { echo "MISSING-CKPT ${tag}_s${s} (results JSON exists but no checkpoint in any of NEW/MID/OLD)"; missing=$((missing+1)); }
+      continue
+    fi
+    if [ -f "$OUT" ] && [ "$CK" -ot "$OUT" ]; then
+      continue                                    # ckpt not newer than the eval -- genuinely already scored
+    fi
+    [ -f "$OUT" ] && rescored=$((rescored+1))
+    echo "=== scoring ${tag}_s${s} ($CK) ==="
+    /home/nvidia/tdenv/bin/python3 pbe_repl "$CK" "${tag}_s${s}" "${FZ[$tag]}" && scored=$((scored+1)) || echo "FAILED ${tag}_s${s}"
+  done
+done
+echo "SCORED=$scored RESCORED=$rescored MISSING=$missing"
+# self-check (D-F4's own ask): FAIL LOUDLY if ANY expected arm/seed produced no output at all.
+fail=0
+for tag in "${!SEEDS[@]}"; do
+  read -r lo hi <<< "${SEEDS[$tag]}"
+  for s in $(seq "$lo" "$hi"); do
+    OUT="/home/nvidia/ncr_writecond/results/writecond_premise_REPL_${tag}_s${s}.json"
+    [ -f "$OUT" ] || { echo "SELF-CHECK FAIL: no output ever produced for ${tag}_s${s}"; fail=1; }
+  done
+done
+[ "$fail" -eq 0 ] && echo "SELF-CHECK PASS: every expected arm/seed has an output"
+echo REPL_WAVE3_DONE
+```
+
+**Negative test (run to completion, per D-F4's own ask):** temporarily
+add a bogus entry `[compZZZ]="1 1"` with no matching checkpoint anywhere
+and confirm `MISSING-CKPT compZZZ_s1` prints and the final self-check
+prints `SELF-CHECK FAIL` naming it — then remove the bogus entry. This
+directly exercises the loud-fail path the old script's silent `[ -f "$OUT"
+] && continue` could never trigger.
+
+Note the `[ "$CK" -ot "$OUT" ]` freshness check (bash `-ot` = "older
+than") replaces bare skip-if-exists with re-score-if-the-checkpoint-is-
+newer — directly closing the adjacent defect the attack named (the
+stale-eval incident's own mechanism).
+
+---
+
+### R1.6 — D-F5 + D-F2 + D-A2, combined: cut AFTER `clip_grad_norm_`, has-teeth as a ratio, generalized to `--close-target={embed,entity_adapter}`
+
+**Why these three collapse into one function.** D-F5 requires the clip
+coefficient to be computed from the SAME global norm compB's own
+backward() would produce — which means `target_w.grad` must be the FULL
+combined gradient (bit-identical to `backward()`, not the split form)
+at the moment `clip_grad_norm_` runs, and only THEN does the cut happen.
+The simplest way to guarantee the combined side is genuinely
+`backward()`'s own output (not a re-assembled approximation subject to
+F3's tolerance) is to literally call `total_loss.backward()` for the
+full combined gradient, and separately take ONE targeted
+`torch.autograd.grad(non_ce, [target_w], retain_graph=True)` call before
+it (order matters for graph retention, not for values) to get
+`grad_rest[target]` alone — never re-deriving `grad_ce` via a second
+`autograd.grad(ce_loss, ...)` call at all. This also means D-F2's
+`allow_unused`/`None`-set assertion only needs to check ONE parameter
+(the target), not every param in `all_params`, simplifying that check
+too.
+
+```python
+def assemble_closed_grads_(arm: dict, total_loss: torch.Tensor, ce_loss: torch.Tensor,
+                            aux_loss, ortho_loss, aux_read_loss_weight: float,
+                            ortho_reg_weight: float, close_target: str,
+                            max_norm: float = 1.0) -> dict:
+    """--close-target={embed,entity_adapter}: cuts aux+ortho's marginal
+    gradient contribution into exactly ONE named parameter, AFTER
+    clip_grad_norm_ has already run over the FULL combined gradient (D-F5)
+    -- so every OTHER parameter receives compB's own post-clip gradient,
+    to within D-F3's pinned allclose bound, and the two arms differ in
+    target_w.grad alone. Replaces total_loss.backward() entirely when
+    close_target is set; the caller must NOT also call .backward().
+
+    non_ce built from compute_arm_losses's own returned aux_loss/ortho_loss
+    tensors (D-F2) -- never by total_loss - ce_loss subtraction, which
+    re-walks the whole backbone with a seeded-zero gradient (F2, executed).
+
+    Returns {"cut_active": bool, "conduit_ratio": float,
+             "clip_coef": float, "target": str}."""
+    target_w = {"embed": arm["backbone"].embed.weight,
+                "entity_adapter": arm["integ"].entity_adapter.weight}[close_target]
+    all_params = [p for p in (list(arm["backbone"].parameters()) +
+                               list(arm["ncr"].parameters()) +
+                               list(arm["integ"].parameters())) if p.requires_grad]
+
+    non_ce = _non_ce_term(aux_loss, ortho_loss, aux_read_loss_weight, ortho_reg_weight)
+    if non_ce is None:                      # both branches inactive this step -- nothing to cut
+        total_loss.backward()
+        return {"cut_active": False, "conduit_ratio": 0.0, "clip_coef": 1.0, "target": close_target}
+
+    grad_rest_target = torch.autograd.grad(non_ce, [target_w], retain_graph=True, allow_unused=True)[0]
+    total_loss.backward()                   # populates the FULL combined .grad for every param, incl. target_w
+
+    # D-F2 None-set assertion, narrowed to the one param that matters here:
+    if grad_rest_target is None:
+        return {"cut_active": False, "conduit_ratio": 0.0, "clip_coef": 1.0, "target": close_target}
+
+    combined_before_clip = target_w.grad.detach().clone()
+    grad_ce_target = combined_before_clip - grad_rest_target      # derived, NOT a second ce_loss.backward() (D-F3: tolerance-tier, not exact)
+    conduit_ratio = (grad_rest_target.norm() / grad_ce_target.norm().clamp_min(1e-12)).item()   # D-A2(i)
+
+    finite = all(p.grad is None or torch.isfinite(p.grad).all() for p in all_params)
+    if not finite:
+        return {"cut_active": False, "conduit_ratio": conduit_ratio, "clip_coef": float("nan"), "target": close_target}
+
+    total_norm_before = torch.nn.utils.clip_grad_norm_(all_params, max_norm)   # scales EVERY param's .grad in place,
+                                                                                 # incl. target_w's FULL combined grad --
+                                                                                 # same clip coefficient compB itself gets (D-F5)
+    combined_after_clip = target_w.grad.detach().clone()
+    clip_coef = (combined_after_clip.norm() / combined_before_clip.norm().clamp_min(1e-12)).item()   # exact applied ratio,
+                                                                                                          # not PyTorch's internal formula re-derived by hand
+
+    target_w.grad.sub_(grad_rest_target * clip_coef)     # remove aux+ortho's (equally clipped) share -- AFTER clipping
+    grad_ce_target_clipped = grad_ce_target * clip_coef
+    # D-A2(ii): per-step identity check, tolerance-tier per D-F3 (embed/entity_adapter both sit on the shared o_raw/Z node)
+    assert torch.allclose(target_w.grad, grad_ce_target_clipped, rtol=1e-5, atol=1e-6), (
+        f"close_target={close_target}: post-cut grad does not match CE's own (clipped) share within tolerance")
+    return {"cut_active": True, "conduit_ratio": conduit_ratio, "clip_coef": clip_coef, "target": close_target}
+```
+
+**Has-teeth assertion, D-A2's ratio replacing the old absolute floor:**
+
+```python
+def assert_conduit_has_teeth(grad_diag: dict, step: int, min_ratio: float) -> None:
+    """D-A2(i): min_ratio is PINNED FROM A BUILD-TIME SMOKE MEASUREMENT
+    (never guessed -- this repo's own 'measured, not just estimated'
+    rule), e.g. the mean conduit_ratio over the first 50 real training
+    steps of a full_graft cell with the flag active, times a safety
+    margin (e.g. 0.5x that measured value) -- NOT the old absolute
+    'min_conduit_norm=1.0' floor, which cannot detect the vacuous-pass
+    mode the attack found (a large CE norm can swamp a genuinely small
+    aux+ortho norm and still clear an absolute floor). Called every step
+    close_target is active; skipped (not asserted True) on the rare
+    'cut_active=False' step so this cannot reproduce m2's contradiction."""
+    if not grad_diag["cut_active"]:
+        return
+    assert grad_diag["conduit_ratio"] > min_ratio, (
+        f"step {step}: HAS-TEETH FAILED -- conduit_ratio={grad_diag['conduit_ratio']:.4f} "
+        f"<= pinned min_ratio={min_ratio:.4f}; the flag may be closing an "
+        f"already-negligible path")
+```
+
+**Training loop change** (replaces lines 1334-1335, inside the
+`for arm_name, read_ablate in (...)` block at line 1317, confirmed
+fresh against the box today):
+
+```python
+total_loss, ce_loss, aux_loss, ortho_loss, o_raw, aux_components = compute_arm_losses(
+    arm, batch, read_ablate, tf_this_arm, aux_read_loss_weight, arm_name == "full_graft",
+    ortho_reg_weight, aux_loss_type, contrastive_temperature)
+opt.zero_grad()
+if close_target and arm_name == "full_graft":
+    grad_diag = assemble_closed_grads_(arm, total_loss, ce_loss, aux_loss, ortho_loss,
+                                        aux_read_loss_weight, ortho_reg_weight, close_target)
+    if grad_diag["cut_active"]:
+        assert_conduit_has_teeth(grad_diag, step, min_ratio=PINNED_MIN_RATIO)   # from build smoke
+    step_close_diag = grad_diag                       # logged into rec, new field
+    # NOTE: clip_grad_norm_ and opt.step() are ALREADY DONE inside assemble_closed_grads_
+    #       for this arm -- do NOT re-run the shared finite/clip/opt.step() block below for it.
+else:
+    total_loss.backward()
+    # falls through to the existing shared finite/clip/opt.step() block, unchanged
+```
+
+This changes the shared block's control flow slightly (the close-target
+arm now clips+steps INSIDE `assemble_closed_grads_`, not in the shared
+block below it) — flagged explicitly here because it is the one place
+D-F5's requirement ("cut after clip") forces a restructuring beyond a
+drop-in replacement of `.backward()`.
+
+---
+
+### R1.7 — M1/M2/M2b: resolved together in R1.1. See there.
+
+---
+
+### R1.8 — D-M3: honest prior, restated as the new §1 paragraph
+
+**Insert into §1, after "Why this is the first interventional test...":**
+
+> **Prior, stated honestly (D-M3, informed further by R1.1's executed
+> pre-test).** §G3-B32's own recorded verdict is that "the depth path
+> itself (binexp = power iteration toward Z's top singular direction)
+> destroys read discriminability in-LM independent of the aux loss" —
+> NOT the target-space mechanism. compB's own measured TPC_fg
+> (0.196-0.228) sits far below the 0.50 tripwire that would indicate the
+> §G3-B26 pathology is firing in this arm at all. `COMPB_DRIFT_ANALYSIS.md`
+> leg (a) measured collapse and deep composition as POSITIVELY
+> associated (ρ=+0.4643, p=0.0392, n=20) — more collapse, not less, goes
+> with better composition, opposite the naive direction. And R1.1's own
+> swap evidence shows the rescue from perturbing either `embed` or
+> `entity_adapter` alone is symmetric, not asymmetric in embed's favor.
+> Taken together, this is registered as a plausible-but-contra-indicated
+> mechanism, not a likely-positive one: the chain that survives all of
+> this evidence is narrower than DRAFT-R0 stated it — an interaction
+> between a trainable adapter's own co-adaptation and embed's openness,
+> where NEITHER partner's own value is uniquely privileged as the
+> carrier, which is exactly why `compE_adapter` (R1.1) is now a mandatory
+> co-arm rather than a placebo.
+
+---
+
+### R1.9 — D-M4: bands as a strict first-match ladder (compE, D-M5's paired seeds folded in)
+
+Archived compB paired subset (s1-s8, reused, zero new cost): `[0.6484,
+0.6172, 0.9531, 0.8047, 0.7266, 0.9727, 0.7773, 0.7227]`, median
+**0.75195**. (Distinct from the full n=20 archive's median 0.7246 —
+both are cited explicitly wherever used, never conflated.)
+
+Evaluated top-down, **first match wins, no ORs**:
+
+1. **WIN:** `compE` (n=8, seeds s1-s8) `min > 0.9727` (compB's own
+   archived n=20 max) **AND** median ≥ 0.90 **AND** paired Wilcoxon
+   signed-rank p < 0.05 (one-sided, compE > compB, on the 8 matched
+   `(compE_si, compB_si)` pairs).
+2. **PARTIAL:** median ≥ **0.85195** (= compB's own paired s1-s8 median
+   0.75195 + 0.10, pinned numerically here — replaces DRAFT-R0's
+   unreconciled literal 0.80, which contradicted its own stated +0.10
+   rationale, D-M4's own finding).
+3. **NULL:** neither of the above. (Subsumes "no significant shift" and
+   "shift present but below 0.85195 or p > 0.05" as descriptive
+   sub-notes on the NULL read-out, not separate OR-branches that could
+   independently fire.)
+
+Unpaired cross-check against the full archived n=20 (always reported
+alongside the paired read, never in place of it): exact Mann-Whitney,
+n=8 vs n=20, `C(28,8) = 3,108,105`, best achievable two-tailed p =
+**6.435e-07** (corrected — DRAFT-R0's `1.9e-6` was `2/C(25,8)`, the
+wrong denominator, off by 3.0x). Critical `U ≥ 119/160` for p ≤ 0.05.
+
+**compE_adapter (n=4, seeds s9-s12, paired against archived compB
+s9-s12 = `[0.7383, 0.7617, 0.6797, 0.6875]`, median 0.7129):**
+directional only, per the original placebo's own disclosed n=4 limit
+(best exact two-tailed p at n=4 = 2/C(24,4) = 1.88e-4). Read rule (new —
+D-M4 flagged the old placebo had none): **ADAPTER-LEVERAGE CONFIRMED**
+if `compE_adapter` median ≥ `compE` median − 0.05 (comparable rescue,
+matching R1.1's finding that adapter alone is as strong a lever as
+embed alone); **EMBED-SPECIFIC** if `compE_adapter` median is more than
+0.10 below `compE`'s (embed's own cut turns out to matter in a way
+adapter's does not, once BOTH are actually run at wave scale rather
+than via a full-reset proxy); otherwise **AMBIGUOUS**, reported as such,
+not forced into either label.
+
+---
+
+### R1.10 — D-M5: power, seeds, corrected p (folded into R1.9's ladder above)
+
+compE moves to seeds **s1-s8** (paired), superseding DRAFT-R0's s21-s28.
+The design's own stated reason to avoid s1-s8 ("so no seed number
+collides with an existing archived cell") is a naming concern only,
+fully solved by `compE`'s own distinct `cell_id`/`ckpt` path
+(`mob_gembed_compE_s{1..8}`, `/ephemeral/embed_path_ckpts/`) — the
+SEED NUMBER may repeat; the ARCHIVE KEY may not, and does not.
+`compE_adapter` uses s9-s12, paired against the same archive, without
+seed overlap with `compE` itself. WIN's separation criterion is kept
+(rather than lowered) because R1.9's ladder already makes PARTIAL the
+practically-reachable success band (D-M5(iii)'s own ask) via the
+pinned 0.85195 floor, so WIN staying rare-but-meaningful does not strand
+the design's own anticipated outcome in an unreachable band.
+
+---
+
+### R1.11 — D-M6: runner parity — one premise corrected, two exposures fixed
+
+**Correction (found by re-reading the box directly, not assumed):**
+`ls -la ~/ncr_writecond/` shows `ncr_lm_wave1_runner.py` and
+`ncr_lm_wave1_smoke.py` are **symlinks** to
+`~/ncr_g3b31_contrastive/{same name}` (`Aug 14 02:06`, predating the
+attack), not independent copies. `pbe_repl.py`'s own
+`sys.path.insert(0, dirname(__file__))` therefore resolves to the SAME
+inode the design pins and patches — patching
+`~/ncr_g3b31_contrastive/ncr_lm_wave1_runner.py` automatically patches
+what the scorer imports too. **This discharges the "two independent
+copies" sub-concern of M6.** The other two exposures are real and
+unaffected by this correction:
+
+- **Flag-OFF parity smoke, required before wave-1 launches:** one seed
+  reserved outside every existing/planned archive range (`seed=9999`,
+  short-run only, ~200 steps, discarded after the check — not saved to
+  any tracked results path), `close_target=None`. Assert the full loss
+  trajectory (`ce_loss.item()` per step) and both arms' final
+  `state_dict()`s are `torch.equal` against an unpatched run of the same
+  seed/steps. Any diff means the patch changed OFF-path behavior and the
+  whole campaign's prior archive is suspect.
+- **`RUNNER_TAG` pinned invariant** (confirmed at line 281,
+  `RUNNER_TAG = "ncr_gate3_wave1_runner_v1"`): add a code comment at its
+  definition — `# PINNED. Bumping this silently un-loads EVERY archived
+  compB/compA/compD/primary checkpoint via load_checkpoint's own assert
+  (line ~1130). Do not change for this build.` — and a build-time
+  assertion `assert RUNNER_TAG == "ncr_gate3_wave1_runner_v1"` at the top
+  of `main()`.
+
+---
+
+### R1.12 — D-M7: bookkeeping
+
+- `close_target` (the string, `None`/`"embed"`/`"entity_adapter"`)
+  added to `rec["config"]`, `save_checkpoint`'s `ckpt = {...}` dict, and
+  a resume-mismatch assert mirroring the existing seed-trap/freeze-trap
+  pattern exactly (same shape as DRAFT-R0's own §2.5, just keyed on the
+  string instead of a bool).
+- Rounded literals corrected: `252/256 = 0.984375` (frozen floor),
+  `249/256 = 0.97265625` (compB's own archived max) — used exactly, not
+  `0.9844`/`0.9727`, throughout R1.9-R1.10.
+- Single source of record for n: **`EXPERIMENT_LOG.md` #13** (frozen
+  n=18, compB n=20) is the ONLY n citation from here forward; the
+  paired subsets (s1-s8, s9-s12) drawn from that same n=20 archive are
+  cited as subsets of #13, not as independent counts.
+
+---
+
+### R1.13 — D-M8: placement (predicted, not measured — smoke-confirmation still required)
+
+No training was run in this pass (R1.1 is eval-only), so nothing here
+is a substitute for the build-time VRAM/SM smoke this repo's own rule
+requires before a full launch — this section states a PREDICTION with
+its reasoning shown, to be confirmed or corrected by that smoke.
+
+- **VRAM.** G3-B31's own measured baseline: 6.86 GB/cell. D-F2's fix
+  removes the second full-model gradient tensor (8 exact-zero
+  backbone-sized tensors) that DRAFT-R0's subtraction form would have
+  materialized — that specific +overhead is gone. What remains:
+  `retain_graph=True` still holds the FULL activation graph alive across
+  the targeted `autograd.grad` call and the subsequent `backward()` (the
+  flag does not let you retain only part of a graph) — a real,
+  smaller-than-DRAFT-R0's-own but nonzero cost. Predicted band: **7-9
+  GB**, well inside 80GB H100 headroom.
+- **SM utilization / packing.** No fresh contention-pricing analysis was
+  run this pass; G3-B31's own no-packing ruling (one cell per GPU, 73-80%
+  SM) is carried forward unchanged rather than overridden without one —
+  flagged here as inherited, not re-derived.
+- **Cells-per-GPU:** 1 (per the above).
+- **Wall-clock critical path:** 12 cells over 8 GPUs, one cell/GPU/slot
+  → 2 sequential slots, ≈ 2× the per-cell wall-clock (~1.0-1.3h/cell) ≈
+  **2-2.6 hours wall-clock**, GPU-h total unchanged at 9.84-13.20 (R1.3).
+- **Required before full launch:** one real-CUDA smoke cell (not the
+  reserved parity seed above — a genuine `close_target=embed` cell run
+  to ~500 steps) measuring actual peak VRAM and per-step wall-clock,
+  used to both confirm this band and pin `PINNED_MIN_RATIO` (R1.6) from
+  a real measured `conduit_ratio`.
+
+---
+
+### R1.14 — minors (m1-m5), fixed
+
+- **m1 (`list.index` footgun):** replaced by construction — R1.6's
+  `assemble_closed_grads_` never builds an `all_params.index(...)` at
+  all; `target_w` is selected directly from the `{"embed": ...,
+  "entity_adapter": ...}` dict, no positional lookup anywhere.
+- **m2 (`cut_active` contradiction):** resolved by construction —
+  `assert_conduit_has_teeth` (R1.6) returns early (no assertion) when
+  `cut_active` is `False`, instead of the old unconditional
+  `assert grad_diag["cut_active"]` the caller used to run regardless.
+- **m3 (line-number drift):** re-verified fresh against the box today
+  (all citations above pulled by live `grep`/`sed`, not carried over):
+  `compute_arm_losses` def 768 (unchanged, was correct); `ortho_regularization_loss(Z)`
+  call site 850, additive sum 848/851 (confirmed, matches the attack's
+  own correction); per-arm loop header 1317; `total_loss.backward()`
+  call 1335; clip block 1354-1359 (`clip_grad_norm_` itself at 1356, one
+  off from the attack's own "1357" — files under active development
+  drift between reads; cite the read date next to any future line
+  number, this document's is 2026-08-18); `nn.init.normal_` in
+  `lm_pretrain_rd.py` at 1229; tied head `F.linear` at 1310;
+  `RUNNER_TAG` def at 281; `build_arm` 861; `load_checkpoint` 1122;
+  `restore_arms_and_opts` 1136; `eval_arm_at_hops` 934.
+- **m4 (arbitrary absolute floor):** replaced by D-A2's ratio (R1.6),
+  not a residual absolute number.
+- **m5 (per-step `.item()` host sync):** `assert_conduit_has_teeth` and
+  the ratio computations in R1.6 already only call `.item()` on small
+  scalars once per step for the close-target arm only (not every param,
+  not every step for the other arm) — logged every step is now cheap
+  enough (a handful of scalar syncs, not a per-parameter loop) that the
+  every-N-steps relaxation is no longer necessary; kept at every-step
+  for has-teeth's own "loud, immediate" purpose.
+
+---
+
+### R1.15 — What Rev-1 could NOT discharge, stated plainly
+
+- **`PINNED_MIN_RATIO` (R1.6) has no number yet.** It cannot be
+  pinned from R1.1's eval-only pre-test (which never calls `backward()`
+  or touches `non_ce`'s gradient at all) — it requires a real training
+  step's forward+backward on live data. This is explicitly deferred to
+  the build-time smoke (R1.13), not guessed here.
+- **R1.1's swap evidence is coarse by construction (its own disclosed
+  caveat, restated once more for emphasis):** it settles the
+  SPECIFICITY question (embed vs. entity_adapter — genuinely
+  undetermined, hence `compE_adapter` is now mandatory) but does not
+  and cannot settle compE's expected MAGNITUDE, since compE's actual
+  gradient trim is a much smaller perturbation than a full reset.
+- **No fresh SM-utilization/contention-pricing pass was run this
+  round** (R1.13) — G3-B31's prior no-packing ruling is carried forward,
+  not re-validated at this design's own (smaller, D-F2-reduced) memory
+  footprint.
+- **The flag-OFF parity smoke (D-M6) has not been run** — specified
+  precisely (seed 9999, ~200 steps) but not executed in this pass, since
+  it requires the patched code to exist first (it is a build-time gate,
+  not a pre-build one, unlike R1.1).

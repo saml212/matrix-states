@@ -10803,3 +10803,61 @@ the bands are not a partition (executed counterexample: median
 **Rev-1 dispatched with the pre-test promoted to gating.** No build,
 no wave, until it clears — and if the pre-test kills the hypothesis,
 the wave never runs at all.
+
+## 2026-08-18 #17 — Stage-0 pre-test DESIGNED AND EXECUTED (~35 s, eval-only): EVERY tensor-reset rescues deep composition. Verdict = RE-SCOPE, not AUTHORIZE. The planned wave would NOT have tested what it claimed.
+
+Rev-1 built the gating pre-test the attack's placebo finding made
+possible and then ran it: 4 compB recipients (s2/s5/s19/s6, spanning
+the archived range) × 5 swap types (none / embed→own-init /
+adapter→own-init / both→init / embed→frozen-donor primary_s1) = 20
+cells, ~35 s wall-clock, zero training, zero box writes. Parity check
+exact (`diff = 0.00e+00` on all 4 no-swap cells).
+**RESULT: every swap type fully rescued P1b retrieval24_acc@h=61 to
+0.988-1.000** — not only the embed-targeted ones.
+**Coordinator independent verification (compB s2, fresh process,
+h ∈ {1,61}, teacher-forced, n=256, seed 90210):**
+| swap | h=1 | h=61 | TPC@h61 |
+|---|---|---|---|
+| none | 1.0000 | **0.6172** (= archived exactly) | 0.0160 |
+| adapter→init | 1.0000 | **0.9961** | 0.1791 |
+| embed→init | 1.0000 | **0.9922** | 0.0645 |
+Reproduces the agent's finding exactly, including the archived
+baseline to 4 dp.
+**What this means — and why it is NOT the wave's authorisation.** The
+hypothesis under test was that the *embed* leak is the mechanism. But
+resetting the entity_adapter ALONE rescues just as completely as
+resetting embed, so embed's trained value is not a privileged cause;
+either tensor's learned state suffices to produce the degradation.
+Mechanistically this is consistent with the program's own
+read-collapse story: under P1b, `Z` comes from
+`teacher_force_operator`'s pinv on adapter outputs, so what matters
+is the GEOMETRY of the entity representation pathway — and a random
+(init) tensor anywhere in that path restores well-spread targets
+(note TPC RISES on rescue, 0.016 → 0.179, the same
+counter-intuitive direction leg (a) showed). **A compE-vs-compB wave
+would therefore have measured "we perturbed the entity pathway," not
+"the embed conduit is the mechanism."**
+**Disposition (pre-registered RE-SCOPE band):** the causally-absent
+`ncr_head` placebo is replaced by a MANDATORY on-path
+`compE_adapter` control arm (adapter-targeted cut), same 4-cell
+budget; the 2×2's fourth cell is explicitly deferred with partial
+support from the `adapter_init` cells. Budget corrected to
+**9.84-13.20 GPU-h** (`non_ce` built from `compute_arm_losses`'s own
+returned tensors, never by subtraction — F2's fix).
+**Other discharges, all with runnable code:** cut moved after
+`clip_grad_norm_` and generalised to `--close-target={embed,
+entity_adapter}`; ratio-based has-teeth check; two-tier
+exact/tolerance verification (and the finding that `embed` itself
+falls in the tolerance tier, which DRAFT-R0 missed); corrected
+`run_repl_wave3.sh` written whole — and it caught that the box's
+`run_repl_wave2.sh` had been silently edited since the attack quoted
+it (fresh md5 verified, fix written against current reality);
+exact p corrected to 6.435e-07; strict first-match band ladder;
+M6 half-discharged outright (ncr_writecond's runner files are
+SYMLINKS to the pinned copy, not independent copies).
+**Explicitly NOT discharged, stated in the doc:** `PINNED_MIN_RATIO`
+has no number (needs a real backward pass, impossible from an
+eval-only pre-test); no fresh SM/VRAM measurement (7-9 GB predicted,
+flagged for build-time smoke); the flag-OFF parity smoke is specified
+but unrun (needs the patched code to exist).
+**Cost of learning the wave was mis-aimed: ~35 seconds of eval.**
