@@ -10049,3 +10049,32 @@ alarm paths both tested before install. Survives coordinator death.
 Also dispatched: the expressive-write-head DRAFT-R0 (Stage-0′
 forward option (a) — a delta-rule write that can express V·K† by
 construction, dissolving the measured 13-76× dynamic-range wall).
+
+## 2026-08-17 #2 — OPTION (a) KILLED ANALYTICALLY + COORDINATOR RECORD CORRECTION: the delta-rule write is exact only for ORTHOGONAL keys; at our measured cond it does not converge at all
+
+The expressive-write DRAFT-R0 agent died to an API error, but its
+partial output flagged a false premise in MY OWN 08-14 harvest text
+("delta-rule ... can represent V·K† for independent keys BY
+CONSTRUCTION"). Verified by execution rather than trusting either
+claim: the delta write leaves each prior pair perturbed by
+(v_j − S k_j)⟨k_j,k_i⟩/‖k_j‖², so one pass is exact IFF keys are
+ORTHOGONAL; otherwise it is Kaczmarz iteration whose rate collapses
+with conditioning. Executed (K=24,d=25, max rel per-key error):
+orthogonal 1 pass = 5.98e-16; cond≈460 (our cond_med) = 2.343 @1
+pass and still 1.839 @1000 passes; cond≈2640 (our cond_p99) = 4.221
+@1 and 3.345 @1000; orthogonalized-first 1 pass = 5.80e-16. Our real
+geometry (Stage-0′ item1/2, compB): cond_med 460.53, cond_p99
+2639.92, cond_max 3462.21. So option (a) does NOT open a new road —
+the only exact variant needs key orthogonalization, i.e. the
+NS-polar/ortho-write road already recorded FAIL (§9, absorbing
+ill-conditioning trap) and PI-DEMOTED (§N2). DISPOSITION: design
+round CANCELLED, not re-dispatched (designing against a refuted
+premise would burn a gauntlet to reach the same kill); recorded as an
+analytic KILL at 0 GPU-h. Revival bar stated in the design doc
+(exact solve at cond 460-3462 in-forward-pass WITHOUT
+orthogonalization, or a whitening proven not to be the old trap).
+STRATEGIC: option (b) — the flagship on the closed-form-write
+evidence — is now the PRIMARY path, and the wall is bounded on both
+sides (one-shot head can't express it; sequential delta can't reach
+it at real conditioning), which sharpens the paper's open-problem
+statement rather than weakening it.

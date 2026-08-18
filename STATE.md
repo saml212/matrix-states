@@ -12,8 +12,14 @@ GPUs 75-88%; 6 more staged as pool runway;
 `queue/gpu_hot_monitor.sh` cron'd (utilization logging + INSTANT
 pool→pending refill on empty queue + GPU_UNDERUTILIZED /
 FALLBACK_POOL_DRY alarms), tested, survives coordinator death.
-Expressive-write-head design (Stage-0′ option (a)) dispatched as the
-next real payload. Grant window closes ~end of Aug.**
+Expressive-write-head design (Stage-0′ option (a)) CANCELLED —
+KILLED ANALYTICALLY same day + coordinator record corrected: the
+delta-rule write is exact only for ORTHOGONAL keys (executed:
+5.98e-16 orthogonal vs 1.839 rel-err after 1000 passes at our
+measured cond_med=460), so option (a) reduces to the FAILED +
+PI-demoted ortho-write road. Option (b) — the flagship on the
+closed-form-write evidence — is now the PRIMARY path; the wall is
+bounded on both sides. Grant window closes ~end of Aug.**
 
 **2026-08-14 tick #4 (Fable): STAGE 0′ VERDICT = NO-GO — wave
 cancelled by a 0.13 GPU-h probe.** Best cell 280× above the

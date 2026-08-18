@@ -4681,6 +4681,9 @@ quantified (dynamic-range deficit ≈ 3–15×).
   key-orthogonalized outer-product-sum write can represent V·K† for
   independent keys by construction). The research continuation;
   fits the remaining grant window if its gauntlet clears.
+  **⚠ CORRECTED 2026-08-17 — SEE THE OPTION-(a) CORRECTION BELOW.
+  The clause "for independent keys by construction" is FALSE as
+  written; option (a) as framed is analytically dead.**
 - **(b) Re-scope to the closed-form-write architecture** — the
   premise battery's P1b arm IS this architecture evaluated
   end-to-end (3/3 checkpoints, 0.977–1.0 at h=61 in the real LM):
@@ -4692,4 +4695,78 @@ quantified (dynamic-range deficit ≈ 3–15×).
 Coordinator's recommendation: (b) feeds the flagship NOW (deadline
 ~late Sept); (a) is the right use of the remaining box window IF its
 design survives the gauntlet. Neither launches without its gate.
+
+---
+
+## OPTION-(a) CORRECTION (coordinator, 2026-08-17) — the delta-rule "expressive write head" is ANALYTICALLY DEAD at our measured key geometry. Coordinator error, caught pre-design, killed at zero GPU cost.
+
+**What I wrote (above, 2026-08-14) and what is true.** The harvest
+recorded option (a) as "a delta-rule / key-orthogonalized
+outer-product-sum write can represent V·K† **for independent keys by
+construction**." The independent-keys clause is FALSE. The
+Widrow-Hoff/delta write `S ← S + (v_i − S k_i)k_iᵀ/‖k_i‖²` leaves
+every previously-written pair perturbed by
+`(v_j − S k_j)·⟨k_j, k_i⟩/‖k_j‖²`, so a single pass is exact **iff
+the keys are ORTHOGONAL**. For merely linearly-independent keys it is
+Kaczmarz row-action iteration, whose convergence rate degrades with
+key conditioning — and ours is bad.
+
+**Provenance.** The expressive-write DRAFT-R0 agent died to an API
+error mid-write, but its surviving partial output flagged exactly
+this ("plain single-pass delta rule is only exact for orthogonal
+keys, and real measured key conditioning is far from orthogonal").
+The coordinator then verified it by execution rather than adopting
+either claim on trust.
+
+**Executed check** (numpy, K=24, d=25, scratchpad; max relative
+per-key recovery error):
+| key geometry | 1 pass | 10 | 100 | 1000 |
+|---|---|---|---|---|
+| exactly orthogonal | **5.98e-16** | — | — | — |
+| cond ≈ 460 (= our `cond_med`) | 2.343 | 1.879 | 2.215 | **1.839** |
+| cond ≈ 2640 (= our `cond_p99`) | 4.221 | 3.658 | 3.777 | **3.345** |
+| cond ≈ 460, keys ORTHOGONALIZED first | **5.80e-16** | — | — | — |
+
+**Our own measured key geometry** (Stage-0′ item 1/2, compB,
+`experiment-runs/2026-08-14_writecond_stage0prime/`): `cond_med =
+460.53`, `cond_p99 = 2639.92`, `cond_max = 3462.21`.
+
+**Consequence.** At the geometry the model actually produces, a
+delta-rule write is not merely inexact — it does not usefully
+converge (184% relative error after 1,000 passes, i.e. worse than
+useless inside a forward pass that can afford K=24 steps). The only
+version that IS exact requires ORTHOGONALIZING the keys first — which
+is precisely the NS-polar / ortho-write road this program already ran
+and recorded as FAIL (`NCR_ORTHO_WRITE.md` §9: Gate-0 dead 4/4 seeds,
+mechanism-confirmed absorbing ill-conditioning trap) and which the PI
+then DEMOTED off the critical path (`NCR_REAL_LM_DESIGN.md` §N2,
+2026-07-17). Option (a) therefore does not open a new road; it
+reduces to a closed one.
+
+**Disposition.** The expressive-write-head design round is
+**CANCELLED, not re-dispatched** — designing against a premise the
+math refutes would burn a gauntlet to reach the same kill. Recorded
+as an analytic KILL (cost: one dead agent's partial output + ~20
+lines of numpy + 0 GPU-h).
+
+**What a surviving option (a) would have to solve** (any future
+revival must lead with this, per the dead-directions rule): produce
+an exact solve of `S K = V` at cond ≈ 460–3462 inside the forward
+pass, WITHOUT key orthogonalization — e.g. a conditioning-robust
+iterative solve (CG/LSQR-style with preconditioning) whose per-step
+cost and backprop stability are established BEFORE any claim, or a
+learned key-whitening that is demonstrably not the ortho-write trap
+in new clothing. Absent such a construction, the honest position is
+that the exact write is available **only in closed form at runtime**
+— which is option (b).
+
+**Strategic consequence: option (b) is now the primary path, not the
+faster of two.** The flagship claim rests on the premise battery's
+already-collected evidence (61-hop composition at 0.977–1.0 in a
+real LM given the closed-form write, 3/3 checkpoints, with the
+multi-seed CI arm now running on the box), with learnability
+documented as the open problem — which this correction makes
+sharper, not weaker: the wall is now bounded on BOTH sides (the
+one-shot head cannot express the operator; the obvious sequential
+alternative cannot either at real conditioning).
 
