@@ -10524,3 +10524,24 @@ contrastive contrast (#5). The flagship should present it that way —
 one pre-registered arm, one post-hoc arm, same direction, both with
 complete separation. Artifacts: `experiment-runs/
 2026-08-18_premise_multiseed/` (46 JSONs, repo+SSD).
+
+## 2026-08-18 #10 — Same-batch anchors landed: the compD-vs-compA contrast strengthens to exact p = 1.55e-04. Box drained; no further wave invented.
+
+The two audited same-batch compA anchors (seeds 7-8, trained in the
+SAME batch as compD per COMPD_PREREG_AUDIT's recommended-not-gating
+item) completed and scored. compA is now n=8: P1b @ h=61 =
+[0.9961, 0.9961, 1.000 x6], median 1.0000, min 0.9961 — the frozen
+arm's tight band is unchanged by same-batch training, which retires
+the residual batch-effect question empirically rather than only by
+the auditor's argument.
+**Contrast with anchors included:** max(compD) 0.4727 < min(compA)
+0.9961 — separation holds; exact two-tailed Mann-Whitney
+p = 2/C(16,8) = **1.55e-04** (up from 6.66e-04, exactly the lift the
+audit predicted); median gap 0.7207 unchanged.
+**Box state: fully drained** (0 pending / 0 claimed / 0 pool, 8 GPUs
+idle, disk 68%, zero failures all session). Per the 08-18 #5/#7/#9
+record I am NOT inventing another training wave: the seed program is
+closed, the 2x2 is complete, and my last two self-generated waves
+were respectively padding and a retrodiction. The pre-registered
+drift analysis (#8) is running as the remaining non-GPU work.
+CONTINUING GPU SPEND REQUIRES A DIRECTION DECISION FROM THE PI.
