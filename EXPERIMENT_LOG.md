@@ -10704,3 +10704,48 @@ gradient via the o-side path) while leaving CE untouched. The design
 must justify its choice, not assume one. No GPU spend; nothing
 launches without the design + attack + build-audit chain and PI
 approval.
+
+## 2026-08-18 #15 — Embed-path DRAFT-R0 returned, and it refuted the coordinator's own suggested fix. Two gradient conduits found (one previously unnamed). Attack round dispatched.
+
+**My brief was wrong.** I proposed resolving the tied-head confound
+via `entity_adapter(embed(ids).detach())` in the aux target. The
+designer read the pinned runner and showed this is a **provable
+no-op**: both aux-target call sites (lines 630, 690) already end in
+`.detach()` on the whole composite, so detaching earlier inside an
+already-detached expression changes nothing. Third coordinator error
+caught by an agent this session (retrodiction → stale evals → this).
+**The real conduits, one previously unnamed anywhere in our records:**
+(i) `o_raw` is passed LIVE into both the aux loss functions and into
+`logits` for CE (`compute_arm_losses`, line 768) — a shared tensor,
+so one `total_loss.backward()` sums CE's and aux's contributions
+before either reaches embed; (ii) **`ortho_reg_weight=0.1` reaches
+embed via `Z`, independent of the o-path §G3-B31 R2 named** — active
+in every launched G3-B31 cell and never previously identified as an
+embed conduit. R2's account of the leak was therefore incomplete.
+**Chosen resolution:** a split backward — `torch.autograd.grad` on
+`ce_loss` and on `(total_loss − ce_loss)` separately over one shared
+graph, assembling `embed.weight.grad = grad_ce` ONLY, while every
+other trainable parameter receives the full combined gradient. Closes
+both conduits, preserves the aux signal to entity_adapter/ncr_head,
+adds zero parameters and zero forward FLOPs (the aux/ortho backward
+subgraph never traverses the transformer stack). Alternatives
+rejected with reasons: freezing embed outright re-imports the CE
+confound; untying the head adds ~38M params and breaks
+apples-to-apples against every existing arm.
+**Claim framing (sharper than my brief's):** registered as an
+INTERACTION claim — embed-leak × trainable-adapter — NOT
+"embed openness causes collapse," because the frozen arms already
+falsify the standalone version (they have embed open too and compose
+perfectly). Prediction: closing the conduits should lift compB's
+median 0.7246 (n=20) toward the frozen floor 0.9844 (n=18).
+**Wave-1:** compE test arm n=8 + placebo n=4 ≈ 10.8-15.6 GPU-h,
+at/near the ≤15 cap pending build-measured split-backward overhead.
+**Disclosed weaknesses (the designer's own, not extracted):** a null
+is genuinely ambiguous (mechanism-wrong vs mechanism-swamped); the
+manual autograd.grad + .grad assembly is UNAUDITED engineering with
+no precedent in this runner's history; and the placebo target
+(ncr_head) is plausibly load-bearing for the aux loss, making it a
+weaker control than a truly inert target. Also flagged out-of-scope:
+this does not test §G3-B32's TPC_fg claim on the frozen-adapter arm,
+a cheap follow-on using the same code delta.
+**Attack round dispatched. No build, no GPU, until it clears.**
