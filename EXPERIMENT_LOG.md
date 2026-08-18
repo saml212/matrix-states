@@ -10341,3 +10341,82 @@ independent audit of this pre-registration and the cell construction
 clears — dispatched in parallel. If the audit finds the prediction
 mis-specified or the arm mis-built, the cells are discarded rather
 than reinterpreted.
+
+> **⚠ RETRACTED 2026-08-18 — THIS PRE-REGISTRATION IS VOID.** It was a
+> RETRODICTION, not a prediction: the configuration's outcome was
+> already in our own archive. It is also mis-specified on three
+> counts. See "2026-08-18 #7" below. The CELLS are sound and were NOT
+> discarded; they are re-registered there under an honest frame.
+
+## 2026-08-18 #7 — AUDIT VERDICT ON #6: REV-REQUIRED (3F/5M/4m). My pre-registration was a RETRODICTION — I skipped the internal-archive gate. Retracted and re-registered honestly; cells are sound and kept.
+
+Report: `matrix-thinking/COMPD_PREREG_AUDIT.md`. Adopted in full.
+
+**F2 — the failure that matters, coordinator-verified against the raw
+archive before adoption.** Entry #6 asserted "the fourth cell —
+TRAINABLE+cosine — was never built." **False.** `mob_g3b24_s0/s1/s2`
+exist on the box with hyperparameters identical to compD (the
+auditor diffed the cosine aux function across runner versions:
+byte-identical), and the outcome is ALREADY RECORDED in
+`NCR_REAL_LM_DESIGN.md` §G3-B26 (line 6697): 24-way retrieval
+**0.031-0.062 against chance 0.042**, at h ∈ {1,2,3,61}. So my
+"blind prediction" was a retrodiction of a result already in our own
+records, and it sat **deep inside my own WIN band**. I skipped the
+internal-archive sweep — the exact gate the 07-16 doctrine mandates
+for precisely this failure ("don't redo or contradict our own
+recorded work"). Owned; the doctrine's gate exists because this is
+easy to do, and a fresh auditor caught in one pass what I did not
+check at all.
+**F1 — the metric was never named.** "P1b@h=61" identifies no field,
+and the two candidates INVERT the verdict: on a collapsed read,
+`retrieval24_acc` scores WIN while `recovered_frac@0.9` scores NULL
+— the saturation trap §G3-B26 already cost this program once. The
+auditor reverse-engineered the intended field (`retrieval24_acc` is
+the only one reproducing all six published anchors).
+**F3 — the band cannot distinguish the two hypotheses.** An
+h=61-only criterion cannot separate "the freeze effect generalizes"
+(depth-selective degradation) from "the read never formed at all" —
+and the recorded prior for this arm is the LATTER (chance at h=1).
+All 36 existing cells read exactly 1.0000 at h=1, so h=1 is the
+discriminator, and my bands ignored it.
+**MAJORs adopted:** PARTIAL has a reachable unlabeled gap; `0.9844`
+is a rounded literal of the reachable 252/256 = 0.984375 and rounds
+the wrong way on both bands; `run_repl_wave2.sh` loops
+`compA compB primary` so it CANNOT SEE compD (**fourth instance of
+this scope/path bug class in four ticks**); no `ckpt_step == 20000`
+guard despite the incident already having produced step-10000
+artifacts; no attrition rule for a max-based criterion at n≥8.
+**Power: ADEQUATE** — exact two-sided Mann-Whitney at n=8 vs n=6
+under complete separation = 2/C(14,6) = 6.66e-04.
+**Batch control: NOT required** (the question I could not answer for
+myself): runner md5 identical and verified, same box/venv/torch,
+arms trained ~5 h apart the same day, seeds 1-6 shared — stronger
+than a batch control — both at step 20000, and the checkpoint-path
+difference cannot enter training numerics (moved compA files verified
+byte-size identical and loading at step 20000). Becomes required only
+on relaunch after an env change, step-assertion failure, or if compD
+is pooled into the 08-18 #5 contrast.
+
+**RE-REGISTRATION (honest frame, replaces #6; written before any
+compD cell is scored — no `writecond_premise_REPL_compD_*` file
+exists, verified).** The compD wave is NOT a test of an unknown. It
+is a **replication at n=8 of a recorded single-cell result
+(§G3-B26), with a disambiguating instrument the original lacked.**
+Registered labels (a partition, with the metric NAMED and the h=1
+co-condition):
+- metric = `retrieval24_acc` from the audited `pbe_repl`, at h=1 AND
+  h=61; cells scored only if `ckpt_step == 20000`.
+- **COLLAPSE-NOT-DEPTH** (the recorded prior): median h=1 ≤ 0.20 —
+  the read never formed; says NOTHING about the freeze effect, and
+  in that case the 08-18 #5 contrast stands unextended.
+- **GENERALIZES**: median h=1 ≥ 0.95 AND median h=61 ≤ 0.90 AND max
+  h=61 < 252/256 — depth-selective degradation, the freeze effect
+  reappearing at the cosine setting.
+- **DOES-NOT-GENERALIZE**: median h=1 ≥ 0.95 AND min h=61 ≥ 252/256
+  — behaves like the frozen arms; the #5 effect is contrastive-
+  specific.
+- **PARTIAL/OTHER**: every remaining outcome, reported with the
+  overlap quantified and no clean claim.
+Given the §G3-B26 prior, COLLAPSE-NOT-DEPTH is the EXPECTED result;
+recording that expectation here is what makes the reading honest
+rather than a rediscovery dressed as a finding.
