@@ -10420,3 +10420,55 @@ co-condition):
 Given the §G3-B26 prior, COLLAPSE-NOT-DEPTH is the EXPECTED result;
 recording that expectation here is what makes the reading honest
 rather than a rediscovery dressed as a finding.
+
+## 2026-08-18 #8 — INTERNAL-ARCHIVE GATE (run BEFORE proposing, per the #7 failure): compB drift/mechanism analysis CLEARED as novel-to-us. Pre-registration below, with disclosed partial-sightedness.
+
+**The gate I skipped last time, run first this time.** Verdict:
+PARTIALLY-DONE / mostly NOVEL-TO-US. No prior per-seed correlation
+between adapter properties and deep-retrieval degradation exists
+anywhere in `NCR_REAL_LM_DESIGN.md` (§G3-B22-B32 measure TPC/o_pc
+per-ARM at single seed, never across the 16-seed population),
+`EXPERIMENT_LOG.md`, `archive/`, or `research/`. The idea is
+pre-named as open work in our own 08-18 #5 entry and never executed.
+Adjacent-but-different: §G3-B31 R2 explains why compA still
+collapses (freeze closes the ADAPTER factor, the EMBED factor stays
+open, aux gradient norm 110.13 via the o-path) — a mechanism for
+target-space collapse, NOT for compB's seed-to-seed variance;
+`KEY_ANCHORING_DESIGN.md` §10.14's "frozen random anchor table
+matches learned" is an analogous precedent on a DIFFERENT object
+(toy geo3 per-entity bias table, not the real-LM entity_adapter) and
+should be cited as background, not as an answer.
+**Data sufficiency (gate-verified):** per-seed `target_pairwise_cos`
+and `o_pairwise_cos` at every hop are ALREADY in the archived
+`writecond_premise_REPL_compB_s*.json` — leg (a) needs zero new
+computation. Only FINAL (step-20000) checkpoints exist; there is no
+step-0 snapshot, so drift-from-init requires re-instantiating the
+adapter from its seed — cheap, but NEW COMPUTATION, not archive
+retrieval, and labelled as such here so a future audit cannot call
+it a retrodiction.
+
+**PRE-REGISTRATION, with an honest sightedness disclosure:**
+- **Leg (a) — geometry vs degradation. NOT BLIND.** The gate agent
+  already spot-checked all 16 compB seeds and reported that the two
+  best performers (s3 0.953, s6 0.973) carry the HIGHEST TPC
+  (~0.13-0.15) while mid/low seeds sit near TPC≈0 — i.e. the naive
+  "more target collapse → more degradation" reading does NOT
+  transfer. I therefore CANNOT claim a blind test here. Registered
+  as: quantify the Spearman correlation and report it with exact
+  small-n p, explicitly flagged as CONFIRMATORY-OF-A-SIGHTED-
+  OBSERVATION, never as a discovery.
+- **Leg (b) — adapter conditioning. BLIND.** Predict: if
+  degradation is driven by an ill-conditioned adapter, Spearman
+  rho(cond(entity_adapter), retrieval24_acc@h=61) ≤ -0.5 with
+  p < 0.05 at n=16. NULL if |rho| < 0.3. PARTIAL otherwise.
+- **Leg (c) — drift from seeded init. BLIND.** Predict: if drift is
+  the mechanism, Spearman rho(‖W_final − W_init‖_F / ‖W_init‖_F,
+  retrieval24_acc@h=61) ≤ -0.5, p < 0.05. NULL if |rho| < 0.3.
+  Init reconstructed by seeded re-instantiation of the adapter
+  module only (no training, no GPU).
+- Metric named: `retrieval24_acc` from the archived P1b records at
+  h=61, cells with `ckpt_step == 20000` only.
+- **If both blind legs read NULL**, the honest conclusion is that
+  compB's spread is unexplained by adapter geometry — which is
+  itself worth recording, and would push the mechanism question
+  toward the embed factor §G3-B31 R2 already implicates.
