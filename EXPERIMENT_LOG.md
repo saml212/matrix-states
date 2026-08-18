@@ -10626,3 +10626,38 @@ INSIDE the analysis, but nothing re-scored the requeued cells after
 the incident — the recovery restored training but not the derived
 evals. Any future incident recovery must re-score every affected
 cell, not just re-run it.
+
+## 2026-08-18 #13 — Stale evals REMEDIATED by re-scoring (no retraining needed): both seeds' real step-20000 checkpoints existed all along. Headline strengthens; leg (a) crosses p<0.05 and is therefore MORE carefully caveated, not promoted.
+
+Checked first: `/ephemeral/reseed_ckpts/mob_g3b31_compB_s{3,4}_ckpts/`
+both hold genuine `step == 20000` checkpoints — the incident cost the
+EVALS, never the training. Stale records quarantined (moved, not
+deleted, to `results/stale_preincident/`) and both seeds re-scored
+with the same audited instrument.
+**Corrected values:** s3 P1b@h=61 **0.9531** (unchanged from the
+stale record, coincidentally) with TPC 0.1830; s4 **0.8047**
+(was 0.8516 stale), TPC 0.0004. Both P1b@h=1 = 1.0000.
+**All distributions restated (every cell now ckpt_step==20000):**
+compB n=20 — median 0.7246, max 0.9727, min 0.6172; frozen
+(compA+primary) n=18 — min 0.9844, median 1.0000; compD n=8 —
+median 0.2793.
+**Freeze separation: still complete** (0.9727 < 0.9844), exact
+two-tailed Mann-Whitney p = 2/C(38,20) = **5.96e-11**. The headline
+has now survived a stale-data correction, a same-batch anchor test,
+and a full re-score.
+**Leg (a) — and a deliberate refusal to promote it.** With s3/s4
+restored (n=20), ρ(TPC@h61, acc@h61) = **+0.4643, p = 0.0392** —
+it now crosses the conventional 0.05 line, where at n=18 it read
+p=0.073. This does NOT become a finding, for three stated reasons:
+(i) the leg was pre-registered CONFIRMATORY-ONLY because a prior
+agent had already seen the ordering — significance does not undo
+sightedness; (ii) s3, the seed whose restoration moved it, is one of
+the two "star seeds" that motivated the sighted observation in the
+first place, so adding it back is the least independent possible
+evidence; (iii) no correction was applied for the several analyses
+this program ran to reach the number. Recorded as: a suggestive,
+sighted, uncorrected correlation at n=20 that would need a
+pre-registered test on FRESH seeds to mean anything.
+**Process lesson closed:** incident recovery must re-score derived
+artifacts, not just re-run training. Cost of the remediation: one
+eval pass, ~0.02 GPU-h, no retraining.
