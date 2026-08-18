@@ -1,4 +1,20 @@
-# STATE — Current Project State
+### BOX DISK POLICY (2026-08-18, after the 100%-full incident)
+Training checkpoints go to **`/ephemeral/`** (5.9T), NEVER to
+`results/*_ckpts` on `/dev/root` (193G). Results JSONs stay on root.
+`gpu_hot_monitor.sh` logs `disk_root=N%` every minute and
+auto-PAUSEs the queue at ≥92% (clears <85%). Existing reseed
+checkpoints live at `/ephemeral/reseed_ckpts/`; the three
+`*_s0_ckpts` originals remain on root as premise-battery evidence.
+
+**2026-08-18 tick #4 (Fable): INCIDENT + RECOVERY — root fs hit 100%,
+12 cells died at their step-10000 checkpoint save, ~15 min dark.
+Coordinator-caused (queued ~30 cells, 79G of checkpoints, never
+checked headroom). Recovered without data loss: 34 reseed ckpt dirs
+MOVED to /ephemeral (root 100%→68%), originals kept, all 12 specs
+rewritten to checkpoint on /ephemeral and requeued — 8/8 GPUs back at
+72-83%, failed/ empty. Durable fix: monitor now has a DISK GUARD
+(logs disk %, auto-PAUSE ≥92%, clears <85%, never removes a human
+PAUSE) — tested with a stubbed df across all four branches.**
 
 **2026-08-18 tick #3 (Fable): FREEZE AXIS ISOLATED + QUANTIFIED.**
 Flag audit proves primary vs compB differ in ONE flag

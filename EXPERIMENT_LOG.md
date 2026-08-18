@@ -10231,3 +10231,38 @@ running + 4 pool) to estimate the effect on matched n — motivated
 work, not seed padding. Also fixed: `run_repl_wave.sh` looped seeds
 1-6 only, so the s7+ checkpoints scored zero on first pass (caught by
 the "scored 0 cells" reading, range extended to 1-16, re-run).
+
+## 2026-08-18 #4 — INCIDENT: root filesystem hit 100%, killing 12 training cells at their checkpoint save. Coordinator-caused. Diagnosed, recovered without data loss, durable disk guard added.
+
+**Symptom (06:13Z tick):** 12/12 queued cells in `failed/`, all 8 GPUs
+at 0%, ~15 min dark. **Root cause:** `/dev/root` 193G at **100%**,
+0 bytes free. Cells trained normally to step 10000 then died in
+`torch.save` (`RuntimeError: basic_ios::clear: iostream error`) at
+the `--ckpt-every 10000` save. **My fault:** I queued ~30 training
+cells across four waves without ever checking disk headroom — each
+cell writes ~2.2GB of checkpoints to `results/*_ckpts` on the ROOT
+filesystem, and 37 such dirs had accumulated to **79G**. The
+pre-experiment checklist costs FLOPs/memory/params on paper; DISK is
+not on it, and a self-refilling queue fills a disk faster than a
+human notices.
+**Recovery (no data lost):** the 34 reseed checkpoint dirs were
+MOVED (not deleted) to `/ephemeral/reseed_ckpts/` (5.9T volume, was
+3% used); the three `*_s0_ckpts` originals — load-bearing evidence
+for the premise battery — were explicitly KEPT on root. Root went
+100% → 68% (64G free). All 12 failed specs were rewritten with
+`--ckpt-dir /ephemeral/reseed_ckpts/...` and requeued (8 pending +
+4 pool); 8 claimed within 70s, GPUs back to 72-83%. `failed/` is
+empty. Note the scored JSONs for every affected seed were already
+archived to repo+SSD before the incident, so nothing scientific was
+at risk — only unscored compute.
+**Durable fix:** `gpu_hot_monitor.sh` gains a DISK GUARD — logs
+`disk_root=N%` every minute; at ≥92% raises `DISK_CRITICAL` and
+writes its own `PAUSE` (workers stop claiming, so jobs stop dying at
+their save instead of mid-wave); clears both when root recovers
+below 85% (hysteresis band prevents flapping). Tested with a stubbed
+`df`: alarm+auto-pause at 95%, both cleared at 70%, no action at 88%,
+and — verified explicitly — a HUMAN-written PAUSE is never removed
+(only its own, matched by content).
+**Standing lesson:** utilization monitoring without a disk guard is
+incomplete for any auto-refilling queue. Checkpoints belong on
+`/ephemeral`, results JSONs on root.

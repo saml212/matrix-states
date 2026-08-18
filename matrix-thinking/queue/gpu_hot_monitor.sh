@@ -77,6 +77,29 @@ if [ "$n_idle" -gt 0 ] && [ "$n_pending" -eq 0 ] && [ ! -f "$Q/PAUSE" ]; then
   fi
 fi
 
+# ---- 2b. disk guard --------------------------------------------------------
+# Added 2026-08-18 after the root filesystem hit 100% mid-wave and killed 12
+# training cells at their step-10000 checkpoint (torch.save iostream error).
+# Training writes ~2.2GB per cell; a queue that refills itself can fill a disk
+# faster than a human notices, so utilization monitoring without a disk guard
+# is incomplete. PAUSEs the queue rather than letting jobs die at their save.
+root_pct=$(df -P / | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
+log "disk_root=${root_pct}%"
+if [ -n "$root_pct" ] && [ "$root_pct" -ge 92 ]; then
+  if [ ! -f "$Q/DISK_CRITICAL" ]; then
+    touch "$Q/DISK_CRITICAL"
+    log "ALARM DISK_CRITICAL: root filesystem at ${root_pct}% -- pausing new claims (jobs die at checkpoint save when full)"
+  fi
+  # PAUSE is honored by every worker; a human/agent clears it after freeing space.
+  [ -f "$Q/PAUSE" ] || echo "Auto-paused by gpu_hot_monitor: root fs at ${root_pct}%. Free space (checkpoints belong on /ephemeral), then rm PAUSE and DISK_CRITICAL." > "$Q/PAUSE"
+elif [ -n "$root_pct" ] && [ "$root_pct" -lt 85 ]; then
+  if [ -f "$Q/DISK_CRITICAL" ]; then
+    rm -f "$Q/DISK_CRITICAL"
+    grep -q "gpu_hot_monitor" "$Q/PAUSE" 2>/dev/null && rm -f "$Q/PAUSE"
+    log "disk recovered to ${root_pct}% -- DISK_CRITICAL cleared, auto-PAUSE lifted"
+  fi
+fi
+
 # ---- 3. low-utilization alarm ---------------------------------------------
 if [ "$n_claimed" -gt 0 ] && [ "$mean" -lt 50 ]; then
   streak=$(( $(cat "$STATE" 2>/dev/null || echo 0) + 1 ))
