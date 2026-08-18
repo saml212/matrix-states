@@ -10749,3 +10749,57 @@ weaker control than a truly inert target. Also flagged out-of-scope:
 this does not test §G3-B32's TPC_fg claim on the frozen-adapter arm,
 a cheap follow-on using the same code delta.
 **Attack round dispatched. No build, no GPU, until it clears.**
+
+## 2026-08-18 #16 — Embed-path attack R1: REV-REQUIRED (5F/8M/5m), all executed. The split-backward's VALUES are right but three claims about it are false; and a ~0.5 GPU-h PRE-TEST exists that could kill the hypothesis before the 15 GPU-h wave.
+
+Report: `matrix-thinking/NCR_EMBED_PATH_ATTACK_R1.md`. Every finding
+demonstrated by execution in PyTorch 2.8.0, not argued from memory.
+**What is CORRECT (verified, frozen for R2):** the assembled gradient
+VALUES are right — `retain_graph=True` is required and present,
+nothing double-counts or drops, `allow_unused` is safe, AdamW steps
+bit-identically off manually-assigned `.grad`, there is no AMP to
+interact with, and `grad_ce[embed]` correctly covers BOTH of embed's
+tied roles (lookup and LM head).
+**FATALs:**
+- **F1 — the metric regime is never named. This is a REPEAT of the
+  adopted #7 F1**, one week apart, same failure: the SAME compB s6
+  checkpoint reads **0.9727 under P1b** and **0.0508 under P0**, so
+  an unnamed regime inverts the verdict. Also missing: the h=1
+  co-condition and an attrition rule. (Pattern noted: naming the
+  scoring regime is now a standing pre-registration requirement.)
+- **F2 — the cost claim is wrong.** `non_ce = total_loss − ce_loss`
+  makes autograd accumulate exactly 0.0 at the shared `ce_loss` node
+  and then **re-walk the entire backbone with zeros** (traversal
+  counter = 1, not 0). So the "+10-30%" is really a second full
+  backward: the wave costs **14.4-20.0 GPU-h against a ≤15 cap**.
+  Fix (executed): build `non_ce` from the `aux_loss`/`ortho_loss`
+  tensors `compute_arm_losses` already returns — `torch.equal`
+  gradients, 0 traversals, **9.8-13.2 GPU-h**.
+- **F3 — the verification plan cannot run.** Smoke sub-test (b)
+  raises `RuntimeError` (the helper's second `grad` frees the graph);
+  sub-test (c)'s `torch.equal` is provably false because float
+  addition isn't associative (~1e-8 divergence). The one check
+  guarding this new code would have been "fixed" by loosening it.
+- **F4 — `run_repl_wave2.sh` cannot see compE on FOUR independent
+  counts** (arm loop, hardcoded `mob_g3b31_` prefix, ckpt roots,
+  `seq 1 24` vs seeds s21-s28), and the natural one-line fix would
+  silently score it with `freeze="freeze"`. **Fifth/sixth instance of
+  a bug class this log already counted to four.**
+- **F5 — the arms would not differ only in gradient routing:**
+  downstream `clip_grad_norm_(all_params, 1.0)` couples the embed cut
+  to every parameter's step. Free fix: cut AFTER clipping.
+**THE MOST VALUABLE FINDING (MAJOR, but it reshapes the wave):** the
+placebo target `ncr_head` is **causally absent from the measurement
+graph** — under P1b, `Z` comes from `teacher_force_operator`'s pinv
+on DETACHED adapter outputs, so `retrieval24_acc` is a pure function
+of `entity_adapter.weight` and `embed.weight` alone. That kills the
+placebo as specified AND yields a **~0.5 GPU-h eval-only init-swap
+PRE-TEST that could falsify the hypothesis before the wave runs** —
+the same Stage-0′ pattern that saved 25 GPU-h on 08-14.
+Other MAJORs: the INTERACTION claim is registered on a 3-of-4 2×2;
+the bands are not a partition (executed counterexample: median
+0.8555 fires PARTIAL and p=0.0887 fires NULL); the headline
+`2/C(28,8)` is 6.435e-07, not the stated 1.9e-6.
+**Rev-1 dispatched with the pre-test promoted to gating.** No build,
+no wave, until it clears — and if the pre-test kills the hypothesis,
+the wave never runs at all.
