@@ -10472,3 +10472,55 @@ it a retrodiction.
   compB's spread is unexplained by adapter geometry — which is
   itself worth recording, and would push the mechanism question
   toward the embed factor §G3-B31 R2 already implicates.
+
+## 2026-08-18 #9 — compD VERDICT = **GENERALIZES** (pre-registered band). The freeze effect is aux-independent and STRONGER at cosine; the 2x2 is complete; and the archived §G3-B26 result is reproduced in its own regime, which resolves the #7 retrodiction question.
+
+Scored with the corrected instrument and the #7 bands (metric named
+`retrieval24_acc`, `ckpt_step==20000` guard, h=1 co-condition,
+threshold 252/256 = 0.984375). 8/8 cells, no failures.
+
+**compD (TRAINABLE + cosine), n=8:** P1b @ h=1 = **1.0000 in every
+seed**; P1b @ h=61 = 0.1445 0.1562 0.1680 0.2539 0.3047 0.4141
+0.4180 0.4727 (median **0.2793**, max 0.4727). P0 at chance
+throughout (0.0234-0.0625).
+⇒ median h=1 ≥ 0.95 ✓, median h=61 ≤ 0.90 ✓, max h=61 < 0.984375 ✓
+⇒ **GENERALIZES** (not COLLAPSE-NOT-DEPTH: the read forms perfectly
+at h=1 and fails selectively with depth).
+
+**THE COMPLETED 2x2 — median P1b retrieval24_acc @ h=61:**
+| | cosine | contrastive |
+|---|---|---|
+| **FROZEN** | 1.0000 (compA, n=6) | 0.9961 (primary, n=10) |
+| **TRAINABLE** | **0.2793** (compD, n=8) | 0.7070 (compB, n=18) |
+The freeze effect is **not contrastive-specific** — it reappears at
+the cosine setting and is markedly STRONGER there (gap 0.72 vs
+0.29). New registered contrast compD vs compA: complete separation
+(max compD 0.4727 < min compA 0.9961), exact two-tailed
+Mann-Whitney **p = 2/C(14,8) = 6.66e-04**, median gap 0.7207.
+Reading of the pair of gaps: the contrastive aux term appears to
+*partially compensate* for a trainable adapter, which is consistent
+with §G3-B30's original rationale for adding it.
+
+**RESOLUTION OF THE #7 RETRODICTION FINDING (coordinator-verified).**
+The audit was right that §G3-B26 records this configuration's
+outcome — but that measurement is in the model's **OWN-WRITE**
+regime (`NCR_REAL_LM_DESIGN.md:6694-6696`, no teacher-forcing
+anywhere in the block; it is the read-collapse finding on the
+trained model's own Z). compD's own-write readings **reproduce it
+exactly**: P0 @ h=1 = 0.0234-0.0586 vs the archived 0.031-0.062
+(chance 0.042). The **exact-write substitution** regime for this arm
+was never measured — that instrument did not exist until
+2026-08-13. So: my #6 pre-registration WAS a retrodiction as
+written and remains retracted; the corrected #7 registration reads a
+genuinely unmeasured quantity; and the archived result now serves as
+an **internal consistency check that the instrument reproduces prior
+work in the regime where prior work exists**. That is a better
+outcome than either the original claim or the retraction alone.
+
+**Status:** the freeze finding is now (a) replicated across both aux
+settings, (b) pre-registered for the cosine contrast (#7, committed
+before scoring at b459b0b), (c) post-hoc for the original
+contrastive contrast (#5). The flagship should present it that way —
+one pre-registered arm, one post-hoc arm, same direction, both with
+complete separation. Artifacts: `experiment-runs/
+2026-08-18_premise_multiseed/` (46 JSONs, repo+SSD).
