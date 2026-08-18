@@ -10545,3 +10545,42 @@ closed, the 2x2 is complete, and my last two self-generated waves
 were respectively padding and a retrodiction. The pre-registered
 drift analysis (#8) is running as the remaining non-GPU work.
 CONTINUING GPU SPEND REQUIRES A DIRECTION DECISION FROM THE PI.
+
+## 2026-08-18 #11 — Drift/conditioning analysis EXECUTED: BOTH BLIND LEGS FAIL TO SUPPORT the adapter-property mechanism. Full write-up: `matrix-thinking/COMPB_DRIFT_ANALYSIS.md`.
+
+Ran per the #8 pre-registration (committed d9b230f before any
+checkpoint was touched). n=18 compB seeds at ckpt_step==20000;
+**seeds 3 and 4 correctly EXCLUDED at ckpt_step==10000** — disk-incident
+leftovers caught by the registered step guard, which is precisely the
+guard the compD audit demanded. Init reconstruction verified
+deterministic AND distinct from the final weights.
+- **Leg (b) adapter conditioning, BLIND: NULL.** Spearman ρ = −0.155,
+  permutation p = 0.537 (200k resamples). |ρ| < 0.3.
+- **Leg (c) drift-from-init, BLIND: PARTIAL — AND THE SIGN IS
+  OPPOSITE THE PREDICTION.** Registered ρ ≤ −0.5 (more drift → worse);
+  measured **ρ = +0.301**, p = 0.226 (more drift → *better*). A
+  wrong-direction PARTIAL is evidence AGAINST the hypothesis, not weak
+  support, and is recorded as such.
+- **Leg (a) geometry, NOT BLIND (confirmatory only):** ρ(TPC) =
+  **+0.436**, p = 0.073 — confirms the previously-sighted ordering
+  that MORE target collapse accompanies BETTER depth composition, the
+  reverse of the naive reading. Not significant, not claimed.
+**Conclusion:** compB's spread at depth is NOT explained by the
+trained adapter's conditioning or its movement from init. Per the
+pre-registration's own contingency this points at the EMBED factor
+§G3-B31 R2 implicates (freeze closes the adapter factor only; the
+embed factor keeps receiving aux gradient via the o-path) — an
+untested hypothesis, not a result. The freeze effect itself is
+untouched by this null: frozen 0.996-1.000 vs trainable 0.279/0.707,
+exact p = 1.55e-04 in the pre-registered contrast.
+**Power caveat recorded:** n=18 at ρ≈0.3 is underpowered; leg (c) is
+"no support," NOT "proven absent." Settling it needs a pre-registered
+larger n or a direct intervention (freeze the embed factor and
+re-measure), not another correlation on the same seeds.
+**Process note:** the analysis agent ended its turn with its script
+still running and never reported; the coordinator polled the box,
+confirmed completion, and wrote the analysis document from the raw
+output. Also noted: the agent launched the job via `nohup` from a
+backgrounded SSH shell rather than tmux, against this repo's own hard
+rule — it survived, but the rule exists because that pattern can die
+on a control-master hiccup.
