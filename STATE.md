@@ -1,5 +1,15 @@
 # STATE — Current Project State
 
+**2026-08-18 tick #2 (Fable): 21/21 replication (18 fresh seeds, n=6
+per arm) + the compB spread resolved as CONTINUOUS and arm-separated:
+compB P1b@h61 = [0.617 ... 0.973] med 0.789 vs compA/primary all
+0.996-1.000 — distributions do NOT overlap; the trainable entity
+adapter is the lone architectural difference. Disclosed observation,
+not yet a claim. Idle GPUs refilled with a compB-ONLY extension
+(seeds 7-16; compA/primary are variance-saturated). Box 8/8 at
+75-84%, pool=4. Grant ~2 weeks left; flagship write-up (option b) is
+the next non-GPU deliverable.**
+
 **2026-08-18 tick (Fable): PREMISE FINDING REPLICATES 15/15** — the
 12 fresh-seed cells trained + scored with the unmodified audited
 instrument all land AC=00/BD=11 (P0 0.0195-0.0781 vs chance 0.0417;

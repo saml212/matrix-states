@@ -10162,3 +10162,32 @@ act (0 promoted). NOTE: the first test pass of this fix was VACUOUS
 regardless, and with all GPUs busy the branch could not fire at all)
 — caught and redone before the fix was trusted. Same class as the
 audit findings that keep landing on never-executed artifacts.
+
+## 2026-08-18 #2 — Multi-seed extended to n=6 fresh per arm (18/18 AC=00/BD=11); the compB depth-spread is CONTINUOUS, not bimodal, and arm-separated; compB-only characterization wave launched
+
+s5/s6 finished and were scored with the same unmodified instrument.
+Full fresh-seed table (n=6 per arm, P1b @ h=61):
+- compA   [0.996, 0.996, 1.000, 1.000, 1.000, 1.000]  med 1.0000
+- primary [0.996, 0.996, 0.996, 1.000, 1.000, 1.000]  med 0.9980
+- compB   [0.617, 0.648, 0.727, 0.852, 0.953, 0.973]  med 0.7891
+**18/18 land in AC=00/BD=11** (P0 at chance everywhere; P1b = 1.0000
+at h=1 in every cell) — the premise finding is now 21/21 including
+the 08-13 originals.
+**The compB spread is a real, arm-separated effect and it is
+CONTINUOUS:** six values spanning 0.617-0.973 with no gap, so the
+earlier 4-seed reading (0.617/0.648/0.852/0.953) was not two modes,
+just a wide unimodal spread. Every compA/primary value sits at
+0.996-1.000; the two distributions do not overlap at all. The one
+architectural difference is the TRAINABLE entity adapter, so on the
+current evidence freezing it protects deep-composition fidelity even
+when the write is exact. Still recorded as a DISCLOSED OBSERVATION,
+not a claim — no pre-registered test exists, and n=6 vs n=12 with a
+non-overlap is suggestive, not adjudicated.
+**Payload chosen for the idle GPUs:** compB-ONLY extension (seeds
+7-16, config-only on the pinned runner; 6 queued + 4 pool) rather
+than further uniform reseeding — compA/primary are saturated
+(0.996-1.000, no variance to resolve), while compB's distribution
+shape is a direct flagship reporting input. Wave running; scoring
+uses the same audited instrument.
+Artifacts: `experiment-runs/2026-08-18_premise_multiseed/` (18 JSONs,
+repo+SSD).
