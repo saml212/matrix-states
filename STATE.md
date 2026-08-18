@@ -1,5 +1,21 @@
 # STATE — Current Project State
 
+**2026-08-18 tick (Fable): PREMISE FINDING REPLICATES 15/15** — the
+12 fresh-seed cells trained + scored with the unmodified audited
+instrument all land AC=00/BD=11 (P0 0.0195-0.0781 vs chance 0.0417;
+P1b 1.0000 @h=1 in every cell, median 0.9961 @h=61). The flagship's
+multi-seed CI is banked. DISCLOSED nuance the single seed hid: the
+compB (trainable-adapter) arm is weaker/variable at depth
+(0.617-0.953 @h61) vs compA/primary (0.996-1.000) — report the
+arm-level spread, not a pooled number. Artifacts
+`experiment-runs/2026-08-18_premise_multiseed/` (repo+SSD). HARNESS:
+monitor's refill predicate was too strict (required an empty queue),
+so a DRAINING wave left 4 GPUs idle ~10 min; fixed to one promotion
+per idle GPU whenever pending==0, re-verified with a stubbed
+nvidia-smi (first test pass was vacuous — caught and redone).
+Box: 8/8 hot, pool=2, next payload = the s5/s6 tail then the
+flagship write-up (option b).**
+
 **2026-08-17 tick #2 (Fable): K-WALL VERDICT OF RECORD =
 FRONTIER-AT-K*=30** (classify.py-computed; Gate-1 recovery 4/4/3;
 trigger FIRED at K_trig=32 on the $0 archive branch ⇒ qualifier

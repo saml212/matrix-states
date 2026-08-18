@@ -4,11 +4,13 @@
 #
 #   1. SAMPLE   — log per-GPU utilization + queue depth to gpu_hot.log (the
 #                 utilization-not-occupancy record the doctrine asks for).
-#   2. REFILL   — if the live queue is empty (pending+claimed == 0), promote up
-#                 to REFILL_N specs from fallback_pool/ into pending/ IMMEDIATELY.
-#                 This is the "never idle" path: it does not wait for the 3h
-#                 idle_fallback gate, because an empty queue with free GPUs is
-#                 already the failure the gate exists to prevent.
+#   2. REFILL   — if there are IDLE GPUs and nothing pending, promote up to one
+#                 spec per idle GPU from fallback_pool/ into pending/ IMMEDIATELY.
+#                 It does not wait for the 3h idle_fallback gate, and (fixed
+#                 2026-08-18, first live tick after install) it does NOT require
+#                 the queue to be fully drained: a draining wave leaves free GPUs
+#                 while jobs are still claimed, which was exactly the hole the
+#                 original `pending+claimed == 0` predicate left open.
 #   3. ALARM    — raise flags a human/agent can find later:
 #                 GPU_UNDERUTILIZED  : jobs are claimed but sustained util <50%
 #                                      (doctrine: sustained <50% is a bug)
@@ -48,18 +50,29 @@ n_pool=$(ls "$POOL" 2>/dev/null | wc -l | tr -d ' ')
 log "util_mean=${mean}% hot_gpus=${hot}/${n_gpu} pending=${n_pending} claimed=${n_claimed} pool=${n_pool}"
 
 # ---- 2. refill -------------------------------------------------------------
-if [ "$n_pending" -eq 0 ] && [ "$n_claimed" -eq 0 ] && [ ! -f "$Q/PAUSE" ]; then
+# An IDLE GPU is one with no compute process on it (occupancy, not utilization --
+# a GPU running a real job at a low instantaneous sample is NOT idle).
+if busy_uuids=$(nvidia-smi --query-compute-apps=gpu_uuid --format=csv,noheader 2>/dev/null); then
+  n_busy=$(printf '%s\n' "$busy_uuids" | grep -c . || true)
+else
+  n_busy=$n_gpu   # probe failed: assume fully busy, never refill on blind data
+fi
+n_idle=$(( n_gpu - n_busy ))
+[ "$n_idle" -lt 0 ] && n_idle=0
+
+if [ "$n_idle" -gt 0 ] && [ "$n_pending" -eq 0 ] && [ ! -f "$Q/PAUSE" ]; then
   if [ "$n_pool" -gt 0 ]; then
+    want=$(( n_idle < REFILL_N ? n_idle : REFILL_N ))
     moved=0
-    for f in $(ls "$POOL"/*.json 2>/dev/null | head -n "$REFILL_N"); do
+    for f in $(ls "$POOL"/*.json 2>/dev/null | head -n "$want"); do
       mv "$f" "$Q/pending/" && moved=$((moved + 1))
     done
-    [ "$moved" -gt 0 ] && log "REFILL: promoted $moved spec(s) from fallback_pool -> pending (queue was empty)"
+    [ "$moved" -gt 0 ] && log "REFILL: promoted $moved spec(s) from fallback_pool -> pending (${n_idle} idle GPU(s), 0 pending)"
     rm -f "$Q/FALLBACK_POOL_DRY"
   else
     if [ ! -f "$Q/FALLBACK_POOL_DRY" ]; then
       touch "$Q/FALLBACK_POOL_DRY"
-      log "ALARM FALLBACK_POOL_DRY: queue empty AND pool empty -- GPUs will go idle, refill needed"
+      log "ALARM FALLBACK_POOL_DRY: ${n_idle} idle GPU(s), 0 pending, pool EMPTY -- refill needed"
     fi
   fi
 fi

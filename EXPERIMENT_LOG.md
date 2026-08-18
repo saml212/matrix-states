@@ -10125,3 +10125,40 @@ disambiguator at K=32, NO K in {26,28,30} is budget-qualified —
 every use of "K=30 is the last live rung" must carry "at 80K steps."
 No new GPU work is implied (the $0 branch); the box stays on the
 premise-replication wave.
+
+## 2026-08-18 — PREMISE FINDING REPLICATES 15/15 (12 fresh seeds + the 3 originals): the flagship's multi-seed CI is banked. Monitor refill-predicate bug found and fixed on its first live drain.
+
+**Science.** The 12 reseed cells (compA/compB/primary × seeds 1-4,
+config-only on md5-pinned runner 9a93198b) trained to 20000/20000 and
+were scored with the UNMODIFIED audited premise instrument (pbe_repl:
+eval_arm_at_hops, seed 90210, n=256, both write modes). Result:
+**12/12 land in AC=00/BD=11**, i.e. 15/15 with the 08-13 originals.
+P0 (the model's own SGD writes) reads 0.0195-0.0781 across every cell
+and hop — chance is 0.0417 — while P1b (exact write substituted into
+the SAME trained model) reads 1.0000 at h=1 in ALL 12 and median
+0.9961 at h=61.
+**New fact the single-seed run could not show:** the compB arm
+(TRAINABLE entity adapter) is materially weaker and more variable at
+depth — P1b@h61 = 0.6484 / 0.6172 / 0.9531 / 0.8516 for s1-s4, vs
+0.9961-1.0000 for every compA and primary seed (and vs compB s0's
+own 0.9766). Still far above chance, so BD=11 holds in every cell,
+but the flagship must report the arm-level spread rather than a
+single pooled number: freezing the entity adapter appears to matter
+for deep-composition fidelity given an exact operator. Registered as
+a disclosed observation, NOT a new claim (no pre-registered test).
+Artifacts: `experiment-runs/2026-08-18_premise_multiseed/`
+(repo+SSD, 12 JSONs + the runner script).
+**Harness.** `gpu_hot_monitor.sh`'s refill predicate required
+`pending+claimed == 0`, so when the wave DRAINED (8 cells done, 4
+still running, 4 GPUs free) it correctly raised GPU_UNDERUTILIZED but
+did not refill — mean util fell to 30-41% for ~10 min. Fixed to
+promote one spec per IDLE GPU (occupancy-based, not utilization-based
+so a running job at a low sample is never treated as idle) whenever
+`pending == 0`, independent of claimed. Re-verified with a stubbed
+nvidia-smi: 3 idle GPUs + 4 pool specs → promotes exactly 3, pool 4→1;
+pool empty → FALLBACK_POOL_DRY raised; nvidia-smi failing → refuses to
+act (0 promoted). NOTE: the first test pass of this fix was VACUOUS
+(`ls` on an empty dir exits 0, so the success line printed
+regardless, and with all GPUs busy the branch could not fire at all)
+— caught and redone before the fix was trusted. Same class as the
+audit findings that keep landing on never-executed artifacts.
