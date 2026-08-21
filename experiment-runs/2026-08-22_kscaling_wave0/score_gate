@@ -1,0 +1,19 @@
+import json
+K=32; ch=1.0/K
+def kap(a): return (a-ch)/(1-ch)
+for cell in ["primary_s0","primary_s1","primary_s2","compB_s0","compB_s1","compB_s2"]:
+    d = json.load(open("/home/nvidia/ncr_kscaling/results/k32_wave0_%s_kscaling.json" % cell))
+    m = d["matched"]
+    assert m["matched"] is True and d["ckpt_step"] == 20000
+    def row(reg, h):
+        return m[reg]["per_hop"]["h=%d" % h]["acc"]
+    tr = [row("P1b", h) for h in (1, 2, 3)]
+    top, fix = row("P1b", 48), row("P1b", 36)
+    p0all = [row("P0", h) for h in d["hops"]]
+    print("%s: P1b h123=%s kappas=%s | top=%.4f/k=%.4f fix=%.4f/k=%.4f | P0 [%.4f,%.4f]" % (
+        cell, ["%.3f" % a for a in tr], ["%.3f" % kap(a) for a in tr],
+        top, kap(top), fix, kap(fix), min(p0all), max(p0all)))
+for cell in ["primary_s0","compB_s0"]:
+    t = json.load(open("/ephemeral/kscaling/results/kscaling_K32_%s.json" % cell))
+    lh = t["loss_history"]["full_graft"]
+    print(cell, "CE %.3f -> %.3f (step %d)" % (lh[0][1], lh[-1][1], lh[-1][0]))
