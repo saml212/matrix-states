@@ -11220,3 +11220,19 @@ Deployed md5s: battery 72ed244e7f1a62892135d27ad04d3816, smoke
 cells: 0100/0101 calib + 0135/0136/0138/0139 sweep seeds, ~1.0 h,
 6 GPUs) is LAUNCH-RELEASED and queued with this commit.** Calibration
 harvest licenses waves 1-3 (24 cells, 3×8, sentinel-gated).
+
+## 2026-08-22 #1 — WAVE 0 HARVEST: calibration gate CLEARS ALL LEGS AT CEILING → LICENSE-SWEEP GRANTED; K=32 curve point banked at full n=3 (M6).
+
+Six K=32 cells COMPLETED 20000 steps, 0 failures, ~1.0 h wall.
+Gate legs (frozen calib cell kscaling_K32_primary_s0): Gate-0 CE
+11.037→4.528 finite COMPLETED ✓; in-dist P1b κ=1.000 at h∈{1,2,3} ✓
+(bar 0.90); deep P1b κ=0.9960 at h_top=48 ✓ (bar 0.90). Full K=32
+point (matched pools, n=256, seed 90210, ckpt_step==20000, all six
+cells): P1b@h_top=48 κ — frozen 0.9960/0.9798/1.0000, trainable
+0.9919/0.9960/0.9919; h_fix=36 κ 0.9879-1.0000; P0 all hops in
+band [0.0156, 0.0625] vs chance 0.0312 (wall holds at K=32).
+**The toy-prior K=32 far-depth risk did NOT materialize in the
+exact-write regime — capability at ceiling at the widest K.**
+Battery outputs: ~/ncr_kscaling/results/k32_wave0_*_kscaling.json
+(archived with this wave). LICENSE_SWEEP_KSCALING sentinel dropped +
+24 gated cells queued (3 waves of 8, ~2.5 h) with this commit.
