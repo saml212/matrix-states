@@ -10891,3 +10891,49 @@ hard assert on ~46-50% of real steps (measured conduit_ratio range
 Triton JIT cache) — conservative 0.98/0.94 GPU-h/cell kept for specs.
 Build was Sonnet (dispatched before the PI's Opus-for-code
 directive); audit and any fixes are Opus per the new rule.
+
+## 2026-08-21 #2 — Archive gate KILLED the "h~1000 scaling curve" framing (coordinator error): the task is a 24-cycle, answers depend only on h mod 24, and the proposed ladder hid a collision (1021 ≡ 61). PRE-REGISTRATION of the two valid eval-only experiments below.
+
+Gate findings (verified citations in the gate report): DEEP_LADDER
+tops out at h=61 in the real-LM harness by REGISTERED CHOICE (ladder
+inherited from NCR_ORTHO_WRITE §3, ported K=32→24, guarded by
+_assert_ladder_sound); binexp_read is precision-safe to h≫1000
+(fp64-shadow self-test to 1e-9 at h=125, finite at 1021); BUT the
+Task-1 ground truth is a single Hamiltonian 24-cycle
+(grammar_rd.py:262-286), so there are at most 24 distinct outcomes
+and only 15 unused non-train non-identity residues remain. Under the
+EXACT operator, Z^24 ≈ I on the key span, so same-residue depths are
+numerically near-identical, not just answer-identical. "Depth scaling
+to h~1000" is a CATEGORY ERROR for this construction — recorded as a
+coordinator framing error caught by the gate before any design or
+spend.
+
+**PRE-REGISTRATION (eval-only, existing checkpoints, audited
+instrument: eval_arm_at_hops, P1b exact-write regime,
+retrieval24_acc, n=256, seed 90210, ckpt_step==20000 only; arms =
+the frozen pair primary_s1 + compA_s1 [the composing arms] and
+compB_s1 [the degraded arm, informational]):**
+- **Experiment A — RESIDUE-SPACE COMPLETION.** Hop set = the 15
+  unused residues as literal depths: h ∈ {4,6,7,8,9,10,11,14,15,17,
+  18,19,21,22,23} (each >3, none ≡ 0/1/2/3 mod 24, none previously
+  measured). Claim under test: the exact-write capability covers the
+  ENTIRE reachable outcome space, not just the 6 residues measured so
+  far. Bands (frozen arms): COMPLETE-COVERAGE = retrieval24_acc ≥
+  0.95 at ALL 15 residues on both frozen arms; PARTIAL = any residue
+  in [0.5,0.95); GAP-FOUND = any residue < 0.5 (a genuinely new
+  finding — some cycle positions unreachable). Honest framing: this
+  is COVERAGE, not depth scaling.
+- **Experiment B — PHYSICAL-DEPTH ROBUSTNESS at fixed residue.**
+  h ∈ {13, 61, 253, 1021, 4093} — ALL ≡ 13 (mod 24), SAME ground
+  truth by construction, labeled as such. Claim under test: the
+  in-LM read machinery is numerically robust to the physical
+  squaring depth (10-12 squarings). Bands: ROBUST = every deeper
+  reading within 0.02 of the h=13 reading; DRIFT = monotone decline
+  >0.02 (a real fp-depth finding with its own value); UNSTABLE =
+  non-monotone/NaN (instrument finding). Honest framing: numerical
+  robustness, NOT new compositional information.
+- Combined paper sentence if A=COMPLETE and B=ROBUST: "the exact-
+  write capability covers all 23 nontrivial cycle positions and the
+  O(log h) read is numerically stable to physical depths ≥ 4000" —
+  true, verified, and NOT a scaling law.
+- Cost: ~0.1-0.2 GPU-h, GPUs 2-7 only. Builder: Opus (PI directive).
