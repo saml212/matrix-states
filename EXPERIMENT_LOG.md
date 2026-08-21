@@ -10937,3 +10937,59 @@ compB_s1 [the degraded arm, informational]):**
   O(log h) read is numerically stable to physical depths ≥ 4000" —
   true, verified, and NOT a scaling law.
 - Cost: ~0.1-0.2 GPU-h, GPUs 2-7 only. Builder: Opus (PI directive).
+
+## 2026-08-21 #3 — Residue/depth eval HARVEST: A = COMPLETE-COVERAGE, B = DRIFT (real fp-depth finding) — AND the instrument audit found a POOL-SEED CONFOUND that QUARANTINES the freeze-effect comparison pending a matched-pool re-score.
+
+Pre-registered bands (entry #2), audited instrument reproduced
+exactly (pbe_repl md5 16cb22d333066df64386d555cfb0fe7a untouched;
+new code residue_depth_eval.py + run_residue_depth.sh, GPU 6 only,
+0.019 GPU-h total, archived experiment-runs/2026-08-21_residue_depth_evals/
+repo+SSD).
+
+**A — residue-space completion (VERDICT OF RECORD: COMPLETE-COVERAGE).**
+All 15 unused residues, P1b, n=256, seed 90210, ckpt_step==20000
+verified on every cell. primary_s1 min 0.9961 / mean 0.9990; compA_s1
+min 0.9922 / mean 0.9982 — no residue below 0.95 on either frozen
+arm. The exact-write capability covers the ENTIRE reachable outcome
+space (all 23 nontrivial cycle positions now measured ≥0.99 across
+this + prior ladders). P0 at chance (0.019–0.059) at every residue —
+the wall holds everywhere. compB_s1 informational: 0.7617–0.9258
+(see confound below).
+
+**B — physical-depth robustness at residue 13 (VERDICT OF RECORD:
+DRIFT, not ROBUST).** h ∈ {13,61,253,1021,4093}, identical ground
+truth by construction, labeled. primary_s1 1.0000→0.9219 and
+compA_s1 1.0000→0.9062, strictly monotone over 3→11 squarings. Since
+the answer is constant across the five points, this is a REAL
+numerical-depth effect in the in-LM binexp read (~0.08–0.09 lost by
+11 squarings) — a finding with its own value; the honest paper
+sentence is "stable to ~0.92 at physical depth 4093," not "unaffected."
+Noted: the B band trichotomy has no noise allowance at n=256
+(1 item = 0.0039) — brittle if reused; do not reuse without a
+pre-registered tolerance.
+
+**CONFOUND (instrument-level, discovered by the eval agent's
+sensitivity pass): pbe_repl hardcodes build_grammar_pools_and_cfg
+(seed=0), but the reseed checkpoints were trained with their own
+seeds (ckpt["seed"]==s), which drive the entity train/heldout SPLIT.**
+Frozen-adapter arms are immune (adapter frozen at init → pool
+identity irrelevant; verified — matched-pool re-read changes nothing:
+A min 0.9961, B still DRIFT). But compB_s1 — the only tested arm with
+a TRAINED entity_adapter — is NOT degraded under matched pools:
+residues min 0.9883/mean 0.9956 (vs 0.7617–0.9258 mismatched) and
+depth 0.9922→0.8945 (vs 0.8516→0.0625). **QUARANTINE: every
+premise-battery number of record on TRAINED-adapter arms (compB,
+compD) scored via pbe_repl on seed≠0 checkpoints — including the 2×2
+freeze-effect separation (post-hoc p=5.96e-11; pre-registered
+p=1.55e-04) — is confounded with entity-pool generalization until
+the full matched-pool re-score (dispatched, eval-only, ~0.05 GPU-h)
+adjudicates.** Frozen-arm claims are UNAFFECTED: the flagship premise
+finding (exact-write composition 39/39; SGD-write chance) stands.
+
+**CONSEQUENCE: the embed-path mechanism wave (11.64 GPU-h, build
+audited separately) is ON HOLD regardless of its audit verdict until
+the re-score lands** — it targets the mechanism of an effect that may
+be an instrument artifact. If the freeze effect evaporates under
+matched pools, the finding becomes "trained adapters specialize to
+their entity pool; frozen adapters are pool-agnostic" — a different
+(and still publishable) claim, and the wave as designed is dead.
