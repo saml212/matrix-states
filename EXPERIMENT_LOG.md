@@ -11034,3 +11034,5 @@ harness; real-text is an unresolved new setting per N2.4). Cost
 ~0.83 GPU-h/cell flat across K. Ceremony: 10-50 GPU-h tier = audit +
 resource red-team; by-task + by-mechanism external novelty sweeps
 dispatched (doctrine legs 2/3, Sonnet).
+
+## 2026-08-21 #5 — K-scaling novelty gate ADJUDICATED CLEAR (3/3 legs: internal NOVEL-TO-US, by-mechanism NOVEL, by-task NOVEL). Full verdict + verified citations + carried requirements: research/kscaling-novelty-2026-08-21.md. Design/build (Opus) dispatches after the matched-pool re-score adjudication, which also fixes the arm set at each K.
