@@ -11092,3 +11092,5 @@ frozen-vs-trainable ordering open at larger K? — plus a cheap
 deep-ladder matched eval on existing cells (dispatched) to measure
 the residual gap off-ceiling at h∈{253,1021,4093} first.
 Archive: experiment-runs/2026-08-21_poolmatched_battery/ (repo+SSD).
+
+## 2026-08-21 #7 — PRE-REGISTRATION: deep-ladder matched-pool eval (residual-ordering question). All 55 g3b31-family cells + 3 g3b24 cells, MATCHED pools, P1b, h ∈ {61, 253, 1021, 4093} (residue 13 ≡ all, same ground truth labeled), n=256, seed 90210, ckpt_step==20000. Question: does the residual frozen-vs-trainable ordering (matched-pool gap +0.0098 at h=61, ceiling-compressed) become measurable off-ceiling? Bands: RESIDUAL-CONFIRMED = frozen-vs-trainable median gap > 0.05 AND Mann-Whitney p < 0.01 at any h ≥ 253; RESIDUAL-NEGLIGIBLE = gap ≤ 0.05 at every h; secondary deliverable: per-arm depth-drift curves (extends #3's B finding from 3 cells to all). ~0.3 GPU-h, eval-only.
