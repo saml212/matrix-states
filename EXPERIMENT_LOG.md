@@ -10861,3 +10861,33 @@ eval-only pre-test); no fresh SM/VRAM measurement (7-9 GB predicted,
 flagged for build-time smoke); the flag-OFF parity smoke is specified
 but unrun (needs the patched code to exist).
 **Cost of learning the wave was mis-aimed: ~35 seconds of eval.**
+
+## 2026-08-21 — Embed-path BUILD COMPLETE (matrix-thinking/embedpath_build/); parity smoke bit-identical; three disclosed judgment calls; Opus build audit dispatched (gates launch)
+
+Built per DRAFT-R1: minimal 472-line patch against the pinned runner
+(md5 9a93198b verified untouched; patched copy at ~/ncr_embedpath/,
+byte-reconstructed from the committed patch and confirmed identical
+to the tested artifact); split backward from compute_arm_losses's own
+returned tensors (never subtraction — attack F2), cut after
+clip_grad_norm_ (F5), --close-target={embed,entity_adapter}, full
+resume bookkeeping + RUNNER_TAG guard. 12 config-only specs (8 compE
++ 4 compE_adapter, 11.64 GPU-h, no shell substitution, NOTHING in
+pending/). Verification all passed incl. forced-fail negatives run to
+completion, flag-OFF parity smoke BIT-IDENTICAL vs the unpatched
+runner, and 206/206 non-target params torch.equal between cut-ON/OFF
+(stronger than DRAFT-R1's tolerance expectation). run_repl_wave3.sh
+deployed and run for real (its re-score fix legitimately re-scored 6
+primary cells with newer ckpt mtimes — same checkpoints,
+deterministic eval, disclosed).
+**Disclosed items the audit must adjudicate:** (i) two corrections of
+DRAFT-R1's own text (opt never passed into assemble_closed_grads_;
+early-return branches silently dropped the optimizer step — fixed
+with explicit opt param + stepped bool); (ii) PINNED_MIN_RATIO pinned
+at measured-min/10 (embed 5e-5, adapter 0.049) instead of the
+design's "0.5x mean" — the design's formula would fail the per-step
+hard assert on ~46-50% of real steps (measured conduit_ratio range
+0.00055-23.4 over 200 steps) and abort cells; (iii) an unresolved
+~10x throughput discrepancy between clean-cache probes (likely
+Triton JIT cache) — conservative 0.98/0.94 GPU-h/cell kept for specs.
+Build was Sonnet (dispatched before the PI's Opus-for-code
+directive); audit and any fixes are Opus per the new rule.

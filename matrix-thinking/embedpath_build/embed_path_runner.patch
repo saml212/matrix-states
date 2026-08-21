@@ -1,0 +1,472 @@
+--- a/ncr_lm_wave1_runner.py
++++ b/ncr_lm_wave1_runner.py
+@@ -923,6 +923,197 @@
+ 
+ 
+ # ---------------------------------------------------------------------------
++# EMBED-PATH INTERVENTION (build agent, 2026-08-21) -- matrix-thinking/
++# NCR_EMBED_PATH_DESIGN.md DRAFT-R1 sec R1.3/R1.4/R1.6 (repo commit db4d385
++# and later; audited attack round matrix-thinking/NCR_EMBED_PATH_ATTACK_R1.md,
++# 591301a, REV-REQUIRED 5F/8M/5m, every finding executed). --close-target=
++# {embed,entity_adapter} cuts aux+ortho's MARGINAL gradient contribution
++# into exactly one named parameter of the full_graft arm, leaving CE's own
++# gradient into that parameter (all three of its routes when target=embed:
++# embedding lookup, tied LM head, and the o-side path -- D-F5/R1.6's own
++# scope statement) completely untouched, and leaving every OTHER parameter
++# (entity_adapter when target=embed; ncr_head; backbone's non-target layers)
++# with the FULL combined gradient, bit-identical to what a plain
++# total_loss.backward() would have produced for that param (D-F3's own
++# two-tier tolerance -- see check_scope_preserved in the verification
++# suite). NEVER built by total_loss - ce_loss subtraction (F2, executed:
++# that form re-walks the entire backbone with a seeded-zero gradient,
++# 14.4-20.0 GPU-h instead of 9.84-13.20) -- built from compute_arm_losses's
++# OWN RETURNED aux_loss/ortho_loss tensors instead (D-F2). The cut happens
++# AFTER clip_grad_norm_ has already run over the FULL combined gradient
++# (D-F5, executed: cutting BEFORE clipping changes the global grad norm,
++# which changes the clip coefficient, which silently rescales EVERY OTHER
++# parameter's effective step as a side effect of the embed/adapter cut --
++# a confound that would have voided the "arms differ only in gradient
++# routing" causal licence the design's own claim depends on).
++# ---------------------------------------------------------------------------
++def _non_ce_term(aux_loss, ortho_loss, aux_read_loss_weight: float, ortho_reg_weight: float):
++    """D-F2: non_ce built DIRECTLY from compute_arm_losses's own returned
++    aux_loss/ortho_loss tensors -- never by total_loss - ce_loss subtraction
++    (F2, executed: the subtraction form re-walks the entire backbone with a
++    gradient that is symbolically exact zero at the Sub node but still
++    costs a full backward pass, and materializes an exact-zero tensor for
++    every backbone param instead of leaving it correctly unreachable/None).
++    Returns None iff both branches are inactive this step (defensive; every
++    launched compE/compE_adapter cell always has aux_read_loss_weight=0.5,
++    ortho_reg_weight=0.1, so this is always a real tensor in practice, but
++    the guard is unconditional per D-F2's own ask, not relied-upon-but-
++    unwritten)."""
++    non_ce = None
++    if aux_loss is not None and aux_read_loss_weight > 0.0:
++        non_ce = aux_read_loss_weight * aux_loss
++    if ortho_loss is not None and ortho_reg_weight > 0.0:
++        term = ortho_reg_weight * ortho_loss
++        non_ce = term if non_ce is None else non_ce + term
++    return non_ce
++
++
++def assemble_closed_grads_(arm: dict, opt: torch.optim.Optimizer, total_loss: torch.Tensor,
++                            ce_loss: torch.Tensor, aux_loss, ortho_loss,
++                            aux_read_loss_weight: float, ortho_reg_weight: float,
++                            close_target: str, max_norm: float = 1.0) -> dict:
++    """--close-target={embed,entity_adapter} (DRAFT-R1 sec R1.6, D-F2+D-F5+
++    D-A2 combined into one function -- see the module-level comment above
++    for why): cuts aux+ortho's marginal gradient contribution into exactly
++    ONE named parameter, AFTER clip_grad_norm_ has already run over the
++    FULL combined gradient (D-F5) -- so every OTHER parameter receives
++    compB's own post-clip gradient, to within D-F3's pinned allclose bound,
++    and the two arms differ in target_w.grad alone. REPLACES
++    total_loss.backward() entirely when close_target is set for this arm --
++    the caller must NOT also call .backward() for it, and must NOT re-run
++    the shared finite/clip_grad_norm_/opt.step() block for this arm (both
++    already happen inside this function, per D-F5's own ordering
++    requirement -- see R1.6's own note on why this restructures the loop).
++
++    BUILD-TIME CORRECTION (disclosed, not silent): DRAFT-R1's own R1.6 text
++    states in its training-loop comment that "clip_grad_norm_ and opt.step()
++    are ALREADY DONE inside assemble_closed_grads_", but the function
++    signature/body given in that same section never receives `opt` and
++    never calls `.step()` -- an internal inconsistency in the design
++    document itself. This build adds `opt` as an explicit parameter and
++    calls `opt.step()` at the end (guarded exactly as the shared block's
++    own `if finite: ... opt.step()` is), so the code matches what the
++    design's own comment already promised the caller. See BUILD_REPORT.md.
++
++    Why the combined side is `total_loss.backward()` itself, not a second
++    re-assembled `grad_ce`: D-F5 requires the clip coefficient to be
++    computed from the SAME global norm compB's own backward() would
++    produce. Calling `total_loss.backward()` for the full combined
++    gradient and taking ONE separate targeted `torch.autograd.grad(non_ce,
++    [target_w], retain_graph=True)` call BEFORE it (order matters for
++    graph retention, not for values) gets `grad_rest[target]` alone without
++    ever re-deriving `grad_ce` via a second `autograd.grad(ce_loss, ...)`
++    call -- so D-F2's allow_unused/None-set assertion only needs to check
++    ONE parameter (the target), not every param in all_params (R1.6's own
++    simplification).
++
++    Returns {"cut_active": bool, "stepped": bool, "conduit_ratio": float,
++    "clip_coef": float, "target": str} -- conduit_ratio and clip_coef are
++    the D-A2 has-teeth diagnostics (see assert_conduit_has_teeth); "stepped"
++    is a SECOND build-time addition (not present in DRAFT-R1's own R1.6
++    text at all): both of R1.6's own early-return branches
++    ("non_ce is None" / "grad_rest_target is None" -- both expected to be
++    dead code in every launched compE/compE_adapter cell, since
++    aux_read_loss_weight=0.5 and ortho_reg_weight=0.1 are always > 0 and
++    embed/entity_adapter are both structurally on the conduit -- see
++    _non_ce_term's own docstring) called total_loss.backward() and
++    returned WITHOUT ever running the finite check, clip_grad_norm_, or
++    opt.step() -- silently dropping that training step's parameter update
++    entirely, with no signal to the caller. Fixed here: every path now
++    finite-checks, clips, and steps identically to the shared block's own
++    `if finite: clip; opt.step() else: n_skipped += 1` pattern, and reports
++    whether it actually stepped so the caller's n_skipped bookkeeping stays
++    accurate even on this (expected-unreachable) fallback path. See
++    BUILD_REPORT.md."""
++    target_w = {"embed": arm["backbone"].embed.weight,
++                "entity_adapter": arm["integ"].entity_adapter.weight}[close_target]
++    all_params = [p for p in (list(arm["backbone"].parameters()) +
++                               list(arm["ncr"].parameters()) +
++                               list(arm["integ"].parameters())) if p.requires_grad]
++
++    def _finite_clip_step() -> bool:
++        finite = all(p.grad is None or torch.isfinite(p.grad).all() for p in all_params)
++        if finite:
++            torch.nn.utils.clip_grad_norm_(all_params, max_norm)
++            opt.step()
++        return finite
++
++    non_ce = _non_ce_term(aux_loss, ortho_loss, aux_read_loss_weight, ortho_reg_weight)
++    if non_ce is None:                      # both branches inactive this step -- nothing to cut (dead code in
++                                              # this wave's actual launch config, guarded anyway per D-F2)
++        total_loss.backward()
++        stepped = _finite_clip_step()
++        return {"cut_active": False, "stepped": stepped, "conduit_ratio": 0.0, "clip_coef": 1.0, "target": close_target}
++
++    grad_rest_target = torch.autograd.grad(non_ce, [target_w], retain_graph=True, allow_unused=True)[0]
++    total_loss.backward()                   # populates the FULL combined .grad for every param, incl. target_w
++
++    # D-F2 None-set assertion, narrowed to the one param that matters here (R1.6):
++    # allow_unused=True is genuinely load-bearing for this call (target_w becoming
++    # unreachable from non_ce would be a real, not spurious, structural fact) -- if
++    # it fires, the flag would be closing an already-empty door; report as inert
++    # rather than silently proceeding as if a real cut happened. Also dead code in
++    # this wave's actual config (embed and entity_adapter are both structurally on
++    # the conduit -- §2.1/§4 of the design), guarded anyway.
++    if grad_rest_target is None:
++        stepped = _finite_clip_step()
++        return {"cut_active": False, "stepped": stepped, "conduit_ratio": 0.0, "clip_coef": 1.0, "target": close_target}
++
++    combined_before_clip = target_w.grad.detach().clone()
++    grad_ce_target = combined_before_clip - grad_rest_target      # derived, NOT a second ce_loss.backward() call
++                                                                     # (D-F3: this is the TOLERANCE tier, not exact --
++                                                                     # float non-associativity at the shared o_raw/Z
++                                                                     # node means this is not bit-identical to a
++                                                                     # hypothetical standalone ce_loss.backward())
++    conduit_ratio = (grad_rest_target.norm() / grad_ce_target.norm().clamp_min(1e-12)).item()   # D-A2(i)
++
++    finite = all(p.grad is None or torch.isfinite(p.grad).all() for p in all_params)
++    if not finite:
++        return {"cut_active": False, "stepped": False, "conduit_ratio": conduit_ratio,
++                "clip_coef": float("nan"), "target": close_target}
++
++    torch.nn.utils.clip_grad_norm_(all_params, max_norm)   # scales EVERY param's .grad in place, incl. target_w's
++                                                              # FULL combined grad -- same clip coefficient compB
++                                                              # itself gets for this batch (D-F5)
++    combined_after_clip = target_w.grad.detach().clone()
++    clip_coef = (combined_after_clip.norm() / combined_before_clip.norm().clamp_min(1e-12)).item()   # the EXACT
++                                                              # applied ratio, not PyTorch's internal formula
++                                                              # re-derived by hand
++
++    target_w.grad.sub_(grad_rest_target * clip_coef)     # remove aux+ortho's (equally clipped) share -- AFTER clipping
++    grad_ce_target_clipped = grad_ce_target * clip_coef
++    # D-A2(ii): per-step identity check, TOLERANCE tier per D-F3 (embed AND entity_adapter
++    # both sit on the shared o_raw/Z node reached by both CE and aux/ortho -- neither is
++    # exact-tier; see check_scope_preserved in the verification suite for the full two-tier
++    # split, which also covers backbone-block/read_injector params on the EXACT tier).
++    assert torch.allclose(target_w.grad, grad_ce_target_clipped, rtol=1e-5, atol=1e-6), (
++        f"close_target={close_target}: post-cut grad does not match CE's own (clipped) share within tolerance")
++    opt.step()      # build-time correction above: opt threaded in explicitly, called here per D-F5's own ordering
++    return {"cut_active": True, "stepped": True, "conduit_ratio": conduit_ratio, "clip_coef": clip_coef, "target": close_target}
++
++
++def assert_conduit_has_teeth(grad_diag: dict, step: int, min_ratio: float) -> None:
++    """D-A2(i), R1.6: min_ratio is PINNED FROM A BUILD-TIME SMOKE MEASUREMENT
++    (never guessed -- CLAUDE.md's own 'measured, not just estimated' rule),
++    the mean conduit_ratio over the first ~50 real training steps of a
++    full_graft cell with the flag active, times a safety margin -- NOT an
++    absolute floor (DRAFT-R0's original 'min_conduit_norm=1.0' could not
++    detect the vacuous-pass mode the attack found: a large CE norm can
++    swamp a genuinely small aux+ortho norm and still clear an absolute
++    floor). Called every step close_target is active; returns without
++    asserting (not `assert True`) on a 'cut_active=False' step, so this
++    cannot reproduce DRAFT-R0's m2 contradiction (an unconditional
++    assert-cut_active immediately after a branch that can legitimately
++    return cut_active=False)."""
++    if not grad_diag["cut_active"]:
++        return
++    assert grad_diag["conduit_ratio"] > min_ratio, (
++        f"step {step}: HAS-TEETH FAILED -- conduit_ratio={grad_diag['conduit_ratio']:.4f} "
++        f"<= pinned min_ratio={min_ratio:.4f}; the flag may be closing an "
++        f"already-negligible path")
++
++
++# ---------------------------------------------------------------------------
+ # Eval -- FIXED per-h eval seeds (independent of training step and of which
+ # arm is being evaluated), so both arms are scored on LITERALLY the same
+ # held eval documents at every checkpoint.
+@@ -1085,7 +1276,7 @@
+ # ---------------------------------------------------------------------------
+ def save_checkpoint(path: str, step: int, arms: dict, opts: dict, data_gen: torch.Generator,
+                      cumulative_elapsed_s: float, cell_id: str, seed: int,
+-                     freeze_entity_adapter: bool = False) -> None:
++                     freeze_entity_adapter: bool = False, close_target: str | None = None) -> None:
+     """sec G3-B26 seed trap fix: `seed` is now recorded in the checkpoint (was absent --
+     build_grammar_pools_and_cfg(seed=...) is called BEFORE the checkpoint-exists check in
+     run_two_arm_cell and is NOT itself saved, so a resume launched with a DIFFERENT --seed
+@@ -1102,10 +1293,24 @@
+     resuming a --freeze-entity-adapter run WITHOUT the flag (or vice versa)
+     would rebuild an optimizer with a DIFFERENT param-group shape than the
+     saved opt_state was fit against. run_two_arm_cell's resume path asserts
+-    against this field the same way it already asserts against `seed`."""
++    against this field the same way it already asserts against `seed`.
++
++    Embed-path build (D-M7, matrix-thinking/NCR_EMBED_PATH_DESIGN.md
++    R1.12): `close_target` is recorded for the SAME reason, applied to a
++    NEW string-valued CLI flag -- unlike freeze_entity_adapter, close_target
++    does NOT change build_optimizer's param-group structure (embed and
++    entity_adapter stay in the same single param group compB's own
++    optimizer already uses -- DRAFT-R0 sec 2.5, unchanged by Rev-1). It
++    changes only which gradient VALUE lands in a param's .grad at the
++    training-loop level, every step, before opt.step() -- so a resume that
++    silently switches close_target mid-run would train the second half of
++    the run under a DIFFERENT gradient-assembly rule than the first half
++    produced its optimizer momentum/variance state under, yielding a hybrid
++    trajectory that is neither condition. Same assert-on-resume pattern as
++    seed/freeze_entity_adapter, see run_two_arm_cell."""
+     ckpt = {
+         "runner_tag": RUNNER_TAG, "cell_id": cell_id, "step": step, "seed": seed,
+-        "freeze_entity_adapter": freeze_entity_adapter,
++        "freeze_entity_adapter": freeze_entity_adapter, "close_target": close_target,
+         "cumulative_elapsed_s": cumulative_elapsed_s,
+         "data_gen_state": data_gen.get_state(),
+     }
+@@ -1188,7 +1393,13 @@
+                       ckpt_every: int, eval_every: int, teacher_force_operator: bool = False,
+                       aux_read_loss_weight: float = 0.0, ortho_reg_weight: float = 0.0,
+                       aux_loss_type: str = "cosine", contrastive_temperature: float = 0.07,
+-                      freeze_entity_adapter: bool = False) -> dict:
++                      freeze_entity_adapter: bool = False, close_target: str | None = None,
++                      min_conduit_ratio: float | None = None) -> dict:
++    assert close_target is None or min_conduit_ratio is not None, (
++        "--close-target requires --min-conduit-ratio explicitly (same 'no silent default' "
++        "discipline as --ceiling-gpuh) -- PINNED_MIN_RATIO (NCR_EMBED_PATH_DESIGN.md R1.6/"
++        "R1.15) must come from a build-time smoke measurement of a real training step's "
++        "conduit_ratio, never guessed inline here.")
+     if os.path.exists(out_path):
+         with open(out_path) as f:
+             prev = json.load(f)
+@@ -1233,9 +1444,20 @@
+             f"with a DIFFERENT param-group shape than the saved opt_state was fit against (sec "
+             f"G3-B31, the seed-trap fix's own pattern applied to this new flag). Re-launch with "
+             f"the matching flag state, or point --ckpt-dir at a fresh path.")
++        # Embed-path build (D-M7, NCR_EMBED_PATH_DESIGN.md R1.12): SAME pattern again, applied
++        # to --close-target -- see save_checkpoint's own docstring for why a mismatch here would
++        # produce a hybrid trajectory (different gradient-assembly rule mid-run) even though it
++        # does NOT change the optimizer's param-group shape the way freeze_entity_adapter does.
++        ckpt_close_target = ckpt.get("close_target", close_target)
++        assert ckpt_close_target == close_target, (
++            f"[{cell_id}] --close-target MISMATCH on resume: checkpoint {ckpt_path!r} was built "
++            f"with close_target={ckpt_close_target!r} but this launch passed "
++            f"close_target={close_target!r}. Resuming would silently switch which gradient-assembly "
++            f"path trains this arm mid-run, producing a hybrid trajectory that is neither condition. "
++            f"Re-launch with the matching --close-target value, or point --ckpt-dir at a fresh path.")
+         print(f"[{cell_id}] RESUMING from checkpoint at step {ckpt['step']} "
+               f"(cumulative_elapsed_s={ckpt['cumulative_elapsed_s']:.0f}, seed={ckpt_seed} verified, "
+-              f"freeze_entity_adapter={ckpt_freeze} verified)", flush=True)
++              f"freeze_entity_adapter={ckpt_freeze} verified, close_target={ckpt_close_target!r} verified)", flush=True)
+         arms, opts, data_gen = restore_arms_and_opts(ckpt, vocab_size_total, lr, device, freeze_entity_adapter)
+         start_step = ckpt["step"]
+         cumulative_elapsed_s = ckpt["cumulative_elapsed_s"]
+@@ -1261,7 +1483,8 @@
+                     ceiling_gpuh=ceiling_gpuh, teacher_force_operator=teacher_force_operator,
+                     aux_read_loss_weight=aux_read_loss_weight, ortho_reg_weight=ortho_reg_weight,
+                     aux_loss_type=aux_loss_type, contrastive_temperature=contrastive_temperature,
+-                    freeze_entity_adapter=freeze_entity_adapter),
++                    freeze_entity_adapter=freeze_entity_adapter,
++                    close_target=close_target, min_conduit_ratio=min_conduit_ratio),
+         params=dict(per_arm=n_params["full_graft"],
+                     backbone=sum(p.numel() for p in arms["full_graft"]["backbone"].parameters()),
+                     ncr_head=sum(p.numel() for p in arms["full_graft"]["ncr"].parameters()),
+@@ -1303,6 +1526,11 @@
+     # checks passed IN THIS PROCESS's run only.
+     teacher_force_ncr_zero_grad_checks = 0
+     rec["teacher_force_check"] = {"active": teacher_force_operator, "ncr_zero_grad_checks_passed": 0}
++    # Embed-path build: per-step conduit_ratio/clip_coef history for the has-teeth diagnostic
++    # (NCR_EMBED_PATH_DESIGN.md D-A2) -- same LOG_EVERY cadence as loss_hist above, logged
++    # regardless of blind discipline since these are TRAINING-time gradient-routing diagnostics,
++    # not eval metrics (same rationale as aux_loss/ortho_loss's own printability above).
++    close_diag_hist = []
+ 
+     for step in range(start_step + 1, steps + 1):
+         cur_lr = get_lr(step, max_lr=lr, warmup_steps=warmup_steps, total_steps=steps)
+@@ -1314,6 +1542,7 @@
+         step_aux_losses = {}   # sec G3-B17: full_graft only, populated only when aux_read_loss_weight > 0.0
+         step_ortho_losses = {}  # sec G3-B20: full_graft only, populated only when ortho_reg_weight > 0.0
+         step_aux_components = {}  # sec G3-B31: full_graft only, populated only for aux_loss_type=="contrastive+cosine"
++        step_close_diag = None  # embed-path build: full_graft only, populated only when --close-target is active
+         for arm_name, read_ablate in (("full_graft", False), ("backbone_only", True)):
+             arm, opt = arms[arm_name], opts[arm_name]
+             for g in opt.param_groups:
+@@ -1332,7 +1561,25 @@
+                 arm, batch, read_ablate, tf_this_arm, aux_read_loss_weight, arm_name == "full_graft",
+                 ortho_reg_weight, aux_loss_type, contrastive_temperature)
+             opt.zero_grad()
+-            total_loss.backward()
++            # Embed-path build (NCR_EMBED_PATH_DESIGN.md DRAFT-R1 sec R1.6): close_target only
++            # ever applies to full_graft (backbone_only's o_raw is the untrained-encoder null
++            # baseline and never touches any loss -- same scoping as teacher_force/aux above).
++            # assemble_closed_grads_ REPLACES total_loss.backward() AND the shared finite/
++            # clip_grad_norm_/opt.step() block below for this arm this step -- see D-F5's own
++            # ordering requirement (the cut must happen AFTER clipping, so clip_grad_norm_ runs
++            # exactly once, inside the helper, over the SAME full combined gradient compB's own
++            # backward() would have produced).
++            close_this_arm = close_target is not None and arm_name == "full_graft"
++            if close_this_arm:
++                grad_diag = assemble_closed_grads_(
++                    arm, opt, total_loss, ce_loss, aux_loss, ortho_loss,
++                    aux_read_loss_weight, ortho_reg_weight, close_target)
++                assert_conduit_has_teeth(grad_diag, step, min_ratio=min_conduit_ratio)
++                step_close_diag = grad_diag
++                if not grad_diag["stepped"]:
++                    n_skipped[arm_name] += 1
++            else:
++                total_loss.backward()
+             if tf_this_arm:
+                 # sec G3-B9 isolation proof, ported from ncr_lm_wave1_smoke.py smoke
+                 # item 10's construction-time check into this training loop, run
+@@ -1351,13 +1598,14 @@
+                 # sec G3-B31 "has teeth" check, EVERY step, BOTH arms -- see
+                 # assert_entity_adapter_grad_none's own docstring.
+                 assert_entity_adapter_grad_none(arm, arm_name)
+-            all_params = list(arm["backbone"].parameters()) + list(arm["ncr"].parameters()) + list(arm["integ"].parameters())
+-            finite = all(p.grad is None or torch.isfinite(p.grad).all() for p in all_params)
+-            if finite:
+-                torch.nn.utils.clip_grad_norm_(all_params, 1.0)
+-                opt.step()
+-            else:
+-                n_skipped[arm_name] += 1
++            if not close_this_arm:
++                all_params = list(arm["backbone"].parameters()) + list(arm["ncr"].parameters()) + list(arm["integ"].parameters())
++                finite = all(p.grad is None or torch.isfinite(p.grad).all() for p in all_params)
++                if finite:
++                    torch.nn.utils.clip_grad_norm_(all_params, 1.0)
++                    opt.step()
++                else:
++                    n_skipped[arm_name] += 1
+             step_losses[arm_name] = ce_loss.item()
+             if aux_loss is not None:
+                 step_aux_losses[arm_name] = aux_loss.item()
+@@ -1385,15 +1633,24 @@
+             comp_str = (f"  full_graft_l_ctr={step_aux_components['full_graft']['l_ctr']:.4f}"
+                         f"  full_graft_l_cos={step_aux_components['full_graft']['l_cos']:.4f}"
+                         if "full_graft" in step_aux_components else "")
++            # Embed-path build: conduit_ratio/clip_coef, TRAINING-time gradient-routing
++            # diagnostics (not an eval metric) -- absent unless --close-target is active.
++            close_str = (f"  conduit_ratio={step_close_diag['conduit_ratio']:.4f}"
++                         f"  clip_coef={step_close_diag['clip_coef']:.4f}"
++                         f"  cut_active={step_close_diag['cut_active']}"
++                         if step_close_diag is not None else "")
++            if step_close_diag is not None:
++                close_diag_hist.append([step, step_close_diag["conduit_ratio"], step_close_diag["clip_coef"],
++                                         step_close_diag["cut_active"], step_close_diag["stepped"]])
+             # BLIND: loss is operational telemetry (liveness/divergence), never an eval metric --
+             # matches ncr_ortho_fallback_stage0_v3.py's own precedent.
+             print(f"[{cell_id}] step {step}/{steps}  full_graft_loss={step_losses['full_graft']:.4f} "
+                   f"backbone_only_loss={step_losses['backbone_only']:.4f}  lr={cur_lr:.2e}  "
+-                  f"{elapsed:.0f}s{aux_str}{ortho_str}{comp_str}", flush=True)
++                  f"{elapsed:.0f}s{aux_str}{ortho_str}{comp_str}{close_str}", flush=True)
+ 
+         if step % ckpt_every == 0 or step == steps:
+             save_checkpoint(ckpt_path, step, arms, opts, data_gen, time.time() - t0, cell_id, seed,
+-                             freeze_entity_adapter)
++                             freeze_entity_adapter, close_target)
+ 
+         if step % eval_every == 0 or step == steps:
+             # sec G3-B31 item 7 (integrity monitor wiring, CONFIRMED not patched --
+@@ -1414,13 +1671,16 @@
+             rec["loss_history"] = loss_hist
+             rec["n_skipped_steps"] = n_skipped
+             rec["teacher_force_check"]["ncr_zero_grad_checks_passed"] = teacher_force_ncr_zero_grad_checks
++            if close_target is not None:
++                rec["close_target_diag"] = {"active": close_target, "min_conduit_ratio": min_conduit_ratio,
++                                             "history": close_diag_hist}
+             atomic_write_json(out_path, rec)
+             print(f"[{cell_id}] eval computed at step {step} -> {out_path} updated "
+                   f"(values withheld from stdout, blind discipline sec G3-B6)", flush=True)
+ 
+         if stop_requested(stop_file):
+             save_checkpoint(ckpt_path, step, arms, opts, data_gen, time.time() - t0, cell_id, seed,
+-                             freeze_entity_adapter)
++                             freeze_entity_adapter, close_target)
+             print(f"[{cell_id}] STOP file detected at step {step} -- checkpoint saved, exiting", flush=True)
+             sys.exit(3)
+ 
+@@ -1428,7 +1688,7 @@
+         if elapsed > ceiling_s:
+             final_status = "ABORTED-BUDGET"
+             save_checkpoint(ckpt_path, step, arms, opts, data_gen, elapsed, cell_id, seed,
+-                             freeze_entity_adapter)
++                             freeze_entity_adapter, close_target)
+             eval_result = eval_both_arms(arms, pools, cfg, eval_batch_size, device, seed,
+                                           teacher_force=teacher_force_operator)
+             rec["arms"] = eval_result
+@@ -1437,6 +1697,9 @@
+             rec["loss_history"] = loss_hist
+             rec["n_skipped_steps"] = n_skipped
+             rec["teacher_force_check"]["ncr_zero_grad_checks_passed"] = teacher_force_ncr_zero_grad_checks
++            if close_target is not None:
++                rec["close_target_diag"] = {"active": close_target, "min_conduit_ratio": min_conduit_ratio,
++                                             "history": close_diag_hist}
+             break
+ 
+     # Post-train read-ablation re-check (paranoia: prove the invariant held
+@@ -1842,7 +2105,34 @@
+                           "assert_grad_isolation pattern) -- loud AssertionError, never silently "
+                           "trusted. Default OFF (companion-B cell, trainable+contrastive+cosine, "
+                           "leaves this unset).")
++    ap.add_argument("--close-target", default=None, choices=("embed", "entity_adapter"),
++                     help="Embed-path intervention (matrix-thinking/NCR_EMBED_PATH_DESIGN.md "
++                          "DRAFT-R1, build agent 2026-08-21): cuts aux+ortho's MARGINAL gradient "
++                          "contribution into exactly the named parameter of the full_graft arm "
++                          "(assemble_closed_grads_), AFTER clip_grad_norm_ has already run over "
++                          "the FULL combined gradient (D-F5) -- entity_adapter stays trainable "
++                          "exactly as compB in BOTH choices (this flag does not freeze anything; "
++                          "--freeze-entity-adapter is orthogonal and untested in combination with "
++                          "this flag for this wave). 'embed': backbone.embed.weight receives CE's "
++                          "own gradient only (compE arm). 'entity_adapter': integ.entity_adapter."
++                          "weight receives CE's own gradient only (compE_adapter arm, the mandatory "
++                          "on-path co-arm R1.1's Stage-0 pre-test made necessary -- the ncr_head "
++                          "placebo DRAFT-R0 originally proposed was found causally ABSENT from the "
++                          "P1b measurement graph, D-M2). Default None = OFF, byte-identical to "
++                          "total_loss.backward() (verified by the flag-OFF parity smoke, D-M6). "
++                          "REQUIRES --min-conduit-ratio.")
++    ap.add_argument("--min-conduit-ratio", type=float, default=None,
++                     help="REQUIRED when --close-target is set (no silent default, same discipline "
++                          "as --ceiling-gpuh): the has-teeth floor for ||grad_rest[target]|| / "
++                          "||grad_ce[target]|| (D-A2) -- PINNED FROM A BUILD-TIME SMOKE MEASUREMENT "
++                          "of a real training step's conduit_ratio (NCR_EMBED_PATH_DESIGN.md R1.6/"
++                          "R1.15), never guessed. See BUILD_REPORT.md for the measured value this "
++                          "wave's job specs pin.")
+     args = ap.parse_args()
++    assert RUNNER_TAG == "ncr_gate3_wave1_runner_v1", (
++        f"RUNNER_TAG changed to {RUNNER_TAG!r} -- PINNED (D-M6, NCR_EMBED_PATH_DESIGN.md R1.11). "
++        f"Bumping this silently un-loads EVERY archived compB/compA/compD/primary checkpoint via "
++        f"load_checkpoint's own assert. Do not change it for this build.")
+ 
+     print("=" * 70)
+     print(f"NCR REAL-LM WAVE-1 CALIBRATION RUNNER (sec G3-B6) mode={args.mode} device={args.device} "
+@@ -1867,6 +2157,9 @@
+     assert args.ceiling_gpuh is not None, (
+         "--ceiling-gpuh is REQUIRED for --mode calibration -- run --mode phase0-timing first and pass "
+         "its suggested_ceiling_gpuh explicitly (no silent default; sec G3-B6)")
++    assert args.close_target is None or args.min_conduit_ratio is not None, (
++        "--close-target requires --min-conduit-ratio explicitly (no silent default -- "
++        "NCR_EMBED_PATH_DESIGN.md D-A2/R1.15; see BUILD_REPORT.md for the measured value)")
+     ckpt_dir = args.ckpt_dir or os.path.dirname(os.path.abspath(args.out)) or "."
+     os.makedirs(ckpt_dir, exist_ok=True)
+     cell_id = args.cell_id or f"wave1_calib_K{K_NCR}_s{args.seed}"
+@@ -1884,7 +2177,9 @@
+         ortho_reg_weight=args.ortho_reg_weight,
+         aux_loss_type=args.aux_loss_type,
+         contrastive_temperature=args.contrastive_temperature,
+-        freeze_entity_adapter=args.freeze_entity_adapter)
++        freeze_entity_adapter=args.freeze_entity_adapter,
++        close_target=args.close_target,
++        min_conduit_ratio=args.min_conduit_ratio)
+     return 0
+ 
+ 
