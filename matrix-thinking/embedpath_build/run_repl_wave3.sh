@@ -10,7 +10,7 @@
 # not any stale quoted snapshot.
 set -u
 cd /home/nvidia/ncr_writecond
-export CUDA_VISIBLE_DEVICES=${SMOKE_GPU:-0}
+export CUDA_VISIBLE_DEVICES=${SMOKE_GPU:-2}
 OLD=/home/nvidia/ncr_g3b31_contrastive/results
 MID=/ephemeral/reseed_ckpts
 NEW=/ephemeral/embed_path_ckpts
@@ -45,7 +45,7 @@ done
 echo "SCORED=$scored RESCORED=$rescored MISSING=$missing"
 # self-check (D-F4's own ask): FAIL LOUDLY if ANY expected arm/seed produced no output at all.
 fail=0
-for tag in "${!SEEDS[@]}"; do
+for tag in compE compE_adapter; do          # G2: self-check scoped to this wave's arms (BUILD_AUDIT_R1)
   read -r lo hi <<< "${SEEDS[$tag]}"
   for s in $(seq "$lo" "$hi"); do
     OUT="/home/nvidia/ncr_writecond/results/writecond_premise_REPL_${tag}_s${s}.json"

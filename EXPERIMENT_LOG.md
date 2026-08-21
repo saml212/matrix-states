@@ -10993,3 +10993,44 @@ be an instrument artifact. If the freeze effect evaporates under
 matched pools, the finding becomes "trained adapters specialize to
 their entity pool; frozen adapters are pool-agnostic" — a different
 (and still publishable) claim, and the wave as designed is dead.
+
+## 2026-08-21 #4 — Embed-path build audit: PASS, LAUNCH-RELEASED (0 FATAL / 6 MAJOR / 8 minor); G1-G3 applied + verified. K-scaling internal-archive gate: NOVEL-TO-US, PATCH-required, two external legs dispatched.
+
+**Audit (matrix-thinking/embedpath_build/BUILD_AUDIT_R1.md):** every
+load-bearing invariant re-verified BY EXECUTION on the production
+path; no runner change required. Central adjudication: PINNED_MIN_RATIO
+cannot detect a broken cut at ANY value (ratio computed pre-sub_);
+the real detector is the per-step allclose, proven to fire on the
+shipped function. G1: floor → 1e-8 (NaN/degenerate tripwire only) in
+all 12 specs + m8-closing validity_check append + pre-registered
+harvest has-teeth gate (compE median>0.01/mean>0.1; adapter
+median>1.0/mean>5.0; from the 2000-step probe, pinned before any
+wave data). G2: wave3 self-check scoped to compE/compE_adapter
+(SELF-CHECK PASS was unprintable; 44 spurious FAILs) — negative test
+re-run after the fix: 12/12 FAIL lines fire on absent outputs.
+G3: scoring GPU default 0→2. All three applied by coordinator as
+audited transcriptions (K-wall §A10 precedent), specs re-marked
+LAUNCH-RELEASED, run_repl_wave3.sh redeployed md5-verified
+(d9c9a793879bfc61d3e31939a053eb32). Throughput anomaly root-caused:
+vacuous zero-step resume, not JIT; 11.64 GPU-h ledger stands (~15%
+over-estimate). New science disclosure for harvest: the two arms'
+interventions differ ~100× in strength (embed median conduit_ratio
+0.133 vs adapter 12.9) — R1.9's ADAPTER-LEVERAGE/EMBED-SPECIFIC
+comparison must carry this in the same paragraph. **WAVE REMAINS
+ON HOLD pending the matched-pool re-score (#3's quarantine).**
+
+**K-scaling gate (internal-archive leg): NOVEL-TO-US** — no LM-graft
+arm has ever run at K≠24 — but **PATCH, not config-only**: K_NCR=24 /
+D_NCR=25 are hand-set unpaired constants; DEEP_LADDER's own guard
+CRASHES K∈{12,20,28} (mod-K self-identity / train-residue collision)
+and silently degrades K∈{16,32} (residue collisions lose a depth) —
+fresh hand-derived residue-verified ladders per K are mandatory build
+work. Dominant confound: the (K, d=K+1) PAIR co-varies (house
+precedent: K=24 dead at d=48, healthy at d=25 — the pair, not K, is
+the variable); cross-K bands must be chance-normalized (1/K drifts
+0.083→0.031). Priors to cite, not rediscover: toy K=32 far-depth
+death (h≈5-6), FRONTIER-AT-K*=30 / CONFIRMED-WALL-AT-160K (toy
+harness; real-text is an unresolved new setting per N2.4). Cost
+~0.83 GPU-h/cell flat across K. Ceremony: 10-50 GPU-h tier = audit +
+resource red-team; by-task + by-mechanism external novelty sweeps
+dispatched (doctrine legs 2/3, Sonnet).
