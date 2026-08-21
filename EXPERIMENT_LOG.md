@@ -11138,3 +11138,5 @@ freezing; the ordering is graded (distributions overlap), and own-
 write retrieval remains at chance in all 58 trainings." Publisher
 dispatched per standing doctrine (coverage + depth + reframe +
 graded ordering = finding page no. 18 + X draft).
+
+## 2026-08-21 #9 — PUBLISHED: finding no. 18 live (pebbleml.com/findings/ncr-depth-robustness.html, site commit 6808c74) covering #2-#8's four verdicts (coverage / drift / instrument catch + reframe / graded residual ordering + wall); X thread draft at ~/Desktop/x_draft_depth_robustness.txt (3 posts, not posted). Publisher verification notes of record: violating-pair fractions reproduce with ties-as-violations convention; #8's aux main effect sign is convention-dependent (|0.0137|, ~zero either way) — page states magnitude only. Homepage counts corrected 15→17 notes / 3→4 instrument catches.
