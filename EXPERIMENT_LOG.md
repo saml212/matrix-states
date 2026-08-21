@@ -11140,3 +11140,38 @@ dispatched per standing doctrine (coverage + depth + reframe +
 graded ordering = finding page no. 18 + X draft).
 
 ## 2026-08-21 #9 — PUBLISHED: finding no. 18 live (pebbleml.com/findings/ncr-depth-robustness.html, site commit 6808c74) covering #2-#8's four verdicts (coverage / drift / instrument catch + reframe / graded residual ordering + wall); X thread draft at ~/Desktop/x_draft_depth_robustness.txt (3 posts, not posted). Publisher verification notes of record: violating-pair fractions reproduce with ties-as-violations convention; #8's aux main effect sign is convention-dependent (|0.0137|, ~zero either way) — page states magnitude only. Homepage counts corrected 15→17 notes / 3→4 instrument catches.
+
+## 2026-08-21 #10 — K-scaling DRAFT-R0 BUILT (62bb64b), smoke-clean at all six K; two launch-losing FATALs self-caught; pinned-ladder collision disclosure adjudicated (no recorded claim contaminated); audit + resource/placement red-team dispatched (10-50 GPU-h ceremony tier).
+
+Build: single-source kscaling_config.py (D_NCR=K_NCR+1 derived once,
+NCR_PARAM_EXACT re-derived per K, measured == formula at every K);
+patch_kscaling.py (pins md5-verified, never modified); matched-pool-
+only scorer with chance=1/K margin + per-K wall bands + d==K+1 ckpt
+guard; 32 specs (2 calib + 30 sweep) CANDIDATE-marked. Smoke: 6 K on
+real CUDA, 8/8 negative tests FIRED (incl. proof the new pairwise-
+residue assert rejects a ladder the pinned guard accepts);
+ckpt→resume bit-identical. FATALs caught pre-launch: (1) T>=128
+assert vs 7K+6 input at K=12/16 → inert BUFFER left-pad, pad 0 for
+K>=20 (K=24 anchor byte-identical); (2) build_attribution indexed
+deep_gap["h=61"] (K=24 literal) → KeyError at first eval of every
+cell (~28 GPU-h to nothing); module smoke was blind to it, only the
+end-to-end literal-spec-command run saw it — BOTH instruments now
+required for revisions. Ladders: identical squaring profile
+(2,3,4,4,5,5) across K (DRIFT axis can't confound K axis), antipodal
+top rung, + h_fix fixed-effective-distance control (builder addition,
+correct: effective distance at h_top = K/2 grows with K).
+
+**Builder deviations (§13, for the audit):** (a) h_fix control added;
+(b) briefed per-K MW p<0.01 at n=3v3 is mathematically unreachable
+(min p=0.10) → pooled 15v15 + gated seed-extension pre-registered
+instead — TOP AUDIT ITEM; (c) packing measured (2/GPU: 99% util,
+1.63× wall, +23% GPU-h/cell) but election left to red-team;
+(d) pinned K=24 DEEP_LADDER collision 29≡5 mod 24 disclosed.
+**Coordinator adjudication of (d):** no recorded claim contaminated —
+the #2 coverage count already deduplicated residues ({5,12,20,16,13}
+distinct + train {1,2,3} + identity = 9; 24−9=15 unused ✓) and the
+published depth curves (finding 17: h=1/13/37/61; finding 18:
+13/61/253/1021/4093) are deliberately same-residue designs. The
+K=24 anchor re-score on the new ladder (6 eval-only specs) is
+licensed IF the audit passes the design; cells of record untouched.
+Ledger 27.6 GPU-h / ~4.2 h wall at 1 cell/GPU.
