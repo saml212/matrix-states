@@ -1,0 +1,734 @@
+# NCR K-SCALING SWEEP — DESIGN + BUILD, DRAFT-R0
+
+**Status:** DRAFT-R0, BUILT AND SMOKE-CLEAN, **NOT LAUNCH-RELEASED.**
+Awaiting the audit round (ceremony tier: 10–50 GPU-h ⇒ audit **+** pre-launch
+resource/placement red-team). No cell has been queued. Nothing beyond the
+smoke has been run.
+
+**Build agent:** Opus, 2026-08-21. **Base commit:** `ad52dcf`.
+**Gate:** `research/kscaling-novelty-2026-08-21.md` — ADJUDICATED CLEAR 3/3
+(internal NOVEL-TO-US, by-mechanism NOVEL, by-task NOVEL). All five carried
+requirements are discharged below; §2 maps each to where.
+
+---
+
+## 1. Hypothesis (one sentence)
+
+**Exact in-context-written operator composition (closed-form `V·K†` writes,
+O(log h) repeated-squaring reads) inside a 98M-parameter DeltaNet LM retains
+its capability as the binding breadth grows over the pair (K, d = K+1) for
+K ∈ {12,16,20,24,28,32}, while the model's own learned writes stay at chance
+(1/K) at every K** — i.e. the capability curve is flat and the wall curve is
+flat, and the gap between them is the capability separation.
+
+Falsifiable both ways: a K at which the exact-write read falls below the band
+is a **frontier finding** (the capability has a measurable breadth limit),
+and a K at which the learned write rises off chance retracts the wall.
+
+---
+
+## 2. Gate-memo carried requirements → discharge map
+
+| # | Carried requirement | Discharged in |
+|---|---|---|
+| 1 | Closed-form-vs-learned contrast at every K (P1b **and** P0) | §6 scorer evaluates both regimes on every cell; §7 bands cover both curves |
+| 2 | (K, d=K+1) **pair** framing; chance-normalized metrics | §3, §7.1; every JSON carries `chance = 1/K`, `margin_over_chance`, `kappa` |
+| 3 | Fresh residue-verified deep ladder per K, no carried ladders | §4; `kscaling_config.derive_ladder`; §8 items B–E prove the guard has teeth |
+| 4 | Matched pool seeds in ALL scoring from day one | §6; `kscaling_battery.py` has **no** unmatched mode; `pool_seed`/`ckpt_seed`/`matched` on every block |
+| 5 | Cite toy K-frontier + the five verified externals; never from memory | §9 (all citations copied from the gate memo, not recalled) |
+
+---
+
+## 3. The variable is the PAIR, not K
+
+House precedent (gate memo leg 1): **K=24 is dead at d=48 and healthy at
+d=25** — the operator dimension, not the binding count, was doing the work.
+Every curve in this design is therefore plotted and reported against the
+**pair (K, d=K+1)**, never against K alone, and every axis label must say so.
+
+Three quantities co-vary with K by construction. All three are recorded in
+every output JSON so none of them can be silently confounded with the result:
+
+| Quantity | K=12 | K=16 | K=20 | K=24 | K=28 | K=32 |
+|---|---|---|---|---|---|---|
+| `d_ncr = K+1` | 13 | 17 | 21 | 25 | 29 | 33 |
+| chance `1/K` | 0.0833 | 0.0625 | 0.0500 | 0.0417 | 0.0357 | 0.0312 |
+| `t_in = max(128, 7K+6)` | 128 | 128 | 146 | 174 | 202 | 230 |
+| effective distance at `h_top` = K/2 | 6 | 8 | 10 | 12 | 14 | 16 |
+
+The fourth row is the sharpest confound: at the primary readout depth the
+**effective composition distance grows with K**, so a decline could be
+breadth (more bindings to hold) or depth (a longer composition). §4.4's
+fixed-distance control separates them. The third row has a **kink at K=20**
+(the T-floor pad, §5.3) and is read per §7.4.
+
+---
+
+## 4. The ladders
+
+### 4.1 Why the pinned ladder cannot be carried
+
+Task-1's ground truth is a **single Hamiltonian K-cycle**
+(`grammar_rd._permutation_graph`), so `π^h` depends only on `h mod K`. A
+ladder depth is informative only if its residue is (a) non-zero, (b) not a
+train residue {1,2,3}, and (c) **not shared with another rung**. The pinned
+`_assert_ladder_sound` enforces (a) and (b) only. Evaluating the pinned
+ladder `(5,12,20,29,40,61)` against each K — reproduced mechanically by the
+build, not asserted from the memo:
+
+| K | residues of (5,12,20,29,40,61) | outcome |
+|---|---|---|
+| 12 | 5, **0**, 8, 5, 4, **1** | guard CRASHES (identity at h=12; train residue at h=61) |
+| 16 | 5, 12, 4, **13**, 8, **13** | **SILENT** collision — 29 and 61 measure one ground truth |
+| 20 | 5, 12, **0**, 9, **0**, **1** | guard CRASHES (identity at h=20 and h=40; train residue at h=61) |
+| **24** | 5, 12, 20, **5**, 16, 13 | **SILENT** collision — 5 and 29 share residue 5 |
+| 28 | 5, 12, 20, **1**, 12, 5 | guard CRASHES (train residue at h=29) + 2 silent collisions |
+| 32 | 5, 12, 20, **29**, 8, **29** | **SILENT** collision — 29 and 61 |
+
+The K=12/20/28 crashes and the K=16/32 degradations are the gate memo's own
+finding. **The K=24 row is new and is a disclosure about the harness of
+record**: the ladder all 55 existing K=24 cells were evaluated on measures
+**5 distinct residues at 6 rungs**. It does not invalidate any K=24 number
+(each rung's reading is correct for its own residue) but it does mean the
+K=24 "6-point depth profile" of record is really a 5-point profile. §4.3
+says how the K=24 anchor is handled.
+
+### 4.2 Derivation rule and the per-K table
+
+One rule, applied to every K (`kscaling_config.derive_ladder`):
+
+1. **Band profile.** Six rungs with `binexp_read` squaring counts
+   **(2,3,4,4,5,5)** — exactly the pinned K=24 ladder's own profile. Since
+   `n_squarings = floor(log2 h)`, this pins the bands to
+   `[4,7] [8,15] [16,31] [16,31] [32,63] [32,63]`. **Holding this fixed
+   across K is load-bearing**: EXPERIMENT_LOG 2026-08-21 #3 result B measured
+   a real monotone fp-depth DRIFT in the in-LM binexp read (1.0000 → 0.9219
+   over 3→11 squarings), so an unmatched squaring count would confound the K
+   axis with numerical depth.
+2. **Top rung.** `h_top(K)` = the smallest `h ∈ [32,63]` with `h ≡ K/2 (mod K)`.
+   Residue K/2 is the **antipodal point of the cycle** — the maximum
+   reachable effective distance, i.e. the hardest query — and is admissible
+   for every K ≥ 12. Every K here is even.
+3. **Rungs 1–5.** In band order, the smallest `h` in the band whose residue
+   is admissible and unused, strictly increasing.
+
+| K | d | deep ladder | residues mod K | n_sq | n_applies | `h_top` | residue(`h_top`) = K/2 | `h_fix` |
+|---|---|---|---|---|---|---|---|---|
+| 12 | 13 | 4, 8, 17, 19, 33, **42** | 4, 8, 5, 7, 9, **6** | 2,3,4,4,5,5 | 1,1,2,3,2,3 | 42 | 6 ✓ | 40 |
+| 16 | 17 | 4, 9, 21, 22, 39, **40** | 4, 9, 5, 6, 7, **8** | 2,3,4,4,5,5 | 1,2,3,3,4,2 | 40 | 8 ✓ | 36 |
+| 20 | 21 | 4, 8, 16, 17, 32, **50** | 4, 8, 16, 17, 12, **10** | 2,3,4,4,5,5 | 1,1,1,2,1,3 | 50 | 10 ✓ | 44 |
+| 24 | 25 | 4, 8, 16, 17, 33, **36** | 4, 8, 16, 17, 9, **12** | 2,3,4,4,5,5 | 1,1,1,2,2,2 | 36 | 12 ✓ | 52 |
+| 28 | 29 | 4, 8, 16, 17, 33, **42** | 4, 8, 16, 17, 5, **14** | 2,3,4,4,5,5 | 1,1,1,2,2,3 | 42 | 14 ✓ | 32 |
+| 32 | 33 | 4, 8, 17, 18, 37, **48** | 4, 8, 17, 18, 5, **16** | 2,3,4,4,5,5 | 1,1,2,2,3,2 | 48 | 16 ✓ | 36 |
+
+Every row: 6 distinct residues, none 0, none in {1,2,3}, strictly increasing
+depth, squaring profile identical across K, top rung antipodal.
+`n_applies` (= popcount) is **not** matched — it ranges 2–3 at `h_top` and
+cannot be matched at every K simultaneously (K=32's only admissible antipodal
+depths in-band force popcount 2). It is recorded per rung and is a disclosed
+residual; the squaring count, which the #3 DRIFT finding actually implicates,
+**is** matched at 5 for every K.
+
+Hand-check of the top rungs (the only rungs the primary band reads):
+42 = 3·12 + 6; 40 = 2·16 + 8; 50 = 2·20 + 10; 36 = 1·24 + 12; 42 = 1·28 + 14;
+48 = 1·32 + 16. Each is in [32,63] ⇒ `floor(log2 h) = 5`.
+
+`kscaling_config.LADDER_TABLE` is the literal table above; `assert_ladder_table()`
+runs at **import** and fails loudly if the table and the rule disagree, so a
+typo in either cannot silently change what gets evaluated.
+
+### 4.3 The K=24 anchor
+
+K=24 is not trained in this sweep (55 cells exist). But its ladder of record
+differs from the derived one, so the K=24 curve point must be re-scored on
+the **new** K=24 ladder to be commensurate with every other K. This is
+eval-only on existing checkpoints (~0.02 GPU-h, 6 cells: 3 frozen + 3
+trainable seeds at `ckpt_step == 20000`):
+
+```
+NCR_K=24 ~/tdenv/bin/python3 ~/ncr_kscaling/kscaling_battery.py --k 24 \
+    --ckpt <existing mob_g3b31_{primary,compB}_s{0,1,2} ckpt> \
+    --cellcfg <its training results JSON> --tag k24_anchor_<arm>_s<seed>
+```
+
+**Pre-registered before the sweep runs:** the K=24 anchor is scored with the
+identical instrument, ladder, pool policy, n and seed as every other K. It is
+NOT carried over from the #6 battery numbers (those were read at h=61, a
+depth this design does not use). Specs for the anchor are **not** among the
+32 in `job_specs/` — the audit releases them, since they touch the 55 cells of
+record.
+
+### 4.4 The fixed-effective-distance control
+
+`h_fix(K)` = smallest `h ∈ [32,63]` with `h ≡ 4 (mod K)`: effective distance
+**4 at every K**, at the **same squaring count (5)** as `h_top`. It
+deliberately shares residue 4 with ladder rung 1 (which sits at squaring count
+2), so it is carried as its **own labelled probe** and kept out of
+`DEEP_LADDER` rather than smuggled past the distinctness assert — the same
+discipline as EXPERIMENT_LOG 2026-08-21 #2 experiment B ("SAME ground truth by
+construction, labeled as such"). It is what separates breadth from depth in
+§7.4.
+
+---
+
+## 5. The build
+
+Pinned files are **never** written to. `patch_kscaling.py` reads them,
+verifies `ncr_lm_wave1_runner.py` md5 = `9a93198b642242f512ff8489e32b0a53`,
+and writes patched copies to `~/ncr_kscaling/`. Every edit is an exact-string
+replacement whose anchor must occur **exactly once** — a moved anchor aborts
+the patch rather than applying somewhere else.
+
+| file | md5 |
+|---|---|
+| `~/ncr_g3b31_contrastive/ncr_lm_wave1_runner.py` (PINNED, untouched) | `9a93198b642242f512ff8489e32b0a53` |
+| `~/ncr_g3b31_contrastive/ncr_lm_wave1_smoke.py` (PINNED, untouched) | `bc105af69661e488ff95f5046e2bcd8a` |
+| `~/ncr_kscaling/ncr_lm_wave1_runner.py` (patched) | `ee5833743049e1bb1864124ad5d3fbf6` |
+| `~/ncr_kscaling/ncr_lm_wave1_smoke.py` (patched) | `74ee84fc920b024901d11add66cc5c2d` |
+| `~/ncr_kscaling/kscaling_config.py` | `6eaf8384a3ef6e9e43b3947720291024` |
+| `~/ncr_kscaling/kscaling_battery.py` | `27e691b78252b72d8c0ffbc9af7f7ead` |
+| `~/ncr_kscaling/kscaling_smoke.py` | `23fabe2c8b8fda7143d2a08d57f03d71` |
+
+Repo mirror: `matrix-thinking/kscaling_build/` —
+
+```
+kscaling_config.py     single source of truth (K, d=K+1, ladders, pad, chance)
+patch_kscaling.py      the patch generator (md5-verifies the pinned sources)
+kscaling_battery.py    the matched-pool P1b/P0 scorer
+kscaling_smoke.py      the real-CUDA smoke
+gen_job_specs.py       the 32-spec generator
+job_specs/             the 32 specs (NOT queued)
+patched/               the two patched files, md5-identical to the box copies,
+                       so the build is reconstructable if the box is lost
+smoke_results/         the six per-K smoke JSONs
+```
+
+`kscaling_config.py` is byte-identical in both places, and `patched/` md5s
+match the box exactly (`ee5833743049e1bb1864124ad5d3fbf6`,
+`74ee84fc920b024901d11add66cc5c2d`).
+
+### 5.1 S1 — K and d are DERIVED (gate requirement, PATCH-not-config)
+
+The pinned graft carries `K_NCR = 24` and `D_NCR = 25` as **two independent
+hand-set constants**, and asserts the K=24 literal `NCR_PARAM_EXACT ==
+173_209`. Patched: both come from `kscaling_config`, where
+
+```
+D_NCR = K_NCR + 1          # the ONLY definition of d_ncr in the program
+NCR_PARAM_EXACT = 40*h² + 4*d*h + 46*h + d      # re-derived per K
+```
+
+re-asserted against the formula at import, with a back-compat anchor
+(`K==24 ⇒ 173_209`). **Verified by measurement, not formula** — smoke item F
+counts the actual `nn.Module` parameters at every K:
+
+| K | 12 | 16 | 20 | 24 | 28 | 32 |
+|---|---|---|---|---|---|---|
+| `ncr_param_exact` (derived) | 170,125 | 171,153 | 172,181 | **173,209** | 174,237 | 175,265 |
+| measured NCR params | 170,125 | 171,153 | 172,181 | 173,209 | 174,237 | 175,265 |
+| `integ_param_exact = 2·768·d` | 19,968 | 26,112 | 32,256 | 38,400 | 44,544 | 50,688 |
+| **total params / arm** | 97,809,805 | 97,816,977 | 97,824,149 | 97,831,321 | 97,838,493 | 97,845,665 |
+
+Total parameters vary by **0.037%** across the whole K range — the sweep is
+param-matched to within a rounding error, so the curve is not a capacity
+curve in disguise.
+
+### 5.2 S2 — the task config crashed at K=20
+
+`DeltaNetRDTaskConfig.__post_init__` runs its own periodicity guard on
+`H_test`/`H_extra`, whose defaults are `(4,5,6)` / `(7,21)`. At K=20,
+`21 mod 20 == 1`, a train residue — so **constructing the config at all**
+raised `AssertionError` at K=20, before any model existed. Patched to pass
+this K's own ladder, which both fixes the crash and turns `grammar_rd`'s
+independent guard into a **second, external check** on the ladder actually
+evaluated.
+
+### 5.3 S3 — the T-floor pad (a launch-losing FATAL, measured)
+
+The document is `7K+7` tokens and the backbone is fed `doc[:, :-1]`, i.e.
+`T_in = 7K+6`. `lm_pretrain_rd.DeltaNetLMMixer.forward` hard-asserts
+`T >= 128` (chunk_delta_rule's backward crashes below it; F15-LM, measured
+2026-07-02). **Measured on this box 2026-08-21, fresh process per T, rung-1
+backbone:**
+
+| `T_in` | 90 (K=12) | 118 (K=16) | 128 | 146 (K=20) | 174 (K=24) | 230 (K=32) |
+|---|---|---|---|---|---|---|
+| result | **AssertionError** | **AssertionError** | PASS | PASS | PASS | PASS |
+| peak mem | — | — | 0.96 GB | 1.04 GB | 1.14 GB | 1.37 GB |
+
+**K=12 and K=16 were unrunnable — an immediate crash on step 1, not a
+quality question.** Twelve of the thirty sweep cells would have died. Fix: a
+**left pad** of `max(0, 128 − (7K+6))` inert **BUFFER** tokens (the same
+reserved token `grammar_rd` already uses as intra-clause filler — no new token
+type enters the vocabulary), with all four position fields
+(`key_pos`, `val_pos`, `query_key_col`, `query_mark_col`) shifted by the same
+amount. Pad = 38 at K=12, 10 at K=16, **0 for every K ≥ 20**, so K ≥ 20 —
+in particular the **K=24 anchor** — stays byte-identical to the pinned
+construction. Smoke item G verifies by content (not shape) that the KEY, VALUE
+and query-KEY positions still index this row's own entities after the shift;
+item K verifies the unpadded length still crashes.
+
+### 5.4 R1–R7 — runner patches
+
+* **R1** `RUNNER_TAG` → `ncr_kscaling_runner_v1` (so a K-scaling checkpoint
+  can never be silently resumed by, or confused with, the pinned K=24 wave —
+  `load_checkpoint` asserts on this field); `DEEP_LADDER` from `kscaling_config`.
+* **R2** `_assert_ladder_sound` delegates to the strengthened check: both
+  pinned checks **plus** pairwise residue distinctness, strictly-increasing
+  depth, and a matched squaring profile.
+* **R3** the fixed-distance control is evaluated into its **own** `fixed_dist`
+  block, never merged into `deep`.
+* **R4/R5** `KS.provenance(...)` — K, d, ladder, residues, squarings, applies,
+  chance, `h_top`, pad, `t_in` — is written into every results JSON.
+* **R6/R6b/R7** a **mandatory `--k` flag** that must equal the `NCR_K` env var
+  `kscaling_config` actually reads, asserted immediately after `parse_args` on
+  **every** mode. Thirty specs each carrying an env var and a flag is the
+  single easiest way to launch a wave at the wrong K; this dies before any GPU
+  work rather than producing plausible, wrongly-labelled numbers.
+* **R8/R9** — see §5.5.
+
+### 5.5 R8 — a second launch-losing FATAL, found only by the end-to-end run
+
+`build_attribution` indexed its two headline fields by a **K=24-ladder
+literal**:
+
+```python
+"primary_signal_deepest_gap_h61":    deep_gap["h=61"],
+"primary_signal_v2_deepest_gap_h61": retrieval24_gap_deep["h=61"],
+```
+
+`h=61` is in **no** derived ladder, so **every cell at every K would have
+raised `KeyError('h=61')` at its first eval** (step 1000 of 20000) — all 32
+cells lost, ~28 GPU-h burned to nothing.
+
+**The module-level smoke could not see this**: it exercises the model, the
+ladder, the document, the checkpoint and the guards, but never calls
+`build_attribution`, which only runs inside the training loop's eval. It was
+caught by this build's **end-to-end 3-step production run** through the actual
+spec command line (§8.1). Re-keyed to this K's own `H_TOP`, with the depth and
+residue emitted as their own fields rather than frozen into a field name, plus
+`chance` and the fixed-distance probe depth. R9 re-keys the accompanying prose
+so it states this K's ladder instead of the K=24 one.
+
+**Process note for the audit:** this is the second launch-losing FATAL in this
+build (the first being §5.3's T-floor), and the two were caught by *different*
+instruments. A module smoke and an end-to-end run through the literal spec
+command are not substitutes for each other. Any later revision of this build
+must re-run **both**.
+
+---
+
+## 6. Scoring — `kscaling_battery.py`
+
+Descends from `ncr_writecond/poolmatched_battery.py`
+(md5 `7c3610cc09303627234b0cd6c9977014`), the instrument that produced the
+2026-08-21 #6 adjudication of record. Three changes, all forced by K-scaling:
+
+1. **Matched pools are the only mode.** The ancestor scored under both the
+   checkpoint's seed and legacy seed-0 because its job was to adjudicate a
+   retraction; that question is settled. Every pool here is built with
+   `build_grammar_pools_and_cfg(seed = ckpt["seed"])`, and
+   `pool_seed`/`ckpt_seed`/`matched` are recorded on every block so the
+   property is auditable, never assumed (gate requirement 4).
+2. **Chance is 1/K.** The ancestor hard-codes `CHANCE = 1/24`. Every accuracy
+   is reported with `margin_over_chance = acc − 1/K` and the per-K binomial
+   wall band `1/K ± 3·sqrt(p(1−p)/n)`.
+3. **Hops are this K's own ladder** — 3 train + 6 ladder + 1 fixed-distance
+   control, both regimes (P1b and P0), n=256, eval seed 90210.
+
+**The K guard.** The checkpoint records `ncr_config.d`. The scorer refuses to
+run unless `ckpt d == K+1` for the K it was invoked with — it is therefore
+impossible to score a K=24 checkpoint as a K=32 curve point.
+
+**Metric name.** `retrieval24_acc` is kept despite the "24": it is computed as
+`cos_all.argmax(1) == tgt_slot` over exactly K slots and is already K-generic.
+Renaming it would break comparability with the 55 K=24 cells of record. The
+JSON annotates this.
+
+Per-K wall bands at n=256 (`WALL-HOLDS` is checked against these):
+
+| K | chance | sd | band (chance ± 3sd) |
+|---|---|---|---|
+| 12 | 0.0833 | 0.0173 | [0.0315, 0.1352] |
+| 16 | 0.0625 | 0.0151 | [0.0171, 0.1079] |
+| 20 | 0.0500 | 0.0136 | [0.0091, 0.0909] |
+| 24 | 0.0417 | 0.0125 | [0.0042, 0.0791] |
+| 28 | 0.0357 | 0.0116 | [0.0009, 0.0705] |
+| 32 | 0.0312 | 0.0109 | [0.0000, 0.0639] |
+
+---
+
+## 7. Pre-registered bands
+
+All bands read **P1b/P0 accuracy at `h_top(K)`, matched pools, n=256,
+`ckpt_step == 20000`**, unless stated. Three chance-normalizations are
+recorded on every number:
+
+* `acc` — raw
+* `margin_over_chance = acc − 1/K` — the brief's literal quantity
+* `kappa = (acc − 1/K)/(1 − 1/K)` — chance-corrected; **the only one that is
+  strictly comparable across K**, since `margin`'s ceiling is itself `1 − 1/K`
+  and so a margin bar of 0.90 is `1/K` stricter at small K (at K=12 it demands
+  raw acc ≥ 0.9833; at K=32, ≥ 0.9313).
+
+**Primary band is stated on `margin` per the brief; `kappa` is recorded
+alongside and the audit may elect it.** Existing matched-pool K=24 evidence
+(#6: primary 1.0000, compB 0.9922 at h=61) clears both.
+
+### 7.1 CURVE 1 — CAPABILITY (P1b, frozen arms) — PRIMARY
+
+* **CAPABILITY-HOLDS(K)** = `margin_over_chance ≥ 0.90` at `h_top(K)` for
+  **≥ 2/3 seeds** on the FROZEN arm.
+* **CAPABILITY-HOLDS (curve)** = CAPABILITY-HOLDS(K) at **every** K
+  ∈ {12,16,20,24,28,32}. This is the headline: exact composition breadth does
+  not degrade over a 2.7× range of K at matched parameters.
+* **FRONTIER-AT-K\*** = the smallest K at which CAPABILITY-HOLDS(K) fails.
+  **This is reported as a positive frontier finding — the capability has a
+  measurable breadth limit at the pair (K\*, d=K\*+1) — not as a failure**,
+  and it is the more interesting of the two outcomes for the flagship. It
+  must be reported with the §7.4 breadth-vs-depth attribution attached.
+* **PARTIAL** = holds at some K, fails at others non-monotonically ⇒ an
+  instrument or convergence problem, not a capability curve; diagnose before
+  reporting.
+
+### 7.2 CURVE 2 — THE WALL (P0, all arms)
+
+* **WALL-HOLDS(K)** = **every** P0 reading (10 hops × 6 cells at that K)
+  inside the §6 band.
+* **WALL-HOLDS (curve)** = WALL-HOLDS(K) at every K. Prior: 165/165 P0
+  readings at chance under matched pools (#6) — this extends it across K.
+* **WALL-BREACHED-AT-K** = any P0 reading above the band at any K, replicated
+  across ≥2 seeds. Retracts the wall at that K and is a major finding either
+  way; a single-seed excursion is an outlier to re-measure, not a breach.
+
+### 7.3 CURVE 3 — the residual frozen-vs-trainable ordering (SECONDARY)
+
+The question inherited from #6: the matched-pool gap is +0.0098 at K=24, h=61
+and **ceiling-compressed**; does it open at larger K?
+
+Δ(K) = median κ(frozen, 3 seeds) − median κ(trainable, 3 seeds) at `h_top(K)`.
+
+> **POWER DISCLOSURE — READ BEFORE ADJUDICATING.** At 3 seeds per (K, recipe),
+> a per-K Mann–Whitney U on 3-vs-3 has a **minimum attainable two-sided
+> p of 0.10**. A per-K band of the #7-style form ("gap > 0.05 **and**
+> p < 0.01") is therefore **mathematically unreachable in this sweep** and is
+> deliberately NOT pre-registered per K. This is a real limitation of the
+> sweep as sized, surfaced here rather than discovered at harvest.
+
+Pre-registered instead:
+
+* **Primary inferential test** — Mann–Whitney U on the **pooled** 15 frozen
+  vs 15 trainable κ values at `h_top` (across all five sweep K), plus the 6
+  K=24 anchor cells if the audit releases them. 15-vs-15 can reach p < 0.01.
+  * **ORDERING-CONFIRMED** = pooled median gap > 0.05 **and** p < 0.01.
+  * **ORDERING-NEGLIGIBLE** = pooled median gap ≤ 0.05.
+  * **ORDERING-INVERTED** = pooled median gap < −0.05 with p < 0.01
+    (trainable beats frozen — publishable as a reversal, and consistent with
+    #6's reinterpretation that freezing buys pool-agnosticism, not composition).
+* **Trend (descriptive, explicitly underpowered)** — Spearman ρ between K and
+  Δ(K) over the 6 curve points. At n=6, p < 0.05 requires |ρ| ≥ 0.829; this is
+  reported **with** that caveat inline and **cannot alone** license an
+  "ordering opens with K" claim.
+* **Escalation, pre-registered** — if the pooled test is CONFIRMED **and**
+  Δ(K) is largest at the two highest K, that licenses a **seed-extension wave**
+  (n=12 per recipe at those two K, ~10 GPU-h) which *would* be powered for a
+  per-K claim. Declaring "the ordering opens at larger K" is gated on that
+  wave, not on this one.
+
+### 7.4 CURVE 4 — breadth vs depth (attribution, pre-registered)
+
+`h_top` grows in effective distance with K (K/2); `h_fix` does not (always 4),
+at the same squaring count.
+
+* **DEPTH-DRIVEN** = κ(`h_fix`) flat in K (range ≤ 0.05) while κ(`h_top`)
+  declines ⇒ the decline is composition depth, not binding breadth. The
+  headline becomes a *depth* frontier, and the breadth claim survives.
+* **BREADTH-DRIVEN** = κ(`h_fix`) declines with K comparably to κ(`h_top`)
+  ⇒ holding K bindings is itself the limit. This is the stronger and more
+  surprising result.
+* **BOTH-FLAT** = neither declines ⇒ CAPABILITY-HOLDS, and this control is
+  the evidence that flatness is not an artifact of an easy probe.
+
+Every outcome of every curve above is publishable and pre-specified. No
+combination is a null that ends the lane.
+
+---
+
+## 8. Smoke — REAL CUDA, all six K, every negative test FIRED
+
+`kscaling_smoke.py`, one process per K, one GPU each, run 2026-08-21.
+Results: `/ephemeral/kscaling/smoke/kscaling_smoke_K{12,16,20,24,28,32}.json`.
+
+**12 PASS / 0 FAIL at K=12 and K=16; 11 PASS / 0 FAIL / 1 N/A at K=20,24,28,32
+(the N/A is item K, which is only meaningful where the pad is load-bearing).**
+
+| item | kind | what it proves | result |
+|---|---|---|---|
+| A | positive | D=K+1; derived param formula; ladder sound; `h_top` antipodal; `h_fix` matches `h_top`'s squaring count | PASS ×6 |
+| **B** | **negative** | the carried pinned ladder `(5,12,20,29,40,61)` is **REJECTED** at every K | **FIRED ×6** |
+| **C** | **negative** | a ladder that **passes** the pinned guard but has a duplicate residue is **REJECTED** — the fixture is first proven to pass the pinned checks, so this demonstrates the pinned guard's blind spot rather than assuming it | **FIRED ×6** |
+| **D** | **negative** | identity-residue rung rejected (pinned check still has teeth) | **FIRED ×6** |
+| **E** | **negative** | train-residue rung rejected (pinned check still has teeth) | **FIRED ×6** |
+| F | positive | **measured** NCR/integ parameter counts == derived formulas, exactly | PASS ×6 |
+| G | positive | doc shape, `t_in`, pad; KEY/VALUE/query-KEY positions still index this row's own entities after the shift; pad is BUFFER tokens | PASS ×6 |
+| H | positive | fwd+bwd+grad, **both arms × both regimes** (P1b/P0), finite loss, non-zero finite backbone grads, `o_raw` width == d | PASS ×6 |
+| **K** | **negative** | the **unpadded** `7K+6` length still crashes the kernel floor | **FIRED ×2** (K=12,16); N/A ×4 |
+| I | positive | checkpoint → load → restore → **bit-identical** logits (`max|Δ| == 0.0`); ckpt records d == K+1 | PASS ×6 |
+| J | positive | the pinned read-ablation exact-zero invariant still holds | PASS ×6 |
+| L | positive | throughput, peak memory, sampled SM utilisation | PASS ×6 |
+
+A negative test that returns cleanly is recorded **FAIL — "did not fire"**, and
+one that raises the *wrong* error is recorded **FAIL — "fired with the WRONG
+error"**. All eight negative-test instances fired with the expected message.
+Verbatim, at K=12:
+
+```
+B: AssertionError: deep-ladder h=12 is IDENTITY mod K=12 (h%K=0) -- confounded, not held-out
+C: AssertionError: deep-ladder (4, 8, 16, 17, 19, 33) at K=12 has PAIRWISE residue
+   collisions at [4] (residues [4, 8, 4, 5, 7, 9]) -- two rungs measure the SAME ground truth
+D: AssertionError: deep-ladder h=24 is IDENTITY mod K=12 (h%K=0) -- confounded, not held-out
+E: AssertionError: deep-ladder h=25 has h%K=1 colliding with a train-residue [1, 2, 3]
+   -- secretly in-distribution, not held-out
+K: AssertionError: sequence length 90 < _MIN_KERNEL_T=128 -- chunk_delta_rule's backward
+   crashes below this floor (F15-LM, measured 2026-07-02)
+```
+
+### 8.1 End-to-end run through the literal spec command line
+
+A 3-step cell at K=12 was run through the **exact** `cmd` shape the specs
+carry (`NCR_K=12 … --k 12 --mode calibration …`), writing to `/ephemeral`:
+
+* Ran to `status=COMPLETED`, `step=3`; read-ablation exact-zero and the
+  same-op assertion passed **pre- and post-train**; loss finite and falling
+  (11.187 → 10.917).
+* The results JSON carries the full `kscaling` provenance block (K, d,
+  `d_equals_k_plus_1`, chance, ladder, residues, squarings, applies, `h_top`,
+  `h_top_is_antipodal`, `fixed_dist_probe`, `doc_len`, `doc_left_pad`, `t_in`)
+  and the re-keyed attribution fields (`primary_signal_v2_deepest_gap_h = 42`,
+  `…_residue = 6`).
+* **This is what caught §5.5's R8 FATAL.**
+
+### 8.2 Scorer, end to end, with both K-guards fired
+
+Against the checkpoint that run produced:
+
+* **Positive** — `kscaling_battery.py --k 12`:
+  `P1b@h_top=42 acc=1.0000 margin=+0.9167 | P0max=0.1250 (chance 0.0833,
+  band [0.0000, 0.1870])`. Matched pool (`ckpt_seed=0`), self-check PASS.
+  *(A 3-step model: this says the instrument reads, not that the science
+  holds. No verdict is implied or recorded.)*
+* **Negative — wrong-K scoring REJECTED:**
+  `K MISMATCH [e2e_wrongK]: checkpoint records ncr d=13 / integ d_ncr=13, but
+  this process is configured for K=32 -> d=33. The checkpoint was trained at
+  K=12. Refusing to score.`
+* **Negative — env/flag drift REJECTED:**
+  `AssertionError: --k 32 disagrees with NCR_K='12' (kscaling_config resolved
+  K_NCR=12). Refusing to run: one of the two is a typo and the results would
+  be silently mislabelled.`
+
+---
+
+## 9. Prior art — cited, never recalled
+
+All citations copied from `research/kscaling-novelty-2026-08-21.md`
+(agent-web-verified, coordinator spot-checked). **None is cited from memory.**
+
+**Internal (PRIOR, not to be rediscovered).** The toy-harness K record is
+extensive: K ∈ {8..32}, **FRONTIER-AT-K\*=30**, **CONFIRMED-WALL-AT-160K**,
+and **toy K=32 far-depth death at h ≈ 5–6 in the FREE-write regime**. No
+LM-graft arm has ever run at K ≠ 24.
+
+> **How the K=32 toy prior bears on this design.** It is a **FREE-write**
+> result. Our primary claim (P1b) is about **EXACT-write** reads, so the prior
+> does not directly bar it. But P0 *is* the free-write analogue — so the toy
+> prior **predicts P0 death at K=32, which is exactly what WALL-HOLDS
+> predicts.** The prior therefore acts as a **positive control on the wall
+> curve**, not as a threat to the capability curve. §10's calibration gate
+> nonetheless treats K=32 as the riskiest cell and runs it first.
+
+**External (verified).** Schlag/Irie/Schmidhuber [arXiv:2102.11174] (fast
+weight programmers); Wang et al. [arXiv:2501.12352] (test-time regression —
+pseudoinverse writes exist as a framework, `M_t = V_t(K_t†)ᵀ`, but no
+composition reads and no contrast curve); Grazzi et al. [arXiv:2411.12537] and
+Siems et al. [arXiv:2502.10297] (DeltaProduct — group word problems via
+SGD-learned serial transitions, no closed-form writes, no `Z^h` reads); Liu et
+al. [arXiv:2210.10749] (shortcuts to automata — O(log T) depth via attention
+layers, not fast-weight powers); Arora et al. [arXiv:2312.04927]
+(Zoology/MQAR — dimension-vs-K curves for **flat recall only**); Li/Guo/Andreas
+[arXiv:2503.02854] (LMs spontaneously learn associative-scan state tracking —
+emergent, not engineered, K not the organizing axis); Log-Linear Attention
+[arXiv:2506.04761] (O(log T) reads over **time**, not hop-depth of a written
+relation).
+
+**Instrument note carried from the gate:** one WebFetch PDF summary
+(arXiv:2601.04254) was a **confabulated match**, caught by re-verification
+against the arXiv abstract. Treat single-fetch summaries as unverified until
+cross-checked.
+
+---
+
+## 10. Calibration gate — MANDATORY before the sweep
+
+Two cells, **K=32 (the riskiest K), both recipes, seed 0**, run first and
+alone. Specs `0100`/`0101` — **these two are queue-eligible candidates; the
+30 sweep specs are NOT.**
+
+**LICENSE-SWEEP requires all three:**
+
+1. **Gate-0 convergence.** Final CE < initial CE on the `full_graft` arm, loss
+   finite throughout, run reaches `step == 20000` with `status == COMPLETED`.
+2. **In-distribution recovery.** P1b `margin_over_chance ≥ 0.90` at the train
+   hops h ∈ {1,2,3} on the **frozen** calibration cell.
+3. **Deep capability.** P1b `margin_over_chance ≥ 0.90` at `h_top(32) = 48` on
+   the **frozen** calibration cell.
+
+**If (3) fails but (1) and (2) pass:** K=32 is the frontier. Do **not** launch
+the 30 blindly — re-scope the sweep to K ≤ 28 (24 cells), report K=32 as
+FRONTIER-AT-K\*=32, and run the §7.4 attribution at K=28 and K=32 to say
+whether it is breadth or depth.
+
+**If (1) or (2) fails:** an instrument/convergence problem, not a science
+result. Diagnose before any sweep GPU-hour.
+
+**Trainable calibration cell (`0101`):** informational only — it does not gate.
+Its purpose is to price the trainable recipe's cost and to give the §7.3
+ordering its K=32 anchor early.
+
+---
+
+## 11. Ledger, placement, and predicted utilisation
+
+### 11.1 Measured per-K cost (this build, 30 timed steps after 5 warmup, batch 32, both arms)
+
+| K | `t_in` | s/step | projected GPU-h @20K (train only) | ×1.17 eval/ckpt overhead | peak mem | SM util (median/max) |
+|---|---|---|---|---|---|---|
+| 12 | 128 | 0.1268 | 0.704 | **0.824** | 5.21 GB | 72 / 74 |
+| 16 | 128 | 0.1205 | 0.669 | **0.783** | 5.22 GB | 72 / 74 |
+| 20 | 146 | 0.1195 | 0.664 | **0.777** | 5.54 GB | 86 / 88 |
+| 24 | 174 | 0.1289 | 0.716 | **0.838** | 5.96 GB | 89 / 90 |
+| 28 | 202 | 0.1372 | 0.762 | **0.892** | 6.38 GB | 94 / 96 |
+| 32 | 230 | 0.1529 | 0.850 | **0.995** | 6.78 GB | 93 / 100 |
+
+The **1.17 overhead multiplier is calibrated, not guessed**: the K=24 cells of
+record measured 0.82–0.83 GPU-h wall for identical steps/batch/backbone, and
+this build's K=24 train-only projection is 0.716 ⇒ 1.145 measured overhead,
+scaled by 10/9 for this design's extra eval hop ⇒ 1.164, rounded to 1.17. The
+resulting K=24 estimate (0.838) reproduces the measured 0.82–0.83 — the cost
+model is validated against a real completed cell, not asserted.
+
+### 11.2 Ledger
+
+| item | cells | GPU-h |
+|---|---|---|
+| Calibration gate (K=32, both recipes, seed 0) | 2 | **1.99** |
+| Sweep: K ∈ {12,16,20,28,32} × {frozen, trainable} × 3 seeds | 30 | **25.63** |
+| Scoring (`kscaling_battery`, eval-only, 32 cells) | — | **0.12** |
+| K=24 anchor re-score (eval-only, existing ckpts, audit-released) | 6 | **0.02** |
+| **TOTAL** | **32 trained** | **≈ 27.8 GPU-h** |
+
+Ceremony tier: 10–50 GPU-h ⇒ **audit + pre-launch resource/placement
+red-team** (this document is the input to both).
+
+### 11.3 Placement — 8 GPUs, one cell per GPU
+
+The `~/queue/` worker contract is **one job per GPU**: each worker checks
+`nvidia-smi --query-compute-apps` for its own GPU and treats *any* listed PID
+as busy, so a second cell can never be claimed onto an occupied GPU. Placement
+is therefore one cell per GPU, dispatched by the existing 8 workers
+(`CUDA_VISIBLE_DEVICES` is set by `queue_worker.sh`, so **no spec hardcodes a
+GPU**).
+
+* **Calibration:** 2 cells, 2 GPUs, ~1.0 h wall.
+* **Sweep:** 30 cells / 8 GPUs ≈ 3.75 waves × ~0.85 h ≈ **3.2 h wall**.
+* **Total ≈ 4.2 h wall** for the whole payload.
+
+**Predicted utilisation: 72–94% median SM (measured, above), i.e. every cell
+clears the doctrine's <50%-is-a-bug threshold**, and K ≥ 20 (18 of the 30
+cells) runs at 86–94%.
+
+**Disclosed low-utilisation cells and a measured packing option.** K=12 and
+K=16 (12 of 30 cells) sit at 72%. Two K=12 cells packed on one GPU were
+measured: SM util **72% → 99%**, per-cell s/step 0.1268 → 0.150–0.162
+(+23% GPU-h per cell), **1.63× wall throughput** for the pair. Packing is
+therefore the doctrine-preferred trade on an uptime-metered grant (wall time
+and utilisation are the binding resources, not GPU-h). **It is NOT built into
+these specs**, because it requires paired specs (two backgrounded processes
+plus `wait` in one `cmd`) to get past the worker's one-job-per-GPU gate, which
+couples two cells' fates and their validity checks. **Flagged for the
+resource/placement red-team to elect or decline** — the measurement is
+recorded here so the decision is priced, not guessed.
+
+**FLOP-efficiency disclosure.** SM occupancy is high (72–94%) but arithmetic
+intensity is low: ≈ 7.9e16 FLOPs per cell against 0.72 GPU-h ⇒ ≈ 31 TFLOP/s,
+~6% of dense bf16 peak. This is inherent to the task (sequences of 128–230
+tokens, `d_state`=64, many small kernels), not a bug. Occupancy is the metric
+the doctrine specifies and it is met; the FLOP number is disclosed so nobody
+reads 94% util as 94% MFU.
+
+### 11.4 Disk
+
+All checkpoints go to **`/ephemeral/kscaling/...`** (5.9 TB, 5% used). Never
+the root filesystem — it filled to 100% once and is currently at 68%.
+32 cells × 2 arms × ~1.2 GB ≈ 77 GB, comfortably on `/ephemeral`.
+
+---
+
+## 12. Job specs
+
+`matrix-thinking/kscaling_build/job_specs/` — 32 files, none queued.
+
+* `0100`, `0101` — **calibration**, K=32, frozen + trainable, seed 0.
+  Marked **`CANDIDATE -- queue-eligible after audit`**.
+* `0110`–`0139` — **sweep**, 30 cells. Marked
+  **`CANDIDATE -- NOT queue-eligible until the calibration gate LICENSES the sweep`**
+  — double-gated: audit *and* calibration.
+
+Every spec carries `NCR_K=<K>` in its `cmd` **and** `--k <K>`, which the runner
+asserts are equal (§5.4 R6b). Each writes to `/ephemeral/kscaling/...` and
+carries a `validity_check` asserting `status == COMPLETED`, `step >= 20000`,
+**and** that the recorded `kscaling.K` and `kscaling.d_ncr` match the spec's
+own K — so a mislabelled cell fails its own validity check rather than
+entering the curve.
+
+### 12.1 Sweep structure
+
+Per-cell try/except sequencing is provided by the queue itself: one cell per
+spec, a failed cell routes to `failed/` and is **not** auto-retried, and the
+other 29 are unaffected. There is no shared driver whose crash could take down
+the wave.
+
+| | frozen-contrastive (primary recipe) | trainable-contrastive (compB recipe) |
+|---|---|---|
+| flags | `--aux-loss-type contrastive+cosine --freeze-entity-adapter --contrastive-temperature 0.07` | `--aux-loss-type contrastive+cosine --contrastive-temperature 0.07` |
+| K=12 | 0110, 0111, 0112 | 0113, 0114, 0115 |
+| K=16 | 0116, 0117, 0118 | 0119, 0120, 0121 |
+| K=20 | 0122, 0123, 0124 | 0125, 0126, 0127 |
+| K=28 | 0128, 0129, 0130 | 0131, 0132, 0133 |
+| K=32 | 0134, 0135, 0136 | 0137, 0138, 0139 |
+
+Seeds 0, 1, 2 in each triple. All other hyperparameters are held at the
+audited G3-B31 values (20000 steps, batch 32, eval batch 64, lr 3e-4, warmup
+200, `--aux-read-loss-weight 0.5`, `--ortho-reg-weight 0.1`, ceiling 6.0
+GPU-h) — **the recipe is not a variable in this sweep; K is.**
+
+---
+
+## 13. Open items for the audit
+
+1. **§7.3 power.** Per-K frozen-vs-trainable inference is unreachable at n=3.
+   The pooled test and the pre-registered seed-extension escalation are the
+   proposed remedy. Ratify or resize the sweep.
+2. **§11.3 packing.** Elect or decline 2-per-GPU packing for the 12 K=12/16
+   cells (measured: 72%→99% util, 1.63× wall, +23% GPU-h/cell, requires paired
+   specs).
+3. **§4.3 K=24 anchor.** Release (or decline) the 6 eval-only re-score specs
+   against the cells of record.
+4. **§7 band choice.** `margin ≥ 0.90` (the brief's literal band, `1/K`
+   stricter at small K) vs `kappa ≥ 0.90` (strictly cross-K comparable). Both
+   are recorded; pick the primary.
+5. **§4.2 `n_applies` residual.** Squaring count is matched at 5 across all K;
+   popcount is not (2–3) and cannot be. Confirm this is an acceptable residual.
+6. **§4.1 K=24 disclosure.** The ladder of record for the 55 existing K=24
+   cells has a silent residue collision (29 ≡ 5 mod 24), so its 6-point depth
+   profile is really 5-point. Decide whether this needs a note in
+   EXPERIMENT_LOG independent of this sweep.

@@ -1,0 +1,319 @@
+{
+ "smoke": "kscaling_smoke.py",
+ "K": 12,
+ "d_ncr": 13,
+ "provenance": {
+  "K": 12,
+  "d_ncr": 13,
+  "d_equals_k_plus_1": true,
+  "chance": 0.08333333333333333,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   17,
+   19,
+   33,
+   42
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   5,
+   7,
+   9,
+   6
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   2,
+   3,
+   2,
+   3
+  ],
+  "h_top": 42,
+  "h_top_residue": 6,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 40,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   17,
+   19,
+   33,
+   42,
+   40
+  ],
+  "doc_len": 91,
+  "doc_left_pad": 38,
+  "t_in": 128,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "ncr_param_exact": 170125,
+  "integ_param_exact": 19968
+ },
+ "torch": "2.12.1+cu130",
+ "gpu": "NVIDIA H100 80GB HBM3",
+ "host": "brev-ukptqsu65",
+ "when": "2026-08-21T21:55:02",
+ "n_pass": 12,
+ "n_fail": 0,
+ "n_na": 0,
+ "overall": "PASS",
+ "items": [
+  {
+   "item": "A_derivation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "K": 12,
+    "d_ncr": 13,
+    "d_equals_k_plus_1": true,
+    "chance": 0.08333333333333333,
+    "train_hops": [
+     1,
+     2,
+     3
+    ],
+    "deep_ladder": [
+     4,
+     8,
+     17,
+     19,
+     33,
+     42
+    ],
+    "deep_ladder_residues": [
+     4,
+     8,
+     5,
+     7,
+     9,
+     6
+    ],
+    "deep_ladder_n_squarings": [
+     2,
+     3,
+     4,
+     4,
+     5,
+     5
+    ],
+    "deep_ladder_n_applies": [
+     1,
+     1,
+     2,
+     3,
+     2,
+     3
+    ],
+    "h_top": 42,
+    "h_top_residue": 6,
+    "h_top_is_antipodal": true,
+    "fixed_dist_probe": 40,
+    "fixed_dist_probe_residue": 4,
+    "fixed_dist_probe_shares_residue_with_rung1": true,
+    "eval_hops": [
+     4,
+     8,
+     17,
+     19,
+     33,
+     42,
+     40
+    ],
+    "doc_len": 91,
+    "doc_left_pad": 38,
+    "t_in": 128,
+    "min_kernel_T": 128,
+    "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+    "config_module": "kscaling_config.py",
+    "ncr_param_exact": 170125,
+    "integ_param_exact": 19968
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B_NEG_pinned_ladder_rejected",
+   "kind": "negative",
+   "expect_substr": "",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=12 is IDENTITY mod K=12 (h%K=0) -- confounded, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "C_NEG_silent_residue_collision_rejected",
+   "kind": "negative",
+   "expect_substr": "PAIRWISE residue collisions",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder (4, 8, 16, 17, 19, 33) at K=12 has PAIRWISE residue collisions at [4] (residues [4, 8, 4, 5, 7, 9]) -- two rungs measure the SAME ground truth while reporting as independent probes. This is the check the pinned _assert_ladder_sound is missing (gate memo leg 1).",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "D_NEG_identity_residue_rejected",
+   "kind": "negative",
+   "expect_substr": "IDENTITY mod K",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=24 is IDENTITY mod K=12 (h%K=0) -- confounded, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "E_NEG_train_residue_rejected",
+   "kind": "negative",
+   "expect_substr": "colliding with a train-residue",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=25 has h%K=1 colliding with a train-residue [1, 2, 3] -- secretly in-distribution, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "F_param_counts_exact",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "ncr": 170125,
+    "integ": 19968,
+    "backbone": 97619712,
+    "total_per_arm": 97809805
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "G_document_geometry_and_pad",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "doc_shape": [
+     8,
+     129
+    ],
+    "pad": 38,
+    "t_in": 128,
+    "query_key_col": 125,
+    "query_mark_col": 127
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "H_forward_backward_grad",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "P1b/full_graft": {
+     "loss": 367805.09375,
+     "ce": 10.896703720092773,
+     "grad_norm_backbone": 829.3067729398608,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      13
+     ]
+    },
+    "P1b/backbone_only": {
+     "loss": 10.923835754394531,
+     "ce": 10.923835754394531,
+     "grad_norm_backbone": 822.105850957334,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      13
+     ]
+    },
+    "P0/full_graft": {
+     "loss": 13.726139068603516,
+     "ce": 10.961897850036621,
+     "grad_norm_backbone": 831.8983621560037,
+     "ncr_params_with_grad": 47,
+     "o_raw_shape": [
+      8,
+      13
+     ]
+    },
+    "P0/backbone_only": {
+     "loss": 10.923835754394531,
+     "ce": 10.923835754394531,
+     "grad_norm_backbone": 822.105850957334,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      13
+     ]
+    }
+   },
+   "elapsed_s": 1.05
+  },
+  {
+   "item": "J_read_ablation_exact_zero",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "max_abs_diff": 0.0
+   },
+   "elapsed_s": 0.02
+  },
+  {
+   "item": "I_checkpoint_resume_bit_identical",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "ckpt_dir": "/ephemeral/kscaling_smoke",
+    "max_abs_logit_diff": 0.0,
+    "recorded_d_ncr": 13
+   },
+   "elapsed_s": 2.37
+  },
+  {
+   "item": "K_NEG_unpadded_T_crashes_kernel_floor",
+   "kind": "negative",
+   "expect_substr": "_MIN_KERNEL_T",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "sequence length 90 < _MIN_KERNEL_T=128 -- chunk_delta_rule's backward crashes below this floor (F15-LM, measured 2026-07-02). Choose seq_len/ctx_len/continuation_len >= 128.",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "L_throughput_memory_utilisation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "batch_size": 32,
+    "steps_timed": 30,
+    "s_per_step": 0.1223,
+    "projected_gpu_h_20k_steps": 0.679,
+    "peak_mem_gb": 5.215,
+    "sm_util_samples": [
+     71,
+     73,
+     66,
+     66,
+     73,
+     73,
+     64
+    ],
+    "sm_util_median": 71,
+    "sm_util_max": 73,
+    "packing_headroom_by_mem_80gb": 14
+   },
+   "elapsed_s": 4.8
+  }
+ ]
+}
