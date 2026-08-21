@@ -1,0 +1,222 @@
+{
+  "script": "poolmatched_battery.py",
+  "cell": "POOLMATCHED_mob_g3b24_s2",
+  "tag": "mob_g3b24_s2",
+  "ckpt": "/home/nvidia/ncr_g3b24_rebalance/results/mob_g3b24_s2_ckpts/mob_g3b24_s2.ckpt.pt",
+  "instrument": "ncr_lm_wave1_runner.eval_arm_at_hops via the pbe_repl call pattern (audited, unmodified)",
+  "metric_of_record": "retrieval24_acc",
+  "chance": 0.041666666666666664,
+  "hops": [
+    1,
+    3,
+    61
+  ],
+  "n": 256,
+  "base_seed": 90210,
+  "ckpt_step": 20000,
+  "ckpt_seed": 2,
+  "ckpt_seed_source": "training-results-JSON (key absent from ckpt: cell predates sec G3-B26)",
+  "ckpt_cell_id": "mob_g3b24_s2",
+  "runner_tag": "ncr_gate3_wave1_runner_v1",
+  "freeze_entity_adapter": false,
+  "freeze_flag_source": "DEFAULTED to False -- flag absent from BOTH checkpoint and training record (cell predates sec G3-B31). FLAGGED, not trusted.",
+  "matched_pool_seed": 2,
+  "reference_pool_seed": 0,
+  "trivially_matched": false,
+  "cell_config": {
+    "cfg_aux_loss_type": null,
+    "cfg_freeze_entity_adapter": null,
+    "cfg_seed": 2,
+    "cfg_aux_read_loss_weight": 0.5,
+    "cfg_ortho_reg_weight": 0.1,
+    "cfg_status": "COMPLETED",
+    "cfg_step": 20000
+  },
+  "by_pool": {
+    "pool_seed=2": {
+      "pool_seed": 2,
+      "matched": true,
+      "is_instrument_of_record_seed": false,
+      "P1b": {
+        "regime": "P1b",
+        "teacher_force": true,
+        "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding)",
+        "elapsed_s": 1.2577595710754395,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 1.0,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": 0.007770717144012451,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.9922180771827698,
+            "target_pairwise_cos": 0.9922584295272827
+          },
+          "h=3": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9999827146530151,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": 0.007757663726806641,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.9921924471855164,
+            "target_pairwise_cos": 0.9926474690437317
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.984375,
+            "mean_cos": 0.9897071123123169,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": 0.008808135986328125,
+            "retrieval24_acc": 0.98046875,
+            "o_pairwise_cos": 0.9695596694946289,
+            "target_pairwise_cos": 0.9920815825462341
+          },
+          "mean_recovered_frac@0.9": 0.9947916666666666,
+          "mean_mean_cos": 0.9965632756551107,
+          "mean_answer_accuracy": 0.033854166666666664,
+          "mean_offtarget_margin": 0.008112172285715738,
+          "mean_retrieval24_acc": 0.9934895833333334
+        }
+      },
+      "P0": {
+        "regime": "P0",
+        "teacher_force": false,
+        "regime_meaning": "LEARNED-WRITE (the model's own encoder writes); chance = 1/24",
+        "elapsed_s": 0.40178799629211426,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9955124855041504,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": -0.00011599063873291016,
+            "retrieval24_acc": 0.03125,
+            "o_pairwise_cos": 0.9990260004997253,
+            "target_pairwise_cos": 0.9924655556678772
+          },
+          "h=3": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9959864616394043,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": -0.00011348724365234375,
+            "retrieval24_acc": 0.05859375,
+            "o_pairwise_cos": 0.9999216794967651,
+            "target_pairwise_cos": 0.9925498366355896
+          },
+          "h=61": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9957937002182007,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": -0.0003336668014526367,
+            "retrieval24_acc": 0.03125,
+            "o_pairwise_cos": 1.0,
+            "target_pairwise_cos": 0.9923758506774902
+          },
+          "mean_recovered_frac@0.9": 1.0,
+          "mean_mean_cos": 0.9957642157872518,
+          "mean_answer_accuracy": 0.033854166666666664,
+          "mean_offtarget_margin": -0.00018771489461263022,
+          "mean_retrieval24_acc": 0.040364583333333336
+        }
+      }
+    },
+    "pool_seed=0": {
+      "pool_seed": 0,
+      "matched": false,
+      "is_instrument_of_record_seed": true,
+      "P1b": {
+        "regime": "P1b",
+        "teacher_force": true,
+        "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding)",
+        "elapsed_s": 0.40319252014160156,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 1.0,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": 0.9776486158370972,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.02406514249742031,
+            "target_pairwise_cos": 0.0300271138548851
+          },
+          "h=3": {
+            "recovered_frac@0.9": 0.9921875,
+            "mean_cos": 0.9959979057312012,
+            "answer_accuracy": 0.05078125,
+            "n": 256,
+            "offtarget_margin": 0.9994764924049377,
+            "retrieval24_acc": 0.98828125,
+            "o_pairwise_cos": 0.0010794252157211304,
+            "target_pairwise_cos": 0.021059731021523476
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.578125,
+            "mean_cos": 0.18442927300930023,
+            "answer_accuracy": 0.046875,
+            "n": 256,
+            "offtarget_margin": 0.1297522485256195,
+            "retrieval24_acc": 0.25390625,
+            "o_pairwise_cos": 0.09272821247577667,
+            "target_pairwise_cos": 0.04889198765158653
+          },
+          "mean_recovered_frac@0.9": 0.8567708333333334,
+          "mean_mean_cos": 0.7268090595801672,
+          "mean_answer_accuracy": 0.044270833333333336,
+          "mean_offtarget_margin": 0.7022924522558848,
+          "mean_retrieval24_acc": 0.7473958333333334
+        }
+      },
+      "P0": {
+        "regime": "P0",
+        "teacher_force": false,
+        "regime_meaning": "LEARNED-WRITE (the model's own encoder writes); chance = 1/24",
+        "elapsed_s": 0.3992469310760498,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 0.4609375,
+            "mean_cos": -0.07780075073242188,
+            "answer_accuracy": 0.0390625,
+            "n": 256,
+            "offtarget_margin": -0.12823644280433655,
+            "retrieval24_acc": 0.03515625,
+            "o_pairwise_cos": 0.018651356920599937,
+            "target_pairwise_cos": 0.006262375041842461
+          },
+          "h=3": {
+            "recovered_frac@0.9": 0.4921875,
+            "mean_cos": -0.015477612614631653,
+            "answer_accuracy": 0.04296875,
+            "n": 256,
+            "offtarget_margin": -0.043305858969688416,
+            "retrieval24_acc": 0.05078125,
+            "o_pairwise_cos": 2.4571372705395333e-05,
+            "target_pairwise_cos": -0.0002706871891859919
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.51171875,
+            "mean_cos": 0.02332816645503044,
+            "answer_accuracy": 0.05859375,
+            "n": 256,
+            "offtarget_margin": -0.03468548133969307,
+            "retrieval24_acc": 0.04296875,
+            "o_pairwise_cos": 0.0064340257085859776,
+            "target_pairwise_cos": 0.013705548830330372
+          },
+          "mean_recovered_frac@0.9": 0.48828125,
+          "mean_mean_cos": -0.02331673229734103,
+          "mean_answer_accuracy": 0.046875,
+          "mean_offtarget_margin": -0.06874259437123935,
+          "mean_retrieval24_acc": 0.04296875
+        }
+      }
+    }
+  },
+  "elapsed_s": 8.055112838745117,
+  "self_check_defects": [],
+  "self_check": "PASS"
+}

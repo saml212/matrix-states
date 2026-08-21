@@ -1,0 +1,131 @@
+{
+  "script": "poolmatched_battery.py",
+  "cell": "POOLMATCHED_mob_g3b31_compB_s0",
+  "tag": "mob_g3b31_compB_s0",
+  "ckpt": "/home/nvidia/ncr_g3b31_contrastive/results/mob_g3b31_compB_s0_ckpts/mob_g3b31_compB_s0.ckpt.pt",
+  "instrument": "ncr_lm_wave1_runner.eval_arm_at_hops via the pbe_repl call pattern (audited, unmodified)",
+  "metric_of_record": "retrieval24_acc",
+  "chance": 0.041666666666666664,
+  "hops": [
+    1,
+    3,
+    61
+  ],
+  "n": 256,
+  "base_seed": 90210,
+  "ckpt_step": 20000,
+  "ckpt_seed": 0,
+  "ckpt_seed_source": "checkpoint",
+  "ckpt_cell_id": "mob_g3b31_compB_s0",
+  "runner_tag": "ncr_gate3_wave1_runner_v1",
+  "freeze_entity_adapter": false,
+  "freeze_flag_source": "checkpoint",
+  "matched_pool_seed": 0,
+  "reference_pool_seed": 0,
+  "trivially_matched": true,
+  "cell_config": {
+    "cfg_aux_loss_type": "contrastive+cosine",
+    "cfg_freeze_entity_adapter": false,
+    "cfg_seed": 0,
+    "cfg_aux_read_loss_weight": 0.5,
+    "cfg_ortho_reg_weight": 0.1,
+    "cfg_status": "COMPLETED",
+    "cfg_step": 20000
+  },
+  "by_pool": {
+    "pool_seed=0": {
+      "pool_seed": 0,
+      "matched": true,
+      "is_instrument_of_record_seed": true,
+      "P1b": {
+        "regime": "P1b",
+        "teacher_force": true,
+        "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding)",
+        "elapsed_s": 1.245767593383789,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 1.0,
+            "answer_accuracy": 0.046875,
+            "n": 256,
+            "offtarget_margin": 0.7873584032058716,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.22637659311294556,
+            "target_pairwise_cos": 0.21165913343429565
+          },
+          "h=3": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9999994039535522,
+            "answer_accuracy": 0.0703125,
+            "n": 256,
+            "offtarget_margin": 0.8110007643699646,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.19784016907215118,
+            "target_pairwise_cos": 0.20917360484600067
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.9765625,
+            "mean_cos": 0.9864153265953064,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": 0.7888807654380798,
+            "retrieval24_acc": 0.9765625,
+            "o_pairwise_cos": 0.19841289520263672,
+            "target_pairwise_cos": 0.19508185982704163
+          },
+          "mean_recovered_frac@0.9": 0.9921875,
+          "mean_mean_cos": 0.9954715768496195,
+          "mean_answer_accuracy": 0.05078125,
+          "mean_offtarget_margin": 0.795746644337972,
+          "mean_retrieval24_acc": 0.9921875
+        }
+      },
+      "P0": {
+        "regime": "P0",
+        "teacher_force": false,
+        "regime_meaning": "LEARNED-WRITE (the model's own encoder writes); chance = 1/24",
+        "elapsed_s": 0.3937036991119385,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 0.0,
+            "mean_cos": 0.33797645568847656,
+            "answer_accuracy": 0.046875,
+            "n": 256,
+            "offtarget_margin": 0.017207026481628418,
+            "retrieval24_acc": 0.0703125,
+            "o_pairwise_cos": 0.7729445695877075,
+            "target_pairwise_cos": 0.21393856406211853
+          },
+          "h=3": {
+            "recovered_frac@0.9": 0.0,
+            "mean_cos": 0.35579872131347656,
+            "answer_accuracy": 0.05078125,
+            "n": 256,
+            "offtarget_margin": -0.003245711326599121,
+            "retrieval24_acc": 0.03515625,
+            "o_pairwise_cos": 0.9857648611068726,
+            "target_pairwise_cos": 0.21007658541202545
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.0,
+            "mean_cos": 0.3610810935497284,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": 0.0006480813026428223,
+            "retrieval24_acc": 0.06640625,
+            "o_pairwise_cos": 0.990049421787262,
+            "target_pairwise_cos": 0.2360372245311737
+          },
+          "mean_recovered_frac@0.9": 0.0,
+          "mean_mean_cos": 0.3516187568505605,
+          "mean_answer_accuracy": 0.04296875,
+          "mean_offtarget_margin": 0.00486979881922404,
+          "mean_retrieval24_acc": 0.057291666666666664
+        }
+      }
+    }
+  },
+  "elapsed_s": 5.608762979507446,
+  "self_check_defects": [],
+  "self_check": "PASS"
+}

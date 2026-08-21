@@ -1,0 +1,49 @@
+loaded 58 cells
+
+============================================================================================================
+2x2 TABLE -- P1b (EXACT-WRITE) retrieval24_acc @ h=61, n=256, eval seed 90210, all ckpt_step==20000
+============================================================================================================
+quadrant                             n  MATCHED median  seed-0 median    delta
+------------------------------------------------------------------------------------------------------------
+FROZEN-contrastive (primary)        17          1.0000         1.0000  +0.0000
+FROZEN-cosine (compA)                9          0.9961         1.0000  -0.0039
+TRAINABLE-contrastive (compB)       21          0.9922         0.7266  +0.2656
+TRAINABLE-cosine (compD)             8          0.9785         0.2793  +0.6992
+------------------------------------------------------------------------------------------------------------
+NOT IN THE 2x2 (config predates the aux_loss_type/freeze flags): [('mob_g3b24_s0', False, None), ('mob_g3b24_s1', False, None), ('mob_g3b24_s2', False, None)]
+
+--- FROZEN-contrastive (primary) --- per-seed P1b@h61 (ckpt_seed: matched / seed-0-pool)
+   s0:1.000/1.000*  s1:0.992/1.000  s2:1.000/0.996  s3:0.996/1.000  s4:0.996/0.996  s5:1.000/0.992  s6:0.996/1.000  s7:0.996/0.996  s8:0.988/0.984  s9:1.000/1.000  s10:0.996/0.992  s11:1.000/1.000  s12:1.000/0.996  s13:1.000/1.000  s14:1.000/1.000  s15:0.988/0.996  s16:1.000/1.000
+   * s0 ANCHOR (pool seed 0 == trivially matched): s0=1.0000
+
+--- FROZEN-cosine (compA) --- per-seed P1b@h61 (ckpt_seed: matched / seed-0-pool)
+   s0:0.996/0.996*  s1:1.000/0.996  s2:0.988/1.000  s3:0.996/1.000  s4:1.000/0.996  s5:1.000/1.000  s6:1.000/1.000  s7:0.992/1.000  s8:0.996/1.000
+   * s0 ANCHOR (pool seed 0 == trivially matched): s0=0.9961
+
+--- TRAINABLE-contrastive (compB) --- per-seed P1b@h61 (ckpt_seed: matched / seed-0-pool)
+   s0:0.977/0.977*  s1:1.000/0.648  s2:0.996/0.617  s3:0.988/0.953  s4:0.996/0.805  s5:0.984/0.727  s6:0.973/0.973  s7:0.992/0.777  s8:0.992/0.723  s9:0.996/0.738  s10:0.992/0.762  s11:1.000/0.680  s12:1.000/0.688  s13:0.969/0.750  s14:0.992/0.668  s15:1.000/0.684  s16:0.988/0.734  s17:1.000/0.617  s18:0.996/0.680  s19:0.992/0.820  s20:0.988/0.691
+   * s0 ANCHOR (pool seed 0 == trivially matched): s0=0.9766
+
+--- TRAINABLE-cosine (compD) --- per-seed P1b@h61 (ckpt_seed: matched / seed-0-pool)
+   s1:0.969/0.156  s2:0.980/0.254  s3:0.969/0.145  s4:0.984/0.473  s5:0.977/0.418  s6:0.984/0.168  s7:0.984/0.414  s8:0.961/0.305
+
+============================================================================================================
+P1b median by hop (MATCHED pools)
+============================================================================================================
+quadrant                                  h=1        h=3       h=61   | seed-0 pool: h=1 / h=3 / h=61
+FROZEN-contrastive (primary)           1.0000     1.0000     1.0000   | 1.0000 / 1.0000 / 1.0000
+FROZEN-cosine (compA)                  1.0000     1.0000     0.9961   | 1.0000 / 1.0000 / 1.0000
+TRAINABLE-contrastive (compB)          1.0000     1.0000     0.9922   | 1.0000 / 1.0000 / 0.7266
+TRAINABLE-cosine (compD)               1.0000     1.0000     0.9785   | 1.0000 / 0.9902 / 0.2793
+
+============================================================================================================
+WALL CLAIM: does P0 (LEARNED-WRITE) stay at chance (0.0417) under MATCHED pools?
+============================================================================================================
+FROZEN-contrastive (primary)       n_readings= 51  min=0.0195  max=0.0664  (max cell: mob_g3b31_primary_s8)
+FROZEN-cosine (compA)              n_readings= 27  min=0.0117  max=0.0742  (max cell: mob_g3b31_compA_s1)
+TRAINABLE-contrastive (compB)      n_readings= 63  min=0.0156  max=0.0703  (max cell: mob_g3b31_compB_s0)
+TRAINABLE-cosine (compD)           n_readings= 24  min=0.0156  max=0.0664  (max cell: mob_g3b31_compD_s3)
+------------------------------------------------------------------------------------------------------------
+ALL ARMS POOLED                    min=0.0117  max=0.0742  chance=0.0417
+binomial sd at n=256, p=1/24: 0.0125  -> chance +/- 3sd = [0.0042, 0.0791]
+VERDICT: YES -- every P0 reading is within chance +/- 3sd

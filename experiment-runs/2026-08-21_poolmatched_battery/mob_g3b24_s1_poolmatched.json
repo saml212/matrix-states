@@ -1,0 +1,222 @@
+{
+  "script": "poolmatched_battery.py",
+  "cell": "POOLMATCHED_mob_g3b24_s1",
+  "tag": "mob_g3b24_s1",
+  "ckpt": "/home/nvidia/ncr_g3b24_rebalance/results/mob_g3b24_s1_ckpts/mob_g3b24_s1.ckpt.pt",
+  "instrument": "ncr_lm_wave1_runner.eval_arm_at_hops via the pbe_repl call pattern (audited, unmodified)",
+  "metric_of_record": "retrieval24_acc",
+  "chance": 0.041666666666666664,
+  "hops": [
+    1,
+    3,
+    61
+  ],
+  "n": 256,
+  "base_seed": 90210,
+  "ckpt_step": 20000,
+  "ckpt_seed": 1,
+  "ckpt_seed_source": "training-results-JSON (key absent from ckpt: cell predates sec G3-B26)",
+  "ckpt_cell_id": "mob_g3b24_s1",
+  "runner_tag": "ncr_gate3_wave1_runner_v1",
+  "freeze_entity_adapter": false,
+  "freeze_flag_source": "DEFAULTED to False -- flag absent from BOTH checkpoint and training record (cell predates sec G3-B31). FLAGGED, not trusted.",
+  "matched_pool_seed": 1,
+  "reference_pool_seed": 0,
+  "trivially_matched": false,
+  "cell_config": {
+    "cfg_aux_loss_type": null,
+    "cfg_freeze_entity_adapter": null,
+    "cfg_seed": 1,
+    "cfg_aux_read_loss_weight": 0.5,
+    "cfg_ortho_reg_weight": 0.1,
+    "cfg_status": "COMPLETED",
+    "cfg_step": 20000
+  },
+  "by_pool": {
+    "pool_seed=1": {
+      "pool_seed": 1,
+      "matched": true,
+      "is_instrument_of_record_seed": false,
+      "P1b": {
+        "regime": "P1b",
+        "teacher_force": true,
+        "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding)",
+        "elapsed_s": 1.2649998664855957,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 1.0,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": 0.004610955715179443,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.9953744411468506,
+            "target_pairwise_cos": 0.9954346418380737
+          },
+          "h=3": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9999998807907104,
+            "answer_accuracy": 0.0546875,
+            "n": 256,
+            "offtarget_margin": 0.004601120948791504,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.9953744411468506,
+            "target_pairwise_cos": 0.9954611659049988
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.9921875,
+            "mean_cos": 0.9857077598571777,
+            "answer_accuracy": 0.02734375,
+            "n": 256,
+            "offtarget_margin": 0.004537403583526611,
+            "retrieval24_acc": 0.96875,
+            "o_pairwise_cos": 0.966975748538971,
+            "target_pairwise_cos": 0.9955715537071228
+          },
+          "mean_recovered_frac@0.9": 0.9973958333333334,
+          "mean_mean_cos": 0.9952358802159628,
+          "mean_answer_accuracy": 0.037760416666666664,
+          "mean_offtarget_margin": 0.0045831600824991865,
+          "mean_retrieval24_acc": 0.9895833333333334
+        }
+      },
+      "P0": {
+        "regime": "P0",
+        "teacher_force": false,
+        "regime_meaning": "LEARNED-WRITE (the model's own encoder writes); chance = 1/24",
+        "elapsed_s": 0.4023714065551758,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9965662360191345,
+            "answer_accuracy": 0.02734375,
+            "n": 256,
+            "offtarget_margin": -5.2094459533691406e-05,
+            "retrieval24_acc": 0.03125,
+            "o_pairwise_cos": 0.9990999698638916,
+            "target_pairwise_cos": 0.995461642742157
+          },
+          "h=3": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9973196983337402,
+            "answer_accuracy": 0.0546875,
+            "n": 256,
+            "offtarget_margin": -0.00010085105895996094,
+            "retrieval24_acc": 0.05078125,
+            "o_pairwise_cos": 0.9998747706413269,
+            "target_pairwise_cos": 0.995290994644165
+          },
+          "h=61": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9975025653839111,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": 7.867813110351562e-06,
+            "retrieval24_acc": 0.03125,
+            "o_pairwise_cos": 1.0,
+            "target_pairwise_cos": 0.9955667853355408
+          },
+          "mean_recovered_frac@0.9": 1.0,
+          "mean_mean_cos": 0.997129499912262,
+          "mean_answer_accuracy": 0.037760416666666664,
+          "mean_offtarget_margin": -4.835923512776693e-05,
+          "mean_retrieval24_acc": 0.037760416666666664
+        }
+      }
+    },
+    "pool_seed=0": {
+      "pool_seed": 0,
+      "matched": false,
+      "is_instrument_of_record_seed": true,
+      "P1b": {
+        "regime": "P1b",
+        "teacher_force": true,
+        "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding)",
+        "elapsed_s": 0.3972313404083252,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 1.0,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": 0.9937353134155273,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": -0.0007427997188642621,
+            "target_pairwise_cos": -0.00023144448641687632
+          },
+          "h=3": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9992632865905762,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": 1.0047838687896729,
+            "retrieval24_acc": 0.98046875,
+            "o_pairwise_cos": -0.002221964066848159,
+            "target_pairwise_cos": -0.0008671403047628701
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.53515625,
+            "mean_cos": 0.09704674780368805,
+            "answer_accuracy": 0.0703125,
+            "n": 256,
+            "offtarget_margin": 0.10323960334062576,
+            "retrieval24_acc": 0.15625,
+            "o_pairwise_cos": 0.02536584995687008,
+            "target_pairwise_cos": -0.0015923107275739312
+          },
+          "mean_recovered_frac@0.9": 0.8450520833333334,
+          "mean_mean_cos": 0.6987700114647547,
+          "mean_answer_accuracy": 0.045572916666666664,
+          "mean_offtarget_margin": 0.7005862618486086,
+          "mean_retrieval24_acc": 0.7122395833333334
+        }
+      },
+      "P0": {
+        "regime": "P0",
+        "teacher_force": false,
+        "regime_meaning": "LEARNED-WRITE (the model's own encoder writes); chance = 1/24",
+        "elapsed_s": 0.39833950996398926,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 0.5234375,
+            "mean_cos": 0.046782128512859344,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": 0.004665471613407135,
+            "retrieval24_acc": 0.03515625,
+            "o_pairwise_cos": -0.002206253120675683,
+            "target_pairwise_cos": -0.0007605692953802645
+          },
+          "h=3": {
+            "recovered_frac@0.9": 0.484375,
+            "mean_cos": -0.031106630340218544,
+            "answer_accuracy": 0.0390625,
+            "n": 256,
+            "offtarget_margin": -0.05046568810939789,
+            "retrieval24_acc": 0.0390625,
+            "o_pairwise_cos": -0.0032384293153882027,
+            "target_pairwise_cos": -7.037306932033971e-05
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.47265625,
+            "mean_cos": -0.054724469780921936,
+            "answer_accuracy": 0.07421875,
+            "n": 256,
+            "offtarget_margin": -0.08727099001407623,
+            "retrieval24_acc": 0.03515625,
+            "o_pairwise_cos": -0.0036760070361196995,
+            "target_pairwise_cos": -0.000851571443490684
+          },
+          "mean_recovered_frac@0.9": 0.4934895833333333,
+          "mean_mean_cos": -0.013016323869427046,
+          "mean_answer_accuracy": 0.048177083333333336,
+          "mean_offtarget_margin": -0.044357068836688995,
+          "mean_retrieval24_acc": 0.036458333333333336
+        }
+      }
+    }
+  },
+  "elapsed_s": 7.784358263015747,
+  "self_check_defects": [],
+  "self_check": "PASS"
+}

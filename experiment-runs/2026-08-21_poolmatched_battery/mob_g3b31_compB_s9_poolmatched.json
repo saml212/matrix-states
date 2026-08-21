@@ -1,0 +1,222 @@
+{
+  "script": "poolmatched_battery.py",
+  "cell": "POOLMATCHED_mob_g3b31_compB_s9",
+  "tag": "mob_g3b31_compB_s9",
+  "ckpt": "/ephemeral/reseed_ckpts/mob_g3b31_compB_s9_ckpts/mob_g3b31_compB_s9.ckpt.pt",
+  "instrument": "ncr_lm_wave1_runner.eval_arm_at_hops via the pbe_repl call pattern (audited, unmodified)",
+  "metric_of_record": "retrieval24_acc",
+  "chance": 0.041666666666666664,
+  "hops": [
+    1,
+    3,
+    61
+  ],
+  "n": 256,
+  "base_seed": 90210,
+  "ckpt_step": 20000,
+  "ckpt_seed": 9,
+  "ckpt_seed_source": "checkpoint",
+  "ckpt_cell_id": "mob_g3b31_compB_s9",
+  "runner_tag": "ncr_gate3_wave1_runner_v1",
+  "freeze_entity_adapter": false,
+  "freeze_flag_source": "checkpoint",
+  "matched_pool_seed": 9,
+  "reference_pool_seed": 0,
+  "trivially_matched": false,
+  "cell_config": {
+    "cfg_aux_loss_type": "contrastive+cosine",
+    "cfg_freeze_entity_adapter": false,
+    "cfg_seed": 9,
+    "cfg_aux_read_loss_weight": 0.5,
+    "cfg_ortho_reg_weight": 0.1,
+    "cfg_status": "COMPLETED",
+    "cfg_step": 20000
+  },
+  "by_pool": {
+    "pool_seed=9": {
+      "pool_seed": 9,
+      "matched": true,
+      "is_instrument_of_record_seed": false,
+      "P1b": {
+        "regime": "P1b",
+        "teacher_force": true,
+        "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding)",
+        "elapsed_s": 1.2380130290985107,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 1.0,
+            "answer_accuracy": 0.01953125,
+            "n": 256,
+            "offtarget_margin": 0.08848965167999268,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.914962887763977,
+            "target_pairwise_cos": 0.9141446352005005
+          },
+          "h=3": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.9999995231628418,
+            "answer_accuracy": 0.0390625,
+            "n": 256,
+            "offtarget_margin": 0.09414434432983398,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.9076607823371887,
+            "target_pairwise_cos": 0.9056088924407959
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.99609375,
+            "mean_cos": 0.996321976184845,
+            "answer_accuracy": 0.04296875,
+            "n": 256,
+            "offtarget_margin": 0.09426730871200562,
+            "retrieval24_acc": 0.99609375,
+            "o_pairwise_cos": 0.8954547047615051,
+            "target_pairwise_cos": 0.9103626608848572
+          },
+          "mean_recovered_frac@0.9": 0.9986979166666666,
+          "mean_mean_cos": 0.9987738331158956,
+          "mean_answer_accuracy": 0.033854166666666664,
+          "mean_offtarget_margin": 0.09230043490727742,
+          "mean_retrieval24_acc": 0.9986979166666666
+        }
+      },
+      "P0": {
+        "regime": "P0",
+        "teacher_force": false,
+        "regime_meaning": "LEARNED-WRITE (the model's own encoder writes); chance = 1/24",
+        "elapsed_s": 0.39565253257751465,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 0.90625,
+            "mean_cos": 0.9352976083755493,
+            "answer_accuracy": 0.015625,
+            "n": 256,
+            "offtarget_margin": 0.0035387277603149414,
+            "retrieval24_acc": 0.05859375,
+            "o_pairwise_cos": 0.9829204082489014,
+            "target_pairwise_cos": 0.9020494818687439
+          },
+          "h=3": {
+            "recovered_frac@0.9": 0.90234375,
+            "mean_cos": 0.9363558292388916,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": 0.001646280288696289,
+            "retrieval24_acc": 0.04296875,
+            "o_pairwise_cos": 0.9921604990959167,
+            "target_pairwise_cos": 0.89937824010849
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.8828125,
+            "mean_cos": 0.9346213340759277,
+            "answer_accuracy": 0.0390625,
+            "n": 256,
+            "offtarget_margin": -0.0017426609992980957,
+            "retrieval24_acc": 0.0390625,
+            "o_pairwise_cos": 0.9907782673835754,
+            "target_pairwise_cos": 0.8998841047286987
+          },
+          "mean_recovered_frac@0.9": 0.8971354166666666,
+          "mean_mean_cos": 0.9354249238967896,
+          "mean_answer_accuracy": 0.029947916666666668,
+          "mean_offtarget_margin": 0.001147449016571045,
+          "mean_retrieval24_acc": 0.046875
+        }
+      }
+    },
+    "pool_seed=0": {
+      "pool_seed": 0,
+      "matched": false,
+      "is_instrument_of_record_seed": true,
+      "P1b": {
+        "regime": "P1b",
+        "teacher_force": true,
+        "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding)",
+        "elapsed_s": 0.39735937118530273,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 1.0,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": 1.0180352926254272,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": 0.006781911943107843,
+            "target_pairwise_cos": 0.0007025824743323028
+          },
+          "h=3": {
+            "recovered_frac@0.9": 1.0,
+            "mean_cos": 0.999979555606842,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": 1.0147784948349,
+            "retrieval24_acc": 1.0,
+            "o_pairwise_cos": -0.0023384245578199625,
+            "target_pairwise_cos": 0.012945621274411678
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.8515625,
+            "mean_cos": 0.7935198545455933,
+            "answer_accuracy": 0.05078125,
+            "n": 256,
+            "offtarget_margin": 0.8165326118469238,
+            "retrieval24_acc": 0.73828125,
+            "o_pairwise_cos": -0.0028760989662259817,
+            "target_pairwise_cos": 0.00711302924901247
+          },
+          "mean_recovered_frac@0.9": 0.9505208333333334,
+          "mean_mean_cos": 0.9311664700508118,
+          "mean_answer_accuracy": 0.0390625,
+          "mean_offtarget_margin": 0.949782133102417,
+          "mean_retrieval24_acc": 0.9127604166666666
+        }
+      },
+      "P0": {
+        "regime": "P0",
+        "teacher_force": false,
+        "regime_meaning": "LEARNED-WRITE (the model's own encoder writes); chance = 1/24",
+        "elapsed_s": 0.39705801010131836,
+        "result": {
+          "h=1": {
+            "recovered_frac@0.9": 0.40625,
+            "mean_cos": -0.13663938641548157,
+            "answer_accuracy": 0.03125,
+            "n": 256,
+            "offtarget_margin": -0.15716619789600372,
+            "retrieval24_acc": 0.03125,
+            "o_pairwise_cos": -0.0001431980635970831,
+            "target_pairwise_cos": 0.022420300170779228
+          },
+          "h=3": {
+            "recovered_frac@0.9": 0.47265625,
+            "mean_cos": -0.0076582953333854675,
+            "answer_accuracy": 0.03515625,
+            "n": 256,
+            "offtarget_margin": -0.02374965324997902,
+            "retrieval24_acc": 0.03515625,
+            "o_pairwise_cos": -0.002393254777416587,
+            "target_pairwise_cos": 0.0026172203943133354
+          },
+          "h=61": {
+            "recovered_frac@0.9": 0.4375,
+            "mean_cos": -0.0769047662615776,
+            "answer_accuracy": 0.0625,
+            "n": 256,
+            "offtarget_margin": -0.12688596546649933,
+            "retrieval24_acc": 0.03515625,
+            "o_pairwise_cos": -0.003649994498118758,
+            "target_pairwise_cos": -0.00046990413102321327
+          },
+          "mean_recovered_frac@0.9": 0.4388020833333333,
+          "mean_mean_cos": -0.07373414933681488,
+          "mean_answer_accuracy": 0.04296875,
+          "mean_offtarget_margin": -0.10260060553749402,
+          "mean_retrieval24_acc": 0.033854166666666664
+        }
+      }
+    }
+  },
+  "elapsed_s": 8.42998719215393,
+  "self_check_defects": [],
+  "self_check": "PASS"
+}

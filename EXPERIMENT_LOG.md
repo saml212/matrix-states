@@ -11036,3 +11036,59 @@ resource red-team; by-task + by-mechanism external novelty sweeps
 dispatched (doctrine legs 2/3, Sonnet).
 
 ## 2026-08-21 #5 — K-scaling novelty gate ADJUDICATED CLEAR (3/3 legs: internal NOVEL-TO-US, by-mechanism NOVEL, by-task NOVEL). Full verdict + verified citations + carried requirements: research/kscaling-novelty-2026-08-21.md. Design/build (Opus) dispatches after the matched-pool re-score adjudication, which also fixes the arm set at each K.
+
+## 2026-08-21 #6 — MATCHED-POOL BATTERY ADJUDICATION (58/58 cells, 0.132 GPU-h): the freeze-effect "complete separation" (p=5.96e-11) is RETRACTED as an entity-pool generalization artifact; the WALL STANDS (165/165 P0 readings at chance); the embed-path wave is KILLED (targeted a phantom, 11.64 GPU-h saved); the finding REFRAMES POSITIVE.
+
+Instrument trust: the agent's seed-0 column reproduces the numbers of
+record 52/52 BIT-FOR-BIT at h=1 and h=61 — the only variable across
+columns is the entity-pool seed. Arm labels read from each cell's
+recorded training config, never inferred from names; 3 mob_g3b24_*
+cells predate the flags and are defaulted-and-flagged, not trusted.
+
+**RETRACTION (supersedes 2026-08-18 #5/#7/#9's separation verdict and
+the 08-18 tick-#6 STATE item 2):** P1b@h61 medians, MATCHED pools vs
+seed-0 pools of record — primary 1.0000 vs 1.0000 (n=17); compA
+0.9961 vs 1.0000 (n=9); compB 0.9922 vs 0.7266 (n=21, +0.2656);
+compD 0.9785 vs 0.2793 (n=8, +0.6992). Complete separation under
+seed-0 pools (U=754/754, p=1.34e-10 ≈ the recorded 5.96e-11 finding)
+COLLAPSES under matched pools: U=596, 216/754 violating pairs,
+median gap +0.0098 (~2.5 items/256), 32× shrink, at ceiling. The s0
+anchors prove the separation was never present in trivially-matched
+cells (compB_s0 0.9766 sits with the frozen arms). The artifact is
+depth-AMPLIFIED (h=1 identical, h=3 near-identical, h=61 divergent) —
+mismatched-entity error compounds through composition, which is why
+it mimicked a freeze effect on the depth metric. A small residual
+ordering (frozen ≥ trainable-contrastive ≥ trainable-cosine,
+p=1.59e-4) survives but is ceiling-compressed — only a harder
+operating point (deeper h, larger K) can measure it; more seeds at
+h=61 cannot.
+
+**REINTERPRETATION of 08-18 #17 (every-reset-rescues):** resets
+"rescued" the trainable arms by removing pool-SPECIALIZED trained
+components — making the cell pool-agnostic like a frozen arm — not by
+reversing a geometric collapse. Consistent with #11's blind legs
+reading null (there was no adapter-property effect to find). The
+positive statement of the phenomenon: **frozen adapters are
+entity-pool-agnostic; trained adapters specialize to their training
+entities, and the specialization cost compounds with composition
+depth when evaluated off-pool.**
+
+**UNAFFECTED / STRENGTHENED:** (1) The premise finding stands in
+full — P1b ≥ 0.978 AND P0 at chance (min 0.0117, max 0.0742, all
+inside chance ±3sd) for EVERY arm under matched pools; the wall is
+confound-free. (2) The capability claim STRENGTHENS: deep exact
+composition does NOT require freezing — all four recipes compose at
+0.978-1.000 on their own entity distribution. (3) The published
+finding page (pebbleml.com no. 17) is CLEAN — its compB is the s0
+(trivially matched) cell and makes only P0/P1b claims; no external
+correction needed; the retracted separation was never published.
+
+**CONSEQUENCES:** embed-path wave KILLED as designed (its compE
+rescue target does not exist under a sound instrument); the audited
+split-backward machinery is retained as reusable infrastructure.
+K-scaling (gate CLEAR 3/3, #5) is now THE payload; its design
+inherits a pre-registered secondary question — does the residual
+frozen-vs-trainable ordering open at larger K? — plus a cheap
+deep-ladder matched eval on existing cells (dispatched) to measure
+the residual gap off-ceiling at h∈{253,1021,4093} first.
+Archive: experiment-runs/2026-08-21_poolmatched_battery/ (repo+SSD).

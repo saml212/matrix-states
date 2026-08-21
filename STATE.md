@@ -1,3 +1,16 @@
+**2026-08-21 tick (Fable) — MATCHED-POOL RE-ADJUDICATION: freeze-effect
+separation RETRACTED as entity-pool artifact (08-18 tick #6 items 2-4
+superseded — see EXPERIMENT_LOG 2026-08-21 #3/#6); premise finding +
+wall STAND and STRENGTHEN (all four recipes compose 0.978-1.000 on
+matched pools; P0 chance 165/165). Embed-path wave KILLED pre-launch
+(11.64 GPU-h saved; build+audit machinery retained). K-scaling gate
+CLEAR 3/3 (research/kscaling-novelty-2026-08-21.md) = THE payload;
+Opus design/build dispatched; deep-ladder matched eval (h to 4093,
+all cells) dispatched to measure the residual frozen-vs-trainable
+ordering off-ceiling. Depth findings of record: COMPLETE-COVERAGE
+(15/15 residues ≥0.99 frozen arms) + DRIFT (~0.08-0.09 by 11
+squarings). Grant runway ~1 week; all 8 GPUs ours.**
+
 **2026-08-18 tick #6 (Fable) — CONSOLIDATED STATE (supersedes ticks
 #1-#5 of this day for orientation; full detail in EXPERIMENT_LOG
 2026-08-18 #1-#17).**
