@@ -108,7 +108,14 @@ def main() -> int:
         return KS.provenance(R.H_NCR, R.RUNG1_BACKBONE["d_model"])
 
     # ---------------- B-E: ladder negatives ------------------------------
-    @neg("B_NEG_pinned_ladder_rejected", "")
+    # M4 fix (KSCALING_AUDIT_R1): expect the SPECIFIC first-firing assert for
+    # the reference ladder at this K (assert order: identity -> train-residue
+    # -> pairwise; first offending rung in ladder order decides).
+    _B_EXPECT = {12: "IDENTITY mod K", 16: "PAIRWISE residue collisions",
+                 20: "IDENTITY mod K", 24: "PAIRWISE residue collisions",
+                 28: "colliding with a train-residue",
+                 32: "PAIRWISE residue collisions"}
+    @neg("B_NEG_pinned_ladder_rejected", _B_EXPECT[K])
     def _b():
         KS.assert_ladder_sound(KS.REFERENCE_K24_LADDER, K)
 

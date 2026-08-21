@@ -98,6 +98,11 @@ def main() -> int:
     ap.add_argument("--cellcfg", default=None)
     ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_kscaling/results"))
     ap.add_argument("--required-step", type=int, default=REQUIRED_CKPT_STEP)
+    # F1 fix (KSCALING_AUDIT_R1): read-only scoring of the K=24 anchor cells of
+    # record, which carry the pinned gate3 tag. Allowlisted values only; the
+    # runner's own resume guard stays strict.
+    ap.add_argument("--anchor-runner-tag", default=None,
+                    choices=["ncr_gate3_wave1_runner_v1"])
     ap.add_argument("--n", type=int, default=N_EVAL)
     args = ap.parse_args()
 
@@ -108,6 +113,8 @@ def main() -> int:
     t0 = time.time()
     device = "cuda"
     path = os.path.expanduser(args.ckpt)
+    if args.anchor_runner_tag:
+        R.RUNNER_TAG = args.anchor_runner_tag
     ckpt = R.load_checkpoint(path, device)
     if ckpt is None:
         raise LoudFailure(f"CHECKPOINT FAIL [{args.tag}]: {path} missing or failed "

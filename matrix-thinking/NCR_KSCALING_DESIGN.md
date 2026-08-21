@@ -60,7 +60,7 @@ The fourth row is the sharpest confound: at the primary readout depth the
 **effective composition distance grows with K**, so a decline could be
 breadth (more bindings to hold) or depth (a longer composition). §4.4's
 fixed-distance control separates them. The third row has a **kink at K=20**
-(the T-floor pad, §5.3) and is read per §7.4.
+(the T-floor pad, §5.3) and is read per §7.5 (measured clean; conditional control).
 
 ---
 
@@ -371,13 +371,18 @@ recorded on every number:
   and so a margin bar of 0.90 is `1/K` stricter at small K (at K=12 it demands
   raw acc ≥ 0.9833; at K=32, ≥ 0.9313).
 
-**Primary band is stated on `margin` per the brief; `kappa` is recorded
-alongside and the audit may elect it.** Existing matched-pool K=24 evidence
-(#6: primary 1.0000, compB 0.9922 at h=61) clears both.
+**Primary band is stated on `kappa` — ELECTED by KSCALING_AUDIT_R1 (M2),
+2026-08-21.** The audit measured that a margin-0.90 bar is monotone-in-K
+(raw acc 0.9833 at K=12 vs 0.9313 at K=32, span 0.052): a flat
+0.980-accuracy model would FAIL only at K=12 and the sweep would
+manufacture `FRONTIER-AT-K*=12` as a pre-registered output. κ's raw-acc
+span across the range is 0.0052. `margin_over_chance` remains recorded
+alongside in every JSON. Existing matched-pool K=24 evidence (#6:
+primary 1.0000, compB 0.9922 at h=61) clears both formulations.
 
 ### 7.1 CURVE 1 — CAPABILITY (P1b, frozen arms) — PRIMARY
 
-* **CAPABILITY-HOLDS(K)** = `margin_over_chance ≥ 0.90` at `h_top(K)` for
+* **CAPABILITY-HOLDS(K)** = `kappa ≥ 0.90` at `h_top(K)` for
   **≥ 2/3 seeds** on the FROZEN arm.
 * **CAPABILITY-HOLDS (curve)** = CAPABILITY-HOLDS(K) at **every** K
   ∈ {12,16,20,24,28,32}. This is the headline: exact composition breadth does
@@ -417,12 +422,25 @@ and **ceiling-compressed**; does it open at larger K?
 
 Pre-registered instead:
 
-* **Primary inferential test** — Mann–Whitney U on the **pooled** 15 frozen
-  vs 15 trainable κ values at `h_top` (across all five sweep K), plus the 6
-  K=24 anchor cells if the audit releases them. 15-vs-15 can reach p < 0.01.
-  * **ORDERING-CONFIRMED** = pooled median gap > 0.05 **and** p < 0.01.
-  * **ORDERING-NEGLIGIBLE** = pooled median gap ≤ 0.05.
-  * **ORDERING-INVERTED** = pooled median gap < −0.05 with p < 0.01
+* **Primary inferential test — REPLACED by KSCALING_AUDIT_R1 (M1),
+  2026-08-21.** The DRAFT-R0 pooled 15v15 Mann–Whitney analyzed a blocked
+  design unblocked: the audit measured that a UNANIMOUS within-K
+  frozen>trainable ordering (44.5/45 within-K wins) still yields pooled
+  p = 0.361 (because κ varies across K far more than between recipes
+  within K), while a pure single-K artifact yields p = 0.016 — the pooled
+  test is anti-powered in exactly the regime the sweep exists to find.
+  **Pre-registered instead: stratified within-K exact permutation test.**
+  T = Σ_K U_K where U_K = # of (frozen, trainable) within-K pairs with
+  κ_frozen > κ_trainable (ties count ½; 9 pairs per stratum). Audit-
+  precomputed exact thresholds for p < 0.01: **T ≥ 36/45** with the five
+  sweep K, **T ≥ 42/54** if the K=24 anchor re-score (its own stratum —
+  which also dissolves the cross-harness exchangeability objection)
+  is released.
+  * **ORDERING-CONFIRMED** = median within-K gap > 0.05 (median over the
+    ≥5 per-K median-gaps) **and** T at or above the exact threshold.
+  * **ORDERING-NEGLIGIBLE** = median within-K gap ≤ 0.05.
+  * **ORDERING-INVERTED** = median within-K gap < −0.05 with T at or
+    below the symmetric lower threshold (9/45, resp. 12/54)
     (trainable beats frozen — publishable as a reversal, and consistent with
     #6's reinterpretation that freezing buys pool-agnosticism, not composition).
 * **Trend (descriptive, explicitly underpowered)** — Spearman ρ between K and
@@ -449,8 +467,28 @@ at the same squaring count.
 * **BOTH-FLAT** = neither declines ⇒ CAPABILITY-HOLDS, and this control is
   the evidence that flatness is not an artifact of an easy probe.
 
+### 7.5 The T-floor pad — measured clean; conditional control (added per KSCALING_AUDIT_R1)
+
+§3/§5.3's promised pad read lives here. The audit MEASURED pad-invariance
+rather than arguing it: a trained K=24 checkpoint scored at pads 0/10/38
+returns identical accuracy to the last digit at all 10 hops — as expected
+by construction, since NCR keys/values are extracted from raw token ids,
+not from backbone hidden states, so inert BUFFER tokens cannot enter the
+write or the read. A common-T pad across all K is therefore NOT
+warranted. **Conditional control, pre-registered:** only if K∈{12,16}
+(pad > 0) shows an anomaly absent at K≥20 (pad = 0) that §7.4's
+breadth-vs-depth attribution cannot explain, run a pad-titration at one
+affected K (3 pads × 1 seed, ≤0.8 GPU-h) before any frontier claim
+naming those K.
+
 Every outcome of every curve above is publishable and pre-specified. No
 combination is a null that ends the lane.
+
+**Wave-0 rule (M6, adjudicated 2026-08-21):** all six K=32 cells
+(0100/0101 calibration + the four sweep seeds) launch together as wave 0,
+so `FRONTIER-AT-K*=32` can never be declared from n=1; the calibration
+legs license the sweep, and the K=32 curve point is read at full n=3 per
+recipe like every other K.
 
 ---
 
@@ -577,9 +615,9 @@ alone. Specs `0100`/`0101` — **these two are queue-eligible candidates; the
 
 1. **Gate-0 convergence.** Final CE < initial CE on the `full_graft` arm, loss
    finite throughout, run reaches `step == 20000` with `status == COMPLETED`.
-2. **In-distribution recovery.** P1b `margin_over_chance ≥ 0.90` at the train
+2. **In-distribution recovery.** P1b `kappa ≥ 0.90` (M2 election) at the train
    hops h ∈ {1,2,3} on the **frozen** calibration cell.
-3. **Deep capability.** P1b `margin_over_chance ≥ 0.90` at `h_top(32) = 48` on
+3. **Deep capability.** P1b `kappa ≥ 0.90` (M2 election) at `h_top(32) = 48` on
    the **frozen** calibration cell.
 
 **If (3) fails but (1) and (2) pass:** K=32 is the frontier. Do **not** launch

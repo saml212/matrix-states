@@ -11175,3 +11175,48 @@ published depth curves (finding 17: h=1/13/37/61; finding 18:
 K=24 anchor re-score on the new ladder (6 eval-only specs) is
 licensed IF the audit passes the design; cells of record untouched.
 Ledger 27.6 GPU-h / ~4.2 h wall at 1 cell/GPU.
+
+## 2026-08-21 #11 — K-scaling gauntlet ADJUDICATED: audit REV-REQUIRED (1F/6M/6m) + red-team BLOCK (2 launch-losing) → all findings fixed, verified on-box, WAVE 0 LAUNCH-RELEASED.
+
+Reports: kscaling_build/KSCALING_AUDIT_R1.md + KSCALING_REDTEAM_R1.md
+(committed with this entry). Fixes applied by coordinator as audited
+transcriptions, each verified by execution:
+- **F1/D1 (FATAL, found by both):** battery --anchor-runner-tag
+  allowlist (gate3 tag only, read-only scoring; runner resume guard
+  stays strict). VERIFIED: anchor cell of record scores
+  P1b@h_top=36 acc 0.9961 / κ 0.9959, P0max 0.0586 in band.
+- **M1:** pooled 15v15 (audit measured: unanimous within-K ordering
+  → pooled p=0.361, anti-powered) REPLACED with stratified within-K
+  exact permutation, T=ΣU_K, thresholds T≥36/45 (5 strata) /
+  T≥42/54 (6 with anchor); §7.3 re-registered.
+- **M2:** CAPABILITY band elected κ≥0.90 (margin-0.90 is monotone-in-K,
+  raw-acc span 0.052, would manufacture FRONTIER-AT-K*=12 from a flat
+  0.980 model); calibration gate items re-stated on κ.
+- **M3/L1:** duplicate specs 0134/0137 (byte-identical to calibration
+  0100/0101, shared ckpt paths, runner-skip would silently no-op +
+  pass validity) DELETED; ledger 25.63 GPU-h, 30 specs total.
+- **M4:** smoke item B expect_substr was "" (vacuous, proven by
+  audit's RuntimeError injection) → per-K expected first-firing
+  assert (identity/train-residue/pairwise derived per K). VERIFIED:
+  fires correctly at K=24 (PAIRWISE) and K=28 (train-residue), full
+  smokes 11 PASS/0 FAIL/1 N/A both.
+- **M5/L2:** calibration gate was convention-only AND the monitor's
+  refill would auto-launch pool-staged gated specs ~60s into
+  calibration → LICENSE_SWEEP_KSCALING sentinel prefixed into all 24
+  gated sweep cmds + gated specs stay OUT of ~/queue/ until licensed.
+- **M6:** wave-0 rule (all six K=32 cells together) — FRONTIER-AT-
+  K*=32 never declarable from n=1; §7.5 records it.
+- **Pad (audit item 2):** measured EXONERATED — trained K=24 at pads
+  0/10/38 identical to the last digit (keys/values from raw token
+  ids); §7.5 pre-registers the conditional 0.8 GPU-h titration only
+  on an unexplained small-K anomaly.
+- **Packing:** DECLINED per red-team numbers (1/GPU list-schedule =
+  98.3% occupancy; packing buys ~3 min on a 168 h runway at real
+  contract risk). D2 (eval VRAM) assessed LOW on 55-cells-of-record
+  evidence; recorded from wave 0. D3 (partial-wave false alarm)
+  tolerated, coordinator reads ticks.
+Deployed md5s: battery 72ed244e7f1a62892135d27ad04d3816, smoke
+6f4c686a451d47270169c1df7a438e66 (repo == box). **WAVE 0 (six K=32
+cells: 0100/0101 calib + 0135/0136/0138/0139 sweep seeds, ~1.0 h,
+6 GPUs) is LAUNCH-RELEASED and queued with this commit.** Calibration
+harvest licenses waves 1-3 (24 cells, 3×8, sentinel-gated).
