@@ -1,0 +1,142 @@
+{
+  "script": "deepladder_eval.py",
+  "cell": "DEEPLADDER_mob_g3b31_compB_s14",
+  "tag": "mob_g3b31_compB_s14",
+  "ckpt": "/ephemeral/reseed_ckpts/mob_g3b31_compB_s14_ckpts/mob_g3b31_compB_s14.ckpt.pt",
+  "prereg": "EXPERIMENT_LOG.md 2026-08-21 #7 (commit ad52dcf)",
+  "instrument": "ncr_lm_wave1_runner.eval_arm_at_hops (audited, unmodified)",
+  "metric_of_record": "retrieval24_acc",
+  "chance": 0.041666666666666664,
+  "K_cycle": 24,
+  "hops_P1b": [
+    61,
+    253,
+    1021,
+    4093
+  ],
+  "hops_P0": [
+    61
+  ],
+  "residue_mod_K": 13,
+  "same_ground_truth_by_construction": true,
+  "same_ground_truth_label": "ALL hops in this ladder are == 13 (mod 24); the K=24 ground truth is a single Hamiltonian cycle, so all four depths have the IDENTICAL correct answer by construction. Spread across depths is NUMERICAL (5/7/9/11 squarings), not compositional.",
+  "n_squarings": {
+    "h=61": 5,
+    "h=253": 7,
+    "h=1021": 9,
+    "h=4093": 11
+  },
+  "hop_residues": {
+    "h=61": 13,
+    "h=253": 13,
+    "h=1021": 13,
+    "h=4093": 13
+  },
+  "n": 256,
+  "base_seed": 90210,
+  "pool_seed": 14,
+  "pools_matched": true,
+  "ckpt_step": 20000,
+  "ckpt_seed": 14,
+  "ckpt_seed_source": "checkpoint",
+  "ckpt_cell_id": "mob_g3b31_compB_s14",
+  "runner_tag": "ncr_gate3_wave1_runner_v1",
+  "freeze_entity_adapter": false,
+  "freeze_flag_source": "checkpoint",
+  "cell_config": {
+    "cfg_aux_loss_type": "contrastive+cosine",
+    "cfg_freeze_entity_adapter": false,
+    "cfg_seed": 14,
+    "cfg_status": "COMPLETED",
+    "cfg_step": 20000
+  },
+  "P1b": {
+    "regime": "P1b",
+    "teacher_force": true,
+    "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding)",
+    "hops": [
+      61,
+      253,
+      1021,
+      4093
+    ],
+    "elapsed_s": 1.635404348373413,
+    "result": {
+      "h=61": {
+        "recovered_frac@0.9": 0.99609375,
+        "mean_cos": 0.9983793497085571,
+        "answer_accuracy": 0.03515625,
+        "n": 256,
+        "offtarget_margin": 0.34380561113357544,
+        "retrieval24_acc": 0.9921875,
+        "o_pairwise_cos": 0.6467477083206177,
+        "target_pairwise_cos": 0.6735079288482666
+      },
+      "h=253": {
+        "recovered_frac@0.9": 0.9609375,
+        "mean_cos": 0.9794518351554871,
+        "answer_accuracy": 0.0234375,
+        "n": 256,
+        "offtarget_margin": 0.32315152883529663,
+        "retrieval24_acc": 0.9453125,
+        "o_pairwise_cos": 0.6406481266021729,
+        "target_pairwise_cos": 0.6668205261230469
+      },
+      "h=1021": {
+        "recovered_frac@0.9": 0.89453125,
+        "mean_cos": 0.9439581632614136,
+        "answer_accuracy": 0.04296875,
+        "n": 256,
+        "offtarget_margin": 0.30475080013275146,
+        "retrieval24_acc": 0.87109375,
+        "o_pairwise_cos": 0.6126375198364258,
+        "target_pairwise_cos": 0.6473417282104492
+      },
+      "h=4093": {
+        "recovered_frac@0.9": 0.765625,
+        "mean_cos": 0.8687887191772461,
+        "answer_accuracy": 0.03515625,
+        "n": 256,
+        "offtarget_margin": 0.2928841710090637,
+        "retrieval24_acc": 0.703125,
+        "o_pairwise_cos": 0.4985198378562927,
+        "target_pairwise_cos": 0.6736292243003845
+      },
+      "mean_recovered_frac@0.9": 0.904296875,
+      "mean_mean_cos": 0.947644516825676,
+      "mean_answer_accuracy": 0.0341796875,
+      "mean_offtarget_margin": 0.3161480277776718,
+      "mean_retrieval24_acc": 0.8779296875
+    }
+  },
+  "P0": {
+    "regime": "P0",
+    "teacher_force": false,
+    "regime_meaning": "LEARNED-WRITE (model's own encoder writes); chance = 1/24",
+    "hops": [
+      61
+    ],
+    "note": "cost-capped spot-check at h=61 only, per #7",
+    "elapsed_s": 0.1386857032775879,
+    "result": {
+      "h=61": {
+        "recovered_frac@0.9": 0.0,
+        "mean_cos": 0.5298886895179749,
+        "answer_accuracy": 0.03125,
+        "n": 256,
+        "offtarget_margin": -0.0005701780319213867,
+        "retrieval24_acc": 0.03515625,
+        "o_pairwise_cos": 0.9083719253540039,
+        "target_pairwise_cos": 0.6645066738128662
+      },
+      "mean_recovered_frac@0.9": 0.0,
+      "mean_mean_cos": 0.5298886895179749,
+      "mean_answer_accuracy": 0.03125,
+      "mean_offtarget_margin": -0.0005701780319213867,
+      "mean_retrieval24_acc": 0.03515625
+    }
+  },
+  "elapsed_s": 5.867008209228516,
+  "self_check_defects": [],
+  "self_check": "PASS"
+}

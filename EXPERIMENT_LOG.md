@@ -11094,3 +11094,47 @@ the residual gap off-ceiling at h∈{253,1021,4093} first.
 Archive: experiment-runs/2026-08-21_poolmatched_battery/ (repo+SSD).
 
 ## 2026-08-21 #7 — PRE-REGISTRATION: deep-ladder matched-pool eval (residual-ordering question). All 55 g3b31-family cells + 3 g3b24 cells, MATCHED pools, P1b, h ∈ {61, 253, 1021, 4093} (residue 13 ≡ all, same ground truth labeled), n=256, seed 90210, ckpt_step==20000. Question: does the residual frozen-vs-trainable ordering (matched-pool gap +0.0098 at h=61, ceiling-compressed) become measurable off-ceiling? Bands: RESIDUAL-CONFIRMED = frozen-vs-trainable median gap > 0.05 AND Mann-Whitney p < 0.01 at any h ≥ 253; RESIDUAL-NEGLIGIBLE = gap ≤ 0.05 at every h; secondary deliverable: per-arm depth-drift curves (extends #3's B finding from 3 cells to all). ~0.3 GPU-h, eval-only.
+
+## 2026-08-21 #8 — Deep-ladder matched-pool HARVEST: VERDICT RESIDUAL-CONFIRMED (pre-reg #7 bands met at h=1021 AND h=4093). The residual freeze ordering is REAL, GRADED, and depth-amplified; the aux-loss interaction is the new mechanism question; DRIFT extends to all arms; wall 58/58.
+
+58/58 cells, 0.098 GPU-h, h=61 column reproduces the #6 battery
+58/58 bit-exact; instruments untouched; archive
+experiment-runs/2026-08-21_deepladder_matched/ (repo+SSD).
+
+**Headline (P1b, matched pools, median over seeds):** frozen-vs-
+trainable gap +0.0098 (h=61, p=1.59e-4) → +0.0234 (253, p=1.08e-4)
+→ +0.0703 (1021, p=1.60e-7) → +0.1133 (4093, p=4.32e-9). Bands
+gap>0.05 & p<0.01 met at 1021 and 4093 ⇒ RESIDUAL-CONFIRMED. NOT
+complete separation at any depth (violating pairs 28.6% → 4.2%) —
+categorically different from the retracted 0/754 claim; write it as
+a graded ordering, never as separation.
+
+**Quadrant depth curves (median @ 61/253/1021/4093):** FROZEN-contr
+1.0000/0.9922/0.9805/0.9336 (drift −0.057); FROZEN-cos 0.9961/
+0.9961/0.9844/0.9648 (−0.036, best at depth); TRAIN-contr 0.9922/
+0.9844/0.9531/0.8906 (−0.165); TRAIN-cos 0.9785/0.9297/0.8320/
+0.6074 (−0.377, pathological). **Interaction is the story:** freeze
+main effect at 4093 = +0.1133, aux main effect = −0.0137 (~0), but
+aux-within-trainable = −0.2832 vs aux-within-frozen = +0.0312. The
+contrastive auxiliary substantially RESCUES a trainable adapter
+(compB) while cosine alone does not (compD); compB-vs-compD
+p=7.5e-4; all frozen-vs-trainable pairwise p ≤ 6.3e-4. Open
+mechanism question, pre-registered as the K-sweep's secondary axis.
+
+**DRIFT (#3) extends to all 58:** 42/55 2×2 cells strictly monotone
+non-increasing; non-monotone cases concentrate in frozen arms where
+drops (0.035-0.059) are near the 0.0039/item noise floor; trainable
+arms cleanly monotone (compD 8/8). A real numerical depth cost in
+every arm, magnitude −0.036 to −0.377 over 5→11 squarings at
+identical ground truth. **P0 @ h=61 matched: chance 58/58** (min
+0.0195, max 0.0664 in chance±3sd) — the wall is confound-free at
+full n. g3b24 pre-flag cells corroborate (behave as trainable-cos).
+
+**Paper sentence:** "Freezing the entity adapter buys depth-
+robustness — at 11 squarings frozen arms hold 0.93-0.96 while a
+trainable adapter with cosine-only auxiliary falls to 0.61 — and a
+contrastive auxiliary recovers most of the robustness (0.89) without
+freezing; the ordering is graded (distributions overlap), and own-
+write retrieval remains at chance in all 58 trainings." Publisher
+dispatched per standing doctrine (coverage + depth + reframe +
+graded ordering = finding page no. 18 + X draft).
