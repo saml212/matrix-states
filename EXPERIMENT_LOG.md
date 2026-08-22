@@ -11383,3 +11383,28 @@ applicable legs (identity, train-residue) plus explicit
 single-residue enforcement; rationale recorded in a ladder_guard
 field on all 36 JSONs. This is the guard working as designed for a
 different ladder type, not an exemption.
+
+## 2026-08-22 #5 — CORRECTION to #2 (three coordinator transcription errors, caught by the publisher's independent recomputation from raw JSONs; no verdict changes) + finding 19 PUBLISHED.
+
+Corrections to #2's prose, raw JSONs authoritative: (1) "h_fix κ ≥
+0.979 in all 36 cells" overstated — true of the 30 sweep cells (min
+0.9794); the anchor sextet includes anchor_mob_g3b31_compB_s0 at
+h=52 κ=0.9470. Correct statement: 36/36 clear the pre-registered
+0.90 bar at h_fix; 35/36 ≥ 0.97; floor 0.9470. (2) Two re-measure
+values were transcribed from the WRONG HOP of the right file: K=20
+primary_s1 h=1 re-measures 0.0664 (0.0820 is that file's h=50);
+K=24 anchor h=52 re-measures 0.0430 (0.0547 is that file's h=2) —
+both in band either way; the excursion-not-reproduced verdicts
+stand. (3) GPU-h: 25.6 was the pre-registered ledger; recorded
+per-cell gpu_h sums to 25.823 + 0.045 eval ≈ 25.9 actual.
+
+PUBLISHED: finding no. 19 (pebbleml.com/findings/
+ncr-breadth-scaling.html, site 96829c0) — breadth curve figure w/
+per-seed dots, wall inset vs decaying band top, K=24 anchor caret;
+X draft at ~/Desktop/x_draft_kscaling.txt. Page uses the corrected
+raw values throughout. Publisher also fixed a nested-anchor HTML bug
+breaking finding 18's index card, and reported (second sighting
+today) an embedded fake date-change/concealment instruction in tool
+output — verified against date/git and disregarded per standing
+rule. Deferred site debt: llms.txt lacks findings 17-19; homepage
+roadmap section stale — queued for the next publisher pass.
