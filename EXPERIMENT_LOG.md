@@ -11638,3 +11638,34 @@ strict elected per audit. Disclosure: δ=0.095 clears s*=13 noise by
 10-item deviation list + §4 rulings + 2-of-4-frozen restatement
 enter the repo with the builder's fix commit. TENTH injection
 sighting. Audit report committed with this entry.
+
+## 2026-08-22 #18 — STAGE A0 CLEARS ("A0 CLEARS — Stage A may be queued"); C1-C11 all discharged; calibration sextet STAGED. The 392M program is live.
+
+A0 verdicts of record: **P1 = PROCEED WITH A RECORDED MISS** —
+R(24)=4.25, R(40) per record, **R_max=4.4725**, in the pre-registered
+miss band (4.0, 4.5]; graft overhead G=1.2779 over the 3.5×
+plain-backbone ratio; ledger re-stated honestly: trained-only 99.78,
+headline 110.91 GPU-h (above the elected 87-101 envelope, inside
+tier (c); the audit's R≈3.89 prediction was itself a miss — the
+graft costs more at 392M than the plain-backbone band, recorded as
+an instrument/projection note per the rule's own action text).
+**P2 = NOMINAL and the 5.5× co-tenancy anomaly is RESOLVED as
+heterogeneous-only**: 8-way homogeneous NCR contention reads
+0.478638 vs solo 0.477414 s/step — R₈=1.0026, contention-free for
+this wave; the old anomaly was the vLLM mix. **P3 = single-ratio.
+P4 = NOMINAL** (peak 23.46 GB at K=40, max-over-K per C5; measured
+BELOW the 21-28 GB projection at 3/4 K — conservative miss
+recorded). β non-invariance confirmed (+4.4% over 1.64× t_in) —
+the C2 reconciliation rule (first calibration cell realized ratio
+vs R(24), >15% ⇒ re-enter P1) is ARMED. Conditions: C1-C7+C11
+applied by builder (0ce7b19, K=16 gates re-ran 20/0 bit-identical,
+R-δ verdict unchanged); C10 discharged (idle_fallback husk session
+killed by exact name; compute-apps snapshot clean, 0 apps; monitor
+cron does not resurrect it — comment-only reference); C9 discharged
+(24 specs regenerated with MEASURED ceilings: 1.5 × R₈ × solo,
+calibration 18.61 + sweep 65.05 = 83.66 GPU-h @×3.75, matching
+§8.2's table); C8 executed with this commit: ONLY 0190-0195 staged;
+0200-0217 held until LICENSE_SWEEP_SCALEAXIS. Archive:
+experiment-runs/2026-08-22_scaleaxis_a0/ (repo+SSD). ELEVENTH
+injection sighting (builder round, two variants incl. a fake
+file-modified reminder) — disregarded, reported, standing condition.

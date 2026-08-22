@@ -1,0 +1,112 @@
+{
+ "runner_tag": "ncr_kscaling_runner_v1",
+ "mode": "phase0-timing",
+ "kscaling": {
+  "K": 40,
+  "d_ncr": 41,
+  "d_equals_k_plus_1": true,
+  "chance": 0.025,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   20
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   1,
+   2,
+   1,
+   4
+  ],
+  "h_top": 60,
+  "h_top_residue": 20,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 44,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60,
+   44
+  ],
+  "doc_len": 287,
+  "doc_left_pad": 0,
+  "t_in": 286,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "ncr_param_exact": 177321,
+  "integ_param_exact": 62976
+ },
+ "config": {
+  "K": 40,
+  "d_ncr": 41,
+  "backbone": {
+   "d_model": 768,
+   "d_state": 64,
+   "n_layers": 12,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "vocab_size_total": 50259,
+  "seed": 0,
+  "batch_size": 32,
+  "warmup_steps": 10,
+  "probe_steps": 60,
+  "target_steps": 20000,
+  "lr": 0.0003,
+  "doc_len": 286
+ },
+ "measured": {
+  "mean_s_per_step_full_graft": 0.08905814488728842,
+  "mean_s_per_step_backbone_only": 0.08718216419219971,
+  "mean_s_per_step_both_arms_combined": 0.17624030907948812,
+  "tokens_per_step_per_arm": 9152,
+  "tokens_per_sec_per_arm_full_graft": 102764.32337079028,
+  "tokens_per_sec_per_arm_backbone_only": 104975.60005305352,
+  "probe_wall_clock_s": 10.723067045211792
+ },
+ "projected": {
+  "contended_multiplier": 3.3,
+  "uncontended_s_for_target_steps": 3524.806181589762,
+  "uncontended_gpuh_for_target_steps": 0.9791128282193784,
+  "contended_s_for_target_steps": 11631.860399246214,
+  "contended_gpuh_for_target_steps": 3.231072333123948,
+  "suggested_ceiling_gpuh": 3.716
+ },
+ "host": "brev-ukptqsu65",
+ "device": "cuda",
+ "torch_version": "2.12.1+cu130",
+ "git_commit": "UNKNOWN",
+ "finished_utc": "2026-08-22T08:50:43Z"
+}

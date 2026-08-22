@@ -1,0 +1,130 @@
+{
+ "runner_tag": "ncr_scaleaxis_runner_v1",
+ "mode": "phase0-timing",
+ "kscaling": {
+  "K": 24,
+  "d_ncr": 25,
+  "d_equals_k_plus_1": true,
+  "chance": 0.041666666666666664,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   16,
+   17,
+   33,
+   36
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   16,
+   17,
+   9,
+   12
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   1,
+   2,
+   2,
+   2
+  ],
+  "h_top": 36,
+  "h_top_residue": 12,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 52,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   16,
+   17,
+   33,
+   36,
+   52
+  ],
+  "doc_len": 175,
+  "doc_left_pad": 0,
+  "t_in": 174,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "config_module_tree": "/home/nvidia/ncr_scaleaxis",
+  "scale": "392m",
+  "rung": 2,
+  "backbone": {
+   "d_model": 1536,
+   "d_state": 128,
+   "n_layers": 16,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "backbone_param_target": 392000000,
+  "vocab_size": 50257,
+  "vocab_size_total": 50259,
+  "backbone_param_exact": 391872512,
+  "total_param_exact_per_arm": 392122521,
+  "min_kernel_T_measured_at_dstate": 64,
+  "min_kernel_T_validated_at_this_dstate": false,
+  "ncr_param_exact": 173209,
+  "integ_param_exact": 76800
+ },
+ "config": {
+  "K": 24,
+  "d_ncr": 25,
+  "backbone": {
+   "d_model": 1536,
+   "d_state": 128,
+   "n_layers": 16,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "vocab_size_total": 50259,
+  "seed": 0,
+  "batch_size": 32,
+  "warmup_steps": 10,
+  "probe_steps": 60,
+  "target_steps": 20000,
+  "lr": 0.0003,
+  "doc_len": 174
+ },
+ "measured": {
+  "mean_s_per_step_full_graft": 0.24151418606440225,
+  "mean_s_per_step_backbone_only": 0.2358997901280721,
+  "mean_s_per_step_both_arms_combined": 0.4774139761924744,
+  "tokens_per_step_per_arm": 5568,
+  "tokens_per_sec_per_arm_full_graft": 23054.546363231995,
+  "tokens_per_sec_per_arm_backbone_only": 23603.242703086267,
+  "probe_wall_clock_s": 28.812439441680908
+ },
+ "projected": {
+  "contended_multiplier": 3.3,
+  "uncontended_s_for_target_steps": 9548.279523849487,
+  "uncontended_gpuh_for_target_steps": 2.6522998677359686,
+  "contended_s_for_target_steps": 31509.322428703304,
+  "contended_gpuh_for_target_steps": 8.752589563528696,
+  "suggested_ceiling_gpuh": 10.065
+ },
+ "host": "brev-ukptqsu65",
+ "device": "cuda",
+ "torch_version": "2.12.1+cu130",
+ "git_commit": "UNKNOWN",
+ "finished_utc": "2026-08-22T08:48:53Z"
+}

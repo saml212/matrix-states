@@ -1,0 +1,233 @@
+{
+ "stage": "A0.5",
+ "design": "NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 sec 4.4",
+ "a0_dir": "/ephemeral/scaleaxis/a0",
+ "solo_probes": {
+  "392m_K24": {
+   "file": "a0_solo_392m_K24.json",
+   "s_per_step": 0.4774139761924744,
+   "suggested_ceiling_gpuh": 10.065,
+   "contended_gpuh": 8.752589563528696,
+   "host": "brev-ukptqsu65",
+   "torch": "2.12.1+cu130"
+  },
+  "392m_K40": {
+   "file": "a0_solo_392m_K40.json",
+   "s_per_step": 0.7882418433825175,
+   "suggested_ceiling_gpuh": 16.619,
+   "contended_gpuh": 14.45110046201282,
+   "host": "brev-ukptqsu65",
+   "torch": "2.12.1+cu130"
+  },
+  "98m_K24": {
+   "file": "a0_solo_98m_K24.json",
+   "s_per_step": 0.12245877583821614,
+   "suggested_ceiling_gpuh": 2.582,
+   "contended_gpuh": 2.2450775570339623,
+   "host": "brev-ukptqsu65",
+   "torch": "2.12.1+cu130"
+  },
+  "98m_K40": {
+   "file": "a0_solo_98m_K40.json",
+   "s_per_step": 0.17624030907948812,
+   "suggested_ceiling_gpuh": 3.716,
+   "contended_gpuh": 3.231072333123948,
+   "host": "brev-ukptqsu65",
+   "torch": "2.12.1+cu130"
+  }
+ },
+ "eight_way_probes": [
+  {
+   "file": "a0_8way_392m_K24_g0.json",
+   "K": 24,
+   "s_per_step": 0.47975555260976155
+  },
+  {
+   "file": "a0_8way_392m_K24_g1.json",
+   "K": 24,
+   "s_per_step": 0.47929815053939817
+  },
+  {
+   "file": "a0_8way_392m_K24_g2.json",
+   "K": 24,
+   "s_per_step": 0.47988921801249185
+  },
+  {
+   "file": "a0_8way_392m_K24_g3.json",
+   "K": 24,
+   "s_per_step": 0.48004626830418906
+  },
+  {
+   "file": "a0_8way_392m_K24_g4.json",
+   "K": 24,
+   "s_per_step": 0.47673813501993817
+  },
+  {
+   "file": "a0_8way_392m_K24_g5.json",
+   "K": 24,
+   "s_per_step": 0.47624013423919676
+  },
+  {
+   "file": "a0_8way_392m_K24_g6.json",
+   "K": 24,
+   "s_per_step": 0.4778812805811564
+  },
+  {
+   "file": "a0_8way_392m_K24_g7.json",
+   "K": 24,
+   "s_per_step": 0.4792561769485474
+  }
+ ],
+ "crosscheck_98m_K24_vs_STALE_archive": {
+  "fresh": 0.12245877583821614,
+  "archived": 0.23075456221898397,
+  "archived_pin_status": "STALE -- superseded by the 2026-08-22 audit-R1 probes",
+  "audit_fresh_reference": {
+   "24": 0.123463,
+   "40": 0.176222
+  },
+  "rel_dev_vs_stale_pin": 0.46931,
+  "tolerance": 0.1,
+  "within": false,
+  "blocking": false,
+  "verdict": "DEVIATION FROM A STALE BASELINE -- NOT A LIVE FAULT. Reported only; it does not block, both because R is a ratio of two FRESH probes AND because the 0.23075 baseline is itself superseded (AUDIT-R1 MAJOR-1 / C1).",
+  "dev_vs_audit_fresh": 0.00813
+ },
+ "instrument_note_phase0_vs_realized_BETA": {
+  "condition": "AUDIT-R1 MAJOR-1, condition C1",
+  "what_the_design_said": "sec 4.0 pinned 0.23075 as a +-10% cross-check AND recorded 1.5500x as 'a standing instrument note for every future wave that prices from phase0-timing', attributing it to the per-arm torch.cuda.synchronize() in run_phase0_timing.",
+  "what_was_measured": "Fresh 98M phase0-timing on the SAME box (brev-ukptqsu65), SAME torch (2.12.1+cu130), same K/batch/doc_len/warmup/probe: K=24 -> 0.123463, K=40 -> 0.176222. Deviation from the pin at K=24 is -46.50%, i.e. 4.65x the pinned +-10% tolerance.",
+  "the_1_5500_note_is_FALSIFIED": "The same code today reads 0.8293x realized at K=24 and 0.8657x at K=40. The SIGN IS INVERTED: the probe UNDER-reads realized, it does not inflate by 1.55x. The 1.5500 figure was a property of the 2026-07-17 box state, not of the instrument, and must NOT be carried to any future wave.",
+  "instrument_ruled_out_as_the_cause": "run_phase0_timing's timed region is functionally identical between the archived gate3 runner and the kscaling runner -- the sole difference is one added output field OUTSIDE the timed block, and the per-arm synchronize is present in BOTH. No code change explains a 1.87x gap.",
+  "therefore": "A 46.5% cross-check failure at A0.3 is a STALE-BASELINE ARTIFACT, NOT A LIVE FAULT. It is recorded here so a coordinator reading it immediately before committing ~99 GPU-h does not mistake it for one.",
+  "receipt_that_R_is_unaffected": "run_phase0_timing is BYTE-IDENTICAL between the 98M (kscaling) and 392M (scaleaxis) runners -- audit-R1 diffed the extracted function, len 5880 == 5880, a == b True. R = phase0(392M)/phase0(98M) therefore cancels its probe bias BY CONSTRUCTION, whatever that bias's absolute level. This is a STRONGER receipt than the design's 'appears identically in numerator and denominator' argument, and it survives MAJOR-1 intact.",
+  "beta_98m_measured": {
+   "24": 0.8293,
+   "40": 0.8657
+  },
+  "beta_measured_this_run": {
+   "K24": 0.8225,
+   "K40": 0.8657
+  }
+ },
+ "P1_conditionality_beta": {
+  "definition": "beta(K) := phase0(98M,K) / realized(98M,K)",
+  "beta_98_audit_reference": {
+   "24": 0.8293,
+   "40": 0.8657
+  },
+  "beta_98_this_run": {
+   "K24": 0.8225,
+   "K40": 0.8657
+  },
+  "beta_rises_with_t_in": 1.0525,
+  "finding": "beta is NOT operating-point-invariant: it rises ~4.4% across a 1.64x t_in increase (0.8293 -> 0.8657), consistent with a launch-bound workload where more compute per kernel shrinks the relative synchronize penalty. The probe also exaggerates K-dependence (fresh K40/K24 = 1.4273 vs realized 1.3673).",
+  "what_R_actually_is": "R = rho_realized x (beta_392 / beta_98). This design ASSUMES that ratio is 1, WITH NO MEASUREMENT. 98M->392M is a 4x increase in per-kernel work -- a far larger move along the SAME axis that already moved beta by 4.4%.",
+  "direction_of_risk": "UNSAFE for the cost-out gate: if beta_392 > beta_98 then R UNDER-reads rho_realized and biases Rule P1 toward NOMINAL. A true rho ~ 4.8 (COST-OUT) could read R ~ 4.0 (NOMINAL).",
+  "post_hoc_reconciliation_RULE": "MANDATORY, and free -- the first calibration cell produces the number anyway. When the FIRST calibration cell (K=24) completes, compute realized(392M,24) = gpu_h*3600/steps and form rho_realized(24) = realized(392M,24)/0.14888. If |rho_realized(24) - R(24)| / R(24) > 0.15, RE-ENTER RULE P1 ON THE REALIZED RATIO **BEFORE STAGE B QUEUES**. This converts an untested assumption into a measured one at zero cost.",
+  "reconciliation_threshold": 0.15,
+  "reconciliation_status": "PENDING -- no calibration cell has completed"
+ },
+ "P1_solo_cost_out": {
+  "R_per_K": {
+   "K24": 3.8986,
+   "K40": 4.4725
+  },
+  "R_max": 4.4725,
+  "definition": "phase0(392M,K)/phase0(98M,K) -- LIKE-FOR-LIKE (verify-R2 FATAL-1's fix)",
+  "thresholds": {
+   "nominal": "<= 4.0",
+   "recorded_miss": "4.0 < R <= 4.5",
+   "cost_out": "> 4.5"
+  },
+  "graft_overhead_G": 1.2779,
+  "plain_backbone_ratio": 3.5,
+  "ledger_trained_only_gpuh": 99.78,
+  "ledger_headline_gpuh": 110.91,
+  "headline_basis": "trained-only + A0 0.5 + Stage C 0.4 + 98M re-score 0.15, x1.10",
+  "section_4_4_1_floor_gpuh": 11.1,
+  "branch": "PROCEED WITH A RECORDED MISS",
+  "action": "Above the elected 87-101 envelope, inside tier (c). Re-derive every spec's --ceiling-gpuh from the CONTENDED rate and record the projection miss in EXPERIMENT_LOG as an instrument note."
+ },
+ "P2_contention_halt": {
+  "n_probes": 8,
+  "mean_8way_s_per_step": 0.478638,
+  "solo_392m_K24_s_per_step": 0.477414,
+  "R8": 1.0026,
+  "threshold": 1.25,
+  "branch": "NOMINAL",
+  "action": "The ledger stands and --ceiling-gpuh derives from the 1.5 x R_8-priced projection."
+ },
+ "P3_per_K_price": {
+  "R40_over_R24": 1.1472,
+  "threshold": 1.15,
+  "T_dependent": false,
+  "action": "Single-ratio ledger stands.",
+  "re_priced_gpu_h": {
+   "K16": 3.126,
+   "K24": 3.225,
+   "K32": 4.286,
+   "K40": 5.058
+  },
+  "re_priced_basis": "AUDIT-R1 m5: this is a STEP assignment (R(24) for K<=24, R(40) for K>=32), NOT an interpolation. Both assignments OVER-price relative to true t_in interpolation, so the ledger is safe by ~3.6 GPU-h; the label is corrected here rather than the arithmetic.",
+  "contended_ceiling_basis": "MEASURED R_8 = 1.0026 (sec 3.6's PRIMARY rule)",
+  "contended_ceiling_multiplier": 1.0026,
+  "contended_ceiling_gpuh": {
+   "K16": 4.701,
+   "K24": 4.849,
+   "K32": 6.446,
+   "K40": 7.606
+  }
+ },
+ "P4_memory_and_utilisation": {
+  "source": "scaleaxis_gates.py B8 -- the build's OWN production-shaped two-arm train + eval_both_arms peak. AUDIT-R1 MAJOR-4/C7: design sec 4.4's :663/:796 identification is INVERTED (:663 is smoke_3's backbone-only no_grad EVAL batch; :796 is smoke_7's full-graft TRAINING step), so P4 is pointed at the instrument the build actually built, which is strictly more conservative than either named line.",
+  "per_K": {
+   "K16": {
+    "peak_gb": 17.094,
+    "sm_util_median": 99,
+    "sm_util_max": 100,
+    "source": "gates_K16.json"
+   },
+   "K24": {
+    "peak_gb": 18.943,
+    "sm_util_median": 100,
+    "sm_util_max": 100,
+    "source": "gates_K24.json"
+   },
+   "K32": {
+    "peak_gb": 21.266,
+    "sm_util_median": 98,
+    "sm_util_max": 100,
+    "source": "gates_K32.json"
+   },
+   "K40": {
+    "peak_gb": 23.46,
+    "sm_util_median": 100,
+    "sm_util_max": 100,
+    "source": "gates_K40.json"
+   }
+  },
+  "n_K_read": 4,
+  "gate_files_missing_B8": [],
+  "peak_gb_with_eval": 23.46,
+  "peak_at_K": "K40",
+  "reads_max_over_K": true,
+  "limit_gb": 40.0,
+  "design_projection_gb": [
+   21,
+   28
+  ],
+  "projection_note": "measured below sec 8.1's projected 21-28 GB band at three of four K -- a conservative projection miss, recorded",
+  "branch": "NOMINAL",
+  "sm_util_median_min_over_K": 98,
+  "sm_util_verdict": "NOMINAL"
+ },
+ "overall": {
+  "P1": "PROCEED WITH A RECORDED MISS",
+  "P2": "NOMINAL",
+  "P3": "single-ratio",
+  "P4": "NOMINAL",
+  "P4_sm_util": "NOMINAL",
+  "gate": "A0 CLEARS -- Stage A may be queued"
+ }
+}
