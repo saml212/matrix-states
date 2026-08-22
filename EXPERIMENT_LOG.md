@@ -11608,3 +11608,33 @@ ceilings marked PROJECTED-NOT-LAUNCH-READY pending audit + A0).
 data; Rule R-δ's mechanics (not the projection) govern, and its
 election is mechanical from the measured table. P0@15sq labeled
 NOT-comparable to archived P0@11sq in every record (P1b unaffected).
+
+## 2026-08-22 #17 — 392M BUILD AUDIT: PASS-LAUNCH-RELEASED conditional (0 FATAL / 5 MAJOR / 7 minor / 2 process; every re-executed number reproduced, most bit-identically). C1-C7 dispatched to the builder; A0 runs on their completion; C8-C10 gate Stage B.
+
+Findings of record: (M1) the archived phase0 pin 0.23075 is STALE
+— fresh probe 0.123463 (46.5% off, same host/config; the design's
+1.5500× inflation note is FALSIFIED and sign-inverted, β now
+0.829-0.866 UNDER-read) — but R's like-for-like cancellation is
+verified STRONGER than designed: run_phase0_timing is byte-identical
+across the two runners. Pre-recorded so the A0 cross-check failure
+reads as stale-baseline, not live fault. (M2) β may not be
+operating-point-invariant across 4× d_model → free reconciliation
+rule: first calibration cell's realized ratio vs R(24), >15% ⇒
+re-enter P1. (M3) ceiling paths shipped the 3.3 fallback where
+measured R₈ applies (loose-not-tight; 2.95× vs the pinned rule) —
+fix to measured-R₈-first. (M4, the #15 mandate paying off: a DESIGN
+defect carried through five rounds) §4.4's instrument identification
+inverted (:663=eval, :796=train — THIRD recurrence of the FATAL-3
+class); build's silently-corrected number RATIFIED, text fixed; #16's
+"eval adds 0 GB" corrected to "does not raise the peak" (the counter
+never resets). (M5) latent cross-scale poisoning: scorers default
+--outdir into the 98M results dir of record + the aggregate loader
+has no scale key — 2-line fix + mirror re-sync + one-K gate re-run.
+Boundary bug pinned: R-δ reachability '>=' vs §6.2 strict '>' —
+strict elected per audit. Disclosure: δ=0.095 clears s*=13 noise by
+1.13×, not 45% (the 45% was an s=11 number). FREE PRE-REGISTRATION
+(audit's own measurements, before A0): P3 expected to FIRE
+(R40/R24=1.208), P1 expected NOMINAL (R_max≈3.89 < 4.5). C6: the
+10-item deviation list + §4 rulings + 2-of-4-frozen restatement
+enter the repo with the builder's fix commit. TENTH injection
+sighting. Audit report committed with this entry.
