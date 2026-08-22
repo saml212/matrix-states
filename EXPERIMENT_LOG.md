@@ -11520,3 +11520,27 @@ extrapolate and so does the record now. FOURTH injection sighting
 Site debts cleared: llms.txt current through 19; roadmap current
 (breadth chapter CLOSED; 392M axis: under waterfall, not
 scheduled). X draft refreshed on Desktop.
+
+## 2026-08-22 #10 — 392M SCALE AXIS: feasibility gate FEASIBLE-WITH-CONSTRAINTS; tier (c) elected (~87-101 GPU-h projected, <10% of remaining budget); day-0 stages dispatched (novelty re-verification ×2 external legs + DRAFT-R0 design author; launch hard-gated on gate adjudication + attack round + audit + calibration).
+
+Gate findings of record: 392M architecture d_model=1536/n_layers=16/
+d_state=128 = 391.87M params (fixscale RUNGS[2]); fixscale real-text
+checkpoints NOT usable as graft base — the NCR harness trains
+backbone+head jointly from scratch per cell (no init-from-ckpt path
+exists), same as every 98M cell of record. Port surface is ONE dict
+(RUNG1_BACKBONE, smoke.py:220) — all downstream sizes derive from
+it; the NCR core itself is backbone-width-independent (only the two
+d_model×d_ncr adapters scale). Single-GPU confirmed comfortable
+(fixscale 392M ran 39GB at batch 32/seq 512; NCR docs are shorter).
+Cost: measured 3.54× plain-backbone step-time ratio → 3.5-4.0×
+projected per-cell (FLAGGED: projection, zero 392M graft cells ever
+run — the biggest risk of the design). Tier (c): calibration pair
+(K=24 both recipes, s0, LICENSE-SWEEP on Gate-0 + in-dist κ≥0.90 +
+h_top κ≥0.90) → 24-cell sweep (K∈{16,24,32,40} × 2 recipes × 3
+seeds) → depth-ext/anchor evals. Convergence risk pre-registered:
+FROZEN_BIAS disclosed 20K steps = 1/3 matched token budget at 392M;
+the synthetic composition task may saturate faster — calibration
+decides, with the step-5000-vs-20000 mid-run tripwire borrowed from
+§12.5. Critical path fits the window with 2-3 days margin. Scale
+pivot = NEW CLAIM per the novelty re-verification doctrine — both
+external legs re-dispatched scoped to the scale framing.
