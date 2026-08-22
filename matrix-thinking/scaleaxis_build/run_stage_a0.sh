@@ -31,10 +31,25 @@
 # trees be kept), the 392M probes from the scaleaxis tree.  A cross-tree
 # invocation is the failure that note exists to prevent.
 #
+# THE ARCHIVED 0.23075 CROSS-CHECK PIN IS **STALE** (AUDIT-R1 MAJOR-1 / C1).
+# Fresh 98M probes on this same box read 0.123463 (K=24) and 0.176222 (K=40),
+# i.e. -46.5% against the pin -- 4.65x the pinned +-10% tolerance. The design's
+# "1.5500x per-arm-synchronize inflation" note is FALSIFIED: measured
+# beta = phase0/realized is 0.8293 / 0.8657, so the probe UNDER-reads. A0.3
+# WILL therefore report a large cross-check deviation; that is a STALE-BASELINE
+# ARTIFACT, NOT A LIVE FAULT, and it does not block. The receipt that R is
+# unaffected is stronger than the design's argument: run_phase0_timing is
+# BYTE-IDENTICAL between the two runners, so R's bias cancels BY CONSTRUCTION.
+# a0_rules.py records all of this in the A0 record itself.
+#
 # Usage:  run_stage_a0.sh solo        # A0.3, four probes, one GPU at a time
 #         run_stage_a0.sh contended   # A0.4, eight concurrent 392M probes
 #         run_stage_a0.sh rules       # A0.5
 set -u
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"   # AUDIT-R1 m7 / C5: absolute.
+# `tmux new-session -d -s a0c_g$g "bash $0 ..."` relied on a RELATIVE $0
+# resolving inside tmux's inherited cwd. Absolutized before A0.4 -- the stage
+# that measures R_8, the number that gates the whole ledger.
 PY=/home/nvidia/tdenv/bin/python3
 SAX=/home/nvidia/ncr_scaleaxis
 KSC=/home/nvidia/ncr_kscaling
@@ -67,21 +82,47 @@ case "${1:-}" in
     ;;
   contended)
     echo "=== A0.4: EIGHT concurrent 392M probes (homogeneous) -> R_8 ==="
+    # AUDIT-R1 m7 / C5: A0.4 measures R_8 -- the number that gates the whole
+    # ledger -- on all 8 GPUs at once. EXCLUSIVITY IS RECORDED, NOT ASSUMED.
+    # idle_fallback_daemon.sh and its minutely watchdog cron are live on this
+    # box; benign only while FALLBACK_POOL_DRY is set and fallback_pool/ is
+    # empty. Snapshot before AND after, so a co-tenant that appeared mid-probe
+    # cannot be inferred away at harvest.
+    nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv \
+        > "$OUT/a0_4_compute_apps_BEFORE.csv" 2>&1
+    nvidia-smi --query-gpu=index,utilization.gpu,memory.used --format=csv,noheader \
+        >> "$OUT/a0_4_compute_apps_BEFORE.csv" 2>&1
+    ( crontab -l 2>/dev/null | grep -c watchdog_idle_daemons || true ) \
+        >> "$OUT/a0_4_compute_apps_BEFORE.csv"
     # Homogeneous by construction, one per GPU, all K=24 so R_8 is a pure
     # contention ratio against the K=24 solo probe and nothing else moves.
     for g in 0 1 2 3 4 5 6 7; do
       tmux new-session -d -s a0c_g$g \
-        "bash $0 _one_contended $g"
+        "bash $SELF _one_contended $g"
     done
     echo "  8 sessions launched; poll with: tmux ls | grep a0c_"
+    while tmux ls 2>/dev/null | grep -q '^a0c_g'; do sleep 10; done
+    nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv \
+        > "$OUT/a0_4_compute_apps_AFTER.csv" 2>&1
+    nvidia-smi --query-gpu=index,utilization.gpu,memory.used --format=csv,noheader \
+        >> "$OUT/a0_4_compute_apps_AFTER.csv" 2>&1
+    echo "  A0.4 complete; exclusivity snapshots in $OUT/a0_4_compute_apps_{BEFORE,AFTER}.csv"
     ;;
   _one_contended)
     probe "$SAX" 392m 24 "$2" "a0_8way_392m_K24_g$2"
     ;;
   rules)
     echo "=== A0.5: Rules P1-P4 ==="
+    # AUDIT-R1 m4 / C5: pass ALL FOUR gate files. Memory grows with t_in
+    # (17.09 GB at K=16 -> 23.46 GB at K=40) and P4 must read the MAX over K,
+    # not whichever K happened to be hardcoded here.
     "$PY" "$SAX/a0_rules.py" --a0-dir "$OUT" \
-        --gates "$SAX/gates_K24.json" --out "$OUT/A0_RULES.json"
+        --gates "$SAX"/gates_K16.json "$SAX"/gates_K24.json \
+                "$SAX"/gates_K32.json "$SAX"/gates_K40.json \
+        --out "$OUT/A0_RULES.json"
+    rc=$?                       # AUDIT-R1 m7 / C5: propagate the exit code
+    echo "  a0_rules exit=$rc"
+    exit $rc
     ;;
   *)
     echo "usage: $0 {solo|contended|rules}"; exit 2;;

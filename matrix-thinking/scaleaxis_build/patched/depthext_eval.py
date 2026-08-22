@@ -169,7 +169,19 @@ def main() -> int:
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--cellcfg", default=None)
-    ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_kscaling/results"))
+    ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_scaleaxis/results"))
+    # SCALE-AXIS PORT PATCH S4 == AUDIT-R1 MAJOR-5 / condition C4. The pinned
+    # default pointed at ~/ncr_kscaling/results -- the 98M tree, which today
+    # holds 103 records of record plus results_depthext6/. A 392M record landing
+    # there COLLIDES ON-KEY with its 98M twin (rdelta_aggregate keys on
+    # K/recipe/seed, not scale) and whichever path sorts later silently wins,
+    # then reads as a 98M number in Rule R-delta AND in the exact-reproduction
+    # cross-check. B5 does NOT close this: B5 guards the checkpoint INPUT, this
+    # is the output DESTINATION. Latent-not-executing today (kappa_reader always
+    # passes --outdir explicitly and no spec invokes a scorer), but sec 4.6's
+    # Stage C harvest is a manual, unscripted path -- precisely where a bare
+    # invocation happens. Closed at the write end here and at the read end by
+    # rdelta_aggregate.load()'s scale assert.
     ap.add_argument("--required-step", type=int, default=REQUIRED_CKPT_STEP)
     ap.add_argument("--anchor-runner-tag", default=None,
                     choices=["ncr_gate3_wave1_runner_v1", "ncr_kscaling_runner_v1",
@@ -294,7 +306,10 @@ def main() -> int:
         cell=f"DEPTHEXT_{args.tag}", tag=args.tag, ckpt=path,
         K=KS.K_NCR, d_ncr=KS.D_NCR, ckpt_recorded_d_ncr=ck_d,
         scale=KS.SCALE, backbone_config_scored=ckpt["full_graft"].get("backbone_config"),
-        kscaling=KS.provenance(64, R.RUNG1_BACKBONE["d_model"]),
+        # AUDIT-R1 m2 / condition C11: was a bare literal 64. INVARIANT by
+        # sec 3.3's code proof (ENC_H is backbone-independent), but a bare
+        # size-bearing literal B1 now greps for -- read from the runner instead.
+        kscaling=KS.provenance(R.H_NCR, R.RUNG1_BACKBONE["d_model"]),
         metric_of_record=METRIC,
         metric_note="historical name; argmax over exactly K slots, K-generic",
         chance=p, chance_sd_at_n=sd, wall_band=[lo, hi], wall_band_mult=WALL_SD_MULT,

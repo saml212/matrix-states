@@ -100,10 +100,26 @@ def gpu_h(k: int, r: float = PROJECTION_MULT) -> float:
     return round(GPU_H_98M_MEASURED[k] * r, 3)
 
 
-def ceiling(k: int, contended_gpuh: dict | None) -> tuple[float, str]:
+def ceiling(k: int, contended_gpuh: dict | None, r8: float | None = None,
+            solo_gpuh: dict | None = None) -> tuple[float, str]:
+    # AUDIT-R1 MAJOR-3 / condition C3. sec 3.6 breaker 1 pins
+    #   ceiling = 1.5 x (per-cell projection at the MEASURED CONTENDED rate R_8),
+    # with 3.795 x solo as the fallback ONLY "if R_8 cannot be measured". The
+    # previous "measured" branch used contended_gpuh_for_target_steps, which is
+    # phase0-solo x CONTENDED_MULTIPLIER = 3.3 -- the runner's PROJECTION
+    # CONSTANT substituted for R_8, shipping a backstop ~2.9x LOOSER than pinned
+    # and 32% looser than the PROJECTED placeholder it replaced, so the A0.5
+    # "re-price" WEAKENED the breaker. Primary rule first, fallback labelled.
+    if r8 is not None and solo_gpuh and k in solo_gpuh:
+        return (round(CEILING_MULT * r8 * solo_gpuh[k], 3),
+                f"MEASURED (sec 3.6 PRIMARY): 1.5 x R_8 x Stage-A0 solo projection "
+                f"(R_8={r8:.4f}, solo={solo_gpuh[k]:.3f} GPU-h)")
     if contended_gpuh and k in contended_gpuh:
         return (round(CEILING_MULT * contended_gpuh[k], 3),
-                f"MEASURED: 1.5 x Stage-A0 contended projection ({contended_gpuh[k]:.3f} GPU-h)")
+                f"MEASURED-FALLBACK: 1.5 x the runner's own contended projection "
+                f"({contended_gpuh[k]:.3f} GPU-h = solo x CONTENDED_MULTIPLIER 3.3). Used "
+                f"because R_8 was NOT measured -- run `run_stage_a0.sh contended` for "
+                f"sec 3.6's primary rule.")
     # Fallback, sec 3.6: the runner's OWN convention, 3.3 (CONTENDED_MULTIPLIER)
     # x 1.15 = 3.795 x solo. Applied to the PROJECTED solo cost, so it is a
     # projection of a projection and is labelled as such.
@@ -258,14 +274,15 @@ WALL_BAND = {16: [0.0171, 0.1079], 24: [0.0042, 0.0791],
 
 
 def spec(job_id: str, k: int, recipe: str, seed: int, tier: str,
-         contended: dict | None) -> dict:
+         contended: dict | None, r8: float | None = None,
+         solo_gpuh: dict | None = None) -> dict:
     d, r = k + 1, RECIPES[recipe]
     cell = f"scaleaxis392m_K{k}_{recipe}_s{seed}"
     outdir = f"{EPH}/results"
     out_json = f"{outdir}/{cell}.json"
     lad = KS.LADDER_TABLE[k]
     params = KS.TOTAL_PARAM_TABLE_392M[k]
-    ceil_v, ceil_prov = ceiling(k, contended)
+    ceil_v, ceil_prov = ceiling(k, contended, r8, solo_gpuh)
     ckpt_every = 5000 if tier == "calibration" else 10000
     fields = dict(K=k, d=d, label=r["label"], seed=seed, chance=1.0 / k,
                   htop=lad[-1], htopres=lad[-1] % k, hfix=KS.FIXED_DIST_TABLE[k],
@@ -313,18 +330,37 @@ def main() -> int:
                     help="sec 8.3's 9.02 h ELECT-or-DECLINE; DECLINED by default")
     args = ap.parse_args()
 
-    contended = None
+    contended, r8, solo_gpuh = None, None, None
     if args.ceilings_from:
-        contended = {}
+        contended, solo_gpuh, eight, solo_s = {}, {}, [], {}
         for p in sorted(glob.glob(os.path.join(args.ceilings_from, "*.json"))):
             d = json.load(open(p))
             if d.get("mode") != "phase0-timing":
                 continue
             if (d.get("kscaling") or {}).get("scale") != SCALE:
                 continue
-            contended[int(d["config"]["K"])] = float(
-                d["projected"]["contended_gpuh_for_target_steps"])
-        assert contended, f"no 392M phase0-timing records found in {args.ceilings_from}"
+            k = int(d["config"]["K"])
+            v = float(d["measured"]["mean_s_per_step_both_arms_combined"])
+            if "8way" in os.path.basename(p):
+                eight.append(v)
+                continue
+            solo_s[k] = v
+            contended[k] = float(d["projected"]["contended_gpuh_for_target_steps"])
+            solo_gpuh[k] = float(d["projected"]["uncontended_gpuh_for_target_steps"])
+        assert contended, f"no 392M solo phase0-timing records found in {args.ceilings_from}"
+        # C3: R_8 = 8-way / solo at the SAME K (24), the like-for-like ratio.
+        if eight and 24 in solo_s:
+            r8 = (sum(eight) / len(eight)) / solo_s[24]
+            print(f"C3: measured R_8 = {r8:.4f} from {len(eight)} 8-way probes "
+                  f"-- using sec 3.6's PRIMARY ceiling rule")
+        else:
+            print("C3: R_8 NOT measured -- falling back to the runner's 3.3x contended "
+                  "projection, and every spec says so in ceiling_provenance")
+        # Rule P3's per-K price is the ledger basis; solo_gpuh keeps the ceiling on
+        # the SAME base the projection uses, so the two cannot drift apart.
+        for k in SWEEP_K_LONGEST_FIRST + (CALIB_K,):
+            if k not in solo_gpuh and 24 in solo_gpuh:
+                solo_gpuh[k] = solo_gpuh[24] * GPU_H_98M_MEASURED[k] / GPU_H_98M_MEASURED[24]
 
     os.makedirs(OUT, exist_ok=True)
     written = []
@@ -334,7 +370,7 @@ def main() -> int:
     for recipe in ("primary", "compB"):
         for seed in SEEDS:
             written.append(spec(f"{n:04d}_ncr_scaleaxis_392m_calib_K{CALIB_K}_{recipe}_s{seed}",
-                                CALIB_K, recipe, seed, "calibration", contended))
+                                CALIB_K, recipe, seed, "calibration", contended, r8, solo_gpuh))
             n += 1
 
     # --- Stage B: 18 cells, LONGEST-FIRST naming (sec 8.3) ------------------
@@ -343,7 +379,7 @@ def main() -> int:
         for recipe in ("primary", "compB"):
             for seed in SEEDS:
                 written.append(spec(f"{n:04d}_ncr_scaleaxis_392m_K{k}_{recipe}_s{seed}",
-                                    k, recipe, seed, "sweep", contended))
+                                    k, recipe, seed, "sweep", contended, r8, solo_gpuh))
                 n += 1
 
     ids = [s["id"][:4] for s in written]

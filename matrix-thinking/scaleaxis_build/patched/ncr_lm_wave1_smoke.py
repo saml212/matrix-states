@@ -1079,7 +1079,16 @@ def main():
 
     t0 = time.time()
     smoke_0_param_counts()
-    smoke_11_ablation_flags_construct(args.device)     # CPU-fast, runs regardless of --device
+    # SCALE-AXIS PORT PATCH G3 (AUDIT-R1 sec 4, deviation #3's ruling). Item 11
+    # constructs the mlp/mlp_logits arms, which BUILD REQUIREMENT B2 forbids on
+    # this scale axis (they carry a live d_model dependency, _MLP_ADAPTER_HIDDEN
+    # = d_model//4, untested at rung 2). SKIP it explicitly instead of letting
+    # B2's constructor assert crash this module's standalone entry point before
+    # items 1-10 run. The guard is a SKIP, and it says so out loud.
+    _report("smoke 11: ablation-flag construction (mlp / mlp_logits)",
+            True, "SKIPPED BY B2 (NCR_SCALE_AXIS_DESIGN.md sec 3.3): the non-production "
+                  "adapter arms are not ported to rung 2 and NCRIntegration refuses to "
+                  "build them. Not a pass of the mlp path -- a deliberate non-execution.")
     if args.device == "cuda":
         smoke_1_backbone_forward_backward(args.device)
         smoke_2_backbone_checkpoint_resume(args.device)

@@ -167,7 +167,14 @@ def backbone_param_exact(vocab: int, bb: dict | None = None) -> int:
 
 
 def total_param_exact(k: int | None = None, bb: dict | None = None,
-                      h_enc: int = 64) -> int:
+                      h_enc: int = 64) -> int:      # 64 == nm.ENC_H, BACKBONE-INDEPENDENT
+    # ^ the bare 64 is a size-bearing literal B1 greps for (AUDIT-R1 m2 / C11).
+    # It is INVARIANT under this port by sec 3.3's CODE PROOF, not by assumption:
+    # NCREarlyLNModel is built as els.NCREarlyLNModel(d=D_NCR, h=ENC_H) and
+    # d_model never enters the constructor, so every head tensor is a function of
+    # d = K+1 and h = 64 only. This module is pure python (no torch), so it
+    # cannot import ncr_models to read ENC_H; scaleaxis_gates B3 closes the loop
+    # by asserting the MEASURED head count against ncr_param_exact(R.H_NCR).
     """Total parameters PER ARM = backbone(vocab_size_total) + NCR head + INTEG.
     This is what sec 3.4's table states and what every spec's validity_check
     asserts (sec 3.2 item 15 -- gen_job_specs.PARAMS_PER_ARM's hard-coded 98M
@@ -337,6 +344,27 @@ PRODUCTION_READ_INJECT = "add"'''),
             f"'mlp' adapter branch carries a live d_model dependency "
             f"(_MLP_ADAPTER_HIDDEN = d_model//4) that is untested at rung 2. Refusing.")
         self.d_model, self.d_ncr, self.vocab_size = d_model, d_ncr, vocab_size'''),
+
+    # AUDIT-R1 sec 4, deviation #3's ruling: "RATIFY WITH A NOTE ... but
+    # 'disabled' was implemented as a CRASH, not a skip. One-line skip guard
+    # recommended." G2's assert is correct and stays; what this fixes is that
+    # the graft's own documented standalone entry point (`python3
+    # ncr_lm_wave1_smoke.py`) died with an uncaught AssertionError at item 11
+    # BEFORE items 1-10 could run -- removing a debugging entry point at the
+    # worst possible moment. DEAD relative to every production path (runner,
+    # battery, depthext, gates and kscaling_smoke.py all import the module and
+    # never call main()), so no record could ever have been touched.
+    ("G3_item11_skip_not_crash", """    smoke_11_ablation_flags_construct(args.device)     # CPU-fast, runs regardless of --device""",
+     '''    # SCALE-AXIS PORT PATCH G3 (AUDIT-R1 sec 4, deviation #3's ruling). Item 11
+    # constructs the mlp/mlp_logits arms, which BUILD REQUIREMENT B2 forbids on
+    # this scale axis (they carry a live d_model dependency, _MLP_ADAPTER_HIDDEN
+    # = d_model//4, untested at rung 2). SKIP it explicitly instead of letting
+    # B2's constructor assert crash this module's standalone entry point before
+    # items 1-10 run. The guard is a SKIP, and it says so out loud.
+    _report("smoke 11: ablation-flag construction (mlp / mlp_logits)",
+            True, "SKIPPED BY B2 (NCR_SCALE_AXIS_DESIGN.md sec 3.3): the non-production "
+                  "adapter arms are not ported to rung 2 and NCRIntegration refuses to "
+                  "build them. Not a pass of the mlp path -- a deliberate non-execution.")'''),
 ]
 
 
@@ -452,9 +480,25 @@ _ALLOWLIST_NEW = '''choices=["ncr_gate3_wave1_runner_v1", "ncr_kscaling_runner_v
     # read fails on the SCALE GUARD (the right reason) rather than on the tag
     # (the wrong reason), which is what makes B5's negative test meaningful.'''
 
+_OUTDIR_NOTE = '''
+    # SCALE-AXIS PORT PATCH S4 == AUDIT-R1 MAJOR-5 / condition C4. The pinned
+    # default pointed at ~/ncr_kscaling/results -- the 98M tree, which today
+    # holds 103 records of record plus results_depthext6/. A 392M record landing
+    # there COLLIDES ON-KEY with its 98M twin (rdelta_aggregate keys on
+    # K/recipe/seed, not scale) and whichever path sorts later silently wins,
+    # then reads as a 98M number in Rule R-delta AND in the exact-reproduction
+    # cross-check. B5 does NOT close this: B5 guards the checkpoint INPUT, this
+    # is the output DESTINATION. Latent-not-executing today (kappa_reader always
+    # passes --outdir explicitly and no spec invokes a scorer), but sec 4.6's
+    # Stage C harvest is a manual, unscripted path -- precisely where a bare
+    # invocation happens. Closed at the write end here and at the read end by
+    # rdelta_aggregate.load()'s scale assert.'''
+
 BATTERY_PATCHES = [
     ("S1_battery_allowlist", '''                    choices=["ncr_gate3_wave1_runner_v1"])''',
      '''                    ''' + _ALLOWLIST_NEW),
+    ("S4_battery_outdir", '''    ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_kscaling/results"))''',
+     '''    ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_scaleaxis/results"))''' + _OUTDIR_NOTE),
     ("S2_battery_scale_guard", '''    cfg_rec = cell_config(args.cellcfg)
 
     step = int(ckpt["step"])''',
@@ -484,7 +528,12 @@ DEPTHEXT_PATCHES = [
     ("S3_depthext_scale_field", '''        K=KS.K_NCR, d_ncr=KS.D_NCR, ckpt_recorded_d_ncr=ck_d,''',
      '''        K=KS.K_NCR, d_ncr=KS.D_NCR, ckpt_recorded_d_ncr=ck_d,
         scale=KS.SCALE, backbone_config_scored=ckpt["full_graft"].get("backbone_config"),
-        kscaling=KS.provenance(64, R.RUNG1_BACKBONE["d_model"]),'''),
+        # AUDIT-R1 m2 / condition C11: was a bare literal 64. INVARIANT by
+        # sec 3.3's code proof (ENC_H is backbone-independent), but a bare
+        # size-bearing literal B1 now greps for -- read from the runner instead.
+        kscaling=KS.provenance(R.H_NCR, R.RUNG1_BACKBONE["d_model"]),'''),
+    ("S4_depthext_outdir", '''    ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_kscaling/results"))''',
+     '''    ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_scaleaxis/results"))''' + _OUTDIR_NOTE),
 ]
 
 PATCH_SETS = {

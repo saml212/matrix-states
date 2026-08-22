@@ -56,15 +56,51 @@ def floor_to(x: float, q: float) -> float:
     return math.floor(x / q + 1e-9) * q
 
 
-def load(dirpath: str) -> dict:
-    """-> cells[(K, recipe)][seed][s] = acc"""
+def resolve_scale(d: dict, path: str, expect: str) -> str:
+    """BUILD-AUDIT-R1 MAJOR-5 / condition C4 -- THE READ END OF THE CROSS-SCALE
+    GUARD.
+
+    The port ADDED a `scale` field to both scorers' output and NO CONSUMER READ
+    IT. This aggregator keys cells on (K, recipe, seed) with no scale key, so a
+    392M record landing in a 98M results directory COLLIDES ON-KEY with its 98M
+    twin and whichever path sorts later silently wins -- then reads as a 98M
+    number in Rule R-delta AND in the exact-reproduction cross-check. B5 does
+    not close this: B5 guards the checkpoint INPUT, this is the output
+    DESTINATION. The write end is closed by re-pointing both scorers' --outdir
+    default (patch S4); this is the read end, and it turns an added-but-
+    unchecked field into a real guard.
+
+    LEGACY RECORDS. The 98M six-rung re-score was produced by the KSCALING
+    tree's UNPATCHED depthext_eval.py, which predates the field. Those records
+    are admitted ONLY when `expect == "98m"`, are labelled, and are COUNTED --
+    they are never silently equated with a labelled record."""
+    got = d.get("scale")
+    if got is None:
+        if expect != "98m":
+            raise SystemExit(
+                f"HALT [C4]: {path} carries NO `scale` field, so it can only be a legacy "
+                f"record from the unpatched (98M) kscaling tree -- but this run expects "
+                f"{expect!r}. Refusing to aggregate an unlabelled record as {expect!r}.")
+        return "98m(unlabelled-legacy)"
+    if got != expect:
+        raise SystemExit(
+            f"HALT [C4]: {path} records scale={got!r}, this run expects {expect!r}. A "
+            f"cross-scale record in this directory would COLLIDE ON-KEY with its "
+            f"same-(K,recipe,seed) twin and silently win. Refusing.")
+    return got
+
+
+def load(dirpath: str, expect_scale: str = "98m") -> tuple:
+    """-> cells[(K, recipe)][seed][s] = acc, meta, scale_audit"""
     cells: dict = defaultdict(lambda: defaultdict(dict))
     meta: dict = {}
+    seen_scales: dict = defaultdict(int)
     for p in sorted(glob.glob(os.path.join(dirpath, "*_depthext.json"))):
         d = json.load(open(p))
         if d.get("self_check") != "PASS":
             raise SystemExit(f"HALT: {p} self_check={d.get('self_check')} "
                              f"{d.get('self_check_defects')}")
+        seen_scales[resolve_scale(d, p, expect_scale)] += 1
         k = int(d["K"])
         recipe = "frozen" if d["freeze_entity_adapter"] else "trainable"
         seed = int(d["ckpt_seed"])
@@ -72,20 +108,27 @@ def load(dirpath: str) -> dict:
             cells[(k, recipe)][seed][int(e["n_squarings"])] = float(e["acc"])
         meta[(k, recipe, seed)] = dict(path=p, ladder=d["depth_ladder"],
                                        tag=d["tag"], ckpt=d["ckpt"])
-    return cells, meta
+    if len(seen_scales) > 1:
+        raise SystemExit(f"HALT [C4]: MIXED SCALES in {dirpath}: {dict(seen_scales)}. "
+                         f"Rule R-delta reads ONE scale; refusing to aggregate a mixture.")
+    return cells, meta, dict(seen_scales)
 
 
-def reproduction_check(new_dir: str, old_dir: str) -> dict:
-    """The four archived rungs must reproduce EXACTLY."""
+def reproduction_check(new_dir: str, old_dir: str, expect_scale: str = "98m") -> dict:
+    """The four archived rungs must reproduce EXACTLY. Both sides carry the
+    same C4 scale guard -- a cross-scale record here would silently pass the
+    reproduction check by comparing against the wrong twin."""
     old = {}
     for p in sorted(glob.glob(os.path.join(old_dir, "*_depthext.json"))):
         d = json.load(open(p))
+        resolve_scale(d, p, expect_scale)
         key = (int(d["K"]), bool(d["freeze_entity_adapter"]), int(d["ckpt_seed"]))
         old[key] = {int(e["n_squarings"]): float(e["acc"])
                     for e in d["matched"]["P1b"]["per_hop"].values()}
     n_cmp, mism = 0, []
     for p in sorted(glob.glob(os.path.join(new_dir, "*_depthext.json"))):
         d = json.load(open(p))
+        resolve_scale(d, p, expect_scale)
         key = (int(d["K"]), bool(d["freeze_entity_adapter"]), int(d["ckpt_seed"]))
         if key not in old:
             continue
@@ -117,16 +160,25 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--new", required=True, help="dir of the six-rung re-score JSONs")
     ap.add_argument("--archived", default=None, help="dir of the four-rung wave of record")
+    ap.add_argument("--expect-scale", default="98m", choices=["98m", "392m"],
+                    help="condition C4: every record in --new/--archived must carry this "
+                         "scale (or, for 98m only, be an unlabelled legacy record)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    cells, meta = load(args.new)
+    cells, meta, scale_audit = load(args.new, args.expect_scale)
     rec: dict = {"rule": "R-delta, NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 sec 5.2",
                  "source": os.path.abspath(args.new),
-                 "n_cells_loaded": len(cells), "n_records": len(meta)}
+                 "n_cells_loaded": len(cells), "n_records": len(meta),
+                 "expect_scale": args.expect_scale,
+                 "scale_guard_C4": dict(records_by_resolved_scale=scale_audit,
+                                        mixed_scales=False,
+                                        guard="rdelta_aggregate.resolve_scale (AUDIT-R1 "
+                                              "MAJOR-5 / condition C4)")}
 
     if args.archived:
-        rec["reproduction_check"] = reproduction_check(args.new, args.archived)
+        rec["reproduction_check"] = reproduction_check(args.new, args.archived,
+                                                       args.expect_scale)
 
     # ---- the 8 (K, recipe) cells at the four ported K -----------------------
     survivors, missing = [], []
@@ -166,7 +218,16 @@ def main() -> int:
         for s in CANDIDATE_S:
             H = sorted((table[f"K{k}_{r}"][s]["headroom"], f"K{k}_{r}") for k, r in survivors)
             dstar = floor_to(H[quantile_idx - 1][0], ROUND_TO)
-            reach = sum(1 for h, _ in H if h >= dstar)
+            # AUDIT-R1 m6 / condition C5: STRICT `>`, not `>=`. sec 6.2's
+            # SCALE-IMPROVES is `Delta_scale > delta_depth` and the MAX attainable
+            # Delta_scale is exactly H_c, so a cell with H_c == delta_depth is
+            # STRICTLY UNREACHABLE. floor_to rounds down onto a 0.005 grid, and
+            # those grid values are attainable at n=256 (at K=16 headroom is
+            # (256-m)/240, a multiple of 0.005 whenever 256-m == 0 mod 6), so an
+            # H[q-1] landing ON the grid would inflate the count by one and break
+            # the rule's stated ">=6/8" guarantee. Does not bind on this data
+            # (H[2] = 0.096154 vs delta* = 0.095, all six clear strictly).
+            reach = sum(1 for h, _ in H if h > dstar)
             per_s[s] = dict(sorted_headroom=[[round(h, 6), c] for h, c in H],
                             quantile_index=quantile_idx,
                             raw=round(H[quantile_idx - 1][0], 6),
@@ -174,7 +235,8 @@ def main() -> int:
                             admissible=bool(dstar >= HOUSE_FLOOR),
                             reachable_cells=reach, of=n,
                             reachable_frozen=sum(1 for h, c in H
-                                                 if h >= dstar and c.endswith("_frozen")))
+                                                 if h > dstar and c.endswith("_frozen")),
+                            reachability_comparator=">  (strict, per sec 6.2; AUDIT-R1 m6/C5)")
         elected = next((s for s in CANDIDATE_S if per_s[s]["admissible"]), None)
         rec["rule_R_delta"] = {
             "n_survivors": n, "quantile_index": quantile_idx, "house_floor": HOUSE_FLOOR,

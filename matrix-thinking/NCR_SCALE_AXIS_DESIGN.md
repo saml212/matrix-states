@@ -800,9 +800,73 @@ cost for pricing: `re-priced gpu_h(K) = R(K) × §8.2's measured 98M gpu_h(K)`.
 runner tag). A larger gap is an instrument-drift signal and is reported
 before A0.5 is applied — it does not by itself block, because `R` is a ratio
 of two *fresh* probes, but an unexplained drift in the denominator is worth
-knowing before 84 GPU-h is committed. The measured 98M inflation factor
+knowing before 84 GPU-h is committed. ~~The measured 98M inflation factor
 (**1.5500×**, from the archived pair) is recorded as a standing instrument
-note for every future wave that prices from `phase0-timing`.
+note for every future wave that prices from `phase0-timing`.~~
+
+> ### AMENDMENT A1 (post-close) — the `0.23075` pin is STALE and the 1.5500× note is FALSIFIED
+>
+> **Source:** `matrix-thinking/scaleaxis_build/SCALEAXIS_AUDIT_R1.md` **MAJOR-1**
+> (commit `bb86a9f`); adjudication EXPERIMENT_LOG 2026-08-22 **#17**, condition
+> **C1**. Recorded as an amendment rather than an edit, per the house rule that
+> a deletion without a row is how the next one hides (§13 MAJOR-8's own lesson).
+>
+> Fresh 98M `phase0-timing` probes on the **same box** (`brev-ukptqsu65`), the
+> **same torch** (`2.12.1+cu130`), same K, batch 32, `doc_len` 174, warmup 10,
+> probe 60, read **0.123463 (K=24)** and **0.176222 (K=40)** — i.e. **−46.50%**
+> against the pin, **4.65× the pinned ±10% tolerance**.
+>
+> **The instrument is ruled out as the cause.** `run_phase0_timing`'s timed
+> region is functionally identical between the archived gate3 runner and the
+> kscaling runner — the sole difference is one added output field *outside* the
+> timed block — and the per-arm `torch.cuda.synchronize()` this section blames
+> is present in **both**. No code change explains a 1.87× gap: **`0.23075` is a
+> stale 2026-07-17 box-state snapshot, not a property of the instrument.**
+>
+> **The 1.5500× note is therefore withdrawn, and its SIGN was inverted.** The
+> replacement is the measured β table, `β(K) := phase0(98M,K) / realized(98M,K)`:
+>
+> | K | phase0 (2026-08-22) | realized (§8.2) | **β** |
+> |---|---|---|---|
+> | 24 | 0.123463 | 0.14888 | **0.8293** |
+> | 40 | 0.176222 | 0.20357 | **0.8657** |
+>
+> The probe **under**-reads realized; it does not inflate. **No future wave may
+> carry 1.5500× forward.** β also **rises 4.4%** across a 1.64× `t_in` increase,
+> so it is **not** operating-point-invariant (§4.4 Rule P1's amendment A2).
+>
+> **FATAL-1's fix survives, on a STRONGER receipt than this document argued.**
+> §4.0 reasons that the bias "appears identically in numerator and denominator."
+> The audit checked the stronger fact: `run_phase0_timing` is **byte-identical**
+> between the 98M (kscaling) and 392M (scaleaxis) runners (extracted-function
+> diff, `len 5880 == 5880`, `a == b` True). **`R` cancels its probe bias BY
+> CONSTRUCTION, whatever that bias's absolute level.**
+>
+> **Operational consequence, pinned:** A0.3 **will** report a large cross-check
+> deviation. That is a **stale-baseline artifact, not a live fault**; the
+> cross-check is demoted to **reported-only** and never blocks. `a0_rules.py`
+> records the measurement, the falsification, the byte-identity receipt and the
+> β table **in the A0 record itself**, so a coordinator reading a 46.5% failure
+> immediately before committing ≈99 GPU-h cannot mistake it for a live fault.
+>
+> ### AMENDMENT A2 (post-close) — Rule P1's `R` is CONDITIONAL, and the bias direction is unsafe
+>
+> **Source:** audit **MAJOR-2**, condition **C2**. `R = ρ_realized × (β₃₉₂/β₉₈)`,
+> and this design **assumes that ratio is 1 with no measurement** — across a
+> **4× increase in per-kernel work**, a far larger move along the *same* axis
+> that already moved β by 4.4%. If `β₃₉₂ > β₉₈` then **`R` under-reads
+> `ρ_realized` and biases Rule P1 toward NOMINAL** — the unsafe direction for a
+> gate whose only job is to abort an over-budget wave. A true `ρ ≈ 4.8`
+> (COST-OUT) could read `R ≈ 4.0` (NOMINAL).
+>
+> **Pinned addition, zero GPU-h:** record β₉₈(24)=0.8293 / β₉₈(40)=0.8657 in the
+> A0 record; state `R` as an estimate of `ρ_realized` **conditional on
+> β₃₉₂ = β₉₈**; and when the **first calibration cell** completes, compute
+> `ρ_realized(24) = realized(392M,24) / 0.14888` and compare it to `R(24)`.
+> **If they differ by more than 15%, RE-ENTER RULE P1 on the realized ratio
+> BEFORE STAGE B QUEUES.** The first calibration cell produces this number
+> anyway, so the check is free and converts an untested assumption into a
+> measured one.
 
 **Stage A0 is a hard gate.** No training cell — not even a calibration
 cell — is queued until A0.1–A0.5 have all returned and §4.4's rules have been
@@ -1165,14 +1229,59 @@ archived record. That is FATAL-3's class again — a rule keyed to a number the
 elected instrument never produces — and R1 had *deleted* R0's (false) hard
 memory bound on the strength of "A0.3 settles it by measurement."
 
-**Pinned instrument, named:** `ncr_lm_wave1_smoke.py` **`:663`** and
-**`:796`**, which already compute
-`torch.cuda.max_memory_allocated(device) / 1e9`, and **`:1056`**
-(`_co_residency_peak_mem_gb`). **The eval-pass leg is `:796`** — the smoke
-leg that runs the battery-shaped eval path; `:663` is the train-only forward/
-backward figure, and the #6 correction (training-only peaks understate by
-≈1.3 GB at 98M) is precisely the gap between them, so **both are recorded and
-P4 reads the `:796` figure**. Wired as **B8** in §3.7, run inside A0.1, not
+~~**Pinned instrument, named:** `ncr_lm_wave1_smoke.py` **`:663`** and
+**`:796`** … **The eval-pass leg is `:796`** — the smoke leg that runs the
+battery-shaped eval path; `:663` is the train-only forward/backward figure, and
+the #6 correction (training-only peaks understate by ≈1.3 GB at 98M) is
+precisely the gap between them, so **both are recorded and P4 reads the `:796`
+figure**.~~
+
+> ### AMENDMENT A3 (post-close) — this instrument identification is INVERTED
+>
+> **Source:** `SCALEAXIS_AUDIT_R1.md` **MAJOR-4** (commit `bb86a9f`);
+> adjudication EXPERIMENT_LOG 2026-08-22 **#17**, condition **C7**. Verified
+> against the pinned graft `kscaling_build/patched/ncr_lm_wave1_smoke.py`:
+>
+> * **`:663`** sits inside **`smoke_3_backbone_eval_batch`** — backbone-only,
+>   `no_grad`, B=32/T=512. **An EVAL leg.**
+> * **`:796`** sits inside **`smoke_7_full_graft_train_step`** — **a TRAINING
+>   step.**
+>
+> The characterization above is **exactly backwards**, so its rationale (*"the
+> #6 correction … is precisely the gap between them"*) rests on a false premise.
+> This is the **third recurrence of the FATAL-3 class** — a rule keyed to a
+> number the elected instrument does not produce in the form the rule assumes —
+> and it survived all five design rounds.
+>
+> **`:1056` is not an independent measurement either.** Graft `:1056` is
+> `RESULTS["_co_residency_peak_mem_gb"] = peak_gb`, which re-stores
+> `smoke_7`'s own peak (i.e. `:796`) under a second name. There is no
+> co-residency measurement at `:1056`, and the build's field asserting one has
+> been deleted.
+>
+> **PINNED REPLACEMENT — P4 reads the instrument the build actually built.**
+> `scaleaxis_gates.py`'s B8 records the two named lines under corrected labels
+> **and** a **production-shaped two-arm train + `eval_both_arms` peak** at batch
+> 32 / eval-batch 64, and P4 reads `max(:796, production-with-eval)` — strictly
+> more conservative than either named line. **The build's number was already
+> right; the design text is what was wrong, and it is corrected here rather than
+> silently inherited** (the #15 design-delta mandate).
+>
+> **P4 reads the MAX OVER THE FOUR K** (audit m4 / C5), not one K: memory grows
+> with `t_in`. **Measured: 17.094 / 18.943 / 21.266 / 23.460 GB at
+> K=16/24/32/40** — all far below the 40 GB gate, and **below §8.1's projected
+> 21–28 GB band at three of four K**, a conservative projection miss recorded
+> rather than absorbed.
+>
+> **Wording correction, binding on the writeup.** `eval_pass_delta_gb = 0.0` is
+> an artifact of not calling `reset_peak_memory_stats()` between the two reads,
+> so the quantity is `max(train, eval) − train ≥ 0` **by construction**. The
+> correct statement is **"the eval pass does not raise the peak above the
+> training peak at 392M"** — *never* "eval adds 0 GB", and *never* "#6's
+> +1.3 GB correction does not reproduce at scale."
+
+Both named lines are recorded, and P4 reads the production-shaped
+with-eval figure per Amendment A3. Wired as **B8** in §3.7, run inside A0.1, not
 A0.3.
 
 | reading (`:796`, with eval) | action |

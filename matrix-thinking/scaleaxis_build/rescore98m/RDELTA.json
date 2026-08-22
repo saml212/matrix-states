@@ -3,6 +3,14 @@
  "source": "/Users/samuellarson/Experiments/learned-representations/matrix-thinking/scaleaxis_build/rescore98m",
  "n_cells_loaded": 16,
  "n_records": 48,
+ "expect_scale": "98m",
+ "scale_guard_C4": {
+  "records_by_resolved_scale": {
+   "98m(unlabelled-legacy)": 48
+  },
+  "mixed_scales": false,
+  "guard": "rdelta_aggregate.resolve_scale (AUDIT-R1 MAJOR-5 / condition C4)"
+ },
  "reproduction_check": {
   "n_compared": 192,
   "n_mismatch": 0,
@@ -564,7 +572,8 @@
     "admissible": false,
     "reachable_cells": 6,
     "of": 8,
-    "reachable_frozen": 2
+    "reachable_frozen": 2,
+    "reachability_comparator": ">  (strict, per sec 6.2; AUDIT-R1 m6/C5)"
    },
    "13": {
     "sorted_headroom": [
@@ -607,7 +616,8 @@
     "admissible": true,
     "reachable_cells": 6,
     "of": 8,
-    "reachable_frozen": 2
+    "reachable_frozen": 2,
+    "reachability_comparator": ">  (strict, per sec 6.2; AUDIT-R1 m6/C5)"
    },
    "15": {
     "sorted_headroom": [
@@ -650,7 +660,8 @@
     "admissible": true,
     "reachable_cells": 6,
     "of": 8,
-    "reachable_frozen": 2
+    "reachable_frozen": 2,
+    "reachability_comparator": ">  (strict, per sec 6.2; AUDIT-R1 m6/C5)"
    }
   },
   "elected_s": 13,

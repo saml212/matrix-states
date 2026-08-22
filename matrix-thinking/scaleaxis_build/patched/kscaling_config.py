@@ -224,7 +224,14 @@ def backbone_param_exact(vocab: int, bb: dict | None = None) -> int:
 
 
 def total_param_exact(k: int | None = None, bb: dict | None = None,
-                      h_enc: int = 64) -> int:
+                      h_enc: int = 64) -> int:      # 64 == nm.ENC_H, BACKBONE-INDEPENDENT
+    # ^ the bare 64 is a size-bearing literal B1 greps for (AUDIT-R1 m2 / C11).
+    # It is INVARIANT under this port by sec 3.3's CODE PROOF, not by assumption:
+    # NCREarlyLNModel is built as els.NCREarlyLNModel(d=D_NCR, h=ENC_H) and
+    # d_model never enters the constructor, so every head tensor is a function of
+    # d = K+1 and h = 64 only. This module is pure python (no torch), so it
+    # cannot import ncr_models to read ENC_H; scaleaxis_gates B3 closes the loop
+    # by asserting the MEASURED head count against ncr_param_exact(R.H_NCR).
     """Total parameters PER ARM = backbone(vocab_size_total) + NCR head + INTEG.
     This is what sec 3.4's table states and what every spec's validity_check
     asserts (sec 3.2 item 15 -- gen_job_specs.PARAMS_PER_ARM's hard-coded 98M

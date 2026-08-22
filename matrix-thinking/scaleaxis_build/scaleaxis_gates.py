@@ -133,12 +133,39 @@ B1_DISPOSITIONS = {
     "gen_job_specs.py:--ceiling-gpuh 6.0":    "item 18 -- launch-losing default; replaced per sec 3.6",
     "depthext_eval.py:SQUARING_PROFILE":      "item 23 (NEW, B1): (5,7,9,11) is a module constant; the {13,15} "
                                               "extension sets it from a driver, never by editing the wrapper",
+    # ---- AUDIT-R1 m2 / C11: the residual bare-64 sites, both INVARIANT -----
+    "kscaling_config.py:h_enc_default_64":    "INVARIANT by sec 3.3's CODE PROOF: ENC_H = 64 is BindingEncoder's own "
+                                              "width and d_model never enters NCREarlyLNModel's constructor. This "
+                                              "module is pure python and cannot import ncr_models; B3 closes the loop "
+                                              "by asserting the MEASURED head count against ncr_param_exact(R.H_NCR).",
+    "depthext_eval.py:provenance_h_enc":      "WAS a bare 64 in patch S3; re-pointed at R.H_NCR (C11) so the tree "
+                                              "carries one fewer bare size-bearing literal.",
+    "ncr_lm_wave1_smoke.py:eval_batch_64":    "INVARIANT: an eval BATCH size, not a backbone dimension.",
 }
+# sec 3.2 items 15/16/18 name gen_job_specs.py -- the K-SCALING generator, which
+# is NOT in the scaleaxis tree and is SUPERSEDED by gen_scaleaxis_specs.py. They
+# are dispositioned above for completeness against sec 3.2's enumeration; B1's
+# sweep cannot and should not surface them. Recorded so the table and the sweep
+# are not silently claiming to cover the same files (AUDIT-R1 m2).
+B1_DISPOSITIONS_NOT_IN_SWEPT_TREE = (
+    "gen_job_specs.py:PARAMS_PER_ARM", "gen_job_specs.py:GPU_H",
+    "gen_job_specs.py:--ceiling-gpuh 6.0")
+# AUDIT-R1 m2 / condition C11. sec 3.2 requires grepping bare 768, 64, 12,
+# 50257, 50259, 98_000_000. The first pass had NO pattern for bare `64` or bare
+# `12` (only d_state=/n_layers= forms) and none for SQUARING_PROFILE -- which is
+# ITEM 23, present in the disposition table but UNREACHABLE by the sweep that
+# claims to "re-derive the set from the DEPLOYED tree". The table and the sweep
+# now cover the same set. An independent exhaustive hunt found NO 25th LIVE
+# constant, so this is completeness hygiene, not a suspected miss -- and B1
+# still does not prove a 25th absent.
 B1_PATTERNS = [
     (r"\b768\b", "d_model literal"),
     (r"\b1536\b", "d_model literal (rung 2)"),
     (r"\bd_state\s*=\s*\d+", "d_state literal"),
     (r"\bn_layers\s*=\s*\d+", "n_layers literal"),
+    (r"\b64\b", "bare 64 (sec 3.2's enumerated literal; ENC_H / d_state / eval-batch)"),
+    (r"\b12\b", "bare 12 (sec 3.2's enumerated literal; rung-1 n_layers)"),
+    (r"SQUARING_PROFILE", "item 23 -- depthext_eval's ladder-profile constant"),
     (r"\b50257\b|\b50259\b", "vocab literal"),
     (r"98_000_000|392_000_000", "param target literal"),
     (r"MIN_KERNEL_T\s*=\s*\d+", "kernel-floor literal"),
@@ -164,6 +191,11 @@ def b1_sweep(tree: str) -> dict:
     return dict(tree=tree, n_files=len(glob.glob(os.path.join(tree, "*.py"))),
                 n_hits=len(hits), hits=hits,
                 dispositions=B1_DISPOSITIONS, n_dispositions=len(B1_DISPOSITIONS),
+                dispositions_not_in_swept_tree=list(B1_DISPOSITIONS_NOT_IN_SWEPT_TREE),
+                patterns=[p for p, _ in B1_PATTERNS],
+                condition_C11=("bare-64, bare-12 and SQUARING_PROFILE patterns added so the "
+                               "disposition table and the sweep cover the same set "
+                               "(AUDIT-R1 m2)"),
                 design_enumeration=21, found_by_B1=3,
                 note=("sec 11.3 item 6: 'assume a twenty-second exists'. Three do -- items 22 "
                       "(provenance's hard-coded d_model, at TWO sites), 23 (depthext_eval's "
@@ -402,12 +434,36 @@ def main() -> int:
         util = sorted(samples)
         p4 = max(peak_796, peak_with_eval)
         return {
-            "peak_gb_smoke_line_663_backbone_eval_batch": round(peak_663, 3),
-            "peak_gb_smoke_line_796_full_graft_step": round(peak_796, 3),
-            "peak_gb_line_1056_co_residency": round(peak_796, 3),
+            # AUDIT-R1 MAJOR-4 / condition C7. Design sec 4.4's identification of
+            # these two lines is INVERTED, and the build's own labels inherited it:
+            #   :663 sits in smoke_3_backbone_eval_batch -- backbone-only, no_grad,
+            #        B=32/T=512. An EVAL leg.
+            #   :796 sits in smoke_7_full_graft_train_step -- a TRAINING step.
+            # So sec 4.4's rationale ("the #6 correction, training-only peaks
+            # understate by ~1.3 GB, is precisely the gap between them") rests on a
+            # false premise. Names corrected here; the NUMBER P4 reads was already
+            # right, because the build measured its own production-shaped peak.
+            "peak_gb_line_663_smoke3_backbone_only_EVAL_batch": round(peak_663, 3),
+            "peak_gb_line_796_smoke7_full_graft_TRAIN_step": round(peak_796, 3),
+            # `peak_gb_line_1056_co_residency` DELETED: graft :1056 is
+            # `RESULTS["_co_residency_peak_mem_gb"] = peak_gb`, which stores
+            # smoke_7's OWN peak (i.e. :796) under a second name. There is no
+            # independent co-residency measurement at :1056, and the old field
+            # asserted one that was never taken.
+            "line_1056_note": ("graft :1056 re-stores smoke_7's peak under a second name; "
+                               "it is NOT an independent co-residency measurement, so no "
+                               "such field is emitted (AUDIT-R1 MAJOR-4 / C7)"),
             "peak_gb_production_two_arms_train_only": round(peak_train_only, 3),
             "peak_gb_production_two_arms_WITH_EVAL": round(peak_with_eval, 3),
-            "eval_pass_delta_gb": round(peak_with_eval - peak_train_only, 3),
+            # NOT an eval-only delta: reset_peak_memory_stats() is deliberately NOT
+            # called between the two reads, so peak_with_eval is max(train, eval)
+            # and this quantity is >= 0 by construction. 0 means "the eval pass did
+            # not RAISE the peak above the training peak", NOT "eval costs 0 GB".
+            "eval_pass_raises_peak_by_gb": round(peak_with_eval - peak_train_only, 3),
+            "eval_pass_delta_semantics": ("max(train, eval) - train; >=0 by construction. "
+                                          "0 == the eval pass does not raise the peak. This "
+                                          "does NOT measure eval's own footprint and must not "
+                                          "be reported as '#6's +1.3 GB does not reproduce'."),
             "P4_reading_gb": round(p4, 3), "P4_limit_gb": args.p4_limit_gb,
             "P4_verdict": ("NOMINAL (< 40 GB, sec 4.4)" if p4 < args.p4_limit_gb else
                            ">= 40 GB -- NOT a blocker, but sec 8.3's placement assumption "

@@ -96,7 +96,19 @@ def main() -> int:
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--cellcfg", default=None)
-    ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_kscaling/results"))
+    ap.add_argument("--outdir", default=os.path.expanduser("~/ncr_scaleaxis/results"))
+    # SCALE-AXIS PORT PATCH S4 == AUDIT-R1 MAJOR-5 / condition C4. The pinned
+    # default pointed at ~/ncr_kscaling/results -- the 98M tree, which today
+    # holds 103 records of record plus results_depthext6/. A 392M record landing
+    # there COLLIDES ON-KEY with its 98M twin (rdelta_aggregate keys on
+    # K/recipe/seed, not scale) and whichever path sorts later silently wins,
+    # then reads as a 98M number in Rule R-delta AND in the exact-reproduction
+    # cross-check. B5 does NOT close this: B5 guards the checkpoint INPUT, this
+    # is the output DESTINATION. Latent-not-executing today (kappa_reader always
+    # passes --outdir explicitly and no spec invokes a scorer), but sec 4.6's
+    # Stage C harvest is a manual, unscripted path -- precisely where a bare
+    # invocation happens. Closed at the write end here and at the read end by
+    # rdelta_aggregate.load()'s scale assert.
     ap.add_argument("--required-step", type=int, default=REQUIRED_CKPT_STEP)
     # F1 fix (KSCALING_AUDIT_R1): read-only scoring of the K=24 anchor cells of
     # record, which carry the pinned gate3 tag. Allowlisted values only; the
