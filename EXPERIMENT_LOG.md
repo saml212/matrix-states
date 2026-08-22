@@ -11300,3 +11300,36 @@ K? Bands: DRIFT-K-INDEPENDENT = per-K drift (κ@11sq − κ@5sq) within
 ±0.05 of the K=24 value at every K; ORDERING-AT-DEPTH-CONFIRMED =
 stratified T ≥ 42/54 at 11 squarings (same test/thresholds as #2);
 ORDERING-AT-DEPTH-NEGLIGIBLE = below. Dispatched to the eval agent.
+
+## 2026-08-22 #3 — K=36/40 FRONTIER EXTENSION: internal gate CLEAR-WITH-CONSTRAINTS; K=44 DROPPED this wave (construction impossible: antipodal rung needs 3K/2 ≤ 63, hard AssertionError at derive_ladder(44)); NULL EXPECTATIONS PRE-REGISTERED; Opus build dispatched.
+
+Gate findings of record: the K=48 block + "no further K-axis probe"
+rulings are NCR_MAPPING_LAW_DESIGN §1.6's own staging rule for the
+July toy free-write d(K) grid — scoped, non-binding on the real-LM
+exact-write lane (already treated as priors-not-prohibitions by the
+08-21 gate, and the real-LM K≤32 result diverged POSITIVELY from
+the toy pessimism). Ladders: h_top(36)=54, h_top(40)=60 derive
+cleanly; K=44 has NO antipodal rung in the squaring-5 band (nearest
+reachable r=19 at h=63, a 13.6% effective-distance reduction —
+addable only with an explicit disclosed deviation, deferred). T=258/
+286 have no ceiling (runner asserts a floor only); entity pools
+cover K≤64 by design. One mid-task INJECTION attempt on the gate
+agent (fake system-reminder w/ concealment instruction; date claim
+itself true — box UTC vs local timezone; concealment disregarded,
+reported per standing rule).
+
+**PRE-REGISTERED NULL EXPECTATIONS (locked before build):**
+(a) CAPABILITY-HOLDS continues at K=36/40 (κ ≥ 0.90, likely ≥0.95,
+both recipes) — the flat 12→32 curve extrapolates over this smaller
+1.4× extension; a frontier here would be a FINDING, not the
+expectation. (b) WALL-HOLDS 0/6 at both K — the h=1 toehold trend
+(5/6 → 1/6 → 1/6 → 0 by K=28) argues continued absence. (c) LIVE
+RISK to watch, not assume away: trainable/contrastive Gate-0
+convergence (CE finite + falling) in the K~36-40 regime — the toy
+prior's mechanism was trainability collapse; monitored via the
+existing Gate-0 check per cell. Bands otherwise identical to the
+main sweep (§7 as amended; κ bar 0.90; stratified T extends to 8
+strata: threshold recomputed at build from the same exact-permutation
+construction). 12 cells (2K × 2 recipes × 3 seeds) ≈ 10 GPU-h ⇒
+ceremony tier: single audit round on the extension delta; packing
+per the standing declined ruling (1 cell/GPU).
