@@ -1,0 +1,12 @@
+36	depthext_kscaling_K36_primary_s0	/ephemeral/kscaling/ckpts/kscaling_K36_primary_s0/kscaling_K36_primary_s0.ckpt.pt	/ephemeral/kscaling/results/kscaling_K36_primary_s0.json	-
+36	depthext_kscaling_K36_primary_s1	/ephemeral/kscaling/ckpts/kscaling_K36_primary_s1/kscaling_K36_primary_s1.ckpt.pt	/ephemeral/kscaling/results/kscaling_K36_primary_s1.json	-
+36	depthext_kscaling_K36_primary_s2	/ephemeral/kscaling/ckpts/kscaling_K36_primary_s2/kscaling_K36_primary_s2.ckpt.pt	/ephemeral/kscaling/results/kscaling_K36_primary_s2.json	-
+36	depthext_kscaling_K36_compB_s0	/ephemeral/kscaling/ckpts/kscaling_K36_compB_s0/kscaling_K36_compB_s0.ckpt.pt	/ephemeral/kscaling/results/kscaling_K36_compB_s0.json	-
+36	depthext_kscaling_K36_compB_s1	/ephemeral/kscaling/ckpts/kscaling_K36_compB_s1/kscaling_K36_compB_s1.ckpt.pt	/ephemeral/kscaling/results/kscaling_K36_compB_s1.json	-
+36	depthext_kscaling_K36_compB_s2	/ephemeral/kscaling/ckpts/kscaling_K36_compB_s2/kscaling_K36_compB_s2.ckpt.pt	/ephemeral/kscaling/results/kscaling_K36_compB_s2.json	-
+40	depthext_kscaling_K40_primary_s0	/ephemeral/kscaling/ckpts/kscaling_K40_primary_s0/kscaling_K40_primary_s0.ckpt.pt	/ephemeral/kscaling/results/kscaling_K40_primary_s0.json	-
+40	depthext_kscaling_K40_primary_s1	/ephemeral/kscaling/ckpts/kscaling_K40_primary_s1/kscaling_K40_primary_s1.ckpt.pt	/ephemeral/kscaling/results/kscaling_K40_primary_s1.json	-
+40	depthext_kscaling_K40_primary_s2	/ephemeral/kscaling/ckpts/kscaling_K40_primary_s2/kscaling_K40_primary_s2.ckpt.pt	/ephemeral/kscaling/results/kscaling_K40_primary_s2.json	-
+40	depthext_kscaling_K40_compB_s0	/ephemeral/kscaling/ckpts/kscaling_K40_compB_s0/kscaling_K40_compB_s0.ckpt.pt	/ephemeral/kscaling/results/kscaling_K40_compB_s0.json	-
+40	depthext_kscaling_K40_compB_s1	/ephemeral/kscaling/ckpts/kscaling_K40_compB_s1/kscaling_K40_compB_s1.ckpt.pt	/ephemeral/kscaling/results/kscaling_K40_compB_s1.json	-
+40	depthext_kscaling_K40_compB_s2	/ephemeral/kscaling/ckpts/kscaling_K40_compB_s2/kscaling_K40_compB_s2.ckpt.pt	/ephemeral/kscaling/results/kscaling_K40_compB_s2.json	-

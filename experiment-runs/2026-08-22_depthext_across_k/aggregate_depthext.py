@@ -26,11 +26,14 @@ import sys
 from collections import defaultdict
 
 SQ = (5, 7, 9, 11)
-KS_GRID = (12, 16, 20, 24, 28, 32)
+SWEEP_GRID = (12, 16, 20, 24, 28, 32)        # the six strata of #4
+FRONTIER_GRID = (36, 40)                      # design sec 14 frontier extension
 REF_K = 24
 TOL = 0.05
-T_THRESHOLD = 42.0
-N_PAIRS = 54
+# #4 band (6 strata) and the design sec 14.2 band (8 strata), threshold locked
+# at build time BEFORE the frontier data existed.
+BANDS = {6: dict(threshold=42.0, n_pairs=54, name="ORDERING-AT-DEPTH"),
+         8: dict(threshold=53.0, n_pairs=72, name="ORDERING-ROBUST")}
 
 
 def acc_by_sq(rec):
@@ -69,6 +72,9 @@ def main():
     d = sys.argv[1] if len(sys.argv) > 1 else "."
     recs = [json.load(open(p)) for p in sorted(glob.glob(os.path.join(d, "*_depthext.json")))]
     print(f"loaded {len(recs)} cells")
+    global KS_GRID
+    KS_GRID = tuple(sorted({r["K"] for r in recs}))
+    print(f"strata present: K = {list(KS_GRID)} ({len(KS_GRID)} strata)")
     bad = [(r["tag"], r["self_check"], r["ckpt_step"]) for r in recs
            if r["self_check"] != "PASS" or r["ckpt_step"] != 20000]
     print("INVALID:", bad if bad else "none")
@@ -137,45 +143,58 @@ def main():
               f"K=24 drift, both recipes")
 
     # ---------- (b) stratified exact permutation at 11 squarings ----------
+    def run_test(grid, squarings=11, verbose=True):
+        T, strata = 0.0, []
+        rows = []
+        for k in grid:
+            fv = sorted(acc_by_sq(r)[squarings] for r in g[(k, True)])
+            tv = sorted(acc_by_sq(r)[squarings] for r in g[(k, False)])
+            ts = stratum_T(fv, tv)
+            T += ts
+            strata.append(fv + tv)
+            rows.append((k, fv, tv, ts))
+        dist = exact_null(strata)
+        p_ge = sum(pr for t, pr in dist.items() if t >= T - 1e-9)
+        p_le = sum(pr for t, pr in dist.items() if t <= T + 1e-9)
+        mean_null = sum(t * pr for t, pr in dist.items())
+        p_two = min(1.0, 2 * min(p_ge, p_le))
+        return dict(T=T, rows=rows, p_ge=p_ge, p_two=p_two, mean_null=mean_null, dist=dist)
+
     print("\n" + "=" * 104)
-    print("(b) STRATIFIED WITHIN-K ORDERING AT 11 SQUARINGS (frozen vs trainable, ties = 1/2)")
+    print(f"(b) STRATIFIED WITHIN-K ORDERING AT {SQ[-1]} SQUARINGS (frozen vs trainable, ties = 1/2)")
     print("=" * 104)
+    res8 = run_test(KS_GRID, 11)
     print(f"   {'K':>3s} {'frozen kappa@11sq':>28s} {'trainable kappa@11sq':>28s} {'T_stratum':>10s}/9")
-    T = 0.0
-    strata_vals = []
-    for k in KS_GRID:
-        fv = sorted(acc_by_sq(r)[11] for r in g[(k, True)])
-        tv = sorted(acc_by_sq(r)[11] for r in g[(k, False)])
-        ts = stratum_T(fv, tv)
-        T += ts
-        strata_vals.append(fv + tv)
+    for k, fv, tv, ts in res8["rows"]:
+        mark = "  <- frontier" if k in FRONTIER_GRID else ""
         print(f"   {k:>3d} {str([round(x,4) for x in fv]):>28s} "
-              f"{str([round(x,4) for x in tv]):>28s} {ts:>10.1f}")
+              f"{str([round(x,4) for x in tv]):>28s} {ts:>10.1f}{mark}")
     print("-" * 104)
-    losses = N_PAIRS - T
-    print(f"   TOTAL T = {T:.1f}/{N_PAIRS}   (lower tail / trainable-wins-equivalent = {losses:.1f})")
+    band = BANDS[len(KS_GRID)]
+    T, npairs, thr = res8["T"], band["n_pairs"], band["threshold"]
+    losses = npairs - T
+    print(f"   TOTAL T = {T:.1f}/{npairs}   (lower tail = {losses:.1f}, allowed <= {npairs-thr:.0f})")
+    print(f"   exact stratified permutation null (enumerated C(6,3)=20 per stratum, convolved "
+          f"over {len(KS_GRID)} strata):")
+    print(f"      mean T = {res8['mean_null']:.1f}   P(T >= {T:.1f}) = {res8['p_ge']:.3e}   "
+          f"exact two-sided p = {res8['p_two']:.3e}")
+    verdict = (f"{band['name']}-CONFIRMED" if T >= thr else f"{band['name']}-NEGLIGIBLE")
+    print(f"\nBAND (b) VERDICT: {verdict} -- T = {T:.1f}/{npairs} (threshold >= {thr:.0f})")
 
-    dist = exact_null(strata_vals)
-    p_ge = sum(pr for t, pr in dist.items() if t >= T - 1e-9)
-    mean_null = sum(t * pr for t, pr in dist.items())
-    print(f"   exact stratified permutation null: mean T = {mean_null:.1f}, "
-          f"P(T >= {T:.1f}) = {p_ge:.3e}")
-    verdict = ("ORDERING-AT-DEPTH-CONFIRMED" if T >= T_THRESHOLD
-               else "ORDERING-AT-DEPTH-NEGLIGIBLE")
-    print(f"\nBAND (b) VERDICT: {verdict} -- T = {T:.1f}/{N_PAIRS} "
-          f"(threshold >= {T_THRESHOLD:.0f}; lower tail {losses:.1f}, allowed <= {N_PAIRS-T_THRESHOLD:.0f})")
-    print(f"   for reference, #2 Curve 3 measured T = 32/54 at 5 squarings (ORDERING-NEGLIGIBLE)")
-
-    # T at every squaring count, to show where it opens
-    print("\n   T by squaring count (same test, same strata):")
+    # depth profile on the SAME strata (context, not verdict)
+    print(f"\n   DEPTH PROFILE -- T by squaring count, same {len(KS_GRID)} strata:")
     for s in SQ:
-        tt = 0.0
-        for k in KS_GRID:
-            fv = [acc_by_sq(r)[s] for r in g[(k, True)]]
-            tv = [acc_by_sq(r)[s] for r in g[(k, False)]]
-            tt += stratum_T(fv, tv)
-        print(f"      {s:2d} squarings: T = {tt:5.1f}/{N_PAIRS}"
-              + ("  <- pre-registered readout" if s == 11 else ""))
+        r = run_test(KS_GRID, s)
+        print(f"      {s:2d} squarings: T = {r['T']:5.1f}/{npairs}  (two-sided p = {r['p_two']:.3e})"
+              + ("  <- pre-registered readout" if s == 11 else "  (context)"))
+
+    # continuity with #4's six-stratum result
+    if set(SWEEP_GRID).issubset(set(KS_GRID)) and len(KS_GRID) > len(SWEEP_GRID):
+        r6 = run_test(SWEEP_GRID, 11)
+        b6 = BANDS[6]
+        print(f"\n   CONTINUITY -- the original {len(SWEEP_GRID)} strata alone at 11 squarings: "
+              f"T = {r6['T']:.1f}/{b6['n_pairs']} (threshold >= {b6['threshold']:.0f}, "
+              f"{'clears' if r6['T'] >= b6['threshold'] else 'fails'}); unchanged from #4.")
 
     # ---------- P0 wall spot-check ---------------------------------------
     print("\n" + "=" * 104)
@@ -194,7 +213,7 @@ def main():
         print(f"   K={k:2d} chance={ch:.4f} band=[{band[0]:.4f},{band[1]:.4f}] "
               f"n={len(vals)} min={min(vals):.4f} max={max(vals):.4f}")
     print("-" * 104)
-    print(f"P0 WALL: {'HOLDS -- all 36 readings within their per-K band' if out == 0 else f'{out} reading(s) OUT OF BAND'}")
+    print(f"P0 WALL: {f'HOLDS -- all {len(recs)} readings within their per-K band' if out == 0 else f'{out} reading(s) OUT OF BAND'}")
 
 
 if __name__ == "__main__":

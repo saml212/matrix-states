@@ -11457,3 +11457,46 @@ limit, not at a capability limit — state this in every figure
 caption. Archive: experiment-runs/2026-08-22_kscaling_frontier/
 (repo+SSD). Pending: the 8-strata ordering adjudication (depth-ext
 at K=36/40 dispatched; §14.2 threshold T≥53/72 locked pre-data).
+
+## 2026-08-22 #8 — 8-STRATA ADJUDICATION (the #4 deferral resolved): ORDERING-ROBUST-CONFIRMED, T=61.5/72 vs locked threshold 53, exact p=3.071e-05; fragility RESOLVED (LOSO clears at every stratum, 60.0-63.4 vs 53); DRIFT-K-INDEPENDENT holds as pinned WITH an honest scope note; WALL 48/48 at 11 squarings. THE BREADTH CHAPTER IS COMPLETE.
+
+48 cells (8 strata × 6), 0.024 GPU-h this wave; archive extended
+experiment-runs/2026-08-22_depthext_across_k/ repo+SSD. Frontier
+ladders verified ≡4 mod K, squarings 5/7/9/11 matched.
+
+**Ordering (verdict of record):** per-stratum T/9 at 11 sq = 6.0,
+6.5, 7.0, 9.0, 9.0, 6.0, 9.0, 9.0 (K=12→40); the frontier strata
+are PERFECTLY separated (frontier-only 18/18: every frozen cell
+beats every trainable cell at K=36 and K=40) — the freeze ordering
+STRENGTHENS with breadth. Depth profile (context): T = 48.0 (5sq,
+p=.047) → 57.0 (7sq) → 65.0 (9sq) → 61.5 (11sq); still peaks at
+9 sq (the K=32 primary_s1 weak-seed cell drives the 11-sq dip,
+noted in #4); the original 6 strata alone still read 43.5/54 —
+full continuity across waves.
+
+**Drift:** DRIFT-K-INDEPENDENT passes with all 8 K (median, max
+dev +0.0430). SCOPE NOTE of record: the band measures distance
+from K=24, not slope — the FROZEN arm's drift is genuinely flat
+across all eight K (−0.0195 to −0.0469, no trend), but the
+TRAINABLE arm's drift worsens ~monotonically with breadth
+(−0.0195 → −0.0938, K=12→40; slope ≈ −0.0196 per 8 K, would exit
+the ±0.05 window near K≈48). "K-independent" is true as pinned and
+true of the frozen arm outright; for the trainable arm it is a
+statement about THIS K range. A trainable-drift-vs-breadth curve
+is a pre-registerable future question, NOT a claim of this record.
+Combined with the ordering result, the paper sentence gains a
+dimension: freezing buys depth-robustness that is BREADTH-STABLE;
+trainable adapters pay a depth cost that GROWS with breadth.
+
+**Wall:** 48/48 in band at the deepest rung (K=36 max 0.0547 vs
+band 0.0586 — closest approach, worth a glance on any re-measure).
+Minor instrument fix disclosed: aggregator's hardcoded count
+corrected 36→actual; manifest builder regression-checked
+byte-identical on the original 36.
+
+**Program totals for the breadth chapter:** 48 trained cells
+(+6 anchor re-scores), 0 failures, ≈39.4 GPU-h all-in; 4 published
+verdicts; every band pre-registered before data; 2 pre-launch
+FATALs + 1 stale-claim fix caught by audits; 3 injection attempts
+reported; 3 coordinator errors caught by the verification chain
+and corrected in the open.

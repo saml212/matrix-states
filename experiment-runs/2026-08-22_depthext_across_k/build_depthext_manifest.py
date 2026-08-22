@@ -13,7 +13,8 @@ and need the audited --anchor-runner-tag allowlist to load read-only.
 import os
 import sys
 
-SWEEP_K = (12, 16, 20, 28, 32)          # K=24 is the anchor stratum, below
+DEFAULT_SWEEP_K = (12, 16, 20, 28, 32)  # K=24 is the anchor stratum, below
+FRONTIER_K = (36, 40)                   # design sec 14 frontier extension
 ANCHOR_K = 24
 RECIPES = ("primary", "compB")
 SEEDS = (0, 1, 2)
@@ -25,9 +26,21 @@ ANCHOR_TAG = "ncr_gate3_wave1_runner_v1"
 
 
 def main():
+    # --ks 36,40 / --no-anchors select the frontier extension; defaults preserve
+    # the original six-stratum manifest byte-for-byte.
+    ks, anchors = DEFAULT_SWEEP_K, True
+    argv = sys.argv[1:]
+    if "--frontier" in argv:
+        ks, anchors = FRONTIER_K, False
+    for i, a in enumerate(argv):
+        if a == "--ks":
+            ks = tuple(int(x) for x in argv[i + 1].split(","))
+        if a == "--no-anchors":
+            anchors = False
+
     rows, missing = [], []
 
-    for k in SWEEP_K:
+    for k in ks:
         for rec in RECIPES:
             for s in SEEDS:
                 name = f"kscaling_K{k}_{rec}_s{s}"
@@ -39,7 +52,7 @@ def main():
                 rows.append((k, f"depthext_{name}", ck,
                              cfg if os.path.exists(cfg) else "-", "-"))
 
-    for rec in RECIPES:
+    for rec in (RECIPES if anchors else ()):
         for s in SEEDS:
             name = f"mob_g3b31_{rec}_s{s}"
             ck = None
@@ -59,7 +72,7 @@ def main():
         print(m, file=sys.stderr)
     for k, tag, ck, cfg, at in rows:
         print(f"{k}\t{tag}\t{ck}\t{cfg}\t{at}")
-    expected = len(SWEEP_K) * len(RECIPES) * len(SEEDS) + len(RECIPES) * len(SEEDS)
+    expected = len(ks) * len(RECIPES) * len(SEEDS) + (len(RECIPES) * len(SEEDS) if anchors else 0)
     print(f"MANIFEST: {len(rows)} cells resolved (expected {expected}), "
           f"{len(missing)} MISSING", file=sys.stderr)
     return 1 if (missing or len(rows) != expected) else 0

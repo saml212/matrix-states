@@ -1,4 +1,5 @@
-loaded 36 cells
+loaded 48 cells
+strata present: K = [12, 16, 20, 24, 28, 32, 36, 40] (8 strata)
 INVALID: none
 all pools matched: True
 all single-residue ladders: True
@@ -11,6 +12,8 @@ PER-K LADDERS (all rungs share r_fix -> SAME GROUND TRUTH BY CONSTRUCTION per K)
    K=24  r_fix=4  ladder=[52, 148, 532, 2068]  chance=1/K=0.0417
    K=28  r_fix=4  ladder=[32, 144, 536, 2048]  chance=1/K=0.0357
    K=32  r_fix=4  ladder=[36, 132, 516, 2052]  chance=1/K=0.0312
+   K=36  r_fix=4  ladder=[40, 148, 544, 2056]  chance=1/K=0.0278
+   K=40  r_fix=4  ladder=[44, 164, 524, 2084]  chance=1/K=0.0250
 
 ========================================================================================================
 (a) PER-K DEPTH-DRIFT -- P1b kappa, median over 3 seeds, matched pools
@@ -24,6 +27,8 @@ FROZEN-contrastive (primary)
     24    1.0000    0.9961    0.9961    0.9766      -0.0234     (ref)
     28    1.0000    1.0000    0.9883    0.9805      -0.0195   +0.0039
     32    0.9961    0.9961    0.9922    0.9648      -0.0312   -0.0078
+    36    1.0000    0.9922    0.9961    0.9727      -0.0273   -0.0039
+    40    0.9961    0.9961    0.9922    0.9609      -0.0391   -0.0156
    closest call: K=20 at -0.0234 vs tolerance +/-0.05
 
 TRAINABLE-contrastive (compB)
@@ -34,6 +39,8 @@ TRAINABLE-contrastive (compB)
     24    0.9883    0.9766    0.9727    0.9336      -0.0625     (ref)
     28    0.9961    0.9961    0.9844    0.9492      -0.0469   +0.0156
     32    1.0000    0.9766    0.9609    0.9258      -0.0742   -0.0117
+    36    0.9883    0.9727    0.9531    0.9062      -0.0820   -0.0195
+    40    0.9883    0.9766    0.9688    0.8789      -0.0938   -0.0312
    closest call: K=12 at +0.0430 vs tolerance +/-0.05
 
 --------------------------------------------------------------------------------------------------------
@@ -49,18 +56,22 @@ BAND (a) VERDICT: DRIFT-K-INDEPENDENT -- every K within +/-0.05 of the K=24 drif
     24     [0.9609, 0.9766, 0.9922]      [0.7539, 0.9336, 0.957]        9.0
     28     [0.9727, 0.9805, 0.9883]     [0.9219, 0.9492, 0.9648]        9.0
     32     [0.8711, 0.9648, 0.9844]     [0.9141, 0.9258, 0.9297]        6.0
+    36     [0.9648, 0.9727, 0.9766]     [0.8906, 0.9062, 0.9102]        9.0  <- frontier
+    40     [0.9336, 0.9609, 0.9688]      [0.875, 0.8789, 0.9062]        9.0  <- frontier
 --------------------------------------------------------------------------------------------------------
-   TOTAL T = 43.5/54   (lower tail / trainable-wins-equivalent = 10.5)
-   exact stratified permutation null: mean T = 27.0, P(T >= 43.5) = 1.200e-03
+   TOTAL T = 61.5/72   (lower tail = 10.5, allowed <= 19)
+   exact stratified permutation null (enumerated C(6,3)=20 per stratum, convolved over 8 strata):
+      mean T = 36.0   P(T >= 61.5) = 1.535e-05   exact two-sided p = 3.071e-05
 
-BAND (b) VERDICT: ORDERING-AT-DEPTH-CONFIRMED -- T = 43.5/54 (threshold >= 42; lower tail 10.5, allowed <= 12)
-   for reference, #2 Curve 3 measured T = 32/54 at 5 squarings (ORDERING-NEGLIGIBLE)
+BAND (b) VERDICT: ORDERING-ROBUST-CONFIRMED -- T = 61.5/72 (threshold >= 53)
 
-   T by squaring count (same test, same strata):
-       5 squarings: T =  31.0/54
-       7 squarings: T =  40.5/54
-       9 squarings: T =  47.0/54
-      11 squarings: T =  43.5/54  <- pre-registered readout
+   DEPTH PROFILE -- T by squaring count, same 8 strata:
+       5 squarings: T =  48.0/72  (two-sided p = 4.657e-02)  (context)
+       7 squarings: T =  57.0/72  (two-sided p = 4.836e-04)  (context)
+       9 squarings: T =  65.0/72  (two-sided p = 1.150e-06)  (context)
+      11 squarings: T =  61.5/72  (two-sided p = 3.071e-05)  <- pre-registered readout
+
+   CONTINUITY -- the original 6 strata alone at 11 squarings: T = 43.5/54 (threshold >= 42, clears); unchanged from #4.
 
 ========================================================================================================
 P0 (LEARNED-WRITE) WALL SPOT-CHECK at the deepest rung (11 squarings), per-K band 1/K +/-3sd
@@ -71,5 +82,7 @@ P0 (LEARNED-WRITE) WALL SPOT-CHECK at the deepest rung (11 squarings), per-K ban
    K=24 chance=0.0417 band=[0.0042,0.0791] n=6 min=0.0273 max=0.0508
    K=28 chance=0.0357 band=[0.0009,0.0705] n=6 min=0.0234 max=0.0469
    K=32 chance=0.0312 band=[0.0000,0.0639] n=6 min=0.0117 max=0.0430
+   K=36 chance=0.0278 band=[0.0000,0.0586] n=6 min=0.0117 max=0.0547
+   K=40 chance=0.0250 band=[0.0000,0.0543] n=6 min=0.0234 max=0.0352
 --------------------------------------------------------------------------------------------------------
-P0 WALL: HOLDS -- all 36 readings within their per-K band
+P0 WALL: HOLDS -- all 48 readings within their per-K band

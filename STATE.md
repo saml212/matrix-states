@@ -1,3 +1,18 @@
+**2026-08-22 tick #2 (Fable) — BREADTH CHAPTER COMPLETE (EXPERIMENT_LOG
+2026-08-22 #1-#8): capability FLAT AT CEILING (K,d)=(12,13)->(40,41)
+[3.3x, 48/48 cells, both recipes, ends at DESIGN limit K=44-impossible
+not capability limit]; wall absolute at depth everywhere, h=1 toehold
+K=12-only (separation widens with breadth); freeze ordering
+ORDERING-ROBUST-CONFIRMED at 9-11 squarings (T=61.5/72, p=3.1e-05,
+perfect frontier separation, LOSO-robust) + trainable depth-cost
+GROWS with breadth while frozen is flat (scope-noted, future curve);
+drift K-independent (median, scoped). Finding 19 live + update
+pending (K=36/40 points + ordering verdict). ~39.4 GPU-h, 0 failed
+cells. NEXT DECISION (PI): remaining ~1250 GPU-h — recommended: the
+392M param axis (scale-is-the-gap directive) via full waterfall;
+alternatives: seed-thickening, trainable-drift mechanism, early
+freeze. Box idle pending that call.**
+
 **2026-08-22 tick (Fable) — THE K-CURVE IS IN (EXPERIMENT_LOG
 2026-08-22 #1/#2): CAPABILITY-HOLDS at ceiling 36/36 cells across
 (K,d)=(12,13)→(32,33), both recipes, h_top + h_fix control;

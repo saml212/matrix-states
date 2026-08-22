@@ -10,7 +10,7 @@ cd /home/nvidia/ncr_kscaling
 SHARD="$1"; NSHARD="$2"; GPU="$3"
 export CUDA_VISIBLE_DEVICES="$GPU"
 PY=/home/nvidia/tdenv/bin/python3
-MANIFEST=/home/nvidia/ncr_kscaling/depthext_manifest.tsv
+MANIFEST="${DEPTHEXT_MANIFEST:-/home/nvidia/ncr_kscaling/depthext_manifest.tsv}"
 OUTDIR=/home/nvidia/ncr_kscaling/results
 
 i=0; ok=0; bad=0
