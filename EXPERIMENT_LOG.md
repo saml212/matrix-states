@@ -11690,3 +11690,24 @@ the battery (env-resolved, rejected loudly, fixed) — the battery's
 scale comes from NCR_SCALE + the d-guard; no number affected.
 LICENSE_SWEEP_SCALEAXIS dropped + 0200-0217 staged with this commit
 (longest-first naming: K40 sextet → K32 → K16).
+
+## 2026-08-22 #20 — 392M SWEEP TRAINING COMPLETE: 24/24 cells (6 calib + 18 sweep), 0 FAILURES, ~69 GPU-h. Frozen arm AT CEILING at every K; trainable arm shows a GRADED SCALE×BREADTH DEGRADATION (onset K=24→32, deepening at K=40, growing seed variance) — the freeze ordering, invisible at h_top at 98M, is PERFECT (9/9 within-K, both largest K) at 392M. Stage C evals dispatched.
+
+P1b@h_top by (K, arm) at 392M, all seeds: K=16 primary 1.000×3,
+compB 0.9805/0.9727/0.9922; K=24 primary 0.9961×3, compB 0.9883/
+0.9688/0.9844; K=32 primary 0.9961/0.9883/0.9844, compB 0.9531/
+0.8789/0.8125; K=40 primary 0.9883/0.9961/0.9883, compB 0.7656/
+0.8477/0.8828. At 98M the same trainable recipe read 0.97-1.00 at
+ALL K (2026-08-22 #2). P0: 22/24 cells in band; TWO single-seed
+excursions carry the re-measure license (K=16 compB_s1 0.1133 vs
+0.1079; K=40 compB_s2 0.0547 vs 0.0543). Cross-scale verdicts are
+NOT declared here — they belong to the pre-registered §5/§6 tests
+after Stage C (depth-ext at 392M + re-measures + the pinned
+ordering/drift comparisons), dispatched with this entry. NOTE OF
+DISCIPLINE: any trainable-arm SCALE-DEGRADES verdict additionally
+requires the design's mandatory attribution arm (token-budget
+confound exclusion) BEFORE publication — the finding as it stands
+is "the frozen/trainable ordering amplifies enormously with scale
+at large K," which is confound-clean (both arms share the token
+budget). Archive: experiment-runs/2026-08-22_scaleaxis_sweep/
+(repo+SSD, 48 files).
