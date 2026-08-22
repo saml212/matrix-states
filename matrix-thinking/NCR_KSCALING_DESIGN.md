@@ -137,6 +137,10 @@ Hand-check of the top rungs (the only rungs the primary band reads):
 runs at **import** and fails loudly if the table and the rule disagree, so a
 typo in either cannot silently change what gets evaluated.
 
+> The table above is the **six K of the curve of record**. K=36 and K=40 were
+> added later by the same rule — see **§14.1** for their rows; K=44 is
+> construction-impossible and is dropped there.
+
 ### 4.3 The K=24 anchor
 
 K=24 is not trained in this sweep (55 cells exist). But its ladder of record
@@ -770,3 +774,225 @@ GPU-h) — **the recipe is not a variable in this sweep; K is.**
    cells has a silent residue collision (29 ≡ 5 mod 24), so its 6-point depth
    profile is really 5-point. Decide whether this needs a note in
    EXPERIMENT_LOG independent of this sweep.
+
+---
+
+## 14. K=36/40 extension
+
+Added 2026-08-22 (repo commit `add3239`), after the sweep of §12 completed
+36/36 cells with 0 failures. This section is the **delta only** — every
+construction, band, recipe, instrument and pool policy above applies
+unchanged. Gate verdict of record: **CLEAR-WITH-CONSTRAINTS**, EXPERIMENT_LOG
+2026-08-22 **#3**.
+
+### 14.1 The two new ladders
+
+Derived by §4.2's rule, unchanged — squaring profile (2,3,4,4,5,5), top rung
+= smallest `h ∈ [32,63]` with `h ≡ K/2 (mod K)`, rungs 1–5 the smallest
+admissible unused residue in each band, strictly increasing. This table
+**extends** §4.2's; it does not replace it.
+
+| K | d | deep ladder | residues mod K | n_sq | n_applies | `h_top` | residue(`h_top`) = K/2 | `h_fix` | `t_in` | pad |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 36 | 37 | 4, 8, 16, 17, 32, **54** | 4, 8, 16, 17, 32, **18** | 2,3,4,4,5,5 | 1,1,1,2,1,**4** | 54 | 18 ✓ | 40 | 258 | 0 |
+| 40 | 41 | 4, 8, 16, 17, 32, **60** | 4, 8, 16, 17, 32, **20** | 2,3,4,4,5,5 | 1,1,1,2,1,**4** | 60 | 20 ✓ | 44 | 286 | 0 |
+
+Hand-check of the top rungs: `54 = 1·36 + 18`, and no `h ∈ [32,53]` has
+residue 18 mod 36 (32–53 walk residues 32…35, 0, 1, …, 17); `60 = 1·40 + 20`,
+and 32–59 walk residues 32…39, 0, 1, …, 19. Both are in [32,63] ⇒
+`floor(log2 h) = 5`, the same squaring count as every other K's top rung.
+`h_fix`: smallest `h ∈ [32,63]` with `h ≡ 4`, i.e. `40 = 1·36 + 4` and
+`44 = 1·40 + 4`; both at squaring count 5, effective distance 4. Both pads
+are 0 (`t_in = 7K+6 ≫ 128`), so both K are byte-identical to the pinned
+construction like every K ≥ 20. The full hand-derivation is reproduced as a
+comment in `kscaling_config.LADDER_TABLE`, and `assert_ladder_table()` proves
+the literal table equals `derive_ladder()` output **at import for all 8 K**.
+
+The grid guard is extended without disturbing the six K of record:
+`SWEEP_K_GRID` is unchanged, `FRONTIER_K_GRID = (36, 40)`, and only the
+`NCR_K` env guard and `assert_ladder_table()` read
+`ADMITTED_K_GRID = SWEEP_K_GRID + FRONTIER_K_GRID`.
+
+**K=44 is DROPPED, not deferred silently** (#3). An antipodal top rung needs
+`3K/2 = 66 ≤ 63`, so no `h ∈ [32,63]` has residue 22 mod 44 and
+`derive_ladder(44)` raises. The nearest reachable rung is `h=63`, residue 19 —
+a 13.6% effective-distance reduction that would break the antipodal
+convention. Addable only as an explicit disclosed deviation; not this wave.
+
+**Two disclosed residuals.** (i) `n_applies` (popcount) at `h_top` is **4**
+here (54 = 0b110110, 60 = 0b111100) versus 2–3 across K=12…32. §4.2 already
+discloses that popcount is not matchable across K; this extends the spread.
+`n_squarings` — the axis the 2026-08-21 #3 result-B fp-DRIFT finding actually
+implicates — is 5 at every K, unchanged. (ii) At **K=36 only**, the pinned
+reference ladder `(5,12,20,29,40,61)` is *genuinely sound* (residues
+5, 12, 20, 29, 4, 25 — six distinct, none 0, none in {1,2,3}, profile intact),
+because past K=32 only `h=61` wraps and `61 mod 36 = 25` collides with
+nothing. §8's negative item B therefore has nothing to fire on at K=36; see
+§14.4.
+
+### 14.2 The 8-strata stratified-T threshold
+
+§7.3's stratified within-K exact permutation test gains two strata (K=36, 40),
+giving **8 strata × 9 within-K (frozen, trainable) seed pairs = 72**.
+Recomputed at build from the *same* construction the audit used:
+
+* Per stratum, `U_K` = # of the 9 pairs with `κ_frozen > κ_trainable` (ties ½).
+  Under within-stratum exchangeability the null is the exact Mann–Whitney
+  3-vs-3 distribution over the `C(6,3) = 20` equally likely assignments:
+  counts `1,1,2,3,3,3,3,2,1,1` for `U = 0…9`.
+* `T = Σ_K U_K`; the null is the 8-fold convolution over `20⁸` outcomes,
+  symmetric about 36.
+* Criterion, as used by the audit: **two-sided p < 0.01**, i.e. upper tail
+  < 0.005.
+
+| strata | max T | threshold | exact one-sided P(T ≥ thr) | two-sided | next-lower T | its two-sided p |
+|---|---|---|---|---|---|---|
+| 5 (audit) | 45 | **T ≥ 36** | 0.004733 | 0.009467 | 35 | 0.017284 |
+| 6 (audit) | 54 | **T ≥ 42** | 0.004216 | 0.008433 | 41 | 0.014635 |
+| **8 (this extension)** | **72** | **T ≥ 53** | **0.004934** | **0.009868** | 52 | 0.015640 |
+
+Rows 1–2 **reproduce the audit's published 36/45 and 42/54 exactly**, which is
+the receipt that row 3 comes from the same construction and not a new one.
+
+* **ORDERING-CONFIRMED** = median within-K gap > 0.05 **and** `T ≥ 53`.
+* **ORDERING-NEGLIGIBLE** = median within-K gap ≤ 0.05.
+* **ORDERING-INVERTED** = median within-K gap < −0.05 with `T ≤ 19`
+  (the symmetric lower threshold, 72 − 53).
+
+Observed `T` may be half-integral (ties count ½) and is compared to the
+integer threshold as `T ≥ 53`, the same convention the audit's 36/45 and
+42/54 already use.
+
+For reference, the sweep of record read `T = 32/54` ⇒ ORDERING-NEGLIGIBLE at 5
+squarings (EXPERIMENT_LOG 2026-08-22 #2, curve 3).
+
+**This threshold is also the one EXPERIMENT_LOG 2026-08-22 #4 defers to.**
+The depth-extension harvest read `T = 43.5/54 ≥ 42` at 11 squarings ⇒
+ORDERING-AT-DEPTH-CONFIRMED, with a disclosed 1.5-pair margin and a
+leave-one-stratum-out fragility, and explicitly routed the robustness
+adjudication to "the in-build K=36/40 wave … under a build-time pre-registered
+8-strata threshold." That threshold is the `T ≥ 53 / 72` derived above,
+pre-registered here **before** any K=36/40 cell runs, and it applies to both
+readouts on which the 6-strata test was run (`h_top` at 5 squarings, §7.3;
+the fixed-residue 11-squaring rung, #4) — the construction is identical, only
+the κ values fed in differ.
+
+### 14.3 Pre-registered null expectations — carried verbatim by reference
+
+**Locked in EXPERIMENT_LOG 2026-08-22 #3 BEFORE this build; that entry is the
+authority and nothing here restates or softens it.** In brief, for
+navigation only:
+
+* **(a)** CAPABILITY-HOLDS continues at K=36/40 (κ ≥ 0.90, likely ≥ 0.95, both
+  recipes) — a frontier here would be a FINDING, not the expectation.
+* **(b)** WALL-HOLDS 0/6 at both K.
+* **(c)** The **LIVE RISK**, to watch and not assume away: trainable/
+  contrastive Gate-0 convergence (CE finite + falling) in the K≈36–40 regime.
+
+Bands otherwise identical to §7 as amended (κ bar 0.90 on ≥ 2/3 seeds).
+(c) is instrumented, not merely watched: every frontier spec's
+`validity_check` asserts Gate-0 directly on the run's own `loss_history` —
+both arms logged, every logged CE finite, final CE strictly below initial —
+so a cell whose optimisation collapsed fails its own validity check and routes
+to `failed/` instead of entering the curve as a spurious frontier point.
+
+### 14.4 Smoke — REAL CUDA, both new K
+
+`kscaling_smoke.py` (md5 `50eb09c03952b81f70df18eed3c3f05e`), one process per
+K, H100 80GB HBM3, torch 2.12.1+cu130, 2026-08-22. Results archived at
+`kscaling_build/smoke_results/kscaling_smoke_K{36,40}.json`.
+
+**11 PASS / 0 FAIL / 1 N/A at each K.** Every applicable negative fired with
+its hand-predicted message:
+
+| item | K=36 | K=40 |
+|---|---|---|
+| B — pinned ladder rejected | **N/A** (see below) | FIRED, `h=40 is IDENTITY mod K=40` |
+| C — silent residue collision rejected | FIRED, `PAIRWISE residue collisions` on (4,8,16,17,32,40) | FIRED, same on (4,8,16,17,32,44) |
+| D — identity residue rejected | FIRED, `h=72 is IDENTITY mod K=36` | FIRED, `h=80 is IDENTITY mod K=40` |
+| E — train residue rejected | FIRED, `h=73 … h%K=1` | FIRED, `h=81 … h%K=1` |
+| K — unpadded T crashes floor | N/A (pad 0, as at every K ≥ 20) | N/A |
+
+**Item B at K=36 — the one deviation, disclosed.** By §14.1(ii) the pinned
+ladder is genuinely sound at K=36, so a rejection test has nothing to fire on.
+Recording it as a FAIL ("did not fire") would be false, and inventing a
+different fixture to force a firing would be theatre. It is recorded instead
+as a **positive** item, `B_POS_pinned_ladder_is_SOUND_at_this_K`, which
+asserts that `assert_ladder_sound` does **not** raise and that the six
+residues are distinct/admissible. The pairwise-distinctness guard is still
+exercised at K=36 by item C, which builds a colliding fixture on purpose, so
+no guard goes untested at that K. `_B_EXPECT` in the smoke carries the
+hand-derived first-firing substring for K=40 (`IDENTITY mod K`, since the
+loop reaches `h=40` before any other rung offends) and deliberately has **no**
+K=36 entry.
+
+Measured (item F/L), quoted into the specs rather than re-derived:
+
+| K | params/arm | s/step | proj. GPU-h @20K | ×1.17 | peak mem | SM util med/max |
+|---|---|---|---|---|---|---|
+| 36 | 97,852,837 | 0.1621 | 0.901 | **1.054** | 7.22 GB | 97 / 100 |
+| 40 | 97,860,009 | 0.1806 | 1.003 | **1.174** | 7.69 GB | 97 / 100 |
+
+Param spread over K=12…40 is now 0.051% — still not a capacity curve in
+disguise. Util at 97% median at both K ⇒ 1 cell/GPU, no packing warranted
+(consistent with the standing declined-packing ruling).
+
+**Spec-level end-to-end check.** Module smokes were proven blind to
+spec-level defects on the previous build (the `deep_gap['h=61']` KeyError),
+so spec `0146` was additionally run through its **literal `cmd`** at K=40 for
+3 steps — identical flags, env, workdir and interpreter, with only `--steps`,
+`--out` and `--ckpt-dir` redirected so a 3-step artifact can never sit at a
+production path and block the real cell's resume logic (verified after the
+run: `/ephemeral/kscaling/{results,ckpts}` contain no K=36/40 file).
+
+**Result: COMPLETED, 6 s.** The banner resolved
+`K=40 d_ncr=41 chance=0.0250 ladder=(4,8,16,17,32,60) h_top=60 (residue 20 == K/2)
+fixed_dist_probe=44 t_in=286 doc_left_pad=0`; the read-ablation exact-zero
+check passed pre- **and** post-train (`max_abs_diff = 0.00e+00`); the same-op
+assertion passed for both arms; and — the path that hid the previous build's
+launch-losing `KeyError` — the **eval and `build_attribution` fired at step 3**
+(`step % eval_every == 0 or step == steps`) without touching a K=24 ladder
+literal. Losses 11.0649 → 11.0170 (full_graft), finite throughout.
+Artifact: `kscaling_build/smoke_results/spec0146_literal_3step_K40.json`.
+
+The spec's **own `validity_check` string** was then run verbatim (path
+redirected) against that artifact, three ways: (1) unmodified ⇒ **FAILS**
+`AssertionError: 3` on `step >= 20000` — it has teeth; (2) with *only* the two
+count thresholds relaxed (`20000→3`, `100→2`) ⇒ **PASSES**, so the K-identity,
+`d = K+1`, `h_top`, `deep_ladder` **and the new Gate-0 `loss_history` clause**
+(both arms present, all CE finite, final < initial) all evaluate correctly on
+a real runner output; (3) with one ladder digit corrupted (`60 → 61`) ⇒
+**FAILS** on the ladder clause.
+
+### 14.5 Job specs and ledger
+
+`matrix-thinking/kscaling_build/job_specs/` — **12 new files, `0140`–`0151`,
+none queued**, generated by `gen_job_specs.py frontier`. IDs start at 0140 so
+they cannot collide with 0100–0139 (including the retired 0134/0137, whose
+cells ran as the calibration pair) or with anything in the queue's history
+(verified against `~/queue/{pending,claimed,completed,failed,cancelled}`).
+
+| | frozen-contrastive (primary) | trainable-contrastive (compB) |
+|---|---|---|
+| K=36 | 0140, 0141, 0142 | 0143, 0144, 0145 |
+| K=40 | 0146, 0147, 0148 | 0149, 0150, 0151 |
+
+Seeds 0, 1, 2 per triple. All other hyperparameters held at the audited
+G3-B31 values — the recipe is not a variable here either.
+
+Marked **`CANDIDATE -- NOT queue-eligible until audited`**. **SINGLE-gated:
+no LICENSE sentinel**, because this wave is not calibration-gated — the sweep
+it extends already ran to completion and its internal gate returned
+CLEAR-WITH-CONSTRAINTS. It launches directly after its audit.
+
+**Ledger: 13.37 GPU-h** (6 × 1.054 at K=36 = 6.32; 6 × 1.174 at K=40 = 7.04),
+plus ~0.05 GPU-h eval-only scoring. **This is above #3's ≈10 GPU-h estimate**,
+which was extrapolated from the K≤32 slope before the frontier K were timed;
+the measured per-cell cost is used instead. Ceremony tier is unchanged
+(10–50 GPU-h ⇒ one audit round on the extension delta). Wall: 12 cells / 8
+GPUs = 2 waves × ~1.1 h ≈ **2.2 h**.
+
+`kscaling_battery.py` is **unchanged by this extension** (md5
+`5735c788563d9a21f2198c9f5b4793d5`, the battery of record): it reads the
+ladder, chance and `d = K+1` guard from `kscaling_config`, so admitting two
+more K required no edit to the scorer.

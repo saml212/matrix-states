@@ -1,0 +1,333 @@
+{
+ "smoke": "kscaling_smoke.py",
+ "K": 36,
+ "d_ncr": 37,
+ "provenance": {
+  "K": 36,
+  "d_ncr": 37,
+  "d_equals_k_plus_1": true,
+  "chance": 0.027777777777777776,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   54
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   18
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   1,
+   2,
+   1,
+   4
+  ],
+  "h_top": 54,
+  "h_top_residue": 18,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 40,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   54,
+   40
+  ],
+  "doc_len": 259,
+  "doc_left_pad": 0,
+  "t_in": 258,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "ncr_param_exact": 176293,
+  "integ_param_exact": 56832
+ },
+ "torch": "2.12.1+cu130",
+ "gpu": "NVIDIA H100 80GB HBM3",
+ "host": "brev-ukptqsu65",
+ "when": "2026-08-22T02:37:39",
+ "n_pass": 11,
+ "n_fail": 0,
+ "n_na": 1,
+ "overall": "PASS",
+ "items": [
+  {
+   "item": "A_derivation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "K": 36,
+    "d_ncr": 37,
+    "d_equals_k_plus_1": true,
+    "chance": 0.027777777777777776,
+    "train_hops": [
+     1,
+     2,
+     3
+    ],
+    "deep_ladder": [
+     4,
+     8,
+     16,
+     17,
+     32,
+     54
+    ],
+    "deep_ladder_residues": [
+     4,
+     8,
+     16,
+     17,
+     32,
+     18
+    ],
+    "deep_ladder_n_squarings": [
+     2,
+     3,
+     4,
+     4,
+     5,
+     5
+    ],
+    "deep_ladder_n_applies": [
+     1,
+     1,
+     1,
+     2,
+     1,
+     4
+    ],
+    "h_top": 54,
+    "h_top_residue": 18,
+    "h_top_is_antipodal": true,
+    "fixed_dist_probe": 40,
+    "fixed_dist_probe_residue": 4,
+    "fixed_dist_probe_shares_residue_with_rung1": true,
+    "eval_hops": [
+     4,
+     8,
+     16,
+     17,
+     32,
+     54,
+     40
+    ],
+    "doc_len": 259,
+    "doc_left_pad": 0,
+    "t_in": 258,
+    "min_kernel_T": 128,
+    "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+    "config_module": "kscaling_config.py",
+    "ncr_param_exact": 176293,
+    "integ_param_exact": 56832
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B_POS_pinned_ladder_is_SOUND_at_this_K",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "reference_ladder": [
+     5,
+     12,
+     20,
+     29,
+     40,
+     61
+    ],
+    "residues": [
+     5,
+     12,
+     20,
+     29,
+     4,
+     25
+    ],
+    "why_not_a_negative_test": "the pinned ladder is genuinely sound at K=36, so there is nothing for a rejection test to fire on; the guard is exercised instead by item C, which builds a residue-colliding fixture on purpose"
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "C_NEG_silent_residue_collision_rejected",
+   "kind": "negative",
+   "expect_substr": "PAIRWISE residue collisions",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder (4, 8, 16, 17, 32, 40) at K=36 has PAIRWISE residue collisions at [4] (residues [4, 8, 16, 17, 32, 4]) -- two rungs measure the SAME ground truth while reporting as independent probes. This is the check the pinned _assert_ladder_sound is missing (gate memo leg 1).",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "D_NEG_identity_residue_rejected",
+   "kind": "negative",
+   "expect_substr": "IDENTITY mod K",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=72 is IDENTITY mod K=36 (h%K=0) -- confounded, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "E_NEG_train_residue_rejected",
+   "kind": "negative",
+   "expect_substr": "colliding with a train-residue",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=73 has h%K=1 colliding with a train-residue [1, 2, 3] -- secretly in-distribution, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "F_param_counts_exact",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "ncr": 176293,
+    "integ": 56832,
+    "backbone": 97619712,
+    "total_per_arm": 97852837
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "G_document_geometry_and_pad",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "doc_shape": [
+     8,
+     259
+    ],
+    "pad": 0,
+    "t_in": 258,
+    "query_key_col": 255,
+    "query_mark_col": 257
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "H_forward_backward_grad",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "P1b/full_graft": {
+     "loss": 426.3197021484375,
+     "ce": 10.603784561157227,
+     "grad_norm_backbone": 897.8029888812453,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      37
+     ]
+    },
+    "P1b/backbone_only": {
+     "loss": 10.614875793457031,
+     "ce": 10.614875793457031,
+     "grad_norm_backbone": 897.8515980131924,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      37
+     ]
+    },
+    "P0/full_graft": {
+     "loss": 33.900657653808594,
+     "ce": 10.606979370117188,
+     "grad_norm_backbone": 897.7620979640633,
+     "ncr_params_with_grad": 47,
+     "o_raw_shape": [
+      8,
+      37
+     ]
+    },
+    "P0/backbone_only": {
+     "loss": 10.614875793457031,
+     "ce": 10.614875793457031,
+     "grad_norm_backbone": 897.8515980131924,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      37
+     ]
+    }
+   },
+   "elapsed_s": 1.77
+  },
+  {
+   "item": "J_read_ablation_exact_zero",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "max_abs_diff": 0.0
+   },
+   "elapsed_s": 0.02
+  },
+  {
+   "item": "I_checkpoint_resume_bit_identical",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "ckpt_dir": "/ephemeral/kscaling_smoke",
+    "max_abs_logit_diff": 0.0,
+    "recorded_d_ncr": 37
+   },
+   "elapsed_s": 2.19
+  },
+  {
+   "item": "K_NEG_unpadded_T_crashes_kernel_floor",
+   "kind": "negative",
+   "status": "N/A",
+   "reason": "pad is 0 at K=36 (t_in=258 >= 128); the pad is not load-bearing here, so there is nothing to fire"
+  },
+  {
+   "item": "L_throughput_memory_utilisation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "batch_size": 32,
+    "steps_timed": 30,
+    "s_per_step": 0.1621,
+    "projected_gpu_h_20k_steps": 0.901,
+    "peak_mem_gb": 7.221,
+    "sm_util_samples": [
+     97,
+     94,
+     100,
+     94,
+     92,
+     94,
+     97,
+     100
+    ],
+    "sm_util_median": 97,
+    "sm_util_max": 100,
+    "packing_headroom_by_mem_80gb": 10
+   },
+   "elapsed_s": 7.7
+  }
+ ]
+}

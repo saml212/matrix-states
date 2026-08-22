@@ -1,0 +1,574 @@
+{
+ "cell_id": "kscaling_K40_primary_s0",
+ "runner_tag": "ncr_kscaling_runner_v1",
+ "mode": "calibration",
+ "status": "COMPLETED",
+ "step": 3,
+ "steps_target": 3,
+ "kscaling": {
+  "K": 40,
+  "d_ncr": 41,
+  "d_equals_k_plus_1": true,
+  "chance": 0.025,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   20
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   1,
+   2,
+   1,
+   4
+  ],
+  "h_top": 60,
+  "h_top_residue": 20,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 44,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60,
+   44
+  ],
+  "doc_len": 287,
+  "doc_left_pad": 0,
+  "t_in": 286,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "ncr_param_exact": 177321,
+  "integ_param_exact": 62976
+ },
+ "config": {
+  "K": 40,
+  "d_ncr": 41,
+  "h_ncr": 64,
+  "backbone": {
+   "d_model": 768,
+   "d_state": 64,
+   "n_layers": 12,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "vocab_size_total": 50259,
+  "seed": 0,
+  "batch_size": 32,
+  "eval_batch_size": 64,
+  "lr": 0.0003,
+  "warmup_steps": 200,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60
+  ],
+  "ceiling_gpuh": 6.0,
+  "teacher_force_operator": false,
+  "aux_read_loss_weight": 0.5,
+  "ortho_reg_weight": 0.1,
+  "aux_loss_type": "contrastive+cosine",
+  "contrastive_temperature": 0.07,
+  "freeze_entity_adapter": true
+ },
+ "params": {
+  "per_arm": 97860009,
+  "backbone": 97619712,
+  "ncr_head": 177321,
+  "integ": 62976
+ },
+ "git_commit": "UNKNOWN",
+ "host": "brev-ukptqsu65",
+ "device": "cuda",
+ "torch_version": "2.12.1+cu130",
+ "started_utc": "2026-08-22T02:41:42Z",
+ "read_ablation_check": {
+  "pre_train_max_abs_diff": 0.0,
+  "pre_train_verified_exact_zero": true,
+  "post_train_max_abs_diff": 0.0,
+  "post_train_verified_exact_zero": true
+ },
+ "same_op_check": {
+  "verified": true,
+  "arms_checked": [
+   "full_graft",
+   "backbone_only"
+  ]
+ },
+ "teacher_force_check": {
+  "active": false,
+  "ncr_zero_grad_checks_passed": 0
+ },
+ "arms": {
+  "full_graft": {
+   "in_dist": {
+    "h=1": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.017792852595448494,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.025421813130378723,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": 0.01760999858379364,
+     "target_pairwise_cos": 0.00430701207369566
+    },
+    "h=2": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.005424002651125193,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.006938796490430832,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.01187298633158207,
+     "target_pairwise_cos": 0.005030997097492218
+    },
+    "h=3": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.051575034856796265,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.0526437982916832,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": 2.831220911048149e-07,
+     "target_pairwise_cos": 0.004268086981028318
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.021314628267039854,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": -0.023708938310543697,
+    "mean_retrieval24_acc": 0.026041666666666668
+   },
+   "deep": {
+    "h=4": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.01053580455482006,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.01176219992339611,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.014880949631333351,
+     "target_pairwise_cos": 0.0059044542722404
+    },
+    "h=8": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.013006476685404778,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.016603296622633934,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": -0.01190476305782795,
+     "target_pairwise_cos": 0.005347148980945349
+    },
+    "h=16": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.03237852454185486,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.03136548027396202,
+     "retrieval24_acc": 0.0,
+     "o_pairwise_cos": 0.008928566239774227,
+     "target_pairwise_cos": 0.0051737092435359955
+    },
+    "h=17": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.007611810229718685,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.0077268523164093494,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": 3.6661589319919585e-09,
+     "target_pairwise_cos": 0.00536361476406455
+    },
+    "h=32": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.005306948907673359,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.0051529305055737495,
+     "retrieval24_acc": 0.0,
+     "o_pairwise_cos": -0.011904763989150524,
+     "target_pairwise_cos": 0.0038472891319543123
+    },
+    "h=60": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.021252641454339027,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.022058868780732155,
+     "retrieval24_acc": 0.046875,
+     "o_pairwise_cos": -0.006944441236555576,
+     "target_pairwise_cos": 0.00581206614151597
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": 0.010679875500500202,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": 0.010243839196239909,
+    "mean_retrieval24_acc": 0.018229166666666668
+   },
+   "fixed_dist": {
+    "h=44": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.027253422886133194,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.03175995498895645,
+     "retrieval24_acc": 0.0,
+     "o_pairwise_cos": 0.032738104462623596,
+     "target_pairwise_cos": 0.0058542173355817795
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.027253422886133194,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": -0.03175995498895645,
+    "mean_retrieval24_acc": 0.0
+   }
+  },
+  "backbone_only": {
+   "in_dist": {
+    "h=1": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.0178312249481678,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.0254298597574234,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": 0.0173282939940691,
+     "target_pairwise_cos": 0.00579596683382988
+    },
+    "h=2": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.005346851423382759,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.006853806786239147,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.011882394552230835,
+     "target_pairwise_cos": 0.006753982976078987
+    },
+    "h=3": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.05157972872257233,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.05265121906995773,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": 2.7058618456976546e-07,
+     "target_pairwise_cos": 0.006329770665615797
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.02135470074911912,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": -0.023742424013713997,
+    "mean_retrieval24_acc": 0.026041666666666668
+   },
+   "deep": {
+    "h=4": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.0105323176831007,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.01175902783870697,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.014880949631333351,
+     "target_pairwise_cos": 0.007036582566797733
+    },
+    "h=8": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.013001963496208191,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.01659654825925827,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": -0.011904764920473099,
+     "target_pairwise_cos": 0.005175183527171612
+    },
+    "h=16": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.03236708790063858,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.03135784715414047,
+     "retrieval24_acc": 0.0,
+     "o_pairwise_cos": 0.008928562514483929,
+     "target_pairwise_cos": 0.0034175729379057884
+    },
+    "h=17": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.007608434185385704,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.007726229261606932,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": 6.7410019788383124e-09,
+     "target_pairwise_cos": 0.006201359909027815
+    },
+    "h=32": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.005314597859978676,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.005162445828318596,
+     "retrieval24_acc": 0.0,
+     "o_pairwise_cos": -0.01190476305782795,
+     "target_pairwise_cos": 0.004999414552003145
+    },
+    "h=60": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.02125387266278267,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.0220625139772892,
+     "retrieval24_acc": 0.046875,
+     "o_pairwise_cos": -0.0069444440305233,
+     "target_pairwise_cos": 0.004405752290040255
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": 0.01067905779927969,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": 0.010245252633467317,
+    "mean_retrieval24_acc": 0.018229166666666668
+   },
+   "fixed_dist": {
+    "h=44": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.02725798822939396,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.03175906091928482,
+     "retrieval24_acc": 0.0,
+     "o_pairwise_cos": 0.032738104462623596,
+     "target_pairwise_cos": 0.004790409468114376
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.02725798822939396,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": -0.03175906091928482,
+    "mean_retrieval24_acc": 0.0
+   }
+  }
+ },
+ "attribution": {
+  "frozen_rule_text": "sec G3-B5 (COORDINATOR ADJUDICATION of the sec G3-B4 audit, 2026-07-17): a Phase-1 Gate-0 in-distribution-recovery FAIL may be attributed to \"the NCR head can't train through a real LM\" ONLY IF the backbone-only arm does NOT itself solve the task in-distribution (i.e., its answer accuracy is materially below the full graft's -- the NCR read is demonstrably load-bearing). If backbone-only already solves it, the calibration is UNINTERPRETABLE and the graft must be re-bottlenecked (e.g. read-only decode / harder P=1 bottleneck) BEFORE main-wave GPU. PASS (NCR head trains AND is load-bearing) = full-graft recovers deep composition (recovered_frac@0.9 >= the sec 6.2 Gate-0 bar at deep h) AND materially exceeds backbone-only there. PRIMARY interpretable signal = the recovery GAP (full-graft - backbone-only), at DEEP composition depth.",
+  "primary_signal_definition": "recovered_frac@0.9 GAP (full_graft.o_raw - backbone_only.o_raw), at DEEP composition depth (h in {5,12,20,29,40,61}). backbone_only.o_raw's write/encode pathway receives NO gradient (read-ablated -- see read_ablation_check), so it is a frozen-at-init NULL baseline for the recovery metric, not a trained comparison.",
+  "recovered_frac_gap_in_dist": {
+   "h=1": 0.0,
+   "h=2": 0.0,
+   "h=3": 0.0
+  },
+  "recovered_frac_gap_deep": {
+   "h=4": 0.0,
+   "h=8": 0.0,
+   "h=16": 0.0,
+   "h=17": 0.0,
+   "h=32": 0.0,
+   "h=60": 0.0
+  },
+  "primary_signal_deepest_gap": 0.0,
+  "primary_signal_deepest_gap_h": 60,
+  "primary_signal_deepest_gap_residue": 20,
+  "mean_cos_gap_in_dist": {
+   "h=1": 3.8372352719306946e-05,
+   "h=2": 7.715122774243355e-05,
+   "h=3": 4.693865776062012e-06
+  },
+  "mean_cos_gap_deep": {
+   "h=4": 3.4868717193603516e-06,
+   "h=8": -4.513189196586609e-06,
+   "h=16": 1.1436641216278076e-05,
+   "h=17": 3.3760443329811096e-06,
+   "h=32": -7.648952305316925e-06,
+   "h=60": -1.2312084436416626e-06
+  },
+  "attribution_precondition_metric": "answer_accuracy (argmax(logits)==answer_token), NOT recovered_frac@0.9 -- this is what the frozen rule text's own prose names",
+  "answer_accuracy_in_dist": {
+   "full_graft": {
+    "h=1": 0.0,
+    "h=2": 0.0,
+    "h=3": 0.0
+   },
+   "backbone_only": {
+    "h=1": 0.0,
+    "h=2": 0.0,
+    "h=3": 0.0
+   }
+  },
+  "answer_accuracy_deep": {
+   "full_graft": {
+    "h=4": 0.0,
+    "h=8": 0.0,
+    "h=16": 0.0,
+    "h=17": 0.0,
+    "h=32": 0.0,
+    "h=60": 0.0
+   },
+   "backbone_only": {
+    "h=4": 0.0,
+    "h=8": 0.0,
+    "h=16": 0.0,
+    "h=17": 0.0,
+    "h=32": 0.0,
+    "h=60": 0.0
+   }
+  },
+  "primary_signal_v2_definition": "retrieval24_acc GAP (full_graft.o_raw - backbone_only.o_raw), at DEEP composition depth (h in [4, 8, 16, 17, 32, 60], this K's own residue-verified ladder) -- the sec G3-B26-adopted PRIMARY signal for future attribution, replacing recovered_frac@0.9's gap above (kept for continuity, not removed) because recovered_frac@0.9/mean_cos can read 1.0/~1.0 for an information-free read once the entity_adapter target space itself collapses (pairwise cos ~1.0 across all 24 in-document targets, sec G3-B26) -- retrieval24_acc is a 24-way discriminative test a collapsed target space cannot pass by accident (argmax over 24 near-identical directions reads AT CHANCE, not at 1.0).",
+  "retrieval24_acc_gap_in_dist": {
+   "h=1": 0.0,
+   "h=2": 0.0,
+   "h=3": 0.0
+  },
+  "retrieval24_acc_gap_deep": {
+   "h=4": 0.0,
+   "h=8": 0.0,
+   "h=16": 0.0,
+   "h=17": 0.0,
+   "h=32": 0.0,
+   "h=60": 0.0
+  },
+  "primary_signal_v2_deepest_gap": 0.0,
+  "primary_signal_v2_deepest_gap_h": 60,
+  "primary_signal_v2_deepest_gap_residue": 20,
+  "primary_signal_v2_chance": 0.025,
+  "primary_signal_v2_fixed_dist_probe_h": 44,
+  "offtarget_margin_gap_in_dist": {
+   "h=1": 8.046627044677734e-06,
+   "h=2": 8.498970419168472e-05,
+   "h=3": 7.420778274536133e-06
+  },
+  "offtarget_margin_gap_deep": {
+   "h=4": 3.17208468914032e-06,
+   "h=8": -6.748363375663757e-06,
+   "h=16": 7.633119821548462e-06,
+   "h=17": 6.230548024177551e-07,
+   "h=32": -9.515322744846344e-06,
+   "h=60": -3.645196557044983e-06
+  },
+  "o_pairwise_cos_in_dist": {
+   "full_graft": {
+    "h=1": 0.01760999858379364,
+    "h=2": -0.01187298633158207,
+    "h=3": 2.831220911048149e-07
+   },
+   "backbone_only": {
+    "h=1": 0.0173282939940691,
+    "h=2": -0.011882394552230835,
+    "h=3": 2.7058618456976546e-07
+   }
+  },
+  "o_pairwise_cos_deep": {
+   "full_graft": {
+    "h=4": -0.014880949631333351,
+    "h=8": -0.01190476305782795,
+    "h=16": 0.008928566239774227,
+    "h=17": 3.6661589319919585e-09,
+    "h=32": -0.011904763989150524,
+    "h=60": -0.006944441236555576
+   },
+   "backbone_only": {
+    "h=4": -0.014880949631333351,
+    "h=8": -0.011904764920473099,
+    "h=16": 0.008928562514483929,
+    "h=17": 6.7410019788383124e-09,
+    "h=32": -0.01190476305782795,
+    "h=60": -0.0069444440305233
+   }
+  },
+  "target_pairwise_cos_in_dist": {
+   "full_graft": {
+    "h=1": 0.00430701207369566,
+    "h=2": 0.005030997097492218,
+    "h=3": 0.004268086981028318
+   },
+   "backbone_only": {
+    "h=1": 0.00579596683382988,
+    "h=2": 0.006753982976078987,
+    "h=3": 0.006329770665615797
+   }
+  },
+  "target_pairwise_cos_deep": {
+   "full_graft": {
+    "h=4": 0.0059044542722404,
+    "h=8": 0.005347148980945349,
+    "h=16": 0.0051737092435359955,
+    "h=17": 0.00536361476406455,
+    "h=32": 0.0038472891319543123,
+    "h=60": 0.00581206614151597
+   },
+   "backbone_only": {
+    "h=4": 0.007036582566797733,
+    "h=8": 0.005175183527171612,
+    "h=16": 0.0034175729379057884,
+    "h=17": 0.006201359909027815,
+    "h=32": 0.004999414552003145,
+    "h=60": 0.004405752290040255
+   }
+  }
+ },
+ "elapsed_s": 6.1019065380096436,
+ "loss_history": {
+  "full_graft": [
+   [
+    1,
+    11.06494140625
+   ],
+   [
+    3,
+    11.016989707946777
+   ]
+  ],
+  "backbone_only": [
+   [
+    1,
+    11.071159362792969
+   ],
+   [
+    3,
+    11.009660720825195
+   ]
+  ]
+ },
+ "n_skipped_steps": {
+  "full_graft": 0,
+  "backbone_only": 0
+ },
+ "gpu_h": 0.001694974038336012,
+ "finished_utc": "2026-08-22T02:41:49Z"
+}

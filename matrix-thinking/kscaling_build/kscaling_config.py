@@ -46,6 +46,19 @@ reproduced exactly by derive_ladder()'s own negative tests:
     K=28  h=29 -> residue 1 (train)             guard CRASHES
           5/61 -> residue 5; 12/40 -> residue 12  SILENT collisions
     K=32  29 and 61 BOTH -> residue 29          SILENT collision
+    K=36  residues 5,12,20,29,4,25 -- SOUND     nothing to reject  (!)
+    K=40  h=40 -> residue 0 (IDENTITY)          guard CRASHES
+
+The K=36 row is a DISCLOSURE, not a convenience: K=36 is the one K in the
+admitted grid where the pinned ladder happens to be sound (all six residues
+distinct, none 0, none in {1,2,3}, profile (2,3,4,4,5,5) intact), because at
+K > 32 only h=61 wraps and 61 mod 36 = 25 collides with nothing. The smoke's
+item B (NEG: pinned ladder rejected) therefore has NOTHING to fire at K=36 and
+is recorded N/A there with a POSITIVE soundness proof instead of a vacuous
+"did not fire" FAIL. The pairwise-distinctness assert is still exercised at
+K=36 by smoke item C, which builds a residue-colliding fixture on purpose.
+This changes nothing about which ladder is USED -- derive_ladder() is still the
+only source of DEEP_LADDER at every K.
 
 The K=24 line is NEW and is a disclosure about the harness of record, not
 just about this sweep: the ladder the 55 existing K=24 cells were evaluated
@@ -109,7 +122,7 @@ filler, so no new token type enters the vocabulary), with every position
 index shifted by the same amount. Minimum pad only:
 
     DOC_LEFT_PAD(K) = max(0, 128 - (7K+6))
-    K=12 -> 38    K=16 -> 10    K=20,24,28,32 -> 0
+    K=12 -> 38    K=16 -> 10    K >= 20 -> 0  (incl. the K=36/40 extension)
 
 K >= 20 is therefore BYTE-IDENTICAL to the pinned construction; in
 particular K=24 stays bit-comparable with the 55 existing K=24 cells, which
@@ -127,6 +140,13 @@ import os
 # The ONE free parameter.
 # --------------------------------------------------------------------------
 SWEEP_K_GRID = (12, 16, 20, 24, 28, 32)
+# K=36/40 FRONTIER EXTENSION (EXPERIMENT_LOG 2026-08-22 #3, design sec 14).
+# Kept as a SEPARATE tuple rather than appended to SWEEP_K_GRID so that every
+# existing reference to "the six K of the curve of record" keeps its meaning
+# and no already-scored cell can be re-interpreted by this edit. Only the env
+# guard and assert_ladder_table() read the union.
+FRONTIER_K_GRID = (36, 40)
+ADMITTED_K_GRID = SWEEP_K_GRID + FRONTIER_K_GRID
 TRAIN_HOPS = (1, 2, 3)
 MIN_KERNEL_T = 128                 # lm_pretrain_rd._MIN_KERNEL_T, measured above
 CONV_SIZE = 4                      # RUNG1_BACKBONE["conv_size"] -- drives buf_len
@@ -145,10 +165,10 @@ def _k_from_env() -> int:
         k = int(raw)
     except ValueError as e:
         raise ValueError(f"NCR_K={raw!r} is not an integer") from e
-    assert k in SWEEP_K_GRID, (
-        f"NCR_K={k} is not in the pre-registered K grid {SWEEP_K_GRID}. This sweep's "
+    assert k in ADMITTED_K_GRID, (
+        f"NCR_K={k} is not in the pre-registered K grid {ADMITTED_K_GRID}. This sweep's "
         f"ladders, bands and param formula are derived and audited for those K only; "
-        f"add K to SWEEP_K_GRID and re-run the ladder derivation + smoke before using it.")
+        f"add K to FRONTIER_K_GRID and re-run the ladder derivation + smoke before using it.")
     return k
 
 
@@ -279,8 +299,43 @@ LADDER_TABLE: dict[int, tuple[int, ...]] = {
     24: (4, 8, 16, 17, 33, 36),
     28: (4, 8, 16, 17, 33, 42),
     32: (4, 8, 17, 18, 37, 48),
+    # ---- K=36/40 FRONTIER EXTENSION (design sec 14) ------------------------
+    # HAND-DERIVATION, K=36. Admissible residues = {4..35} (drop 0 and {1,2,3}).
+    #   Top rung: smallest h in [32,63] with h == 36/2 = 18 (mod 36).
+    #             32..53 give residues 32..35,0,1,...,17 -- none is 18;
+    #             h=54 = 1*36 + 18  ->  residue 18 = K/2  ANTIPODAL. h_top=54.
+    #   Rung 1  band [4,7]:   h=4  -> residue 4  admissible, unused.
+    #   Rung 2  band [8,15]:  h=8  -> residue 8  admissible, unused.
+    #   Rung 3  band [16,31]: h=16 -> residue 16 admissible, unused.
+    #   Rung 4  band [16,31]: h=17 (must exceed 16) -> residue 17, unused.
+    #   Rung 5  band [32,63]: h=32 -> residue 32 admissible, unused, < h_top.
+    #   => (4, 8, 16, 17, 32, 54); residues (4, 8, 16, 17, 32, 18) -- 6 distinct,
+    #      none 0, none in {1,2,3}, strictly increasing in h;
+    #      floor(log2 h) = (2, 3, 4, 4, 5, 5) = the pinned profile.
+    #   h_fix(36): smallest h in [32,63] with h == 4 (mod 36). 32..39 give
+    #      32,33,...,39; h=40 = 1*36 + 4 -> residue 4, floor(log2 40)=5. h_fix=40.
+    #
+    # HAND-DERIVATION, K=40. Admissible residues = {4..39}.
+    #   Top rung: smallest h in [32,63] with h == 40/2 = 20 (mod 40).
+    #             32..59 give residues 32..39,0,1,...,19 -- none is 20;
+    #             h=60 = 1*40 + 20  ->  residue 20 = K/2  ANTIPODAL. h_top=60.
+    #   Rungs 1-5, same walk: 4 (r=4), 8 (r=8), 16 (r=16), 17 (r=17), 32 (r=32).
+    #   => (4, 8, 16, 17, 32, 60); residues (4, 8, 16, 17, 32, 20) -- 6 distinct,
+    #      none 0, none in {1,2,3}, strictly increasing;
+    #      floor(log2 h) = (2, 3, 4, 4, 5, 5) = the pinned profile.
+    #   h_fix(40): smallest h in [32,63] with h == 4 (mod 40). 32..39 -> 32..39;
+    #      40..43 -> 0,1,2,3; h=44 = 1*40 + 4 -> residue 4, floor(log2 44)=5.
+    #      h_fix=44.
+    #
+    # DISCLOSED RESIDUAL (extends design sec 4.2's existing n_applies note): both
+    # top rungs have popcount 4 (54 = 0b110110, 60 = 0b111100), above the 2-3
+    # spanned by K=12..32. n_squarings -- the axis the 2026-08-21 #3 result-B
+    # fp-DRIFT finding actually implicates -- is still 5 at every K.
+    36: (4, 8, 16, 17, 32, 54),
+    40: (4, 8, 16, 17, 32, 60),
 }
-FIXED_DIST_TABLE: dict[int, int] = {12: 40, 16: 36, 20: 44, 24: 52, 28: 32, 32: 36}
+FIXED_DIST_TABLE: dict[int, int] = {12: 40, 16: 36, 20: 44, 24: 52, 28: 32, 32: 36,
+                                    36: 40, 40: 44}
 
 
 def assert_ladder_sound(ladder, k: int, train_hops=TRAIN_HOPS) -> None:
@@ -320,7 +375,7 @@ def assert_ladder_sound(ladder, k: int, train_hops=TRAIN_HOPS) -> None:
 def assert_ladder_table() -> None:
     """Import-time proof that the literal table == the rule's output, for every
     K in the grid, and that each entry passes the strengthened soundness check."""
-    for k in SWEEP_K_GRID:
+    for k in ADMITTED_K_GRID:
         derived = derive_ladder(k)
         assert LADDER_TABLE[k] == derived, (
             f"K={k}: LADDER_TABLE says {LADDER_TABLE[k]} but derive_ladder() says "
@@ -374,14 +429,14 @@ if __name__ == "__main__":
            f"{'residues mod K':<24} | {'n_sq':<16} | {'n_ap':<16} | {'h_fix':>5}")
     print(hdr)
     print("-" * len(hdr))
-    for _k in SWEEP_K_GRID:
+    for _k in ADMITTED_K_GRID:
         _l = LADDER_TABLE[_k]
         print(f"{_k:>3} {_k+1:>3} {1.0/_k:>7.4f} {t_in(_k):>5} {doc_left_pad(_k):>4} | "
               f"{str(_l):<26} | {str([h % _k for h in _l]):<24} | "
               f"{str([n_squarings(h) for h in _l]):<16} | {str([n_applies(h) for h in _l]):<16} | "
               f"{FIXED_DIST_TABLE[_k]:>5}")
     print(f"\nncr_param_exact(h_enc=64) per K: "
-          f"{ {k: ncr_param_exact(64, k) for k in SWEEP_K_GRID} }")
+          f"{ {k: ncr_param_exact(64, k) for k in ADMITTED_K_GRID} }")
     print(f"integ_param_exact(d_model=768) per K: "
-          f"{ {k: integ_param_exact(768, k) for k in SWEEP_K_GRID} }")
+          f"{ {k: integ_param_exact(768, k) for k in ADMITTED_K_GRID} }")
     print("\nassert_ladder_table(): PASS (ran at import)")

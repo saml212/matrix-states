@@ -111,13 +111,36 @@ def main() -> int:
     # M4 fix (KSCALING_AUDIT_R1): expect the SPECIFIC first-firing assert for
     # the reference ladder at this K (assert order: identity -> train-residue
     # -> pairwise; first offending rung in ladder order decides).
+    # K=36/40 extension, hand-checked the same way (design sec 14):
+    #   K=36  residues of (5,12,20,29,40,61) = 5,12,20,29,4,25 -- six DISTINCT,
+    #         none 0, none in {1,2,3}, strictly increasing, profile (2,3,4,4,5,5).
+    #         NO assert fires: the pinned ladder is genuinely SOUND at K=36. Item
+    #         B is recorded N/A with a POSITIVE soundness proof rather than as a
+    #         vacuous "did not fire" FAIL -- the honest reading, and the pairwise
+    #         assert is still exercised at K=36 by item C below.
+    #   K=40  residues 5,12,20,29,0,21 -- the loop reaches h=40 (residue 0) before
+    #         any other rung offends, so IDENTITY fires FIRST.
     _B_EXPECT = {12: "IDENTITY mod K", 16: "PAIRWISE residue collisions",
                  20: "IDENTITY mod K", 24: "PAIRWISE residue collisions",
                  28: "colliding with a train-residue",
-                 32: "PAIRWISE residue collisions"}
-    @neg("B_NEG_pinned_ladder_rejected", _B_EXPECT[K])
-    def _b():
-        KS.assert_ladder_sound(KS.REFERENCE_K24_LADDER, K)
+                 32: "PAIRWISE residue collisions",
+                 40: "IDENTITY mod K"}
+    if K in _B_EXPECT:
+        @neg("B_NEG_pinned_ladder_rejected", _B_EXPECT[K])
+        def _b():
+            KS.assert_ladder_sound(KS.REFERENCE_K24_LADDER, K)
+    else:
+        @item("B_POS_pinned_ladder_is_SOUND_at_this_K")
+        def _b_sound():
+            KS.assert_ladder_sound(KS.REFERENCE_K24_LADDER, K)      # must NOT raise
+            res = [h % K for h in KS.REFERENCE_K24_LADDER]
+            assert len(set(res)) == len(res) and 0 not in res and not (
+                set(res) & {h % K for h in KS.TRAIN_HOPS})
+            return {"reference_ladder": list(KS.REFERENCE_K24_LADDER), "residues": res,
+                    "why_not_a_negative_test": (
+                        f"the pinned ladder is genuinely sound at K={K}, so there is nothing "
+                        f"for a rejection test to fire on; the guard is exercised instead by "
+                        f"item C, which builds a residue-colliding fixture on purpose")}
 
     # A ladder that PASSES the pinned guard (no identity, no train residue) but
     # has two rungs on the SAME residue -- exactly the silent failure the pinned
