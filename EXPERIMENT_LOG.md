@@ -11579,3 +11579,5 @@ ELECT the K=24 sextet; ratify R>5.0 at a new Stage A0; add K=40
 price; do NOT ratify 1.5×-solo or δ_depth=0.10 as-is. FIFTH
 injection sighting (same fake date-change/concealment pattern)
 disregarded and reported.
+
+## 2026-08-22 #13 — 392M DRAFT-R1 received (b13826d): all 3 FATALs adopted as specified (depth band = rank-alone; {13,15}-squaring extension w/ Rule R-δ derived-not-chosen incl. the δ*=0.035 rejection receipt at s=11; branch (B) = ckpt-every-5000 + offline P1b battery w/ elected zero-retention reader); MAJORs + elections in; 3 argued deviations (dual breaker w/ blind-safe CPU watcher; honest reader-code pricing; 48-cell re-score for continuity) pending ratification in verify R2 (dispatched, narrow). Ledger ≈87-99 GPU-h (+0.35 for A0 + re-score), worst case ≈120. SIXTH injection sighting (same pattern), disregarded, tallied in design §9.1.
