@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Carrying the Native Composition Reads construction from a 98M-param DeltaNet LM to a 392M one (4.008x the parameters, same task, same batteries) leaves the exact-write capability at ceiling: the frozen-adapter arm reads chance-corrected accuracy 0.9839-1.0000 in all 12 cells at the antipodal top rung, and the pre-registered cross-scale test governs to NO DETECTABLE DIRECTIONAL SHIFT. The learned-write wall holds at both scales at every ported K. The frozen-vs-trainable ordering strengthens to perfect separation at 392M -- T=36/36 at both readouts, exact p=1.25e-05, LOSO 4/4, against 30.5 and 25.0 at 98M. Two things degrade at scale and both are disclosed with their pre-registered token-budget caveat.">
+<meta property="og:title" content="The capability separation survives 4x scale — and its moat widens — pebble">
+<meta property="og:description" content="98M to 392M, four breadths ported, 24 training cells + 50 eval cells, 0 failures. Exact-write composition stays at ceiling on the frozen arm at every K; the freeze ordering goes from 30.5/36 to a perfect 36/36 at both readouts; the trainable arm falls below the capability bar at K>=32 only at 392M.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/ncr-scale-axis.html">
+<meta property="og:image" content="https://pebbleml.com/assets/plots/ncr_scale_axis_x.png">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-08-22">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://pebbleml.com/assets/plots/ncr_scale_axis_x.png">
+<link rel="canonical" href="https://pebbleml.com/findings/ncr-scale-axis.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "The capability separation survives 4x scale — and its moat widens",
+  "name": "NCR scale axis: exact-composition capability, the learned-write wall, and the freeze ordering from 98M to 392M parameters",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-08-22",
+  "url": "https://pebbleml.com/findings/ncr-scale-axis.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "A pre-registered scale-axis wave carries the Native Composition Reads construction of findings 17-19 from a 98M-parameter, 12-layer DeltaNet LM to a 392M-parameter, 16-layer one -- 392,095,889 to 392,175,785 parameters per arm against the 98M reference's 97,619,712-parameter backbone, a measured ratio of 4.008 per arm -- porting four of the breadth chapter's eight values of the pair (K, d = K+1): K = 16, 24, 32 and 40. Two recipes (frozen and trainable entity adapter) times three seeds at each K: 24 training cells, all COMPLETED at step 20,000, 0 failures, plus 50 evaluation cells. Every battery is identical per K across the two scales -- same derived ladder, same antipodal top rung, same fixed-distance control, same sequence length, n=256, eval seed 90210, matched entity pools drawn from each checkpoint's own recorded seed. All accuracies are chance-corrected, kappa = (acc - 1/K)/(1 - 1/K). (1) CAPABILITY: at 392M the frozen arm reads kappa 0.9839-1.0000 in all 12 cells at the antipodal top rung -- 3 of 3 seeds over the 0.90 bar at every K, medians 1.0000 / 0.9959 / 0.9879 / 0.9880. The pre-registered cross-scale test disagrees between its 8-stratum and 6-stratum forms (T = 17.0/72 versus 14.5/54); per the rule fixed before the data the 6-stratum verdict governs, and the headline is NO DETECTABLE DIRECTIONAL SHIFT at 4x parameters. Per-K, 6 of 8 cells are SCALE-STABLE. (2) THE WALL: the model's own SGD-learned write stays inside its pre-registered chance band -- 238 of 240 readings on the first draw, and both single-seed excursions re-measured away at an independent eval draw (seed 31337: 0.1133 to 0.0859 at K=16 h=1; 0.0547 to 0.0156 at K=40 h=8) under the clause written before the run. WALL-SCALE-STABLE: the wall holds at both scales at every ported K. (3) THE ORDERING STRENGTHENS: the within-scale freeze-ordering statistic reaches PERFECT SEPARATION at 392M -- T_W = 36 of 36 at both readouts (11 squarings and the 5-squaring top rung), exact two-sided p = 1.25e-05, leave-one-stratum-out clearing 4 of 4 at the maximum 27 of 27 -- against 30.5 and 25.0 at 98M, where leave-one-stratum-out fails 2 of 4. (4) THE NEW SCIENCE IS AN INTERACTION: at 392M the trainable arm falls below the capability bar from K=32 on (kappa 0.9516/0.8750/0.8065 at K=32 and 0.7596/0.8438/0.8798 at K=40) while the frozen arm does not move, and the same fall appears at the fixed-effective-distance control -- so it is breadth-driven, not the depth cost. At 98M the same trainable recipe is at ceiling at every K. The architectural recipe -- closed-form writes plus frozen adapters -- is the thing that scales. (5) TWO HONEST DEGRADATIONS, BOTH GATED: very-deep-read robustness degrades at 392M in BOTH arms (T = 10.5/72 at 11 squarings and 6.5/72 at 13 squarings, roughly 8,200 hops; exact p to 9.5e-07; leave-one-out 8 of 8), and the trainable arm's capability degrades at K >= 32. Both carry the design's pre-registered one-directional token-budget disclosure -- steps, batch and sequence length are held fixed while parameters quadruple, so tokens per parameter falls from 1.87 to 0.47 at K=40 -- and both are marked PENDING the mandatory extended-steps attribution control before any scale-causal claim. The ordering results are confound-clean, because both arms share the identical budget. Process: five design rounds (4 FATAL-class defects, all discharged) plus an independent build audit; a calibration-gated launch; a beta-reconciliation rule that fired and re-priced the wave; 81.415 GPU-h of training measured cell-by-cell against a 110.91 GPU-h priced headline ledger.",
+  "keywords": "fast weights, DeltaNet, Native Composition Reads, exact composition, parameter scaling, capability separation, chance-corrected accuracy, stratified permutation test, pre-registration, token budget confound",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>The capability separation survives 4× scale — and its moat widens — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+.table-scroll { overflow-x: auto; }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 20 &nbsp;·&nbsp; verdicts of record: capability — no detectable shift at 4× params · wall-scale-stable · ordering-scale-strengthens (T=36/36, both readouts) &nbsp;·&nbsp; P1b = exact teacher-forced operator substitution throughout &nbsp;·&nbsp; 24 training cells + 50 eval cells, 81.415 GPU-h</div>
+        <h1 class="paper-title">The capability separation survives 4× scale — and its moat widens</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">August 22, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>The breadth chapter (<a href="ncr-breadth-scaling.html">no. 19</a>) closed at one model size. This wave carries the same construction to a backbone with <strong>4.008× the parameters</strong> — 98M → 392M — porting four of the eight breadths: <strong>K ∈ {16, 24, 32, 40}</strong>, d = K+1, two recipes, three seeds, <strong>24 training cells</strong> (all <span class="mono">COMPLETED</span> at step 20,000, 0 failures) and 50 evaluation cells. Every battery is identical per K across the two scales, so the only thing that moves is parameter count. All accuracies are chance-corrected, <strong>κ = (acc − 1/K)/(1 − 1/K)</strong>. <strong>(1) The capability does not move.</strong> At 392M the frozen arm reads κ <strong>0.9839–1.0000 in all 12 cells</strong> at the antipodal top rung — 3/3 seeds over the 0.90 bar at every K. The pre-registered cross-scale test's two forms disagree (<span class="mono">T = 17.0/72</span> at 8 strata, <span class="mono">14.5/54</span> at 6); per the rule fixed before the data the 6-stratum form governs, so the verdict is <strong>NO DETECTABLE DIRECTIONAL SHIFT</strong> at 4× parameters, with 6 of 8 per-K cells SCALE-STABLE. <strong>(2) The wall holds at both scales.</strong> The same checkpoints' own SGD-learned write sits inside its pre-registered chance band in <strong>238 of 240</strong> first-draw readings, and both single-seed excursions re-measured away at an independent eval draw under the clause written before the run — <strong>WALL-SCALE-STABLE</strong>. <strong>(3) The freeze ordering strengthens to a perfect separation.</strong> The within-scale statistic reads <strong>T<sub>W</sub> = 36/36 at <em>both</em> readouts</strong> at 392M — every frozen seed beats every trainable seed at every K — two-sided exact <span class="mono">p = 1.25×10⁻⁵</span>, leave-one-stratum-out clearing 4/4 at the maximum 27/27. The 98M reference reads 30.5 and 25.0 and fails 2 of 4 leave-one-out subsets. <strong>(4) The new science is an interaction.</strong> At 392M the <em>trainable</em> arm falls below the capability bar from K=32 on (κ 0.9516/0.8750/0.8065 at K=32; 0.7596/0.8438/0.8798 at K=40) while the frozen arm does not move — and the same fall appears at the fixed-effective-distance control, so it is breadth-driven, not the depth cost. At 98M that same trainable recipe is at ceiling at every K. <strong>The architectural recipe — closed-form writes plus frozen adapters — is the part that scales.</strong> <strong>(5) Two things degrade, and both are gated.</strong> Very-deep-read robustness (≥13 squarings, ≈8,200 hops) degrades at 392M in <em>both</em> arms (<span class="mono">T = 6.5/72</span>, exact <span class="mono">p = 9.5×10⁻⁷</span>, leave-one-out 8/8), and the trainable arm's capability degrades at K ≥ 32. Both carry the design's pre-registered, one-directional token-budget disclosure and are marked <strong>pending the mandatory extended-steps attribution control before any scale-causal claim</strong>. The ordering results carry no such caveat: both arms share the identical budget.</p>
+        </div>
+
+        <h2><span class="num">01</span>What "4× scale" means here, and what is held fixed</h2>
+
+        <p>The system is <a href="ncr-write-conditioning.html">finding no. 17</a>'s: a DeltaNet language model carrying a Native Composition Reads head that writes a relation operator <span class="mono">Z</span> in context and reads its <em>h</em>-fold composition at query time by repeated squaring — O(log <em>h</em>) squarings rather than <em>h</em> applications. Two regimes are measured on every cell, and the distinction is the whole point of the page:</p>
+
+        <ul>
+            <li><strong>P1b — exact teacher-forced operator substitution.</strong> The operator is computed in closed form from the true binding and substituted into the trained checkpoint's own read path. This is a <em>read-path capability</em> measurement, never a learned write. Every capability number below is P1b.</li>
+            <li><strong>P0 — the model's own SGD-learned write</strong>, read through the identical path. This is the wall.</li>
+        </ul>
+
+        <p>The scale axis moves the backbone and nothing else. Measured in the run records, not asserted:</p>
+
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr><th></th><th>98M reference (no. 19)</th><th>392M (this wave)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>backbone</td><td class="num">d_model 768 · 12 layers · d_state 64</td><td class="num">d_model 1536 · 16 layers · d_state 128</td></tr>
+                <tr><td>backbone parameters</td><td class="num">97,619,712</td><td class="num"><strong>391,872,512</strong></td></tr>
+                <tr><td>total per arm, K=16 → K=40</td><td class="num">97,816,977 → 97,860,009</td><td class="num"><strong>392,095,889 → 392,175,785</strong></td></tr>
+                <tr><td>ratio</td><td class="num">—</td><td class="num"><strong>4.008× per arm</strong> <span style="color:var(--muted)">(4.014× backbone-only)</span></td></tr>
+                <tr><td>steps · batch · lr · warmup</td><td class="num">20,000 · 32 · 3e−4 · 200</td><td class="num">20,000 · 32 · 3e−4 · 200</td></tr>
+                <tr><td>eval battery per K</td><td colspan="2" class="num">identical by construction — same derived ladder, same antipodal top rung, same fixed-distance control, same sequence length, n=256, eval seed 90210, matched pools</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <p>Four of the breadth chapter's eight K are ported: <strong>K = 16, 24, 32, 40</strong>, always paired with <strong>d = K+1</strong>. The variable is the pair, never K alone — the same scope limit no. 19 carries. The curve stops at K=40 for the same arithmetic reason it stopped there at 98M: the antipodal top rung must be the smallest <em>h</em> ∈ [32, 63] with <em>h</em> ≡ K/2 (mod K), which needs 3K/2 ≤ 63, and <span class="mono">derive_ladder(44)</span> raises. <strong>K=44 is construction-impossible in the matched squaring band — a design limit of the instrument, not a measured capability limit</strong>, and nothing here licenses a claim about K ≥ 44 in either direction.</p>
+
+        <p><strong>One thing is deliberately <em>not</em> held fixed, and the design says so in advance.</strong> Steps, batch and sequence length are identical across scales, so the token budget per cell is unchanged while parameters quadruple: <span class="mono">20,000 × 32 × t_in</span> = 81.9M tokens at K=16 up to 183.0M at K=40, which drops tokens-per-parameter from <strong>1.87 at 98M to 0.47 at 392M</strong> at K=40. The design's pre-registration turns this into an asymmetry rather than a hole: <strong>under-training can only manufacture a <em>degradation</em>. It cannot manufacture stability and it cannot manufacture improvement.</strong> So the stable and strengthening results below are, if anything, understated by the mismatch — and every degrading result is gated behind an attribution control that has not run yet (§06).</p>
+
+        <h2><span class="num">02</span>Capability: the frozen arm does not move</h2>
+
+        <p>The pre-registered band is <strong>CAPABILITY-HOLDS(K)</strong> = κ ≥ 0.90 at the antipodal top rung on ≥2 of 3 frozen seeds, and the curve verdict is that at every ported K. Per-seed, at 392M, with the 98M median alongside:</p>
+
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr><th>pair (K, d=K+1)</th><th>top rung h (residue K/2)</th><th>κ frozen · 3 seeds &nbsp;<span style="color:var(--muted)">392M</span></th><th>98M frozen median</th><th>κ trainable · 3 seeds &nbsp;<span style="color:var(--muted)">392M</span></th><th>98M trainable median</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>(16, 17)</td><td class="num">40 (8)</td><td class="num">1.0000 / 1.0000 / 1.0000</td><td class="num">1.0000</td><td class="num">0.9792 / 0.9708 / 0.9917</td><td class="num">0.9958</td></tr>
+                <tr><td>(24, 25)</td><td class="num">36 (12)</td><td class="num">0.9959 / 0.9959 / 0.9959</td><td class="num">1.0000</td><td class="num">0.9878 / 0.9674 / 0.9837</td><td class="num">0.9878</td></tr>
+                <tr><td>(32, 33)</td><td class="num">48 (16)</td><td class="num">0.9960 / 0.9879 / <strong>0.9839</strong></td><td class="num">0.9960</td><td class="num">0.9516 / <strong>0.8750</strong> / <strong>0.8065</strong></td><td class="num">0.9919</td></tr>
+                <tr><td>(40, 41)</td><td class="num">60 (20)</td><td class="num">0.9880 / 0.9960 / 0.9880</td><td class="num">0.9920</td><td class="num"><strong>0.7596</strong> / <strong>0.8438</strong> / <strong>0.8798</strong></td><td class="num">0.9880</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <p>Read the frozen columns first. <strong>All twelve frozen cells clear the bar, 3 of 3 seeds at every K</strong>, with medians 1.0000 / 0.9959 / 0.9879 / 0.9880 and a floor of 0.9839 — against 98M medians of 1.0000 / 1.0000 / 0.9960 / 0.9920. Quadrupling the parameters moves the frozen capability curve by between 0.0000 and 0.0081 in the median, at every breadth. <strong>CAPABILITY-HOLDS at 392M, at all four ported K.</strong></p>
+
+        <p>The cross-scale question is a separate, pre-registered test: a stratified exact permutation statistic that counts, over 8 strata (4 K × 2 recipes) and 9 cross-scale seed pairs each, how often the 392M cell exceeds its 98M counterpart. It reads <span class="mono">T = 17.0/72</span> — below the 19 bar, nominally a degradation. <strong>But the design pre-registered a sensitivity form and a precedence rule before any data existed</strong>: report the same statistic again with the K=24 stratum pair dropped, because those 98M cells are an eval-only anchor trained under an older runner, and <em>if the two forms disagree, the 6-stratum verdict governs</em>. They disagree: 6 strata read <span class="mono">T = 14.5/54</span> against a degradation bar of 12 — inside the band. <strong>The verdict of record is therefore NO DETECTABLE DIRECTIONAL SHIFT at 4× parameters</strong>, and the disagreement is the headline instrument note, exactly as the rule required.</p>
+
+        <p>Two further facts belong with it rather than in a footnote. The 8-stratum reading is <strong>tie-heavy — 14 of its 72 pairs are exact ties</strong> — because the frozen arm is at ceiling at both scales and a 1.0000-vs-1.0000 pair scores ½; the design had already declared, from the 98M numbers alone, that <em>per-K</em> SCALE-IMPROVES was arithmetically unreachable on this curve (the maximum attainable improvement was 0.0000–0.0122 against a 0.05 threshold, 0 of 8). And the 8-stratum reading survives only <strong>4 of 8</strong> leave-one-stratum-out subsets. Per-K, 6 of 8 cells are SCALE-STABLE within ±0.05; the two that are not are both <em>trainable</em>, at K=32 (−0.1169) and K=40 (−0.1442), and both also fail the κ ≥ 0.90 gate. That is §05's subject and §06's caveat.</p>
+
+        <h2><span class="num">03</span>The wall, and the re-measure discipline</h2>
+
+        <p>The other half of the separation is the same checkpoints' own writes. The pre-registered band is per-K — every P0 reading inside chance ± 3 binomial standard deviations at n=256 — and <strong>a breach requires a reading above band replicated across ≥2 seeds</strong>; a single-seed excursion is explicitly an outlier to re-measure at an independent eval draw, not a breach. That clause was written before the run and it fired twice here.</p>
+
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr><th>pair (K, d)</th><th>chance 1/K</th><th>band top</th><th>P0 readings in band (of 60)</th><th>first-draw excursion</th><th>re-measure, eval seed 31337</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>(16, 17)</td><td class="num">0.0625</td><td class="num">0.1079</td><td class="num">59 / 60</td><td class="num">trainable s1, h=1: <strong>0.1133</strong></td><td class="num"><strong>0.0859</strong> — in band</td></tr>
+                <tr><td>(24, 25)</td><td class="num">0.0417</td><td class="num">0.0791</td><td class="num"><strong>60 / 60</strong></td><td class="num">—</td><td class="num">—</td></tr>
+                <tr><td>(32, 33)</td><td class="num">0.0312</td><td class="num">0.0639</td><td class="num"><strong>60 / 60</strong></td><td class="num">—</td><td class="num">—</td></tr>
+                <tr><td>(40, 41)</td><td class="num">0.0250</td><td class="num">0.0543</td><td class="num">59 / 60</td><td class="num">trainable s2, h=8: <strong>0.0547</strong></td><td class="num"><strong>0.0156</strong> — in band</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <p>Both excursions are worth naming precisely, because "the wall holds" is only worth reading if the exceptions are shown. The K=16 one is an <strong>h=1 toehold-class reading</strong> — the shallowest hop, one of the three the model actually trains on — at 0.1133 against a band top of 0.1079, and it comes back at 0.0859 on a fresh eval draw. The K=40 one is a <em>deep</em> rung (h=8) over the band by <strong>0.0004</strong>: 0.0547 against 0.0543, a single extra correct answer out of 256, and on re-measure that hop reads 0.0156 with the cell's maximum across all ten hops at 0.0352. Neither replicates. Both are recorded as outliers under the pre-registered clause, and <strong>WALL-HOLDS at all four ported K</strong>.</p>
+
+        <p>Combined with no. 19's record at the same four K, that gives the cross-scale verdict: <strong>WALL-SCALE-STABLE</strong> — the learned write is at chance at both model sizes, at every ported breadth. A separate within-392M reading extends it deeper: at the deepest rung of the depth-extension ladder (15 squarings, <em>h</em> = 32,772–32,804) the learned write is inside the band in <strong>24 of 24 cells</strong>. That reading is labelled in every record as <em>not</em> comparable to the archived 98M P0 at 11 squarings, so it is a within-392M statement only — stated as the records state it.</p>
+
+        <h2><span class="num">04</span>The ordering: perfect separation at 392M, at both readouts</h2>
+
+        <p>The third curve is the one that moved most, and it moved in the direction the program wanted. Finding no. 18 found, and no. 19 generalised across breadth, a <em>graded</em> ordering: freezing the entity adapter buys depth-robustness, measurable as a rank-order effect but never a separation. The statistic is a within-scale, stratified exact permutation count: at each K, how many of the 9 frozen-vs-trainable seed pairs the frozen cell wins (ties ½), summed over the four ported K, out of 36.</p>
+
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr><th>readout</th><th>scale</th><th>K=16</th><th>K=24</th><th>K=32</th><th>K=40</th><th>T<sub>W</sub> / 36</th><th>leave-one-stratum-out (bar 24/27)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td rowspan="2">11 squarings<br><span style="color:var(--muted);font-size:0.86em">h ≈ 2,052–2,084</span></td><td>98M</td><td class="num">6.5</td><td class="num">9.0</td><td class="num">6.0</td><td class="num">9.0</td><td class="num">30.5</td><td class="num">24.0 / 21.5 / 24.5 / 21.5 — <strong>fails 2 of 4</strong></td></tr>
+                <tr><td><strong>392M</strong></td><td class="num"><strong>9.0</strong></td><td class="num"><strong>9.0</strong></td><td class="num"><strong>9.0</strong></td><td class="num"><strong>9.0</strong></td><td class="num"><strong>36.0</strong></td><td class="num"><strong>27.0 / 27.0 / 27.0 / 27.0 — clears 4 of 4</strong></td></tr>
+                <tr><td rowspan="2">h_top<br><span style="color:var(--muted);font-size:0.86em">5 squarings</span></td><td>98M</td><td class="num">6.5</td><td class="num">7.0</td><td class="num">5.5</td><td class="num">6.0</td><td class="num">25.0</td><td class="num">—</td></tr>
+                <tr><td><strong>392M</strong></td><td class="num"><strong>9.0</strong></td><td class="num"><strong>9.0</strong></td><td class="num"><strong>9.0</strong></td><td class="num"><strong>9.0</strong></td><td class="num"><strong>36.0</strong></td><td class="num"><strong>27.0 / 27.0 / 27.0 / 27.0 — clears 4 of 4</strong></td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <p><strong>36 of 36 is the maximum the statistic can take.</strong> Every frozen seed beats every trainable seed, at every ported breadth, at both readouts — two-sided exact <span class="mono">p = 1.25×10⁻⁵</span> under the conditional permutation null, with zero realized ties. At 98M the same test on the same four strata reads 30.5 at 11 squarings and <strong>25.0</strong> at the 5-squaring top rung, where the ordering was reported as <em>negligible</em> — invisible at that readout at 98M, perfect at 392M.</p>
+
+        <p>The bar deserves its own sentence, because the design made it deliberately hard to clear. Four strata give a raw exact <span class="mono">p &lt; 0.01</span> threshold of <span class="mono">T ≥ 30</span> — which the 98M reference itself clears, by half a pair. The design refused to license a verdict at that margin: it partitioned the grid so that <strong>ORDERING-CONFIRMED requires <span class="mono">T<sub>W</sub> &gt; 31.5</span> <em>and</em> leave-one-stratum-out clearing in ≥3 of 4 subsets</strong>, and wrote the consequence down in advance — <em>"at 4 strata, ORDERING-CONFIRMED requires the 392M wave to be strictly more robust than its own 98M reference."</em> A reproduction of the reference would have read INDETERMINATE. The observed 36/36 clears both legs at the ceiling, and the sub-case of record is <strong>ORDERING-SCALE-STRENGTHENS</strong>: descriptive deltas <span class="mono">+5.5</span> at 11 squarings and <span class="mono">+11.0</span> at h_top.</p>
+
+        <p>This result is also the one with <em>no</em> token-budget caveat, and that is not a rhetorical point. Both arms are trained on the identical budget, on the identical data, for the identical number of steps; the comparison is within-scale and the confound cancels. Whatever the fixed budget does to a 392M model, it does to both arms at once.</p>
+
+        <figure>
+                <svg viewBox="0 0 840 470" width="100%" style="height:auto;display:block;" role="img" aria-labelledby="fig1title fig1desc" xmlns="http://www.w3.org/2000/svg">
+                <title id="fig1title">Exact-write capability across binding breadth at two model scales, and the freeze-ordering statistic at both scales</title>
+                <desc id="fig1desc">Left panel: chance-corrected accuracy at the antipodal top rung, plotted against the pair K, d equals K plus one, for K equals 16, 24, 32 and 40. The frozen-adapter arm sits at ceiling, between 0.988 and 1.000, at both 98M and 392M parameters, the two curves overlapping. The trainable-adapter arm sits at ceiling at 98M but at 392M falls below the capability bar of 0.90 from K equals 32 onward, reaching 0.844 at K equals 40, with all three seeds shown as separate points. Right panel: the within-scale ordering statistic, counting how many of 36 frozen-versus-trainable pairs the frozen arm wins. At eleven squarings it reads 30.5 at 98M and 36 of 36 at 392M; at the five-squaring top rung it reads 25 at 98M and 36 of 36 at 392M. A dashed line marks the pre-registered confirmation threshold of 31.5.</desc>
+                <g stroke="#c9bfa4" stroke-width="1">
+                <line x1="92.0" y1="333.3" x2="448.0" y2="333.3"/>
+                <line x1="92.0" y1="279.7" x2="448.0" y2="279.7"/>
+                <line x1="92.0" y1="226.1" x2="448.0" y2="226.1"/>
+                <line x1="92.0" y1="172.6" x2="448.0" y2="172.6"/>
+                <line x1="92.0" y1="119.0" x2="448.0" y2="119.0"/>
+                <line x1="92.0" y1="65.4" x2="448.0" y2="65.4"/>
+                </g>
+                <line x1="92.0" y1="40.0" x2="92.0" y2="348.0" stroke="#1a1a1a" stroke-width="1.4"/>
+                <g font-family="'JetBrains Mono', monospace" font-size="10.5" fill="#5a5a5a" text-anchor="end">
+                <text x="86.0" y="336.90000000000003">0.75</text>
+                <text x="86.0" y="283.3">0.80</text>
+                <text x="86.0" y="229.7">0.85</text>
+                <text x="86.0" y="176.2">0.90</text>
+                <text x="86.0" y="122.6">0.95</text>
+                <text x="86.0" y="69.0">1.00</text>
+                </g>
+                <text x="30" y="194.0" font-family="'Space Grotesk', sans-serif" font-size="11.5" fill="#1a1a1a" text-anchor="middle" transform="rotate(-90 30 194.0)">κ at the antipodal top rung  (chance-corrected)</text>
+                <line x1="92.0" y1="172.6" x2="448.0" y2="172.6" stroke="#1a1a1a" stroke-width="1.3" stroke-dasharray="5 3"/>
+                <text x="96.0" y="165.6" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#1a1a1a">capability bar  κ ≥ 0.90</text>
+                <polyline points="118.0,65.4 218.0,65.4 318.0,69.7 418.0,74.0" fill="none" stroke="#8B2E1F" stroke-width="1.6" stroke-dasharray="6 3"/>
+                <g fill="#FAF5E7" stroke="#8B2E1F" stroke-width="1.6">
+                <circle cx="118.0" cy="65.4" r="4.0"/>
+                <circle cx="218.0" cy="65.4" r="4.0"/>
+                <circle cx="318.0" cy="69.7" r="4.0"/>
+                <circle cx="418.0" cy="74.0" r="4.0"/>
+                </g>
+                <polyline points="118.0,69.9 218.0,78.5 318.0,74.1 418.0,78.3" fill="none" stroke="#24607F" stroke-width="1.6" stroke-dasharray="6 3"/>
+                <g fill="#FAF5E7" stroke="#24607F" stroke-width="1.6">
+                <rect x="114.4" y="66.30000000000001" width="7.2" height="7.2"/>
+                <rect x="214.4" y="74.9" width="7.2" height="7.2"/>
+                <rect x="314.4" y="70.5" width="7.2" height="7.2"/>
+                <rect x="414.4" y="74.7" width="7.2" height="7.2"/>
+                </g>
+                <g fill="#24607F" opacity="0.42">
+                <rect x="115.2" y="85.0" width="5.6" height="5.6"/>
+                <rect x="115.2" y="93.9" width="5.6" height="5.6"/>
+                <rect x="115.2" y="71.60000000000001" width="5.6" height="5.6"/>
+                <rect x="215.2" y="75.7" width="5.6" height="5.6"/>
+                <rect x="215.2" y="97.60000000000001" width="5.6" height="5.6"/>
+                <rect x="215.2" y="80.10000000000001" width="5.6" height="5.6"/>
+                <rect x="315.2" y="114.5" width="5.6" height="5.6"/>
+                <rect x="315.2" y="196.6" width="5.6" height="5.6"/>
+                <rect x="315.2" y="270.0" width="5.6" height="5.6"/>
+                <rect x="415.2" y="320.2" width="5.6" height="5.6"/>
+                <rect x="415.2" y="230.0" width="5.6" height="5.6"/>
+                <rect x="415.2" y="191.39999999999998" width="5.6" height="5.6"/>
+                </g>
+                <polyline points="118.0,65.4 218.0,69.8 318.0,78.4 418.0,78.3" fill="none" stroke="#8B2E1F" stroke-width="2.6"/>
+                <g fill="#8B2E1F">
+                <circle cx="118.0" cy="65.4" r="4.6"/>
+                <circle cx="218.0" cy="69.8" r="4.6"/>
+                <circle cx="318.0" cy="78.4" r="4.6"/>
+                <circle cx="418.0" cy="78.3" r="4.6"/>
+                </g>
+                <polyline points="118.0,87.8 218.0,82.9 318.0,199.4 418.0,232.8" fill="none" stroke="#24607F" stroke-width="2.6"/>
+                <g fill="#24607F">
+                <rect x="113.8" y="83.6" width="8.4" height="8.4"/>
+                <rect x="213.8" y="78.7" width="8.4" height="8.4"/>
+                <rect x="313.8" y="195.20000000000002" width="8.4" height="8.4"/>
+                <rect x="413.8" y="228.60000000000002" width="8.4" height="8.4"/>
+                </g>
+                <line x1="434.0" y1="78.3" x2="434.0" y2="232.8" stroke="#1a1a1a" stroke-width="1.2"/>
+                <line x1="430.0" y1="78.3" x2="438.0" y2="78.3" stroke="#1a1a1a" stroke-width="1.2"/>
+                <line x1="430.0" y1="232.8" x2="438.0" y2="232.8" stroke="#1a1a1a" stroke-width="1.2"/>
+                <text x="426.0" y="153.55" text-anchor="end" font-family="'Space Grotesk', sans-serif" font-size="10.5" fill="#1a1a1a" font-weight="700">the moat at 392M</text>
+                <text x="426.0" y="167.55" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#1a1a1a">0.144 κ at K=40</text>
+                <text x="92.0" y="18.0" font-family="'Space Grotesk', sans-serif" font-size="11" fill="#8B2E1F" font-weight="700">frozen adapter — 392M (filled) and 98M (open): both at ceiling</text>
+                <text x="92.0" y="34.0" font-family="'Space Grotesk', sans-serif" font-size="11" fill="#24607F" font-weight="700">trainable adapter — 98M at ceiling (open), 392M falls from K=32</text>
+                <g font-family="'JetBrains Mono', monospace" font-size="11" fill="#1a1a1a" text-anchor="middle">
+                <text x="118.0" y="366.0">K=16</text>
+                <text x="218.0" y="366.0">K=24</text>
+                <text x="318.0" y="366.0">K=32</text>
+                <text x="418.0" y="366.0">K=40</text>
+                </g>
+                <g font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#5a5a5a" text-anchor="middle">
+                <text x="118.0" y="380.0">d=17</text>
+                <text x="218.0" y="380.0">d=25</text>
+                <text x="318.0" y="380.0">d=33</text>
+                <text x="418.0" y="380.0">d=41</text>
+                </g>
+                <text x="268.0" y="402.0" font-family="'Space Grotesk', sans-serif" font-size="11" fill="#1a1a1a" text-anchor="middle">binding breadth — the pair (K, d = K+1); 3 seeds per arm per scale</text>
+                <text x="268.0" y="420.0" font-family="'Space Grotesk', sans-serif" font-size="10" fill="#8B2E1F" text-anchor="middle">P1b — EXACT teacher-forced operator substitution, a read-path capability</text>
+                <line x1="480" y1="24.0" x2="480" y2="384.0" stroke="#c9bfa4" stroke-width="1"/>
+                <g stroke="#c9bfa4" stroke-width="1">
+                <line x1="525.0" y1="344.0" x2="800.0" y2="344.0"/>
+                <line x1="525.0" y1="273.0" x2="800.0" y2="273.0"/>
+                <line x1="525.0" y1="202.0" x2="800.0" y2="202.0"/>
+                <line x1="525.0" y1="131.0" x2="800.0" y2="131.0"/>
+                <line x1="525.0" y1="60.0" x2="800.0" y2="60.0"/>
+                </g>
+                <line x1="525.0" y1="54.0" x2="525.0" y2="344.0" stroke="#1a1a1a" stroke-width="1.4"/>
+                <g font-family="'JetBrains Mono', monospace" font-size="10.5" fill="#5a5a5a" text-anchor="end">
+                <text x="519.0" y="347.6">0</text>
+                <text x="519.0" y="276.6">9</text>
+                <text x="519.0" y="205.6">18</text>
+                <text x="519.0" y="134.6">27</text>
+                <text x="519.0" y="63.6">36</text>
+                </g>
+                <text x="499.0" y="202.0" font-family="'Space Grotesk', sans-serif" font-size="11.5" fill="#1a1a1a" text-anchor="middle" transform="rotate(-90 499.0 202.0)">T_W — frozen wins, of 36 pairs</text>
+                <rect x="553.0" y="103.4" width="46.0" height="240.6" fill="#b9a98a" stroke="#1a1a1a" stroke-width="1"/>
+                <text x="576.0" y="123.4" font-family="'JetBrains Mono', monospace" font-size="12" fill="#1a1a1a" font-weight="700" text-anchor="middle">30.5</text>
+                <text x="576.0" y="360.0" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#1a1a1a" text-anchor="middle">98M</text>
+                <rect x="609.0" y="60.0" width="46.0" height="284.0" fill="#8B2E1F" stroke="#1a1a1a" stroke-width="1"/>
+                <text x="632.0" y="80.0" font-family="'JetBrains Mono', monospace" font-size="12" fill="#FAF5E7" font-weight="700" text-anchor="middle">36</text>
+                <text x="632.0" y="360.0" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#1a1a1a" text-anchor="middle">392M</text>
+                <rect x="691.0" y="146.8" width="46.0" height="197.2" fill="#b9a98a" stroke="#1a1a1a" stroke-width="1"/>
+                <text x="714.0" y="166.8" font-family="'JetBrains Mono', monospace" font-size="12" fill="#1a1a1a" font-weight="700" text-anchor="middle">25</text>
+                <text x="714.0" y="360.0" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#1a1a1a" text-anchor="middle">98M</text>
+                <rect x="747.0" y="60.0" width="46.0" height="284.0" fill="#8B2E1F" stroke="#1a1a1a" stroke-width="1"/>
+                <text x="770.0" y="80.0" font-family="'JetBrains Mono', monospace" font-size="12" fill="#FAF5E7" font-weight="700" text-anchor="middle">36</text>
+                <text x="770.0" y="360.0" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#1a1a1a" text-anchor="middle">392M</text>
+                <line x1="525.0" y1="95.5" x2="800.0" y2="95.5" stroke="#1a1a1a" stroke-width="1.3" stroke-dasharray="5 3"/>
+                <text x="673.0" y="90.5" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#1a1a1a" text-anchor="middle">31.5</text>
+                <text x="604.0" y="378.0" font-family="'Space Grotesk', sans-serif" font-size="10" fill="#5a5a5a" text-anchor="middle">11 squarings (≈2,052 hops)</text>
+                <text x="742.0" y="378.0" font-family="'Space Grotesk', sans-serif" font-size="10" fill="#5a5a5a" text-anchor="middle">h_top (5 squarings)</text>
+                <text x="672.5" y="402.0" font-family="'Space Grotesk', sans-serif" font-size="10" fill="#1a1a1a" text-anchor="middle">dashed: ORDERING-CONFIRMED needs T &gt; 31.5</text>
+                <text x="672.5" y="420.0" font-family="'Space Grotesk', sans-serif" font-size="10" fill="#8B2E1F" text-anchor="middle">perfect separation at 392M — exact p = 1.25×10⁻⁵, LOSO 4/4</text>
+                </svg>
+            <figcaption><span class="fig-label">fig 1</span><strong>Left:</strong> chance-corrected accuracy κ at the antipodal top rung against binding breadth, at both scales. The frozen arm (dark red) sits at ceiling at 98M (open) and 392M (filled) alike; the trainable arm (blue) is at ceiling at 98M but at 392M crosses below the κ ≥ 0.90 capability bar from K=32 on, with all three seeds shown. The gap at K=40 is 0.144 κ. <strong>Right:</strong> the within-scale freeze-ordering statistic T<sub>W</sub>, of 36 pairs, at both readouts and both scales — 30.5 → 36.0 at 11 squarings, 25.0 → 36.0 at the 5-squaring top rung. The dashed line is the design's ORDERING-CONFIRMED threshold, T<sub>W</sub> &gt; 31.5, set strictly above the 98M reference before any 392M cell ran; the raw four-stratum exact <span class="mono">p &lt; 0.01</span> bar is 30. <strong>Every capability number in this figure is P1b — exact teacher-forced operator substitution, the operator computed in closed form from the true binding and fed into the trained checkpoint's own read path. It is a read-path capability, never a learned write.</strong> The curve covers K=16–40 only: K=44's antipodal probe is construction-impossible inside the matched squaring band (it needs 3K/2 ≤ 63), a design limit of the instrument rather than a measured capability limit. Every point is recomputed from the archived per-cell JSONs by <span class="mono">assets/plots/generate_ncr_scale_axis.py</span>.</figcaption>
+        </figure>
+
+        <h2><span class="num">05</span>The interaction is the new science</h2>
+
+        <p>Nothing above is the most interesting number in the wave. This is: <strong>at 98M the frozen and trainable recipes are indistinguishable at this readout — both at ceiling at every K. At 392M they come apart, and the split is graded in breadth.</strong></p>
+
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr><th>K</th><th>frozen κ, 392M<br><span style="color:var(--muted);font-size:0.86em">top rung</span></th><th>frozen κ, 392M<br><span style="color:var(--muted);font-size:0.86em">fixed-distance control</span></th><th>trainable κ, 392M<br><span style="color:var(--muted);font-size:0.86em">top rung</span></th><th>trainable κ, 392M<br><span style="color:var(--muted);font-size:0.86em">fixed-distance control</span></th><th>trainable κ, 98M<br><span style="color:var(--muted);font-size:0.86em">top rung</span></th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="num">16</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.9792</td><td class="num">0.9958</td><td class="num">0.9958</td></tr>
+                <tr><td class="num">24</td><td class="num">0.9959</td><td class="num">1.0000</td><td class="num">0.9837</td><td class="num">0.9715</td><td class="num">0.9878</td></tr>
+                <tr><td class="num">32</td><td class="num">0.9879</td><td class="num">0.9960</td><td class="num"><strong>0.8750</strong></td><td class="num"><strong>0.9113</strong></td><td class="num">0.9919</td></tr>
+                <tr><td class="num">40</td><td class="num">0.9880</td><td class="num">0.9920</td><td class="num"><strong>0.8438</strong></td><td class="num"><strong>0.8918</strong></td><td class="num">0.9880</td></tr>
+                <tr><td style="color:var(--muted)">range over K</td><td class="num"><strong>0.0121</strong></td><td class="num"><strong>0.0080</strong></td><td class="num">0.1399</td><td class="num">0.1040</td><td class="num">—</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <p>Three things follow, and the third is the one that matters.</p>
+
+        <p><strong>It is graded, and it is in every seed.</strong> The trainable arm's medians go 0.9792 → 0.9837 → 0.8750 → 0.8438, and the per-seed spread widens with it: 0.9708–0.9917 at K=16, 0.8065–0.9516 at K=32, 0.7596–0.8798 at K=40. This is not one bad seed. At K=40, <em>no</em> trainable seed clears the 0.90 bar; at K=32, one of three does.</p>
+
+        <p><strong>It is breadth, not depth.</strong> The design carries a control for exactly this: <span class="mono">h_fix</span>, a probe at effective distance 4 at every K, at the same 5 squarings — so if the fall were the floating-point cost of deeper reads it would not appear there. It appears there: the trainable arm's fixed-distance range over K is 0.1040 against the top rung's 0.1399, the same shape at the same K. The frozen arm's ranges are 0.0080 and 0.0121 — flat on both probes. <em>(Disclosed rather than smoothed: the design defined its three labels for this control on "κ" without naming an arm, and the two arms return different labels. It is reported per-arm rather than elected, and the ambiguity is recorded as a design gap.)</em></p>
+
+        <p><strong>And so the finding is not "big models are worse."</strong> The frozen recipe — closed-form operator writes plus a frozen entity adapter — is at ceiling at 392M at every breadth, on both probes, with a flat depth-drift profile (largest deviation from the K=24 reference: <span class="mono">0.0197</span>). The trainable recipe is the one that degrades, and its degradation grows with K (largest deviation <span class="mono">0.3019</span>). <strong>Scale does not threaten the architecture; it separates the architecture from the alternative to it.</strong> The gap between the two recipes at K=40 is <span class="mono">0.144 κ</span> at 392M and essentially zero at 98M — which is what "the moat widens" means, stated as a measurement.</p>
+
+        <div class="takeaway">
+            <span class="label">the through-line</span>
+            At 4× parameters, everything the recipe promises survives — exact-write capability at ceiling at every breadth, the learned-write wall absolute at both scales, and the freeze ordering strengthening to a perfect separation — while the two things that degrade are the trainable adapter (which the recipe already excludes) and very-deep floating-point read tails (which the prior findings already bound). Both degradations are gated behind an attribution control that has not run.
+        </div>
+
+        <h2><span class="num">06</span>The two degradations — and the gate they sit behind</h2>
+
+        <p>Two curves read materially worse at 392M. Neither is smoothed here, and neither is published as a scale claim.</p>
+
+        <h3>(a) Very-deep-read robustness degrades in <em>both</em> arms</h3>
+
+        <p>An eval-only depth extension re-scores every cell on a fixed-residue ladder — every rung shares residue 4 mod K, so the correct answer is identical by construction and only the squaring count changes — at 5, 7, 9, 11, 13 and 15 squarings, i.e. out to <em>h</em> = 32,772–32,804. The elected comparison depth, <span class="mono">s* = 13</span> (<em>h</em> ≈ 8,196–8,212), was chosen by a mechanical rule applied to the <em>98M</em> re-score <strong>before any 392M cell was queued</strong>; no 392M number influenced any threshold in this design.</p>
+
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr><th>(K, arm)</th><th>392M κ @ 13 squarings</th><th>98M κ @ 13 squarings</th><th>Δ</th><th>verdict (δ = 0.095)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>16, frozen</td><td class="num">0.9458</td><td class="num">0.9583</td><td class="num">−0.0125</td><td>stable</td></tr>
+                <tr><td>16, trainable</td><td class="num">0.6458</td><td class="num">0.8417</td><td class="num">−0.1958</td><td>degrades</td></tr>
+                <tr><td>24, frozen</td><td class="num">0.8736</td><td class="num">0.9022</td><td class="num">−0.0285</td><td>stable</td></tr>
+                <tr><td>24, trainable</td><td class="num">0.2908</td><td class="num">0.8125</td><td class="num">−0.5217</td><td>degrades</td></tr>
+                <tr><td>32, frozen</td><td class="num">0.7863</td><td class="num">0.9194</td><td class="num">−0.1331</td><td><strong>degrades</strong></td></tr>
+                <tr><td>32, trainable</td><td class="num">0.0605</td><td class="num">0.8105</td><td class="num">−0.7500</td><td>degrades</td></tr>
+                <tr><td>40, frozen</td><td class="num">0.7837</td><td class="num">0.9038</td><td class="num">−0.1202</td><td><strong>degrades</strong></td></tr>
+                <tr><td>40, trainable</td><td class="num">0.0184</td><td class="num">0.6715</td><td class="num">−0.6530</td><td>degrades</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <p>The stratified cross-scale statistic reads <span class="mono">T = 10.5/72</span> at 11 squarings (exact <span class="mono">p = 3.6×10⁻⁵</span>) and <span class="mono">T = 6.5/72</span> at <span class="mono">s* = 13</span> (exact <span class="mono">p = 9.5×10⁻⁷</span>) against a degradation bar of 19 — and unlike the capability curve, here the 6-stratum sensitivity <em>agrees</em> with the 8-stratum reading and leave-one-stratum-out survives <strong>8 of 8</strong>. This is the robust cross-scale degradation in the wave. <strong>It hits the frozen arm too</strong>, at K=32 and K=40; frozen K=16 and K=24 stay stable. Stated plainly: the deep tail of the O(log <em>h</em>) read is worse at 392M, and freezing does not exempt it.</p>
+
+        <h3>(b) The trainable arm's capability degrades at K ≥ 32</h3>
+
+        <p>§05's interaction, read as a cross-scale verdict: SCALE-DEGRADES at K=32 trainable (−0.1169) and K=40 trainable (−0.1442). Both cells also fail the κ ≥ 0.90 capability gate at 392M.</p>
+
+        <h3>The gate, stated as the design states it</h3>
+
+        <p>The token budget is held fixed while parameters quadruple (§01), so a 392M cell sits 4× further from compute-optimal than its 98M counterpart. The design's rule, written before the wave and unconditional on which K it lands at:</p>
+
+        <pre><code>No SCALE-DEGRADES verdict — on any curve, at any K, from calibration
+or from the sweep — is published without a step-extension attribution
+arm at the degrading K: 2 cells (frozen, seeds 0-1) at 40,000 steps.
+If the doubled-token cells recover to kappa >= 0.90, the verdict is
+TOKEN-BUDGET-LIMITED, not scale-fragile, and is reported as such.
+If they do not, SCALE-DEGRADES stands and is strengthened by the control.</code></pre>
+
+        <p><strong>That arm has not run. Both degradations above are therefore marked PENDING the mandatory extended-steps attribution control, and neither is a scale-causal claim on this page.</strong> The confound is one-directional — under-training can only produce a degradation, never stability and never improvement — which is why the same caveat attaches to nothing else here: the capability result (§02), the wall (§03) and the ordering (§04) are all either stable, absolute, or within-scale comparisons where both arms share the budget. It is the honest shape of the evidence, not a hedge: <em>the things that got better or stayed the same are confound-clean; the things that got worse are not yet attributed.</em></p>
+
+        <h2><span class="num">07</span>What the gauntlet caught, and what the wave cost</h2>
+
+        <p>The design went through <strong>five rounds</strong> — an initial draft, an adversarial attack round, a revision, an independent verification round, and a second revision — surfacing <strong>four FATAL-class defects, all discharged</strong> before a GPU was touched. Two are worth naming because of what they would have cost:</p>
+
+        <ul>
+            <li><strong>A pricing ratio computed across two incompatible instruments.</strong> The pre-launch cost gate divided a fixed-length timing probe by a realized wall-clock figure — two instruments this program's own archive measures as 1.55× apart, because per-arm synchronization kills pipelining. The computed ratio would have landed at 5.39–6.20 against an abort threshold of 5.0, across the <em>entire</em> plausible range: the wave would have aborted itself for a reason that was an artifact of the measurement. The fix was a like-for-like probe-÷-probe ratio, purchased with two 98M timing probes costing ≈0.02 GPU-h. The defect was <em>created</em> by a fix adopted one round earlier — which is the case for having a verification round at all.</li>
+            <li><strong>A recorder that would have logged half the parameter count.</strong> The build caught a provenance constant carried over from the 98M configuration that would have written half the true integrator parameter count into every 392M record. The corrected values are visible in the raws and are exactly double the 98M ones at every K (52,224 / 76,800 / 101,376 / 125,952 against 26,112 / 38,400 / 50,688 / 62,976), as the width doubling requires.</li>
+        </ul>
+
+        <p>The independent build audit then returned <strong>PASS-LAUNCH-RELEASED</strong> with 0 FATAL, 5 MAJOR, 7 minor and 2 process findings, having re-executed every number in the build — most reproduced bit-identically. Its most useful finding was pre-emptive: an archived timing pin was stale by 46.5%, which it recorded <em>before</em> the pre-launch measurement stage ran, so that the expected cross-check failure would read as a stale baseline rather than a live fault. It also found, for the third time in this codebase, an inverted instrument identification in a design document — a recurring defect class now tracked as such.</p>
+
+        <p>The launch was gated on measurement, not on argument. A pre-launch stage measured the real per-step costs on the real hardware: eight-way homogeneous contention came back at <strong>R₈ = 1.0026</strong> (0.478638 s/step under 8-way occupancy against 0.477414 solo — contention-free for this wave, resolving an older 5.5× anomaly as a heterogeneous-mix artifact), and the 392M-vs-98M per-step ratio came back at 3.899 at K=24 and <strong>4.4725 at K=40</strong>, inside the pre-registered (4.0, 4.5] miss band and therefore recorded as a miss rather than quietly absorbed. The audit's own pre-registered prediction for that number — ≈3.89 — was itself a miss, and is recorded as one.</p>
+
+        <p>Then a six-cell calibration gate at K=24 had to clear three legs before the other 18 cells were allowed to exist. It did: cross-entropy 10.903–11.223 → 3.772–4.585, finite, all six <span class="mono">COMPLETED</span> at 20,000 steps; in-distribution κ = 1.000 at h ∈ {1,2,3} in all six; deep κ at the top rung 0.9959 / 0.9959 / 0.9959 (frozen) and 0.9878 / 0.9674 / 0.9837 (trainable) against a bar of 0.90. A reconciliation rule the build audit had inserted — <em>if the first calibration cell's realized cost diverges from the priced ratio by more than 15%, re-enter the pricing gate</em> — <strong>fired at −18.4%</strong> and re-priced the wave downward before the sweep was released.</p>
+
+        <p>The runs were uneventful. <strong>24 of 24 training cells COMPLETED at step 20,000, 0 failures</strong>, and 50 evaluation cells (24 breadth batteries, 24 depth-extension cells, 2 independent-draw re-measures), 0 failures. Measured cost, summed cell by cell from each record's own <span class="mono">gpu_h</span> field: <strong>81.415 GPU-h</strong> of training — 13.791 at K=16, 17.207 at K=24, 22.817 at K=32, 27.601 at K=40 — plus <strong>0.461 GPU-h</strong> across all 50 eval cells. Against the priced headline ledger of 110.91 GPU-h (99.78 priced for training alone), the realized training figure is <strong>18.4% under</strong> — the reconciliation rule's own number, landing exactly. Per cell, the 392M cells cost 2.87×, 3.97× and 4.07× their 98M counterparts at K=16, 32 and 40 respectively, at 4.008× the parameters.</p>
+
+        <p>One bookkeeping correction belongs here rather than in a footnote, under the same house rule that produced the two previous corrections on this program. The run log recorded the wave at "≈69 GPU-h", a figure that extrapolated the K=24 calibration cell's cost to all 18 sweep cells. Per-cell cost scales with sequence length, and sequence length scales with K, so the true sum is <strong>81.415 GPU-h</strong>. The number on this page is recomputed from the per-cell records; the log's projection is superseded.</p>
+
+        <h2><span class="num">08</span>Limitations — read before citing</h2>
+
+        <ul>
+            <li><strong>P1b is exact teacher-forced operator substitution, not a learned write.</strong> Every capability number here is measured with the operator computed in closed form from the true binding and fed into the trained checkpoint's own read path. It is a read-path capability result. The same checkpoints' own writes are §03's wall, and they are at chance.</li>
+            <li><strong>Both SCALE-DEGRADES results are pending their attribution control.</strong> The token budget is fixed across scales, so tokens-per-parameter falls from 1.87 to 0.47 at K=40. Under-training can only manufacture a degradation. The design mandates a 40,000-step control at the degrading K before any of it is published as a scale claim, and that control has not run. Nothing in §06 should be cited as "the capability is scale-fragile."</li>
+            <li><strong>Two model sizes is not a scaling law.</strong> 98M and 392M are two points. "Survives 4× scale" is exactly and only what was measured; it does not extrapolate to 1B, and no slope on this page is fitted.</li>
+            <li><strong>Four breadths, not eight.</strong> K = 16, 24, 32, 40 of no. 19's eight are ported. K=12, 20, 28 and 36 have no 392M counterpart, and the K=44 probe is construction-impossible in the matched squaring band (3K/2 ≤ 63) — a design limit, not a capability limit, and nothing here speaks to K ≥ 44.</li>
+            <li><strong>Three seeds per (K, recipe, scale).</strong> A per-K Mann–Whitney on 3 vs 3 has a minimum attainable two-sided p of 0.10, so no per-K significance claim is made or is possible; that is why every test here is stratified across K. Disclosed in the design, not discovered at harvest.</li>
+            <li><strong>The K=24 stratum is the residual in the cross-scale test.</strong> Its 98M cells are an eval-only anchor trained under an older runner and re-scored onto this ladder. The design pre-registered the sensitivity that drops it and the rule that the 6-stratum verdict governs on disagreement — which is exactly the case that occurred in §02, and it is reported as the headline instrument note rather than buried.</li>
+            <li><strong>The 8-stratum capability reading is tie-heavy and fragile.</strong> 14 of 72 pairs are exact ties (the ceiling effect), and it survives only 4 of 8 leave-one-stratum-out subsets. The governing verdict is the 6-stratum one; the 8-stratum number is reported because the design required both, not because it is the stronger instrument.</li>
+            <li><strong>"No detectable shift" is not "no shift."</strong> It is the pre-registered band's label for a result inside the noise floor at this seed count and this stratum count. Per-K, 6 of 8 cells sit within ±0.05 and 2 do not.</li>
+            <li><strong>The ordering result is a 4-stratum test.</strong> Finding no. 19 resolved the analogous fragility by extending to 8 strata; that resolution is unavailable here because only four K are ported. The design compensated by raising the confirmation threshold above the reference's own reading (T &gt; 31.5) rather than by pretending the instrument is stronger than it is. 36/36 is the ceiling of the statistic, so it cannot be more than "perfect at this resolution."</li>
+            <li><strong>A synthetic entity-binding task grafted into a real LM.</strong> The construction exists to exercise the NCR head. Nothing here claims the backbone uses this circuit in ordinary language modelling.</li>
+            <li><strong>d = K+1 co-varies with K throughout.</strong> The variable is the pair, never K alone. §05's interaction is an interaction between parameter scale and <em>the pair</em>.</li>
+            <li><strong>One eval seed for the curves of record</strong> (90210, n=256); the two re-measures use 31337. Seed variation is across training checkpoints, not across eval draws.</li>
+            <li><strong>The deepest wall reading is within-392M only.</strong> The 24-of-24 in-band result at 15 squarings is labelled in every record as not comparable to the archived 98M P0 at 11 squarings.</li>
+        </ul>
+
+        <h2><span class="num">09</span>Reproducibility</h2>
+
+        <p>Raw archives, repo and SSD: <span class="mono">experiment-runs/2026-08-22_scaleaxis_a0/</span> (the pre-launch timing and contention stage — the solo and 8-way <span class="mono">phase0-timing</span> records behind R₈ and the cross-scale ratios); <span class="mono">…/2026-08-22_scaleaxis_sweep/</span> (24 training records with per-cell <span class="mono">gpu_h</span>, <span class="mono">loss_history</span> and the read-ablation / same-operator / teacher-force integrity checks, plus the 24 <span class="mono">calib_*</span> and <span class="mono">sweep_*</span> battery outputs); and <span class="mono">…/2026-08-22_scaleaxis_stagec/</span> (the 24 <span class="mono">depthext6_392m_*</span> depth-extension cells, the two <span class="mono">remeasure_*</span> independent-draw re-reads, the 98M reference batteries and depth re-scores it compares against, <span class="mono">aggregate_stagec.py</span> and its <span class="mono">TABLE.txt</span>). The 98M references are the breadth chapter's own archives — <span class="mono">…/2026-08-22_kscaling_sweep/</span>, <span class="mono">…_kscaling_wave0/</span> and <span class="mono">…_kscaling_frontier/</span> — and the copies carried into the Stage-C directory were verified byte-identical to those originals before any comparison was run.</p>
+
+        <p>Every number on this page and every point in fig 1 is recomputed from those per-cell JSONs — <span class="mono">matched.P1b</span> and <span class="mono">matched.P0</span>, field <span class="mono">acc</span>, per hop, with κ derived from K — never from a harvest summary and never from prose. The figure is regenerated from the raws by <span class="mono">pebble-ai-site/assets/plots/generate_ncr_scale_axis.py</span>, which asserts the cell count, the checkpoint step, the <span class="mono">d = K+1</span> mapping, the 5-squaring top rung and the six-rung squaring profile before it plots anything, and which asserts the four headline ordering statistics against the record. Design, pre-registered bands, verdict partitions and the attribution-arm rule: <span class="mono">matrix-thinking/NCR_SCALE_AXIS_DESIGN.md</span>, with the adversarial rounds at <span class="mono">NCR_SCALE_AXIS_ATTACK_R1.md</span> and <span class="mono">NCR_SCALE_AXIS_VERIFY_R2.md</span>. Novelty gate: <span class="mono">research/scale-axis-novelty-2026-08-22.md</span> (cleared 3/3 — internal archive, by-mechanism and by-task sweeps — before the design was written). Verdicts of record: <span class="mono">EXPERIMENT_LOG.md</span> entries 2026-08-22 #10 through #21 — #12/#14 (the attack and verification rounds), #16 (build and the 98M six-rung re-score that elected s*=13), #17 (build audit), #18 (the pre-launch measurement stage), #19 (calibration harvest and the β reconciliation), #20 (sweep training complete) and <strong>#21</strong> (the Stage-C verdict of record). Arm labels are read from each checkpoint's own recorded training config, never inferred from cell names; every cell was verified at <span class="mono">ckpt_step</span> 20,000 and at <span class="mono">d_ncr == K+1</span> before scoring.</p>
+
+        <div class="references">
+            <h2>References</h2>
+            <ol>
+                <li>See <a href="ncr-breadth-scaling.html">finding no. 19, "The breadth curve: exact composition holds from K=12 to K=40, and the learning gap widens"</a> — the 98M base this wave ports, and the source of every 98M reference number here. Four of its eight breadths carry over; its verdicts were frozen before any 392M cell ran.</li>
+                <li>See <a href="ncr-depth-robustness.html">finding no. 18, "Full coverage of the cycle, a graded depth cost, and what freezing actually buys"</a> — the floating-point depth cost in the O(log <em>h</em>) read that §06(a) extends across scale, and the graded freeze ordering that §04 finds saturated at 392M.</li>
+                <li>See <a href="ncr-write-conditioning.html">finding no. 17, "Write conditioning: the read path composes 61 hops exactly — SGD never learns the write"</a> — the original read-path-versus-write-path dissociation, and the P1b/P0 instrument used unchanged here.</li>
+                <li>See <a href="write-geometry-attractor.html">finding no. 09, "The write-geometry attractor"</a> — this program's own hard prior that the relevant pathology worsens monotonically with scale, which is why a scale-up was treated as a test of the failure mode as much as of the capability, and why the pre-registration made degradation the confounded outcome rather than the surprising one.</li>
+            </ol>
+        </div>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>
