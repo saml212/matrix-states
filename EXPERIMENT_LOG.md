@@ -11546,3 +11546,36 @@ pivot = NEW CLAIM per the novelty re-verification doctrine — both
 external legs re-dispatched scoped to the scale framing.
 
 ## 2026-08-22 #11 — 392M scale-axis novelty gate ADJUDICATED CLEAR 3/3 (internal feasibility + by-mechanism NOVEL + by-task NOVEL; all citations verified; memo research/scale-axis-novelty-2026-08-22.md). DRAFT-R0 design in flight; attack round dispatches on its landing.
+
+## 2026-08-22 #12 — 392M design ATTACK R1: REV-REQUIRED (3 FATAL-class / 7 MAJOR / 8 minor; arithmetic core survived all re-derivation — every FATAL is inferential/operational with a verified-feasible fix). Revision dispatched.
+
+FATALs of record: (F1) §6.1 imported the h_top-era magnitude+rank
+conjunction into the depth readout — applied to its own 98M
+reference it returns ORDERING-NEGLIGIBLE (median gap 0.0426 ≤
+0.05), contradicting #4/#8 (declared on rank alone) and making
+ORDERING-SCALE-STABLE unreachable by construction; fix = drop the
+magnitude leg at depth. (F2) SCALE-IMPROVES arithmetically
+unreachable at 15/16 per-K cells incl. 7/8 on the readout §5.5
+claims is powered for it; fix = extend depth-ext to squarings
+{13,15} on BOTH scales (all 42 98M ckpts verified still on
+/ephemeral; ~0.1 GPU-h); seed-pairing checked and does NOT rescue.
+(F3) §7.2 branch (B) keys off an in-run κ trajectory that (a) the
+runner overwrites at each eval, (b) blind discipline withholds,
+(c) is P0-regime anyway; fix = --ckpt-every 5000 + offline battery.
+Highest-value MAJOR: use the runner's own --mode phase0-timing
+(solo K=24/K=40 + contended probes, ~0.2 GPU-h) to retire the lead
+cost risk AND measure the 5.5× co-tenancy anomaly directly,
+replacing the 6 GPU-h hand-rolled pricing; §4.4's halt currently
+fires ~140 GPU-h too late; §3.6's 1.5× ceiling contradicts the
+runner's CONTENDED_MULTIPLIER=3.3. Other MAJORs adopted into the
+revision brief: token-budget one-directionality claimed as a
+strength w/ disclosure; TEST-W 98M reference fragility (0.5-pair
+margin, 2/4 LOSO fail) must be stated; memory model 2× low on the
+two-arm fp32 term; idle_fallback_daemon.sh is exactly the
+co-tenant R2 forbids — disable-during-wave step required;
+MIN_KERNEL_T=128 measured only at d_state=64 while ported K=16
+sits on the boundary — smoke must cover it. Elections adopted:
+ELECT the K=24 sextet; ratify R>5.0 at a new Stage A0; add K=40
+price; do NOT ratify 1.5×-solo or δ_depth=0.10 as-is. FIFTH
+injection sighting (same fake date-change/concealment pattern)
+disregarded and reported.
