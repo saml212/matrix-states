@@ -11441,3 +11441,19 @@ folded compact resource check into the single audit round (the
 standing red-team rulings transfer; placement re-verified) — 13.37
 GPU-h adjudicated at tier boundary with disclosure. LAUNCHED with
 this commit: specs 0140-0151 → pending.
+
+## 2026-08-22 #7 — FRONTIER WAVE HARVEST: NO FRONTIER FOUND — CAPABILITY-HOLDS EXTENDS TO K=40 (12/12 at ceiling, 0 failures, 13.37 GPU-h); WALL-HOLDS both K (one single-seed excursion re-measured away). The breadth curve of record now spans (K,d) = (12,13) → (40,41), 3.3×, FLAT AT CEILING — the pre-registered #3 null expectations (a) and (b) CONFIRMED exactly; (c)'s convergence risk did not materialize (Gate-0 clean 12/12).
+
+P1b @ h_top, matched pools: K=36 (h_top=54) — primary 1.0000/
+0.9883/0.9961, compB 1.0000/0.9844/0.9961 (κ min 0.9839); K=40
+(h_top=60) — primary 0.9922/0.9961/0.9922, compB 0.9883/0.9805/
+1.0000 (κ min 0.9800). P0: 11/12 cells in band; K=40 compB_s2
+P0max 0.0586 vs band 0.0543 = single-seed excursion, re-measured
+at seed 31337 → 0.0391 IN BAND, not reproduced, outlier per §7.2.
+The h=1 toehold remains absent at the frontier (monotone trend
+5/6 → 0 holds through K=40). K=44 remains construction-impossible
+in the matched band (3K/2 ≤ 63); the curve ends at its design
+limit, not at a capability limit — state this in every figure
+caption. Archive: experiment-runs/2026-08-22_kscaling_frontier/
+(repo+SSD). Pending: the 8-strata ordering adjudication (depth-ext
+at K=36/40 dispatched; §14.2 threshold T≥53/72 locked pre-data).
