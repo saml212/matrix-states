@@ -11544,3 +11544,5 @@ decides, with the step-5000-vs-20000 mid-run tripwire borrowed from
 §12.5. Critical path fits the window with 2-3 days margin. Scale
 pivot = NEW CLAIM per the novelty re-verification doctrine — both
 external legs re-dispatched scoped to the scale framing.
+
+## 2026-08-22 #11 — 392M scale-axis novelty gate ADJUDICATED CLEAR 3/3 (internal feasibility + by-mechanism NOVEL + by-task NOVEL; all citations verified; memo research/scale-axis-novelty-2026-08-22.md). DRAFT-R0 design in flight; attack round dispatches on its landing.
