@@ -1,0 +1,385 @@
+#!/usr/bin/env python3
+"""Generate the 24 SCALE-AXIS job specs -- NCR_SCALE_AXIS_DESIGN.md DRAFT-R2
+sec 4.1 (the calibration SEXTET), sec 4.5 (the sweep) and sec 8.3 (SPEC NAMING
+IS THE SCHEDULE CONTROL).
+
+  calibration sextet   K=24 x {primary, compB} x seeds 0,1,2   ids 0190-0195
+  sweep                K in {40, 32, 16} x 2 x 3               ids 0200-0217
+
+NOTHING HERE IS QUEUE-ELIGIBLE.  Every spec is CANDIDATE-marked. The sextet is
+double-gated on (a) the build audit and (b) Stage A0's Rules P1-P4 having been
+applied to MEASURED numbers; the 18 sweep cells are triple-gated, adding (c)
+the LICENSE_SWEEP_SCALEAXIS sentinel from sec 7.2 branch (D).
+
+SPEC NAMING IS A LOAD-BEARING SCHEDULING DECISION (sec 8.3, verify-R2 MAJOR-3).
+queue_worker.sh:119 claims by `for f in $(ls "$PENDING" | sort)` -- dispatch
+order is LEXICOGRAPHIC FILENAME ORDER, so filenames ARE the control surface.
+R1's pinned shortest-first was the WORST natural order (10.842 h); the design
+pins LONGEST-FIRST -- 0200-0205 = K=40, 0206-0211 = K=32, 0212-0217 = K=16 --
+for 10.194 h. The 9.021 h mixed order is an ELECT-or-DECLINE the build round
+DECLINES here (it buys 1.17 h of wall at the cost of a numbering scheme nobody
+can read at a glance, and the worker's own 60 s busy-poll makes 9.03-vs-9.02
+spurious precision anyway); `--elect-mixed-order` implements it if elected.
+
+The sextet takes 0190-0195 so it sorts BEFORE every sweep spec: Stage A runs
+FIRST AND ALONE and its verdict licenses Stage B, so a sweep spec must never
+be claimable while a calibration spec is pending.
+
+ID COLLISION.  Verified on the box 2026-08-22 against ~/queue/{completed,
+pending,failed,parked_k24plus}: zero ids in 0190-0217 (the K-scaling wave used
+0100-0151). Asserted again at generation time from --queue-ids if supplied.
+
+--ceiling-gpuh (sec 3.6, MAJOR-1(b,c)).  R0's 1.5x-solo rule is REPLACED: it
+contradicts the runner's own CONTENDED_MULTIPLIER = 3.3 and would hard-abort
+every cell under any contention above 1.5x. The pinned value is
+1.5 x (per-cell projection at Stage A0's MEASURED contended rate), falling back
+to the runner's own suggested_ceiling_gpuh (3.795 x solo) -- NEVER a hand-picked
+number, and never the as-run 6.0 (a landmine above ~5.3x at 392M).
+Until Stage A0 has run, specs generated with the default carry
+ceiling_provenance = "PROJECTED-NOT-LAUNCH-READY" and are explicitly not
+queue-eligible on that ground alone. --ceilings-from <dir of phase0 JSONs>
+re-derives them from measurement.
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import json
+import os
+import sys
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+os.environ.setdefault("NCR_SCALE", "392m")
+os.environ.setdefault("NCR_K", "24")
+# The generator reads the SCALEAXIS TREE's own kscaling_config -- never the
+# kscaling tree's -- so the ladder table, the sec 3.4 param formulas and the
+# scale resolution a spec asserts are the ones the cell will actually run
+# under. On the box the tree IS this directory; from the repo mirror, point
+# SCALEAXIS_TREE at a freshly patched copy.
+_TREE = os.environ.get("SCALEAXIS_TREE", _HERE)
+sys.path.insert(0, _TREE)
+import kscaling_config as KS   # noqa: E402  (the scaleaxis tree's own copy)
+assert KS.SCALE == "392m" and KS.RUNG == 2, (KS.SCALE, KS.RUNG)
+assert os.path.dirname(os.path.abspath(KS.__file__)) == os.path.abspath(_TREE), KS.__file__
+
+OUT = os.path.join(_HERE, "job_specs")
+PY = "/home/nvidia/tdenv/bin/python3"
+WORKDIR = "/home/nvidia/ncr_scaleaxis"
+EPH = "/ephemeral/scaleaxis"
+SCALE = "392m"
+
+CALIB_K = 24
+SWEEP_K_LONGEST_FIRST = (40, 32, 16)      # sec 8.3's pinned dispatch order
+SEEDS = (0, 1, 2)
+
+RECIPES = {
+    "primary": dict(
+        label="FROZEN-contrastive (primary recipe)",
+        flags="--aux-loss-type contrastive+cosine --freeze-entity-adapter "
+              "--contrastive-temperature 0.07"),
+    "compB": dict(
+        label="TRAINABLE-contrastive (compB recipe)",
+        flags="--aux-loss-type contrastive+cosine --contrastive-temperature 0.07"),
+}
+
+# sec 3.5: THE RECIPE IS NOT A VARIABLE HERE EITHER; THE BACKBONE IS.
+# Held at the audited K-scaling values, verbatim, EXCEPT --ckpt-every (sec 4.3.2)
+# and --ceiling-gpuh (sec 3.6), both of which are stated per tier below.
+COMMON = ("--mode calibration --device cuda --steps 20000 --batch-size 32 "
+          "--eval-batch-size 64 --warmup-steps 200 --lr 3e-4 "
+          "--aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --eval-every 1000")
+
+# sec 8.2's MEASURED 98M per-cell gpu_h (means over the archived cells' own
+# gpu_h fields -- NOT the EXPERIMENT_LOG headline projections).
+GPU_H_98M_MEASURED = {16: 0.8019, 24: 0.8271, 32: 0.9583, 40: 1.1309}
+PROJECTION_MULT = 3.75          # sec 8.2's central column; UNVERIFIED FOR THE GRAFT
+CEILING_MULT = 1.5              # sec 3.6 breaker 1: 1.5 x the CONTENDED projection
+
+
+def gpu_h(k: int, r: float = PROJECTION_MULT) -> float:
+    return round(GPU_H_98M_MEASURED[k] * r, 3)
+
+
+def ceiling(k: int, contended_gpuh: dict | None) -> tuple[float, str]:
+    if contended_gpuh and k in contended_gpuh:
+        return (round(CEILING_MULT * contended_gpuh[k], 3),
+                f"MEASURED: 1.5 x Stage-A0 contended projection ({contended_gpuh[k]:.3f} GPU-h)")
+    # Fallback, sec 3.6: the runner's OWN convention, 3.3 (CONTENDED_MULTIPLIER)
+    # x 1.15 = 3.795 x solo. Applied to the PROJECTED solo cost, so it is a
+    # projection of a projection and is labelled as such.
+    return (round(3.795 * gpu_h(k), 3), "PROJECTED-NOT-LAUNCH-READY: 3.795 x projected solo "
+                                        "(the runner's own suggested_ceiling_gpuh convention); "
+                                        "MUST be re-derived from Stage A0 before queueing")
+
+
+HYP = (
+    "NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 -- THE 392M SCALE AXIS. Cell: K={K} (d={d}, the PAIR is "
+    "the variable), {label}, seed {seed}, backbone RUNG 2 (d_model=1536, d_state=128, "
+    "n_layers=16) -- 4.008x the 98M rung-1 cells at MATCHED (K, d), MATCHED recipe and MATCHED "
+    "20,000 steps. HYPOTHESIS (sec 1): the capability separation established at 98M -- exact-write "
+    "composition reads at ceiling (P1b kappa >= 0.90 at h_top), the model's OWN learned writes "
+    "pinned at chance (P0 in the per-K binomial band), and the frozen-over-trainable ordering "
+    "emerging at depth -- is SCALE-STABLE at 392M across K in {{16,24,32,40}}. Falsifiable in "
+    "BOTH directions and both directions are the same paper (sec 1): SCALE-DEGRADES is a measured "
+    "negative slope in a scaling law for an exact-composition capability; SCALE-IMPROVES is a "
+    "positive one; SCALE-STABLE says the separation is a property of the mechanism, not of the "
+    "operating point. THE TOKEN-BUDGET CONFOUND IS ONE-DIRECTIONAL AND THAT IS A STRENGTH: steps, "
+    "batch and t_in are held fixed, so this cell sees the SAME tokens as its 98M twin while "
+    "carrying 4x the parameters (D/N falls 1.87 -> 0.47 tokens/param at K=40). Under-training can "
+    "only manufacture DEGRADES; it cannot manufacture STABLE and it cannot manufacture IMPROVES. "
+    "Accordingly the step-extension attribution arm (2 cells @ 40,000 steps at the degrading K) is "
+    "MANDATORY BEFORE ANY PUBLISHED SCALE-DEGRADES VERDICT AT ANY K (sec 7.2, MAJOR-4). "
+    "Primary readout: P1b kappa at h_top={htop} (residue {htopres} = K/2, the ANTIPODAL point of "
+    "the K-cycle), matched pools, n=256, base seed 90210, ckpt_step == 20000. Both regimes scored "
+    "on every cell: P1b = EXACT-WRITE (teacher-forced operator; the READ is under test) = the "
+    "CAPABILITY curve; P0 = LEARNED-WRITE = the WALL curve, predicted inside the per-K binomial "
+    "band around chance = 1/{K} = {chance:.4f} (band {band}). Ladder {ladder}, residues {res} -- "
+    "6 distinct, none 0, none in the train residues {{1,2,3}}, squaring profile (2,3,4,4,5,5) "
+    "IDENTICAL to 98M, so the cross-scale comparison is instrument-matched; the ladder is a "
+    "number-theoretic function of K alone and is UNCHANGED by the port (sec 3.5). "
+    "Fixed-effective-distance control h_fix={hfix} (residue 4 at every K, same squaring count as "
+    "h_top). PARAM COUNT {params:,}/arm, from sec 3.4's formula VALIDATED AGAINST FOUR MEASURED "
+    "ENDPOINTS; the K=16..40 spread at 392M is 0.0204% (vs 0.051% at 98M) and the scale ratio is "
+    "4.008x uniform across K to four significant figures -- so this is a param-matched curve at "
+    "both scales AND at matched parameter RATIO, not a capacity curve in disguise. t_in={tin} "
+    "(doc_left_pad={pad}). 98M REFERENCE FOR THIS CELL, frozen before any 392M cell existed "
+    "(sec 2.1): P1b kappa@h_top median {ref98:.4f} across seeds. Equivalence margin delta=0.05 "
+    "(sec 5.2), which exceeds the largest within-(K,recipe) seed range of record (0.0292). "
+    "{tier_note}")
+
+CAL_TIER_NOTE = (
+    "THIS CELL IS ONE OF THE SIX CALIBRATION CELLS (sec 4.1, election 2: the FULL K=24 SEXTET, "
+    "adopted). K=24 is elected for three pre-stated reasons: it is the CENTRE of the ported range "
+    "so the license generalizes in both directions; it has the largest 98M evidence base (the "
+    "55-cell g3b31 family plus the 6-cell anchor re-score) so a 392M anomaly there is maximally "
+    "diagnosable; and its t_in=174/pad=0 make it BYTE-IDENTICAL to the pinned document "
+    "construction, so a calibration failure cannot be a padding artifact. The six cells ARE six "
+    "of the 24 -- the whole K=24 stratum -- so they are NOT extra cost and there is no "
+    "conditioned-vs-unconditioned split to report (sec 4.1 m8, dissolved). LICENSE-SWEEP requires "
+    "all three legs on the FROZEN cells: (1) Gate-0 convergence on ALL THREE frozen seeds; "
+    "(2) P1b kappa >= 0.90 at train hops h in {1,2,3} on >= 2/3 frozen seeds; (3) P1b kappa >= "
+    "0.90 at h_top(24)=36 on >= 2/3 frozen seeds. The TRAINABLE cells do NOT gate -- they price "
+    "the trainable recipe at 392M and give sec 5.3's tests their K=24 stratum early. "
+    "--ckpt-every 5000 (not the as-run 10000) is LOAD-BEARING: it is the ONLY instrument for the "
+    "P1b kappa trajectory branch (B) reads (FATAL-3: there is NO in-run P1b kappa at any step, at "
+    "any scale, in this harness -- the eval record is overwritten, withheld from stdout, and P0-"
+    "regime anyway). kappa_reader.py (B7) hardlinks the single ckpt path at each write, reads its "
+    "step, and invokes the battery at that --required-step. Cost of the extra writes: ~0.7% of a "
+    "cell, disclosed so the re-price is not read as graft overhead.")
+
+SWEEP_TIER_NOTE = (
+    "THIS CELL IS ONE OF THE 18 SWEEP CELLS (sec 4.5). K in {12,20,28,36} are deliberately NOT "
+    "ported: given FATAL-2 the binding constraint on this design is READOUT HEADROOM, not K "
+    "resolution (election 4, ratified), and sec 4.6's depth extension is what buys the headroom. "
+    "The four chosen K include the smallest ported (16, the only one with a non-zero pad) and the "
+    "largest of record (40 -- K=44 is construction-impossible: an antipodal top rung needs "
+    "3K/2 <= 63). HARD PRE-SWEEP GATE ON K=16 (sec 4.5, sec 3.2 item 19): no K=16 spec may be "
+    "queued until Stage A0.2 has shown, at the 392M mixer config, that chunk_delta_rule's backward "
+    "floor is still <= 128 -- K=16's t_in is EXACTLY 128, zero margin, and MIN_KERNEL_T = 128 was "
+    "MEASURED AT d_state = 64 ONLY.")
+
+NOTES = (
+    "CANDIDATE -- NOT queue-eligible. {gates} "
+    "Built by the 392M SCALE-AXIS BUILD agent 2026-08-22 against repo commit 331f8d7 and design "
+    "NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 (commit 2aca91d, DESIGN PHASE CLOSED after 5 gauntlet "
+    "rounds). PATCHED COPIES in /home/nvidia/ncr_scaleaxis, produced by patch_scaleaxis.py from "
+    "md5-PINNED sources (K-scaling patched graft 74ee84fc920b024901d11add66cc5c2d, K-scaling "
+    "patched runner ee5833743049e1bb1864124ad5d3fbf6, kscaling_config "
+    "eaddd0411fd1cdaaa6028735023c1b99, battery of record 5735c788563d9a21f2198c9f5b4793d5, "
+    "depthext_eval e95ffe192c66d3e054f3febc37fe4a91). BUILD REQUIREMENT B4 is discharged: the "
+    "GRAFT md5 is now a hard-pinned constant (patch_kscaling.py pinned only the runner and the "
+    "graft md5 lived in gen_job_specs.py PROSE), with a proven-teeth negative test. The ULTIMATE "
+    "pinned originals in ~/ncr_g3b31_contrastive are UNTOUCHED and re-verified (runner "
+    "9a93198b642242f512ff8489e32b0a53, graft bc105af69661e488ff95f5046e2bcd8a). "
+    "THE PORT IS ONE DICT (sec 3.1): RUNG1_BACKBONE 768/64/12 -> 1536/128/16, resolved from "
+    "kscaling_config's RUNGS table via the mandatory NCR_SCALE env var; BACKBONE_PARAM_TARGET "
+    "moves with it (98e6 -> 392e6, sec 3.2 item 17) or the 15% gate fires on a CORRECT build. "
+    "NCR_K, --k and --scale are all present and the runner asserts all three against the RESOLVED "
+    "backbone dict before any GPU work. RUNNER_TAG = ncr_scaleaxis_runner_v1, so a 392M checkpoint "
+    "can never be silently resumed by or confused with a 98M cell. B5's scale guard is in BOTH "
+    "scorers with a proven-teeth negative test (a 98M checkpoint under the 392M config is "
+    "REFUSED), because restore_arms_and_opts rebuilds from ckpt['backbone_config'], NOT from "
+    "RUNG1_BACKBONE, so a wrong-SCALE checkpoint at the right K would otherwise load and score "
+    "SILENTLY. Per-cell isolation is the queue's own -- one cell per spec, a failure routes to "
+    "failed/ and is not auto-retried. Checkpoints go to /ephemeral (NEVER the root fs). Placement "
+    "1 cell/GPU per the standing declined-packing ruling. Scored afterwards by kscaling_battery.py "
+    "(matched pools from the checkpoint's OWN recorded seed; refuses unless recorded d_ncr == K+1 "
+    "AND the recorded backbone matches this scale). CEILING PROVENANCE: {ceilprov}")
+
+GATES_CAL = ("DOUBLE-GATED: (a) the build audit passes, AND (b) Stage A0's Rules P1-P4 (sec 4.4) "
+             "have been applied to MEASURED numbers -- R = phase0(392M)/phase0(98M) at K=24 AND "
+             "K=40 (like-for-like: verify-R2 FATAL-1 showed R1's cross-instrument ratio was "
+             "1.5500x inflated and would have aborted the wave across its ENTIRE predicted "
+             "range), R_8 from 8 concurrent probes, the P4 memory reading and the SM sampler. "
+             "R > 4.5 => COST-OUT to sec 4.4.1's publishable K=24 FROZEN TRIO. R_8 > 1.25 => do "
+             "not queue wave 1.")
+GATES_SWEEP = (GATES_CAL[:-1] + ", AND (c) the calibration sextet returns LICENSE-SWEEP "
+               "(sec 7.2 branch (D), the LICENSE_SWEEP_SCALEAXIS sentinel).")
+
+
+def validity(out_json: str, k: int, params: int) -> str:
+    """status/step + K identity + SCALE identity + the sec 3.4 PARAM COUNT +
+    the Gate-0 loss_history clause (the AUDIT_R2 L1 form: control arm logged,
+    UNGATED). A mislabelled, wrong-scale or non-converged cell fails its OWN
+    validity check and routes to failed/ instead of entering a curve."""
+    lad = list(KS.LADDER_TABLE[k])
+    return (
+        f"{PY} -c \"import json, math; d=json.load(open('{out_json}')); "
+        f"assert d.get('status')=='COMPLETED', d.get('status'); "
+        f"assert d.get('step',0)>=20000, d.get('step'); "
+        f"assert d.get('runner_tag')=='ncr_scaleaxis_runner_v1', d.get('runner_tag'); "
+        f"ks=d.get('kscaling') or {{}}; "
+        f"assert ks.get('K')=={k}, ('K', ks.get('K')); "
+        f"assert ks.get('d_ncr')=={k+1}, ('d_ncr', ks.get('d_ncr')); "
+        f"assert ks.get('d_equals_k_plus_1') is True; "
+        f"assert ks.get('h_top')=={lad[-1]}, ('h_top', ks.get('h_top')); "
+        f"assert ks.get('deep_ladder')=={lad}, ks.get('deep_ladder'); "
+        f"assert ks.get('scale')=='{SCALE}', ('scale', ks.get('scale')); "
+        f"bb=ks.get('backbone') or {{}}; "
+        f"assert (bb.get('d_model'), bb.get('d_state'), bb.get('n_layers'))==(1536,128,16), bb; "
+        f"pp=d.get('params') or {{}}; "
+        f"assert pp.get('per_arm')=={params}, ('PARAM COUNT vs design sec 3.4', pp.get('per_arm')); "
+        f"lh=d.get('loss_history') or {{}}; "
+        f"assert set(lh)=={{'full_graft','backbone_only'}}, sorted(lh); "
+        f"assert len(lh['backbone_only'])>=100, len(lh['backbone_only']); "
+        f"h=lh['full_graft']; assert len(h)>=100, len(h); "
+        f"assert all(math.isfinite(r[1]) for r in h), 'non-finite CE in loss_history'; "
+        f"assert h[-1][1] < h[0][1], ('GATE-0 NOT CONVERGED', h[0], h[-1])\"")
+
+
+REF98_KAPPA_HTOP = {          # sec 2.1 CURVE 1 medians, frozen before any 392M cell existed
+    (16, "primary"): 1.0000, (16, "compB"): 0.9958,
+    (24, "primary"): 1.0000, (24, "compB"): 0.9878,
+    (32, "primary"): 0.9960, (32, "compB"): 0.9919,
+    (40, "primary"): 0.9920, (40, "compB"): 0.9880,
+}
+WALL_BAND = {16: [0.0171, 0.1079], 24: [0.0042, 0.0791],
+             32: [0.0000, 0.0639], 40: [0.0000, 0.0543]}
+
+
+def spec(job_id: str, k: int, recipe: str, seed: int, tier: str,
+         contended: dict | None) -> dict:
+    d, r = k + 1, RECIPES[recipe]
+    cell = f"scaleaxis392m_K{k}_{recipe}_s{seed}"
+    outdir = f"{EPH}/results"
+    out_json = f"{outdir}/{cell}.json"
+    lad = KS.LADDER_TABLE[k]
+    params = KS.TOTAL_PARAM_TABLE_392M[k]
+    ceil_v, ceil_prov = ceiling(k, contended)
+    ckpt_every = 5000 if tier == "calibration" else 10000
+    fields = dict(K=k, d=d, label=r["label"], seed=seed, chance=1.0 / k,
+                  htop=lad[-1], htopres=lad[-1] % k, hfix=KS.FIXED_DIST_TABLE[k],
+                  ladder=list(lad), res=[h % k for h in lad], band=WALL_BAND[k],
+                  tin=KS.t_in(k), pad=KS.doc_left_pad(k), params=params,
+                  ref98=REF98_KAPPA_HTOP[(k, recipe)],
+                  tier_note=CAL_TIER_NOTE if tier == "calibration" else SWEEP_TIER_NOTE)
+    cmd = (f"mkdir -p {outdir} {EPH}/ckpts && cd {WORKDIR} && "
+           f"NCR_SCALE={SCALE} NCR_K={k} {PY} ncr_lm_wave1_runner.py "
+           f"--k {k} --scale {SCALE} {COMMON} --ckpt-every {ckpt_every} "
+           f"--ceiling-gpuh {ceil_v} {r['flags']} "
+           f"--seed {seed} --cell-id {cell} --out {out_json} "
+           f"--ckpt-dir {EPH}/ckpts/{cell} 2>&1 | tee -a {outdir}/{cell}.log")
+    return {
+        "id": job_id, "lane": "NCR", "tier": f"scaleaxis_{tier}",
+        "hypothesis": HYP.format(**fields), "cmd": cmd,
+        "gpu_h_estimate": gpu_h(k), "output_dir": outdir,
+        "validity_check": validity(out_json, k, params),
+        "notes": NOTES.format(gates=(GATES_CAL if tier == "calibration" else GATES_SWEEP),
+                              ceilprov=ceil_prov),
+        "scaleaxis": {
+            "scale": SCALE, "rung": 2, "K": k, "d_ncr": d, "recipe": recipe, "seed": seed,
+            "params_per_arm_design_sec3_4": params,
+            "params_ratio_to_98m": round(params / KS.TOTAL_PARAM_TABLE_98M[k], 6),
+            "ckpt_every": ckpt_every, "ceiling_gpuh": ceil_v,
+            "ceiling_provenance": ceil_prov,
+            "gpu_h_projection_basis": f"sec 8.2 measured 98M {GPU_H_98M_MEASURED[k]} x "
+                                      f"{PROJECTION_MULT} (UNVERIFIED FOR THE GRAFT -- "
+                                      f"Stage A0 re-prices from measured R)",
+            "queue_eligible": False,
+            "gate": ("build audit + Stage A0 Rules P1-P4" if tier == "calibration" else
+                     "build audit + Stage A0 Rules P1-P4 + LICENSE_SWEEP_SCALEAXIS"),
+        },
+    }
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ceilings-from", default=None,
+                    help="dir of Stage-A0 phase0-timing JSONs; re-derives every --ceiling-gpuh "
+                         "from the MEASURED contended projection")
+    ap.add_argument("--queue-ids", default=None,
+                    help="file of existing queue ids (one per line) for the collision assert")
+    ap.add_argument("--elect-mixed-order", action="store_true",
+                    help="sec 8.3's 9.02 h ELECT-or-DECLINE; DECLINED by default")
+    args = ap.parse_args()
+
+    contended = None
+    if args.ceilings_from:
+        contended = {}
+        for p in sorted(glob.glob(os.path.join(args.ceilings_from, "*.json"))):
+            d = json.load(open(p))
+            if d.get("mode") != "phase0-timing":
+                continue
+            if (d.get("kscaling") or {}).get("scale") != SCALE:
+                continue
+            contended[int(d["config"]["K"])] = float(
+                d["projected"]["contended_gpuh_for_target_steps"])
+        assert contended, f"no 392M phase0-timing records found in {args.ceilings_from}"
+
+    os.makedirs(OUT, exist_ok=True)
+    written = []
+
+    # --- Stage A: the calibration SEXTET, ids 0190-0195 (sorts FIRST) -------
+    n = 190
+    for recipe in ("primary", "compB"):
+        for seed in SEEDS:
+            written.append(spec(f"{n:04d}_ncr_scaleaxis_392m_calib_K{CALIB_K}_{recipe}_s{seed}",
+                                CALIB_K, recipe, seed, "calibration", contended))
+            n += 1
+
+    # --- Stage B: 18 cells, LONGEST-FIRST naming (sec 8.3) ------------------
+    n = 200
+    for k in SWEEP_K_LONGEST_FIRST:                 # 40, 32, 16
+        for recipe in ("primary", "compB"):
+            for seed in SEEDS:
+                written.append(spec(f"{n:04d}_ncr_scaleaxis_392m_K{k}_{recipe}_s{seed}",
+                                    k, recipe, seed, "sweep", contended))
+                n += 1
+
+    ids = [s["id"][:4] for s in written]
+    assert len(written) == 24 and len(set(ids)) == 24, ids
+    assert ids[:6] == ["0190", "0191", "0192", "0193", "0194", "0195"], ids[:6]
+    assert ids[6:] == [f"{i:04d}" for i in range(200, 218)], ids[6:]
+    # sec 8.3: `ls | sort` must yield K=40 first, then K=32, then K=16.
+    order = [s["scaleaxis"]["K"] for s in sorted(written, key=lambda s: s["id"])[6:]]
+    assert order == [40] * 6 + [32] * 6 + [16] * 6, order
+    if args.queue_ids:
+        existing = {ln.strip()[:4] for ln in open(args.queue_ids) if ln.strip()}
+        clash = sorted(set(ids) & existing)
+        assert not clash, f"ID COLLISION with queue history: {clash}"
+
+    for s in written:
+        with open(os.path.join(OUT, s["id"] + ".json"), "w") as f:
+            json.dump(s, f, indent=1)
+
+    cal = [s for s in written if s["tier"].endswith("calibration")]
+    swp = [s for s in written if s["tier"].endswith("sweep")]
+    print(f"wrote {len(written)} CANDIDATE specs to {OUT} "
+          f"({len(cal)} calibration sextet + {len(swp)} sweep)")
+    print(f"dispatch order (ls | sort), sweep tier: "
+          f"{[s['scaleaxis']['K'] for s in sorted(swp, key=lambda x: x['id'])]}")
+    print(f"ledger @x{PROJECTION_MULT}: calibration "
+          f"{sum(s['gpu_h_estimate'] for s in cal):.2f} + sweep "
+          f"{sum(s['gpu_h_estimate'] for s in swp):.2f} = "
+          f"{sum(s['gpu_h_estimate'] for s in written):.2f} GPU-h (design sec 8.2: 83.7)")
+    print(f"ceiling provenance: {written[0]['scaleaxis']['ceiling_provenance']}")
+    print("QUEUE-ELIGIBLE: NO. Every spec is CANDIDATE-marked.")
+    if args.elect_mixed_order:
+        print("NOTE: --elect-mixed-order requested but sec 8.3's mixed order is DECLINED by this "
+              "build (1.17 h of wall against an unreadable numbering scheme; the worker's 60 s "
+              "busy-poll makes the difference spurious). Longest-first stands.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,592 @@
+{
+ "cell_id": "LIT3_scaleaxis392m_K40_primary_s0",
+ "runner_tag": "ncr_scaleaxis_runner_v1",
+ "mode": "calibration",
+ "status": "COMPLETED",
+ "step": 3,
+ "steps_target": 3,
+ "kscaling": {
+  "K": 40,
+  "d_ncr": 41,
+  "d_equals_k_plus_1": true,
+  "chance": 0.025,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   20
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   1,
+   2,
+   1,
+   4
+  ],
+  "h_top": 60,
+  "h_top_residue": 20,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 44,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60,
+   44
+  ],
+  "doc_len": 287,
+  "doc_left_pad": 0,
+  "t_in": 286,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "config_module_tree": "/home/nvidia/ncr_scaleaxis",
+  "scale": "392m",
+  "rung": 2,
+  "backbone": {
+   "d_model": 1536,
+   "d_state": 128,
+   "n_layers": 16,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "backbone_param_target": 392000000,
+  "vocab_size": 50257,
+  "vocab_size_total": 50259,
+  "backbone_param_exact": 391872512,
+  "total_param_exact_per_arm": 392175785,
+  "min_kernel_T_measured_at_dstate": 64,
+  "min_kernel_T_validated_at_this_dstate": false,
+  "ncr_param_exact": 177321,
+  "integ_param_exact": 125952
+ },
+ "config": {
+  "K": 40,
+  "d_ncr": 41,
+  "h_ncr": 64,
+  "backbone": {
+   "d_model": 1536,
+   "d_state": 128,
+   "n_layers": 16,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "vocab_size_total": 50259,
+  "seed": 0,
+  "batch_size": 32,
+  "eval_batch_size": 64,
+  "lr": 0.0003,
+  "warmup_steps": 200,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60
+  ],
+  "ceiling_gpuh": 16.095,
+  "teacher_force_operator": false,
+  "aux_read_loss_weight": 0.5,
+  "ortho_reg_weight": 0.1,
+  "aux_loss_type": "contrastive+cosine",
+  "contrastive_temperature": 0.07,
+  "freeze_entity_adapter": true
+ },
+ "params": {
+  "per_arm": 392175785,
+  "backbone": 391872512,
+  "ncr_head": 177321,
+  "integ": 125952
+ },
+ "git_commit": "UNKNOWN",
+ "host": "brev-ukptqsu65",
+ "device": "cuda",
+ "torch_version": "2.12.1+cu130",
+ "started_utc": "2026-08-22T07:57:25Z",
+ "read_ablation_check": {
+  "pre_train_max_abs_diff": 0.0,
+  "pre_train_verified_exact_zero": true,
+  "post_train_max_abs_diff": 0.0,
+  "post_train_verified_exact_zero": true
+ },
+ "same_op_check": {
+  "verified": true,
+  "arms_checked": [
+   "full_graft",
+   "backbone_only"
+  ]
+ },
+ "teacher_force_check": {
+  "active": false,
+  "ncr_zero_grad_checks_passed": 0
+ },
+ "arms": {
+  "full_graft": {
+   "in_dist": {
+    "h=1": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.009069168008863926,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.01101461797952652,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.012622019276022911,
+     "target_pairwise_cos": 0.009770854376256466
+    },
+    "h=2": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.05627774819731712,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.05801435932517052,
+     "retrieval24_acc": 0.046875,
+     "o_pairwise_cos": -0.0104100052267313,
+     "target_pairwise_cos": 0.0091467360034585
+    },
+    "h=3": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 7.330905646085739e-06,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.006570528261363506,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": 0.08340305835008621,
+     "target_pairwise_cos": 0.01132567785680294
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": 0.021784749037275713,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": 0.02081948301444451,
+    "mean_retrieval24_acc": 0.03125
+   },
+   "deep": {
+    "h=4": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.019719503819942474,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.02000536397099495,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.00018082725000567734,
+     "target_pairwise_cos": 0.007855625823140144
+    },
+    "h=8": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.020027345046401024,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.022314997389912605,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.006526207085698843,
+     "target_pairwise_cos": 0.008057028986513615
+    },
+    "h=16": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.00024104304611682892,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.005345076788216829,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": -0.006572318729013205,
+     "target_pairwise_cos": 0.01197184156626463
+    },
+    "h=17": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.026646587997674942,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.025122717022895813,
+     "retrieval24_acc": 0.046875,
+     "o_pairwise_cos": -0.007136505097150803,
+     "target_pairwise_cos": 0.0076661016792058945
+    },
+    "h=32": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.04545218497514725,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.046077582985162735,
+     "retrieval24_acc": 0.0625,
+     "o_pairwise_cos": -0.00451788492500782,
+     "target_pairwise_cos": 0.005703412462025881
+    },
+    "h=60": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.0403735414147377,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.040258895605802536,
+     "retrieval24_acc": 0.046875,
+     "o_pairwise_cos": -0.013132325373589993,
+     "target_pairwise_cos": 0.009748712182044983
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": 0.025410034383336704,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": 0.02473908003109197,
+    "mean_retrieval24_acc": 0.0390625
+   },
+   "fixed_dist": {
+    "h=44": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.014904015697538853,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.012623514980077744,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": 0.018967587500810623,
+     "target_pairwise_cos": 0.006383742671459913
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.014904015697538853,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": -0.012623514980077744,
+    "mean_retrieval24_acc": 0.03125
+   }
+  },
+  "backbone_only": {
+   "in_dist": {
+    "h=1": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.008366032503545284,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.01036315318197012,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.01273395773023367,
+     "target_pairwise_cos": 0.008046047762036324
+    },
+    "h=2": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.05238284170627594,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.053646691143512726,
+     "retrieval24_acc": 0.046875,
+     "o_pairwise_cos": -0.008566442877054214,
+     "target_pairwise_cos": 0.00830722227692604
+    },
+    "h=3": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.00018845731392502785,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.006636217702180147,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": 0.08372708410024643,
+     "target_pairwise_cos": 0.009645502083003521
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": 0.0201868056319654,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": 0.019124542207767565,
+    "mean_retrieval24_acc": 0.03125
+   },
+   "deep": {
+    "h=4": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.019314737990498543,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.019567780196666718,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -4.530899241217412e-05,
+     "target_pairwise_cos": 0.00867380853742361
+    },
+    "h=8": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.018701031804084778,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.019081134349107742,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": -0.011700480245053768,
+     "target_pairwise_cos": 0.008741539902985096
+    },
+    "h=16": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.012630531564354897,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.008175017312169075,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": 0.015228957869112492,
+     "target_pairwise_cos": 0.010063937865197659
+    },
+    "h=17": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.0059135677292943,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.005571228917688131,
+     "retrieval24_acc": 0.03125,
+     "o_pairwise_cos": 0.02700101025402546,
+     "target_pairwise_cos": 0.007459533866494894
+    },
+    "h=32": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.019958138465881348,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.018750594928860664,
+     "retrieval24_acc": 0.0,
+     "o_pairwise_cos": 0.014325305819511414,
+     "target_pairwise_cos": 0.009219354949891567
+    },
+    "h=60": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.01698739267885685,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": 0.01850557141005993,
+     "retrieval24_acc": 0.0625,
+     "o_pairwise_cos": -0.008049656637012959,
+     "target_pairwise_cos": 0.008318125270307064
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": 0.013613044129063686,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": 0.013084811546529332,
+    "mean_retrieval24_acc": 0.028645833333333332
+   },
+   "fixed_dist": {
+    "h=44": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.0007694801315665245,
+     "answer_accuracy": 0.0,
+     "n": 64,
+     "offtarget_margin": -0.0008471708279103041,
+     "retrieval24_acc": 0.015625,
+     "o_pairwise_cos": -0.014746623113751411,
+     "target_pairwise_cos": 0.008269349113106728
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.0007694801315665245,
+    "mean_answer_accuracy": 0.0,
+    "mean_offtarget_margin": -0.0008471708279103041,
+    "mean_retrieval24_acc": 0.015625
+   }
+  }
+ },
+ "attribution": {
+  "frozen_rule_text": "sec G3-B5 (COORDINATOR ADJUDICATION of the sec G3-B4 audit, 2026-07-17): a Phase-1 Gate-0 in-distribution-recovery FAIL may be attributed to \"the NCR head can't train through a real LM\" ONLY IF the backbone-only arm does NOT itself solve the task in-distribution (i.e., its answer accuracy is materially below the full graft's -- the NCR read is demonstrably load-bearing). If backbone-only already solves it, the calibration is UNINTERPRETABLE and the graft must be re-bottlenecked (e.g. read-only decode / harder P=1 bottleneck) BEFORE main-wave GPU. PASS (NCR head trains AND is load-bearing) = full-graft recovers deep composition (recovered_frac@0.9 >= the sec 6.2 Gate-0 bar at deep h) AND materially exceeds backbone-only there. PRIMARY interpretable signal = the recovery GAP (full-graft - backbone-only), at DEEP composition depth.",
+  "primary_signal_definition": "recovered_frac@0.9 GAP (full_graft.o_raw - backbone_only.o_raw), at DEEP composition depth (h in {5,12,20,29,40,61}). backbone_only.o_raw's write/encode pathway receives NO gradient (read-ablated -- see read_ablation_check), so it is a frozen-at-init NULL baseline for the recovery metric, not a trained comparison.",
+  "recovered_frac_gap_in_dist": {
+   "h=1": 0.0,
+   "h=2": 0.0,
+   "h=3": 0.0
+  },
+  "recovered_frac_gap_deep": {
+   "h=4": 0.0,
+   "h=8": 0.0,
+   "h=16": 0.0,
+   "h=17": 0.0,
+   "h=32": 0.0,
+   "h=60": 0.0
+  },
+  "primary_signal_deepest_gap": 0.0,
+  "primary_signal_deepest_gap_h": 60,
+  "primary_signal_deepest_gap_residue": 20,
+  "mean_cos_gap_in_dist": {
+   "h=1": 0.0007031355053186417,
+   "h=2": 0.0038949064910411835,
+   "h=3": 0.00019578821957111359
+  },
+  "mean_cos_gap_deep": {
+   "h=4": 0.0004047658294439316,
+   "h=8": 0.001326313242316246,
+   "h=16": -0.012389488518238068,
+   "h=17": 0.03256015572696924,
+   "h=32": 0.0254940465092659,
+   "h=60": 0.023386148735880852
+  },
+  "attribution_precondition_metric": "answer_accuracy (argmax(logits)==answer_token), NOT recovered_frac@0.9 -- this is what the frozen rule text's own prose names",
+  "answer_accuracy_in_dist": {
+   "full_graft": {
+    "h=1": 0.0,
+    "h=2": 0.0,
+    "h=3": 0.0
+   },
+   "backbone_only": {
+    "h=1": 0.0,
+    "h=2": 0.0,
+    "h=3": 0.0
+   }
+  },
+  "answer_accuracy_deep": {
+   "full_graft": {
+    "h=4": 0.0,
+    "h=8": 0.0,
+    "h=16": 0.0,
+    "h=17": 0.0,
+    "h=32": 0.0,
+    "h=60": 0.0
+   },
+   "backbone_only": {
+    "h=4": 0.0,
+    "h=8": 0.0,
+    "h=16": 0.0,
+    "h=17": 0.0,
+    "h=32": 0.0,
+    "h=60": 0.0
+   }
+  },
+  "primary_signal_v2_definition": "retrieval24_acc GAP (full_graft.o_raw - backbone_only.o_raw), at DEEP composition depth (h in [4, 8, 16, 17, 32, 60], this K's own residue-verified ladder) -- the sec G3-B26-adopted PRIMARY signal for future attribution, replacing recovered_frac@0.9's gap above (kept for continuity, not removed) because recovered_frac@0.9/mean_cos can read 1.0/~1.0 for an information-free read once the entity_adapter target space itself collapses (pairwise cos ~1.0 across all 24 in-document targets, sec G3-B26) -- retrieval24_acc is a 24-way discriminative test a collapsed target space cannot pass by accident (argmax over 24 near-identical directions reads AT CHANCE, not at 1.0).",
+  "retrieval24_acc_gap_in_dist": {
+   "h=1": 0.0,
+   "h=2": 0.0,
+   "h=3": 0.0
+  },
+  "retrieval24_acc_gap_deep": {
+   "h=4": 0.0,
+   "h=8": 0.0,
+   "h=16": 0.0,
+   "h=17": 0.015625,
+   "h=32": 0.0625,
+   "h=60": -0.015625
+  },
+  "primary_signal_v2_deepest_gap": -0.015625,
+  "primary_signal_v2_deepest_gap_h": 60,
+  "primary_signal_v2_deepest_gap_residue": 20,
+  "primary_signal_v2_chance": 0.025,
+  "primary_signal_v2_fixed_dist_probe_h": 44,
+  "offtarget_margin_gap_in_dist": {
+   "h=1": 0.0006514647975564003,
+   "h=2": 0.004367668181657791,
+   "h=3": 6.568944081664085e-05
+  },
+  "offtarget_margin_gap_deep": {
+   "h=4": 0.0004375837743282318,
+   "h=8": 0.003233863040804863,
+   "h=16": -0.013520094100385904,
+   "h=17": 0.030693945940583944,
+   "h=32": 0.02732698805630207,
+   "h=60": 0.021753324195742607
+  },
+  "o_pairwise_cos_in_dist": {
+   "full_graft": {
+    "h=1": -0.012622019276022911,
+    "h=2": -0.0104100052267313,
+    "h=3": 0.08340305835008621
+   },
+   "backbone_only": {
+    "h=1": -0.01273395773023367,
+    "h=2": -0.008566442877054214,
+    "h=3": 0.08372708410024643
+   }
+  },
+  "o_pairwise_cos_deep": {
+   "full_graft": {
+    "h=4": -0.00018082725000567734,
+    "h=8": -0.006526207085698843,
+    "h=16": -0.006572318729013205,
+    "h=17": -0.007136505097150803,
+    "h=32": -0.00451788492500782,
+    "h=60": -0.013132325373589993
+   },
+   "backbone_only": {
+    "h=4": -4.530899241217412e-05,
+    "h=8": -0.011700480245053768,
+    "h=16": 0.015228957869112492,
+    "h=17": 0.02700101025402546,
+    "h=32": 0.014325305819511414,
+    "h=60": -0.008049656637012959
+   }
+  },
+  "target_pairwise_cos_in_dist": {
+   "full_graft": {
+    "h=1": 0.009770854376256466,
+    "h=2": 0.0091467360034585,
+    "h=3": 0.01132567785680294
+   },
+   "backbone_only": {
+    "h=1": 0.008046047762036324,
+    "h=2": 0.00830722227692604,
+    "h=3": 0.009645502083003521
+   }
+  },
+  "target_pairwise_cos_deep": {
+   "full_graft": {
+    "h=4": 0.007855625823140144,
+    "h=8": 0.008057028986513615,
+    "h=16": 0.01197184156626463,
+    "h=17": 0.0076661016792058945,
+    "h=32": 0.005703412462025881,
+    "h=60": 0.009748712182044983
+   },
+   "backbone_only": {
+    "h=4": 0.00867380853742361,
+    "h=8": 0.008741539902985096,
+    "h=16": 0.010063937865197659,
+    "h=17": 0.007459533866494894,
+    "h=32": 0.009219354949891567,
+    "h=60": 0.008318125270307064
+   }
+  }
+ },
+ "elapsed_s": 17.13580870628357,
+ "loss_history": {
+  "full_graft": [
+   [
+    1,
+    11.094745635986328
+   ],
+   [
+    3,
+    11.171307563781738
+   ]
+  ],
+  "backbone_only": [
+   [
+    1,
+    11.090109825134277
+   ],
+   [
+    3,
+    11.16422176361084
+   ]
+  ]
+ },
+ "n_skipped_steps": {
+  "full_graft": 0,
+  "backbone_only": 0
+ },
+ "gpu_h": 0.004759946862856547,
+ "finished_utc": "2026-08-22T07:57:43Z"
+}

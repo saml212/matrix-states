@@ -1,0 +1,391 @@
+{
+ "smoke": "kscaling_smoke.py",
+ "K": 40,
+ "d_ncr": 41,
+ "provenance": {
+  "K": 40,
+  "d_ncr": 41,
+  "d_equals_k_plus_1": true,
+  "chance": 0.025,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   20
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   1,
+   2,
+   1,
+   4
+  ],
+  "h_top": 60,
+  "h_top_residue": 20,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 44,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   16,
+   17,
+   32,
+   60,
+   44
+  ],
+  "doc_len": 287,
+  "doc_left_pad": 0,
+  "t_in": 286,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "config_module_tree": "/home/nvidia/ncr_scaleaxis",
+  "scale": "392m",
+  "rung": 2,
+  "backbone": {
+   "d_model": 1536,
+   "d_state": 128,
+   "n_layers": 16,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "backbone_param_target": 392000000,
+  "vocab_size": 50257,
+  "vocab_size_total": 50259,
+  "backbone_param_exact": 391872512,
+  "total_param_exact_per_arm": 392175785,
+  "min_kernel_T_measured_at_dstate": 64,
+  "min_kernel_T_validated_at_this_dstate": false,
+  "ncr_param_exact": 177321,
+  "integ_param_exact": 125952
+ },
+ "torch": "2.12.1+cu130",
+ "gpu": "NVIDIA H100 80GB HBM3",
+ "host": "brev-ukptqsu65",
+ "when": "2026-08-22T07:58:01",
+ "n_pass": 11,
+ "n_fail": 0,
+ "n_na": 1,
+ "overall": "PASS",
+ "items": [
+  {
+   "item": "A_derivation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "K": 40,
+    "d_ncr": 41,
+    "d_equals_k_plus_1": true,
+    "chance": 0.025,
+    "train_hops": [
+     1,
+     2,
+     3
+    ],
+    "deep_ladder": [
+     4,
+     8,
+     16,
+     17,
+     32,
+     60
+    ],
+    "deep_ladder_residues": [
+     4,
+     8,
+     16,
+     17,
+     32,
+     20
+    ],
+    "deep_ladder_n_squarings": [
+     2,
+     3,
+     4,
+     4,
+     5,
+     5
+    ],
+    "deep_ladder_n_applies": [
+     1,
+     1,
+     1,
+     2,
+     1,
+     4
+    ],
+    "h_top": 60,
+    "h_top_residue": 20,
+    "h_top_is_antipodal": true,
+    "fixed_dist_probe": 44,
+    "fixed_dist_probe_residue": 4,
+    "fixed_dist_probe_shares_residue_with_rung1": true,
+    "eval_hops": [
+     4,
+     8,
+     16,
+     17,
+     32,
+     60,
+     44
+    ],
+    "doc_len": 287,
+    "doc_left_pad": 0,
+    "t_in": 286,
+    "min_kernel_T": 128,
+    "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+    "config_module": "kscaling_config.py",
+    "config_module_tree": "/home/nvidia/ncr_scaleaxis",
+    "scale": "392m",
+    "rung": 2,
+    "backbone": {
+     "d_model": 1536,
+     "d_state": 128,
+     "n_layers": 16,
+     "conv_size": 4,
+     "num_heads": 1,
+     "ffn_mult": 4
+    },
+    "backbone_param_target": 392000000,
+    "vocab_size": 50257,
+    "vocab_size_total": 50259,
+    "backbone_param_exact": 391872512,
+    "total_param_exact_per_arm": 392175785,
+    "min_kernel_T_measured_at_dstate": 64,
+    "min_kernel_T_validated_at_this_dstate": false,
+    "ncr_param_exact": 177321,
+    "integ_param_exact": 125952
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B_NEG_pinned_ladder_rejected",
+   "kind": "negative",
+   "expect_substr": "IDENTITY mod K",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=40 is IDENTITY mod K=40 (h%K=0) -- confounded, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "C_NEG_silent_residue_collision_rejected",
+   "kind": "negative",
+   "expect_substr": "PAIRWISE residue collisions",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder (4, 8, 16, 17, 32, 44) at K=40 has PAIRWISE residue collisions at [4] (residues [4, 8, 16, 17, 32, 4]) -- two rungs measure the SAME ground truth while reporting as independent probes. This is the check the pinned _assert_ladder_sound is missing (gate memo leg 1).",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "D_NEG_identity_residue_rejected",
+   "kind": "negative",
+   "expect_substr": "IDENTITY mod K",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=80 is IDENTITY mod K=40 (h%K=0) -- confounded, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "E_NEG_train_residue_rejected",
+   "kind": "negative",
+   "expect_substr": "colliding with a train-residue",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=81 has h%K=1 colliding with a train-residue [1, 2, 3] -- secretly in-distribution, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "F_param_counts_exact",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "ncr": 177321,
+    "integ": 125952,
+    "backbone": 391872512,
+    "total_per_arm": 392175785
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "G_document_geometry_and_pad",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "doc_shape": [
+     8,
+     287
+    ],
+    "pad": 0,
+    "t_in": 286,
+    "query_key_col": 283,
+    "query_mark_col": 285
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "H_forward_backward_grad",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "P1b/full_graft": {
+     "loss": 1304.54150390625,
+     "ce": 11.388667106628418,
+     "grad_norm_backbone": 1956.3994941972196,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      41
+     ]
+    },
+    "P1b/backbone_only": {
+     "loss": 11.406542778015137,
+     "ce": 11.406542778015137,
+     "grad_norm_backbone": 1955.98888800852,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      41
+     ]
+    },
+    "P0/full_graft": {
+     "loss": 30.272926330566406,
+     "ce": 11.424853324890137,
+     "grad_norm_backbone": 2049.630818353966,
+     "ncr_params_with_grad": 47,
+     "o_raw_shape": [
+      8,
+      41
+     ]
+    },
+    "P0/backbone_only": {
+     "loss": 11.406542778015137,
+     "ce": 11.406542778015137,
+     "grad_norm_backbone": 1955.98888800852,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      41
+     ]
+    }
+   },
+   "elapsed_s": 9.88
+  },
+  {
+   "item": "J_read_ablation_exact_zero",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "max_abs_diff": 0.0
+   },
+   "elapsed_s": 0.04
+  },
+  {
+   "item": "I_checkpoint_resume_bit_identical",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "ckpt_dir": "/ephemeral/scaleaxis/smoke_ckpt",
+    "max_abs_logit_diff": 0.0,
+    "recorded_d_ncr": 41
+   },
+   "elapsed_s": 9.98
+  },
+  {
+   "item": "K_NEG_unpadded_T_crashes_kernel_floor",
+   "kind": "negative",
+   "status": "N/A",
+   "reason": "pad is 0 at K=40 (t_in=286 >= 128); the pad is not load-bearing here, so there is nothing to fire"
+  },
+  {
+   "item": "L_throughput_memory_utilisation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "batch_size": 32,
+    "steps_timed": 30,
+    "s_per_step": 0.7911,
+    "projected_gpu_h_20k_steps": 4.395,
+    "peak_mem_gb": 23.46,
+    "sm_util_samples": [
+     100,
+     100,
+     100,
+     96,
+     100,
+     100,
+     97,
+     97,
+     100,
+     96,
+     96,
+     100,
+     100,
+     96,
+     97,
+     100,
+     100,
+     97,
+     100,
+     97,
+     100,
+     100,
+     98,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     96,
+     100,
+     100,
+     100,
+     100,
+     96,
+     100,
+     100,
+     100,
+     96,
+     100,
+     100,
+     94,
+     100
+    ],
+    "sm_util_median": 100,
+    "sm_util_max": 100,
+    "packing_headroom_by_mem_80gb": 3
+   },
+   "elapsed_s": 27.94
+  }
+ ]
+}

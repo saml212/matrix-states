@@ -1,0 +1,982 @@
+{
+ "gates": "scaleaxis_gates.py (B1-B8 + A0.2)",
+ "design": "NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 sec 3.7 / sec 4.0",
+ "scale": "392m",
+ "rung": 2,
+ "K": 32,
+ "d_ncr": 33,
+ "backbone": {
+  "d_model": 1536,
+  "d_state": 128,
+  "n_layers": 16,
+  "conv_size": 4,
+  "num_heads": 1,
+  "ffn_mult": 4
+ },
+ "tree_md5": {
+  "a0_rules.py": "48021faad112d9d440b3d0cc1850d740",
+  "depthext_eval.py": "c78be3daab39fe28fe2880d01fe081c1",
+  "gen_scaleaxis_specs.py": "a56072d1c39fafcb58fd725c5afbab41",
+  "kappa_reader.py": "933a004ea4de17df152d427ca69e565b",
+  "kscaling_battery.py": "265ecaefcbc339a9b0d63d79f6455971",
+  "kscaling_config.py": "4f50a0baf49184a19c05b2180e8dc884",
+  "kscaling_smoke.py": "50eb09c03952b81f70df18eed3c3f05e",
+  "ncr_lm_wave1_runner.py": "c16e5ccf51794347a62bca62bb702ab5",
+  "ncr_lm_wave1_smoke.py": "0a0fd1083be69dff3418b2dec55e9a5b",
+  "patch_scaleaxis.py": "d30b9bd45ab14dd2c03c61829d118b7b",
+  "rate_watcher.py": "45976f26e7aed7b2f81a7b2596667a33",
+  "scaleaxis_gates.py": "d6a972f32b7668f7b9022c0237fecd34"
+ },
+ "provenance": {
+  "K": 32,
+  "d_ncr": 33,
+  "d_equals_k_plus_1": true,
+  "chance": 0.03125,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   17,
+   18,
+   37,
+   48
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   17,
+   18,
+   5,
+   16
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   2,
+   2,
+   3,
+   2
+  ],
+  "h_top": 48,
+  "h_top_residue": 16,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 36,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   17,
+   18,
+   37,
+   48,
+   36
+  ],
+  "doc_len": 231,
+  "doc_left_pad": 0,
+  "t_in": 230,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "config_module_tree": "/home/nvidia/ncr_scaleaxis",
+  "scale": "392m",
+  "rung": 2,
+  "backbone": {
+   "d_model": 1536,
+   "d_state": 128,
+   "n_layers": 16,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "backbone_param_target": 392000000,
+  "vocab_size": 50257,
+  "vocab_size_total": 50259,
+  "backbone_param_exact": 391872512,
+  "total_param_exact_per_arm": 392149153,
+  "min_kernel_T_measured_at_dstate": 64,
+  "min_kernel_T_validated_at_this_dstate": false,
+  "ncr_param_exact": 175265,
+  "integ_param_exact": 101376
+ },
+ "torch": "2.12.1+cu130",
+ "gpu": "NVIDIA H100 80GB HBM3",
+ "host": "brev-ukptqsu65",
+ "when": "2026-08-22T07:55:57",
+ "n_pass": 20,
+ "n_fail": 0,
+ "n_na": 0,
+ "overall": "PASS",
+ "items": [
+  {
+   "item": "B1_size_bearing_literal_sweep",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "tree": "/home/nvidia/ncr_scaleaxis",
+    "n_files": 12,
+    "n_hits": 82,
+    "hits": [
+     {
+      "file": "a0_rules.py",
+      "line": 73,
+      "kind": "d_model literal",
+      "text": "scale = ks.get(\"scale\") or (\"98m\" if d[\"config\"][\"backbone\"][\"d_model\"] == 768"
+     },
+     {
+      "file": "depthext_eval.py",
+      "line": 175,
+      "kind": "argparse allowlist",
+      "text": "choices=[\"ncr_gate3_wave1_runner_v1\", \"ncr_kscaling_runner_v1\","
+     },
+     {
+      "file": "gen_scaleaxis_specs.py",
+      "line": 33,
+      "kind": "contention constant",
+      "text": "contradicts the runner's own CONTENDED_MULTIPLIER = 3.3 and would hard-abort"
+     },
+     {
+      "file": "gen_scaleaxis_specs.py",
+      "line": 109,
+      "kind": "d_model literal (rung 2)",
+      "text": "\"the variable), {label}, seed {seed}, backbone RUNG 2 (d_model=1536, d_state=128, \""
+     },
+     {
+      "file": "gen_scaleaxis_specs.py",
+      "line": 110,
+      "kind": "n_layers literal",
+      "text": "\"n_layers=16) -- 4.008x the 98M rung-1 cells at MATCHED (K, d), MATCHED recipe and MATCHED \""
+     },
+     {
+      "file": "gen_scaleaxis_specs.py",
+      "line": 170,
+      "kind": "kernel-floor literal",
+      "text": "\"floor is still <= 128 -- K=16's t_in is EXACTLY 128, zero margin, and MIN_KERNEL_T = 128 was \""
+     },
+     {
+      "file": "gen_scaleaxis_specs.py",
+      "line": 171,
+      "kind": "d_state literal",
+      "text": "\"MEASURED AT d_state = 64 ONLY.\")"
+     },
+     {
+      "file": "gen_scaleaxis_specs.py",
+      "line": 186,
+      "kind": "d_model literal",
+      "text": "\"THE PORT IS ONE DICT (sec 3.1): RUNG1_BACKBONE 768/64/12 -> 1536/128/16, resolved from \""
+     },
+     {
+      "file": "gen_scaleaxis_specs.py",
+      "line": 231,
+      "kind": "d_model literal (rung 2)",
+      "text": "f\"assert (bb.get('d_model'), bb.get('d_state'), bb.get('n_layers'))==(1536,128,16), bb; \""
+     },
+     {
+      "file": "kscaling_battery.py",
+      "line": 105,
+      "kind": "argparse allowlist",
+      "text": "choices=[\"ncr_gate3_wave1_runner_v1\", \"ncr_kscaling_runner_v1\","
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 109,
+      "kind": "measured-at-rung-1 provenance",
+      "text": "process per T, batch 8, rung-1 backbone:"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 111,
+      "kind": "kernel-floor literal",
+      "text": "T_in= 90 (K=12)  AssertionError  \"sequence length 90 < _MIN_KERNEL_T=128\""
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 112,
+      "kind": "kernel-floor literal",
+      "text": "T_in=118 (K=16)  AssertionError  \"sequence length 118 < _MIN_KERNEL_T=128\""
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 165,
+      "kind": "vocab literal",
+      "text": "VOCAB_SIZE = 50257                 # GPT-2 BPE, lm_rd_rung_configs.py VOCAB_SIZE"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 171,
+      "kind": "d_model literal",
+      "text": "1: dict(d_model=768,  d_state=64,  n_layers=12, conv_size=4, num_heads=1, ffn_mult=4),"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 172,
+      "kind": "d_model literal (rung 2)",
+      "text": "2: dict(d_model=1536, d_state=128, n_layers=16, conv_size=4, num_heads=1, ffn_mult=4),"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 175,
+      "kind": "param target literal",
+      "text": "BACKBONE_PARAM_TARGET_OF_SCALE = {\"98m\": 98_000_000, \"392m\": 392_000_000}"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 194,
+      "kind": "kernel-floor literal",
+      "text": "MIN_KERNEL_T = 128                 # lm_pretrain_rd._MIN_KERNEL_T, MEASURED AT d_state=64 (above)"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 214,
+      "kind": "vocab literal",
+      "text": "rung1/50257 -> 97,618,176  (fixscale_pilot_98m_off_1000.json \"n_params\")"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 215,
+      "kind": "vocab literal",
+      "text": "rung1/50259 -> 97,619,712  (every archived NCR cell's params.backbone)"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 216,
+      "kind": "vocab literal",
+      "text": "rung2/50257 -> 391,869,440 (fixscale_pilot_392m_off_1000.json \"n_params\")"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 217,
+      "kind": "vocab literal",
+      "text": "rung2/50259 -> 391,872,512 (what the NCR graft builds at rung 2)"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 241,
+      "kind": "vocab literal",
+      "text": "checks = [(1, 50257, 97_618_176), (1, 50259, 97_619_712),"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 242,
+      "kind": "vocab literal",
+      "text": "(2, 50257, 391_869_440), (2, 50259, 391_872_512)]"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 551,
+      "kind": "d_model literal",
+      "text": "\"default to the literal 768, which is silently WRONG at rung 2 (sec 3.2 item 22).\")"
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 573,
+      "kind": "d_model literal",
+      "text": "print(f\"integ_param_exact(d_model=768) per K: \""
+     },
+     {
+      "file": "kscaling_config.py",
+      "line": 574,
+      "kind": "d_model literal",
+      "text": "f\"{ {k: integ_param_exact(768, k) for k in ADMITTED_K_GRID} }\")"
+     },
+     {
+      "file": "ncr_lm_wave1_runner.py",
+      "line": 306,
+      "kind": "contention constant",
+      "text": "CONTENDED_MULTIPLIER = 3.3                         # sec G3-B1 item 2 / sec G3-B3 launch-command note, established precedent"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 12,
+      "kind": "d_model literal",
+      "text": "separate key_adapter/value_adapter Linear(768,25) modules make Z a"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 38,
+      "kind": "d_model literal",
+      "text": "- Backbone: DeltaNetLM(vocab_size=50257, d_model=768, d_state=64,"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 39,
+      "kind": "n_layers literal",
+      "text": "n_layers=12, conv_size=4, num_heads=1, ffn_mult=4) -- rung-1 98M config."
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 55,
+      "kind": "d_model literal",
+      "text": "learned Linear(d_model=768 -> encoder-input-dim)... at their ACTUAL"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 64,
+      "kind": "d_model literal",
+      "text": "`entity_adapter = Linear(768,25,bias=False)` applied to the RAW"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 66,
+      "kind": "d_model literal",
+      "text": "still Linear(768,25), just ONE instance instead of two, and applied to"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 69,
+      "kind": "d_model literal",
+      "text": "Linear(d_ncr -> 768), ADDED to the query-position post-norm hidden"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 71,
+      "kind": "d_model literal",
+      "text": "as `read_injector = Linear(25,768,bias=False)`, added to hidden at the"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 243,
+      "kind": "d_model literal",
+      "text": "assert RUNG1_BACKBONE[\"d_model\"] == (768 if _KSCFG.SCALE == \"98m\" else 1536), RUNG1_BACKBONE"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 282,
+      "kind": "kernel-floor literal",
+      "text": "_MIN_KERNEL_T = 128                     # chunk_delta_rule's own backward-crash floor (model_rd.py)"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 321,
+      "kind": "d_model literal",
+      "text": "value_adapter: both Linear(768,25)) applied to the CONTEXTUALIZED"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 458,
+      "kind": "vocab literal",
+      "text": "\"\"\"vocab_size defaults to the plain GPT-2 vocabulary (50257, sec 2.2's"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 465,
+      "kind": "vocab literal",
+      "text": "50,257-token vocabulary\"). A DeltaNetLM built at vocab_size=50257 has"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 470,
+      "kind": "vocab literal",
+      "text": "at vocab_size=pools.vocab_size_total (50259) instead -- +2 embedding/"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 471,
+      "kind": "d_model literal",
+      "text": "tied-head rows, +2*768=1,536 params (0.0016% of the 98M backbone,"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 818,
+      "kind": "vocab literal",
+      "text": "vocab_size_total: pools.vocab_size_total (50259) -- see build_backbone's"
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 819,
+      "kind": "vocab literal",
+      "text": "own docstring for why this is NOT the plain 50257.\"\"\""
+     },
+     {
+      "file": "ncr_lm_wave1_smoke.py",
+      "line": 1100,
+      "kind": "vocab literal",
+      "text": "f\"vocab_size_total={vocab_size_total} (50257 + 2 reserved grammar_rd ids)\", flush=True)"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 16,
+      "kind": "d_model literal",
+      "text": "THE PORT IS ONE DICT (sec 3.1).  RUNG1_BACKBONE moves 768/64/12 -> 1536/128/16."
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 90,
+      "kind": "kernel-floor literal",
+      "text": "MIN_KERNEL_T = 128                 # lm_pretrain_rd._MIN_KERNEL_T, measured above"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 108,
+      "kind": "vocab literal",
+      "text": "VOCAB_SIZE = 50257                 # GPT-2 BPE, lm_rd_rung_configs.py VOCAB_SIZE"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 114,
+      "kind": "d_model literal",
+      "text": "1: dict(d_model=768,  d_state=64,  n_layers=12, conv_size=4, num_heads=1, ffn_mult=4),"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 115,
+      "kind": "d_model literal (rung 2)",
+      "text": "2: dict(d_model=1536, d_state=128, n_layers=16, conv_size=4, num_heads=1, ffn_mult=4),"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 118,
+      "kind": "param target literal",
+      "text": "BACKBONE_PARAM_TARGET_OF_SCALE = {\"98m\": 98_000_000, \"392m\": 392_000_000}"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 137,
+      "kind": "kernel-floor literal",
+      "text": "MIN_KERNEL_T = 128                 # lm_pretrain_rd._MIN_KERNEL_T, MEASURED AT d_state=64 (above)"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 157,
+      "kind": "vocab literal",
+      "text": "rung1/50257 -> 97,618,176  (fixscale_pilot_98m_off_1000.json \"n_params\")"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 158,
+      "kind": "vocab literal",
+      "text": "rung1/50259 -> 97,619,712  (every archived NCR cell's params.backbone)"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 159,
+      "kind": "vocab literal",
+      "text": "rung2/50257 -> 391,869,440 (fixscale_pilot_392m_off_1000.json \"n_params\")"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 160,
+      "kind": "vocab literal",
+      "text": "rung2/50259 -> 391,872,512 (what the NCR graft builds at rung 2)"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 184,
+      "kind": "vocab literal",
+      "text": "checks = [(1, 50257, 97_618_176), (1, 50259, 97_619_712),"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 185,
+      "kind": "vocab literal",
+      "text": "(2, 50257, 391_869_440), (2, 50259, 391_872_512)]"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 215,
+      "kind": "d_model literal",
+      "text": "(\"C3_provenance_no_768_default\", \"\"\"def provenance(h_enc: int | None = None, d_model: int = 768) -> dict:\"\"\","
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 247,
+      "kind": "d_model literal",
+      "text": "\"default to the literal 768, which is silently WRONG at rung 2 (sec 3.2 item 22).\")"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 269,
+      "kind": "vocab literal",
+      "text": "(\"G1_the_one_dict\", \"\"\"VOCAB_SIZE = 50257                      # GPT-2 BPE, lm_rd_rung_configs.py VOCAB_SIZE"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 270,
+      "kind": "d_model literal",
+      "text": "RUNG1_BACKBONE = dict(d_model=768, d_state=64, n_layers=12, conv_size=4,"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 272,
+      "kind": "param target literal",
+      "text": "BACKBONE_PARAM_TARGET = 98_000_000"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 298,
+      "kind": "d_model literal",
+      "text": "assert RUNG1_BACKBONE[\"d_model\"] == (768 if _KSCFG.SCALE == \"98m\" else 1536), RUNG1_BACKBONE"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 446,
+      "kind": "argparse allowlist",
+      "text": "_ALLOWLIST_OLD = '''choices=[\"ncr_gate3_wave1_runner_v1\"])'''"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 447,
+      "kind": "argparse allowlist",
+      "text": "_ALLOWLIST_NEW = '''choices=[\"ncr_gate3_wave1_runner_v1\", \"ncr_kscaling_runner_v1\","
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 456,
+      "kind": "argparse allowlist",
+      "text": "(\"S1_battery_allowlist\", '''                    choices=[\"ncr_gate3_wave1_runner_v1\"])''',"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 465,
+      "kind": "d_model literal",
+      "text": "(\"S3_battery_provenance_d_model\", '''        kscaling=KS.provenance(64, 768),''',"
+     },
+     {
+      "file": "patch_scaleaxis.py",
+      "line": 474,
+      "kind": "argparse allowlist",
+      "text": "(\"S1_depthext_allowlist\", '''    ap.add_argument(\"--anchor-runner-tag\", default=None, choices=[\"ncr_gate3_wave1_runner_v1\"])''',"
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 19,
+      "kind": "d_state literal",
+      "text": "A0.2 MIN_KERNEL_T at d_state=128, K=16 boundary case          NEG: T-1 fires"
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 114,
+      "kind": "d_state literal",
+      "text": "\"kscaling_config.py:MIN_KERNEL_T\":        \"item 19 -- MEASURED at d_state=64 ONLY; A0.2 is a HARD gate\","
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 116,
+      "kind": "d_model literal",
+      "text": "\"kscaling_config.py:provenance_d_model\":  \"item 22 (NEW, B1): default was the literal 768 -> now REQUIRED (C3/C4)\","
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 118,
+      "kind": "vocab literal",
+      "text": "\"ncr_lm_wave1_smoke.py:VOCAB_SIZE\":       \"INVARIANT 50257; now read from config (G1)\","
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 130,
+      "kind": "d_model literal",
+      "text": "\"kscaling_battery.py:provenance(64,768)\": \"item 22 (NEW, B1) -- re-pointed at RUNG1_BACKBONE (S3)\","
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 143,
+      "kind": "param target literal",
+      "text": "(r\"98_000_000|392_000_000\", \"param target literal\"),"
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 147,
+      "kind": "measured-at-rung-1 provenance",
+      "text": "(r\"MEASURED[^\\n]*rung-?1|rung-1 backbone|measured on this box\", \"measured-at-rung-1 provenance\"),"
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 187,
+      "kind": "argparse allowlist",
+      "text": "choices=[\"ncr_kscaling_runner_v1\", \"ncr_gate3_wave1_runner_v1\"],"
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 274,
+      "kind": "d_model literal",
+      "text": "KS.provenance(R.H_NCR, 768 if SCALE == \"392m\" else 1536)"
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 293,
+      "kind": "kernel-floor literal",
+      "text": "\"\"\"sec 4.0 A0.2 / sec 3.2 item 19. MIN_KERNEL_T = 128 is a MEASURED"
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 294,
+      "kind": "d_state literal",
+      "text": "constant whose own table says 'rung-1 backbone', i.e. d_state = 64. It"
+     },
+     {
+      "file": "scaleaxis_gates.py",
+      "line": 295,
+      "kind": "d_state literal",
+      "text": "has NEVER been validated at d_state = 128, and K=16's t_in is EXACTLY"
+     }
+    ],
+    "dispositions": {
+     "kscaling_config.py:RUNGS": "PORTED (C1): the ONE dict, resolved by NCR_SCALE",
+     "kscaling_config.py:MIN_KERNEL_T": "item 19 -- MEASURED at d_state=64 ONLY; A0.2 is a HARD gate",
+     "kscaling_config.py:CONV_SIZE": "item, sec 3.1 shadow -- now READ FROM THE DICT (C1)",
+     "kscaling_config.py:provenance_d_model": "item 22 (NEW, B1): default was the literal 768 -> now REQUIRED (C3/C4)",
+     "ncr_lm_wave1_smoke.py:RUNG1_BACKBONE": "PORTED (G1) from kscaling_config.BACKBONE",
+     "ncr_lm_wave1_smoke.py:VOCAB_SIZE": "INVARIANT 50257; now read from config (G1)",
+     "ncr_lm_wave1_smoke.py:BACKBONE_PARAM_TARGET": "item 17 -- MOVES 98e6 -> 392e6 (G1)",
+     "ncr_lm_wave1_smoke.py:_MIN_KERNEL_T": "item 24 (NEW, B1): a SECOND copy of the 128 floor, inside the graft",
+     "ncr_lm_wave1_smoke.py:_MLP_ADAPTER_HIDDEN": "item 13 -- d_model//4, 192->384; DEAD under B2, carried parametric",
+     "ncr_lm_wave1_smoke.py:_MLP_READ_INJECT_HIDDEN": "item 14 -- 4*D_NCR, K-scaled not d_model-scaled; INVARIANT",
+     "ncr_lm_wave1_smoke.py:expected_integ": "item 11 -- already d_model-parametric; VERIFIED, not rewritten",
+     "ncr_lm_wave1_smoke.py:H_NCR": "sec 3.3 -- ENC_H=64, backbone-INDEPENDENT; CONFIRMED by code",
+     "kscaling_config.py:integ_param_exact": "item 12 -- already parametric; VERIFIED",
+     "ncr_lm_wave1_runner.py:CONTENDED_MULTIPLIER": "item 20 -- 3.3, cost-bearing; sec 3.6's ceiling derives from it",
+     "ncr_lm_wave1_runner.py:RUNNER_TAG": "sec 3.6 -> ncr_scaleaxis_runner_v1 (R1)",
+     "kscaling_battery.py:choices": "item 21 -- allowlist EXTENDED + paired with B5's scale guard",
+     "depthext_eval.py:choices": "item 21 -- same",
+     "kscaling_battery.py:provenance(64,768)": "item 22 (NEW, B1) -- re-pointed at RUNG1_BACKBONE (S3)",
+     "gen_job_specs.py:PARAMS_PER_ARM": "item 15 -- WRONG FOR EVERY K at 392M; replaced by KS.total_param_exact",
+     "gen_job_specs.py:GPU_H": "item 16 -- WRONG at 392M; re-derived from Stage A0's measured R",
+     "gen_job_specs.py:--ceiling-gpuh 6.0": "item 18 -- launch-losing default; replaced per sec 3.6",
+     "depthext_eval.py:SQUARING_PROFILE": "item 23 (NEW, B1): (5,7,9,11) is a module constant; the {13,15} extension sets it from a driver, never by editing the wrapper"
+    },
+    "n_dispositions": 22,
+    "design_enumeration": 21,
+    "found_by_B1": 3,
+    "note": "sec 11.3 item 6: 'assume a twenty-second exists'. Three do -- items 22 (provenance's hard-coded d_model, at TWO sites), 23 (depthext_eval's SQUARING_PROFILE) and 24 (the graft's own _MIN_KERNEL_T duplicate). B1 is a completeness audit; it does not prove a twenty-fifth absent."
+   },
+   "elapsed_s": 0.05
+  },
+  {
+   "item": "B2_production_pair_asserted",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "production_pair": [
+     "linear",
+     "add"
+    ],
+    "integ_params": 101376,
+    "runner_has_no_adapter_flag": true
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B2_NEG_mlp_adapter_aborts",
+   "kind": "negative",
+   "expect_substr": "B2 (NCR_SCALE_AXIS_DESIGN.md sec 3.3)",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "B2 (NCR_SCALE_AXIS_DESIGN.md sec 3.3): NCRIntegration built with (adapter='mlp', read_inject='add'); the ONLY production pair on this scale axis is ('linear', 'add'). The 'mlp' adapter branch carries a live d_model dependency (_MLP_ADAPTER_HIDDEN = d_model//4) that is untested at rung 2. Refusing.",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B2_NEG_mlp_read_inject_aborts",
+   "kind": "negative",
+   "expect_substr": "B2 (NCR_SCALE_AXIS_DESIGN.md sec 3.3)",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "B2 (NCR_SCALE_AXIS_DESIGN.md sec 3.3): NCRIntegration built with (adapter='linear', read_inject='mlp_logits'); the ONLY production pair on this scale axis is ('linear', 'add'). The 'mlp' adapter branch carries a live d_model dependency (_MLP_ADAPTER_HIDDEN = d_model//4) that is untested at rung 2. Refusing.",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B2_spec_cmd_with_adapter_flag_aborts",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "returncode": 2,
+    "stderr_tail": "                        [--contrastive-temperature CONTRASTIVE_TEMPERATURE]\n                              [--freeze-entity-adapter]\nncr_lm_wave1_runner.py: error: unrecognized arguments: --adapter mlp"
+   },
+   "elapsed_s": 6.44
+  },
+  {
+   "item": "B3_measured_param_counts_vs_formula",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "vocab_size_total": 50259,
+    "measured_backbone": 391872512,
+    "formula_backbone": 391872512,
+    "measured_ncr_head": 175265,
+    "measured_integ": 101376,
+    "measured_total_per_arm": 392149153,
+    "design_sec34_table": 392149153,
+    "ratio_to_98m": 4.007834
+   },
+   "elapsed_s": 3.76
+  },
+  {
+   "item": "B3_NEG_wrong_d_model_fires",
+   "kind": "negative",
+   "expect_substr": "d_model",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "d_model 768 gives 120,452,096 but the resolved backbone d_model 1536 gives 391,872,512 -- the param gate would pass a WRONG-WIDTH model",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B3_NEG_provenance_stale_d_model_fires",
+   "kind": "negative",
+   "expect_substr": "disagrees with the resolved backbone",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "provenance(d_model=768) disagrees with the resolved backbone d_model=1536 -- one of the two is stale.",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B3_NEG_provenance_missing_d_model_fires",
+   "kind": "negative",
+   "expect_substr": "d_model is REQUIRED",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "provenance(h_enc, d_model): d_model is REQUIRED when h_enc is given. It used to default to the literal 768, which is silently WRONG at rung 2 (sec 3.2 item 22).",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B4_graft_md5_pin_with_teeth",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "negative_test": "B4_graft_md5_pin_has_teeth",
+    "mutated_copy": "/tmp/scaleaxis_b4_wix_qbtm/ncr_lm_wave1_smoke.py",
+    "md5_mutated": "7bd376096bd8c3317e60a735098125f4",
+    "md5_pinned": "74ee84fc920b024901d11add66cc5c2d",
+    "pin_would_abort": true,
+    "status": "PASS (the pin FIRED on a one-byte mutation)"
+   },
+   "elapsed_s": 0.03
+  },
+  {
+   "item": "A02_min_kernel_T_gate_at_resolved_dstate",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "d_state_of_this_run": 128,
+    "min_kernel_T_measured_at_dstate": 64,
+    "T_probed": 128,
+    "backward_finite": true,
+    "grad_norm": 35.568757290647476,
+    "K16_t_in_probed": 128,
+    "K16_margin": 0,
+    "peak_mem_gb": 3.951,
+    "verdict": "floor <= 128 HOLDS at d_state=128; K=16's t_in=128 clears it with ZERO margin, as designed"
+   },
+   "elapsed_s": 2.91
+  },
+  {
+   "item": "A02_NEG_below_floor_crashes",
+   "kind": "negative",
+   "expect_substr": "_MIN_KERNEL_T",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "sequence length 127 < _MIN_KERNEL_T=128 -- chunk_delta_rule's backward crashes below this floor (F15-LM, measured 2026-07-02). Choose seq_len/ctx_len/continuation_len >= 128.",
+   "elapsed_s": 2.11
+  },
+  {
+   "item": "B8_memory_and_utilisation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "peak_gb_smoke_line_663_backbone_eval_batch": 10.697,
+    "peak_gb_smoke_line_796_full_graft_step": 7.911,
+    "peak_gb_line_1056_co_residency": 7.911,
+    "peak_gb_production_two_arms_train_only": 21.266,
+    "peak_gb_production_two_arms_WITH_EVAL": 21.266,
+    "eval_pass_delta_gb": 0.0,
+    "P4_reading_gb": 21.266,
+    "P4_limit_gb": 40.0,
+    "P4_verdict": "NOMINAL (< 40 GB, sec 4.4)",
+    "design_projection_gb": [
+     21,
+     28
+    ],
+    "s_per_step_batch32_two_arms": 0.6462,
+    "sm_util_samples": [
+     11,
+     13,
+     62,
+     97,
+     100,
+     100,
+     100,
+     97,
+     100,
+     97,
+     97,
+     100,
+     100,
+     97,
+     100,
+     100,
+     100,
+     97,
+     100,
+     95,
+     95,
+     94,
+     96,
+     98,
+     100,
+     100
+    ],
+    "sm_util_median": 98,
+    "sm_util_max": 100,
+    "sm_util_lt_50_is_a_bug": false
+   },
+   "elapsed_s": 26.72
+  },
+  {
+   "item": "B8_NEG_over_limit_trips_P4",
+   "kind": "negative",
+   "expect_substr": "RE-OPENS",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "P4: synthetic reading 41.0 GB >= limit 40.0 GB -- sec 8.3's placement assumption RE-OPENS and must be adjudicated before Stage B (not a blocker: >=40 GB still leaves room on an 80 GB H100)",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B6_rate_watcher_negative_tests",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "gate": "B6",
+    "tests": [
+     {
+      "test": "B6_i_doubled_elapsed_trips",
+      "nominal_log_tripped": false,
+      "doubled_log_tripped": true,
+      "tripped_at_step": 175,
+      "status": "PASS"
+     },
+     {
+      "test": "B6_ii_no_eval_metric_in_output",
+      "blind_filter_fired": true,
+      "blind_message": "B6 BLIND VIOLATION: the watcher tried to emit a line containing the eval-metric token 'retrieval24'. Refusing. (line withheld)",
+      "parser_returns_only_three_ints": true,
+      "parsed": [
+       25,
+       20000,
+       15
+      ],
+      "refuses_json_input": true,
+      "status": "PASS"
+     },
+     {
+      "test": "B6_iii_refuses_results_json_input",
+      "refused": true,
+      "status": "PASS"
+     }
+    ],
+    "overall": "PASS"
+   },
+   "elapsed_s": 3.04
+  },
+  {
+   "item": "B7_kappa_reader_negative_tests",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "gate": "B7",
+    "tests": [
+     {
+      "test": "B7_i_truncated_ckpt_detected",
+      "step": null,
+      "status_text": "UNREADABLE (detected, NOT scored): RuntimeError: PytorchStreamReader failed reading zip archive: failed finding central directory. This is an internal miniz error. If you are seeing this error, there is a high",
+      "status": "PASS"
+     },
+     {
+      "test": "B7_ii_zero_byte_ckpt_detected",
+      "step": null,
+      "status_text": "ZERO-BYTE (detected, NOT scored)",
+      "status": "PASS"
+     },
+     {
+      "test": "B7_positive_control_intact_ckpt_reads",
+      "step": 15000,
+      "status_text": "OK",
+      "status": "PASS"
+     },
+     {
+      "test": "B7_iii_off_cadence_step_reported",
+      "step": 17321,
+      "expected_windows": [
+       5000,
+       10000,
+       15000,
+       20000
+      ],
+      "off_cadence": true,
+      "required_step_passed_would_be": 17321,
+      "note": "the battery is invoked with --required-step == the step actually read, so its ckpt_step!=required_step SKIP cannot fire; the point is labelled OFF-CADENCE in the manifest instead of vanishing",
+      "status": "PASS"
+     },
+     {
+      "test": "B7_iv_missed_window_reported",
+      "captured": [
+       5000,
+       10000,
+       20000
+      ],
+      "expected_windows": [
+       5000,
+       10000,
+       15000,
+       20000
+      ],
+      "missing_trajectory_points": [
+       15000
+      ],
+      "branch_B_consequence": "sec 7.2(B): with kappa@15000 missing on >=2 of 3 frozen seeds, branch (B) falls back to the deepest available pair and RECORDS which pair was used",
+      "status": "PASS"
+     }
+    ],
+    "overall": "PASS"
+   },
+   "elapsed_s": 1.34
+  },
+  {
+   "item": "B5_NEG_kscaling_battery_refuses_98M_ckpt_under_392M",
+   "kind": "negative",
+   "expect_substr": "SCALE MISMATCH",
+   "status": "PASS",
+   "fired_with": "RuntimeError",
+   "message": "SCALE MISMATCH fired correctly in kscaling_battery.py: SCALE MISMATCH [B5probe_kscali_392m]: checkpoint backbone_config {'d_model': 768, 'n_layers': 12, 'd_state': 64} != this process's resolved backbone {'d_model': 1536, 'n_layers': 16, 'd_state': 128} (NCR_SCALE='392m', scale='392m'). The checkpoint was trained ",
+   "elapsed_s": 7.52
+  },
+  {
+   "item": "B5_POS_kscaling_battery_scores_matched_scale",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "returncode": 0,
+    "stdout_tail": "KSCALING_B5probe_kscali_98m_DONE"
+   },
+   "elapsed_s": 16.99
+  },
+  {
+   "item": "B5_NEG_depthext_eval_refuses_98M_ckpt_under_392M",
+   "kind": "negative",
+   "expect_substr": "SCALE MISMATCH",
+   "status": "PASS",
+   "fired_with": "RuntimeError",
+   "message": "SCALE MISMATCH fired correctly in depthext_eval.py: SCALE MISMATCH [B5probe_depthe_392m]: checkpoint backbone_config {'d_model': 768, 'n_layers': 12, 'd_state': 64} != this process's resolved backbone {'d_model': 1536, 'n_layers': 16, 'd_state': 128} (NCR_SCALE='392m', scale='392m'). The checkpoint was trained ",
+   "elapsed_s": 7.46
+  },
+  {
+   "item": "B5_POS_depthext_eval_scores_matched_scale",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "returncode": 0,
+    "stdout_tail": "DEPTHEXT_B5probe_depthe_98m_DONE"
+   },
+   "elapsed_s": 13.05
+  }
+ ]
+}

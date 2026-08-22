@@ -1,0 +1,798 @@
+{
+ "rule": "R-delta, NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 sec 5.2",
+ "source": "/Users/samuellarson/Experiments/learned-representations/matrix-thinking/scaleaxis_build/rescore98m",
+ "n_cells_loaded": 16,
+ "n_records": 48,
+ "reproduction_check": {
+  "n_compared": 192,
+  "n_mismatch": 0,
+  "mismatches": [],
+  "status": "EXACT REPRODUCTION"
+ },
+ "survivors": [
+  "K16_frozen",
+  "K16_trainable",
+  "K24_frozen",
+  "K24_trainable",
+  "K32_frozen",
+  "K32_trainable",
+  "K40_frozen",
+  "K40_trainable"
+ ],
+ "missing": [],
+ "per_cell": {
+  "K16_frozen": {
+   "5": {
+    "per_seed_kappa": [
+     0.995833,
+     1.0,
+     1.0
+    ],
+    "median_kappa": 1.0,
+    "seed_range": 0.004167,
+    "headroom": 0.0
+   },
+   "7": {
+    "per_seed_kappa": [
+     0.991667,
+     0.995833,
+     0.995833
+    ],
+    "median_kappa": 0.995833,
+    "seed_range": 0.004167,
+    "headroom": 0.004167
+   },
+   "9": {
+    "per_seed_kappa": [
+     0.983333,
+     0.995833,
+     1.0
+    ],
+    "median_kappa": 0.995833,
+    "seed_range": 0.016667,
+    "headroom": 0.004167
+   },
+   "11": {
+    "per_seed_kappa": [
+     0.958333,
+     0.966667,
+     0.979167
+    ],
+    "median_kappa": 0.966667,
+    "seed_range": 0.020833,
+    "headroom": 0.033333
+   },
+   "13": {
+    "per_seed_kappa": [
+     0.954167,
+     0.958333,
+     0.983333
+    ],
+    "median_kappa": 0.958333,
+    "seed_range": 0.029167,
+    "headroom": 0.041667
+   },
+   "15": {
+    "per_seed_kappa": [
+     0.854167,
+     0.8375,
+     0.929167
+    ],
+    "median_kappa": 0.854167,
+    "seed_range": 0.091667,
+    "headroom": 0.145833
+   }
+  },
+  "K16_trainable": {
+   "5": {
+    "per_seed_kappa": [
+     1.0,
+     0.995833,
+     1.0
+    ],
+    "median_kappa": 1.0,
+    "seed_range": 0.004167,
+    "headroom": 0.0
+   },
+   "7": {
+    "per_seed_kappa": [
+     0.995833,
+     0.983333,
+     0.991667
+    ],
+    "median_kappa": 0.991667,
+    "seed_range": 0.0125,
+    "headroom": 0.008333
+   },
+   "9": {
+    "per_seed_kappa": [
+     0.958333,
+     0.95,
+     0.9875
+    ],
+    "median_kappa": 0.958333,
+    "seed_range": 0.0375,
+    "headroom": 0.041667
+   },
+   "11": {
+    "per_seed_kappa": [
+     0.941667,
+     0.854167,
+     0.979167
+    ],
+    "median_kappa": 0.941667,
+    "seed_range": 0.125,
+    "headroom": 0.058333
+   },
+   "13": {
+    "per_seed_kappa": [
+     0.841667,
+     0.675,
+     0.920833
+    ],
+    "median_kappa": 0.841667,
+    "seed_range": 0.245833,
+    "headroom": 0.158333
+   },
+   "15": {
+    "per_seed_kappa": [
+     0.6875,
+     0.3,
+     0.7625
+    ],
+    "median_kappa": 0.6875,
+    "seed_range": 0.4625,
+    "headroom": 0.3125
+   }
+  },
+  "K24_frozen": {
+   "5": {
+    "per_seed_kappa": [
+     1.0,
+     1.0,
+     0.987772
+    ],
+    "median_kappa": 1.0,
+    "seed_range": 0.012228,
+    "headroom": 0.0
+   },
+   "7": {
+    "per_seed_kappa": [
+     0.995924,
+     1.0,
+     0.991848
+    ],
+    "median_kappa": 0.995924,
+    "seed_range": 0.008152,
+    "headroom": 0.004076
+   },
+   "9": {
+    "per_seed_kappa": [
+     0.995924,
+     0.995924,
+     0.987772
+    ],
+    "median_kappa": 0.995924,
+    "seed_range": 0.008152,
+    "headroom": 0.004076
+   },
+   "11": {
+    "per_seed_kappa": [
+     0.991848,
+     0.975543,
+     0.959239
+    ],
+    "median_kappa": 0.975543,
+    "seed_range": 0.032609,
+    "headroom": 0.024457
+   },
+   "13": {
+    "per_seed_kappa": [
+     0.963315,
+     0.902174,
+     0.898098
+    ],
+    "median_kappa": 0.902174,
+    "seed_range": 0.065217,
+    "headroom": 0.097826
+   },
+   "15": {
+    "per_seed_kappa": [
+     0.910326,
+     0.771739,
+     0.690217
+    ],
+    "median_kappa": 0.771739,
+    "seed_range": 0.220109,
+    "headroom": 0.228261
+   }
+  },
+  "K24_trainable": {
+   "5": {
+    "per_seed_kappa": [
+     0.947011,
+     0.995924,
+     0.987772
+    ],
+    "median_kappa": 0.987772,
+    "seed_range": 0.048913,
+    "headroom": 0.012228
+   },
+   "7": {
+    "per_seed_kappa": [
+     0.971467,
+     1.0,
+     0.975543
+    ],
+    "median_kappa": 0.975543,
+    "seed_range": 0.028533,
+    "headroom": 0.024457
+   },
+   "9": {
+    "per_seed_kappa": [
+     0.914402,
+     0.971467,
+     0.983696
+    ],
+    "median_kappa": 0.971467,
+    "seed_range": 0.069293,
+    "headroom": 0.028533
+   },
+   "11": {
+    "per_seed_kappa": [
+     0.743207,
+     0.930707,
+     0.955163
+    ],
+    "median_kappa": 0.930707,
+    "seed_range": 0.211957,
+    "headroom": 0.069293
+   },
+   "13": {
+    "per_seed_kappa": [
+     0.502717,
+     0.8125,
+     0.83288
+    ],
+    "median_kappa": 0.8125,
+    "seed_range": 0.330163,
+    "headroom": 0.1875
+   },
+   "15": {
+    "per_seed_kappa": [
+     0.148098,
+     0.600543,
+     0.653533
+    ],
+    "median_kappa": 0.600543,
+    "seed_range": 0.505435,
+    "headroom": 0.399457
+   }
+  },
+  "K32_frozen": {
+   "5": {
+    "per_seed_kappa": [
+     0.995968,
+     0.987903,
+     0.995968
+    ],
+    "median_kappa": 0.995968,
+    "seed_range": 0.008065,
+    "headroom": 0.004032
+   },
+   "7": {
+    "per_seed_kappa": [
+     1.0,
+     0.987903,
+     0.995968
+    ],
+    "median_kappa": 0.995968,
+    "seed_range": 0.012097,
+    "headroom": 0.004032
+   },
+   "9": {
+    "per_seed_kappa": [
+     0.995968,
+     0.96371,
+     0.991935
+    ],
+    "median_kappa": 0.991935,
+    "seed_range": 0.032258,
+    "headroom": 0.008065
+   },
+   "11": {
+    "per_seed_kappa": [
+     0.983871,
+     0.866935,
+     0.96371
+    ],
+    "median_kappa": 0.96371,
+    "seed_range": 0.116935,
+    "headroom": 0.03629
+   },
+   "13": {
+    "per_seed_kappa": [
+     0.951613,
+     0.733871,
+     0.919355
+    ],
+    "median_kappa": 0.919355,
+    "seed_range": 0.217742,
+    "headroom": 0.080645
+   },
+   "15": {
+    "per_seed_kappa": [
+     0.858871,
+     0.403226,
+     0.883065
+    ],
+    "median_kappa": 0.858871,
+    "seed_range": 0.479839,
+    "headroom": 0.141129
+   }
+  },
+  "K32_trainable": {
+   "5": {
+    "per_seed_kappa": [
+     1.0,
+     1.0,
+     0.995968
+    ],
+    "median_kappa": 1.0,
+    "seed_range": 0.004032,
+    "headroom": 0.0
+   },
+   "7": {
+    "per_seed_kappa": [
+     0.975806,
+     0.975806,
+     0.991935
+    ],
+    "median_kappa": 0.975806,
+    "seed_range": 0.016129,
+    "headroom": 0.024194
+   },
+   "9": {
+    "per_seed_kappa": [
+     0.959677,
+     0.979839,
+     0.951613
+    ],
+    "median_kappa": 0.959677,
+    "seed_range": 0.028226,
+    "headroom": 0.040323
+   },
+   "11": {
+    "per_seed_kappa": [
+     0.923387,
+     0.927419,
+     0.91129
+    ],
+    "median_kappa": 0.923387,
+    "seed_range": 0.016129,
+    "headroom": 0.076613
+   },
+   "13": {
+    "per_seed_kappa": [
+     0.810484,
+     0.83871,
+     0.766129
+    ],
+    "median_kappa": 0.810484,
+    "seed_range": 0.072581,
+    "headroom": 0.189516
+   },
+   "15": {
+    "per_seed_kappa": [
+     0.459677,
+     0.556452,
+     0.427419
+    ],
+    "median_kappa": 0.459677,
+    "seed_range": 0.129032,
+    "headroom": 0.540323
+   }
+  },
+  "K40_frozen": {
+   "5": {
+    "per_seed_kappa": [
+     0.995994,
+     0.995994,
+     1.0
+    ],
+    "median_kappa": 0.995994,
+    "seed_range": 0.004006,
+    "headroom": 0.004006
+   },
+   "7": {
+    "per_seed_kappa": [
+     0.995994,
+     0.995994,
+     0.987981
+    ],
+    "median_kappa": 0.995994,
+    "seed_range": 0.008013,
+    "headroom": 0.004006
+   },
+   "9": {
+    "per_seed_kappa": [
+     0.995994,
+     0.983974,
+     0.991987
+    ],
+    "median_kappa": 0.991987,
+    "seed_range": 0.012019,
+    "headroom": 0.008013
+   },
+   "11": {
+    "per_seed_kappa": [
+     0.967949,
+     0.931891,
+     0.959936
+    ],
+    "median_kappa": 0.959936,
+    "seed_range": 0.036058,
+    "headroom": 0.040064
+   },
+   "13": {
+    "per_seed_kappa": [
+     0.931891,
+     0.835737,
+     0.903846
+    ],
+    "median_kappa": 0.903846,
+    "seed_range": 0.096154,
+    "headroom": 0.096154
+   },
+   "15": {
+    "per_seed_kappa": [
+     0.74359,
+     0.591346,
+     0.711538
+    ],
+    "median_kappa": 0.711538,
+    "seed_range": 0.152244,
+    "headroom": 0.288462
+   }
+  },
+  "K40_trainable": {
+   "5": {
+    "per_seed_kappa": [
+     0.971955,
+     0.987981,
+     0.995994
+    ],
+    "median_kappa": 0.987981,
+    "seed_range": 0.024038,
+    "headroom": 0.012019
+   },
+   "7": {
+    "per_seed_kappa": [
+     0.983974,
+     0.975962,
+     0.967949
+    ],
+    "median_kappa": 0.975962,
+    "seed_range": 0.016026,
+    "headroom": 0.024038
+   },
+   "9": {
+    "per_seed_kappa": [
+     0.967949,
+     0.955929,
+     0.979968
+    ],
+    "median_kappa": 0.967949,
+    "seed_range": 0.024038,
+    "headroom": 0.032051
+   },
+   "11": {
+    "per_seed_kappa": [
+     0.875801,
+     0.871795,
+     0.903846
+    ],
+    "median_kappa": 0.875801,
+    "seed_range": 0.032051,
+    "headroom": 0.124199
+   },
+   "13": {
+    "per_seed_kappa": [
+     0.6875,
+     0.671474,
+     0.659455
+    ],
+    "median_kappa": 0.671474,
+    "seed_range": 0.028045,
+    "headroom": 0.328526
+   },
+   "15": {
+    "per_seed_kappa": [
+     0.354968,
+     0.302885,
+     0.330929
+    ],
+    "median_kappa": 0.330929,
+    "seed_range": 0.052083,
+    "headroom": 0.669071
+   }
+  }
+ },
+ "rule_R_delta": {
+  "n_survivors": 8,
+  "quantile_index": 3,
+  "house_floor": 0.05,
+  "per_s": {
+   "11": {
+    "sorted_headroom": [
+     [
+      0.024457,
+      "K24_frozen"
+     ],
+     [
+      0.033333,
+      "K16_frozen"
+     ],
+     [
+      0.03629,
+      "K32_frozen"
+     ],
+     [
+      0.040064,
+      "K40_frozen"
+     ],
+     [
+      0.058333,
+      "K16_trainable"
+     ],
+     [
+      0.069293,
+      "K24_trainable"
+     ],
+     [
+      0.076613,
+      "K32_trainable"
+     ],
+     [
+      0.124199,
+      "K40_trainable"
+     ]
+    ],
+    "quantile_index": 3,
+    "raw": 0.03629,
+    "delta_star": 0.035,
+    "admissible": false,
+    "reachable_cells": 6,
+    "of": 8,
+    "reachable_frozen": 2
+   },
+   "13": {
+    "sorted_headroom": [
+     [
+      0.041667,
+      "K16_frozen"
+     ],
+     [
+      0.080645,
+      "K32_frozen"
+     ],
+     [
+      0.096154,
+      "K40_frozen"
+     ],
+     [
+      0.097826,
+      "K24_frozen"
+     ],
+     [
+      0.158333,
+      "K16_trainable"
+     ],
+     [
+      0.1875,
+      "K24_trainable"
+     ],
+     [
+      0.189516,
+      "K32_trainable"
+     ],
+     [
+      0.328526,
+      "K40_trainable"
+     ]
+    ],
+    "quantile_index": 3,
+    "raw": 0.096154,
+    "delta_star": 0.095,
+    "admissible": true,
+    "reachable_cells": 6,
+    "of": 8,
+    "reachable_frozen": 2
+   },
+   "15": {
+    "sorted_headroom": [
+     [
+      0.141129,
+      "K32_frozen"
+     ],
+     [
+      0.145833,
+      "K16_frozen"
+     ],
+     [
+      0.228261,
+      "K24_frozen"
+     ],
+     [
+      0.288462,
+      "K40_frozen"
+     ],
+     [
+      0.3125,
+      "K16_trainable"
+     ],
+     [
+      0.399457,
+      "K24_trainable"
+     ],
+     [
+      0.540323,
+      "K32_trainable"
+     ],
+     [
+      0.669071,
+      "K40_trainable"
+     ]
+    ],
+    "quantile_index": 3,
+    "raw": 0.228261,
+    "delta_star": 0.225,
+    "admissible": true,
+    "reachable_cells": 6,
+    "of": 8,
+    "reachable_frozen": 2
+   }
+  },
+  "elected_s": 13,
+  "delta_depth": 0.095,
+  "verdict": "s* = 13, delta_depth = 0.095",
+  "teeth_receipt_s11_rejected": true
+ },
+ "ordering_extension": {
+  "framing": "sec 4.6.1 condition 2: the 13/15 readings EXTEND #8's 11-squaring verdict of record and NEVER retract it. #8's T = 61.5/72 at 11 squarings is not reopened by this re-score.",
+  "per_s": {
+   "5": {
+    "U_per_K_8strata": {
+     "12": 6.5,
+     "16": 4.5,
+     "20": 4.0,
+     "24": 7.5,
+     "28": 7.5,
+     "32": 1.0,
+     "36": 9.0,
+     "40": 8.0
+    },
+    "T_8strata": 48.0,
+    "threshold_8strata": "T >= 53/72",
+    "U_per_K_4strata": {
+     "16": 4.5,
+     "24": 7.5,
+     "32": 1.0,
+     "40": 8.0
+    },
+    "T_W_4strata": 21.0,
+    "partition_4strata": "CONFIRMED T>31.5 / INDETERMINATE 29.5-31.5 / NEGLIGIBLE 6<T<29.5 / INVERTED T<=6"
+   },
+   "7": {
+    "U_per_K_8strata": {
+     "12": 7.5,
+     "16": 6.5,
+     "20": 6.0,
+     "24": 6.5,
+     "28": 6.0,
+     "32": 8.0,
+     "36": 7.5,
+     "40": 9.0
+    },
+    "T_8strata": 57.0,
+    "threshold_8strata": "T >= 53/72",
+    "U_per_K_4strata": {
+     "16": 6.5,
+     "24": 6.5,
+     "32": 8.0,
+     "40": 9.0
+    },
+    "T_W_4strata": 30.0,
+    "partition_4strata": "CONFIRMED T>31.5 / INDETERMINATE 29.5-31.5 / NEGLIGIBLE 6<T<29.5 / INVERTED T<=6"
+   },
+   "9": {
+    "U_per_K_8strata": {
+     "12": 7.5,
+     "16": 8.0,
+     "20": 8.0,
+     "24": 9.0,
+     "28": 6.5,
+     "32": 8.0,
+     "36": 9.0,
+     "40": 9.0
+    },
+    "T_8strata": 65.0,
+    "threshold_8strata": "T >= 53/72",
+    "U_per_K_4strata": {
+     "16": 8.0,
+     "24": 9.0,
+     "32": 8.0,
+     "40": 9.0
+    },
+    "T_W_4strata": 34.0,
+    "partition_4strata": "CONFIRMED T>31.5 / INDETERMINATE 29.5-31.5 / NEGLIGIBLE 6<T<29.5 / INVERTED T<=6"
+   },
+   "11": {
+    "U_per_K_8strata": {
+     "12": 6.0,
+     "16": 6.5,
+     "20": 7.0,
+     "24": 9.0,
+     "28": 9.0,
+     "32": 6.0,
+     "36": 9.0,
+     "40": 9.0
+    },
+    "T_8strata": 61.5,
+    "threshold_8strata": "T >= 53/72",
+    "U_per_K_4strata": {
+     "16": 6.5,
+     "24": 9.0,
+     "32": 6.0,
+     "40": 9.0
+    },
+    "T_W_4strata": 30.5,
+    "partition_4strata": "CONFIRMED T>31.5 / INDETERMINATE 29.5-31.5 / NEGLIGIBLE 6<T<29.5 / INVERTED T<=6"
+   },
+   "13": {
+    "U_per_K_8strata": {
+     "12": 9.0,
+     "16": 9.0,
+     "20": 8.0,
+     "24": 9.0,
+     "28": 9.0,
+     "32": 6.0,
+     "36": 9.0,
+     "40": 9.0
+    },
+    "T_8strata": 68.0,
+    "threshold_8strata": "T >= 53/72",
+    "U_per_K_4strata": {
+     "16": 9.0,
+     "24": 9.0,
+     "32": 6.0,
+     "40": 9.0
+    },
+    "T_W_4strata": 33.0,
+    "partition_4strata": "CONFIRMED T>31.5 / INDETERMINATE 29.5-31.5 / NEGLIGIBLE 6<T<29.5 / INVERTED T<=6"
+   },
+   "15": {
+    "U_per_K_8strata": {
+     "12": 9.0,
+     "16": 9.0,
+     "20": 7.0,
+     "24": 9.0,
+     "28": 9.0,
+     "32": 6.0,
+     "36": 9.0,
+     "40": 9.0
+    },
+    "T_8strata": 67.0,
+    "threshold_8strata": "T >= 53/72",
+    "U_per_K_4strata": {
+     "16": 9.0,
+     "24": 9.0,
+     "32": 6.0,
+     "40": 9.0
+    },
+    "T_W_4strata": 33.0,
+    "partition_4strata": "CONFIRMED T>31.5 / INDETERMINATE 29.5-31.5 / NEGLIGIBLE 6<T<29.5 / INVERTED T<=6"
+   }
+  }
+ }
+}

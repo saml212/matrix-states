@@ -1,0 +1,370 @@
+{
+ "smoke": "kscaling_smoke.py",
+ "K": 16,
+ "d_ncr": 17,
+ "provenance": {
+  "K": 16,
+  "d_ncr": 17,
+  "d_equals_k_plus_1": true,
+  "chance": 0.0625,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   9,
+   21,
+   22,
+   39,
+   40
+  ],
+  "deep_ladder_residues": [
+   4,
+   9,
+   5,
+   6,
+   7,
+   8
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   2,
+   3,
+   3,
+   4,
+   2
+  ],
+  "h_top": 40,
+  "h_top_residue": 8,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 36,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   9,
+   21,
+   22,
+   39,
+   40,
+   36
+  ],
+  "doc_len": 119,
+  "doc_left_pad": 10,
+  "t_in": 128,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "config_module_tree": "/home/nvidia/ncr_scaleaxis",
+  "scale": "392m",
+  "rung": 2,
+  "backbone": {
+   "d_model": 1536,
+   "d_state": 128,
+   "n_layers": 16,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "backbone_param_target": 392000000,
+  "vocab_size": 50257,
+  "vocab_size_total": 50259,
+  "backbone_param_exact": 391872512,
+  "total_param_exact_per_arm": 392095889,
+  "min_kernel_T_measured_at_dstate": 64,
+  "min_kernel_T_validated_at_this_dstate": false,
+  "ncr_param_exact": 171153,
+  "integ_param_exact": 52224
+ },
+ "torch": "2.12.1+cu130",
+ "gpu": "NVIDIA H100 80GB HBM3",
+ "host": "brev-ukptqsu65",
+ "when": "2026-08-22T07:57:38",
+ "n_pass": 12,
+ "n_fail": 0,
+ "n_na": 0,
+ "overall": "PASS",
+ "items": [
+  {
+   "item": "A_derivation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "K": 16,
+    "d_ncr": 17,
+    "d_equals_k_plus_1": true,
+    "chance": 0.0625,
+    "train_hops": [
+     1,
+     2,
+     3
+    ],
+    "deep_ladder": [
+     4,
+     9,
+     21,
+     22,
+     39,
+     40
+    ],
+    "deep_ladder_residues": [
+     4,
+     9,
+     5,
+     6,
+     7,
+     8
+    ],
+    "deep_ladder_n_squarings": [
+     2,
+     3,
+     4,
+     4,
+     5,
+     5
+    ],
+    "deep_ladder_n_applies": [
+     1,
+     2,
+     3,
+     3,
+     4,
+     2
+    ],
+    "h_top": 40,
+    "h_top_residue": 8,
+    "h_top_is_antipodal": true,
+    "fixed_dist_probe": 36,
+    "fixed_dist_probe_residue": 4,
+    "fixed_dist_probe_shares_residue_with_rung1": true,
+    "eval_hops": [
+     4,
+     9,
+     21,
+     22,
+     39,
+     40,
+     36
+    ],
+    "doc_len": 119,
+    "doc_left_pad": 10,
+    "t_in": 128,
+    "min_kernel_T": 128,
+    "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+    "config_module": "kscaling_config.py",
+    "config_module_tree": "/home/nvidia/ncr_scaleaxis",
+    "scale": "392m",
+    "rung": 2,
+    "backbone": {
+     "d_model": 1536,
+     "d_state": 128,
+     "n_layers": 16,
+     "conv_size": 4,
+     "num_heads": 1,
+     "ffn_mult": 4
+    },
+    "backbone_param_target": 392000000,
+    "vocab_size": 50257,
+    "vocab_size_total": 50259,
+    "backbone_param_exact": 391872512,
+    "total_param_exact_per_arm": 392095889,
+    "min_kernel_T_measured_at_dstate": 64,
+    "min_kernel_T_validated_at_this_dstate": false,
+    "ncr_param_exact": 171153,
+    "integ_param_exact": 52224
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "B_NEG_pinned_ladder_rejected",
+   "kind": "negative",
+   "expect_substr": "PAIRWISE residue collisions",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder (5, 12, 20, 29, 40, 61) at K=16 has PAIRWISE residue collisions at [13] (residues [5, 12, 4, 13, 8, 13]) -- two rungs measure the SAME ground truth while reporting as independent probes. This is the check the pinned _assert_ladder_sound is missing (gate memo leg 1).",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "C_NEG_silent_residue_collision_rejected",
+   "kind": "negative",
+   "expect_substr": "PAIRWISE residue collisions",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder (4, 9, 20, 21, 22, 39) at K=16 has PAIRWISE residue collisions at [4] (residues [4, 9, 4, 5, 6, 7]) -- two rungs measure the SAME ground truth while reporting as independent probes. This is the check the pinned _assert_ladder_sound is missing (gate memo leg 1).",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "D_NEG_identity_residue_rejected",
+   "kind": "negative",
+   "expect_substr": "IDENTITY mod K",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=32 is IDENTITY mod K=16 (h%K=0) -- confounded, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "E_NEG_train_residue_rejected",
+   "kind": "negative",
+   "expect_substr": "colliding with a train-residue",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "deep-ladder h=33 has h%K=1 colliding with a train-residue [1, 2, 3] -- secretly in-distribution, not held-out",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "F_param_counts_exact",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "ncr": 171153,
+    "integ": 52224,
+    "backbone": 391872512,
+    "total_per_arm": 392095889
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "G_document_geometry_and_pad",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "doc_shape": [
+     8,
+     129
+    ],
+    "pad": 10,
+    "t_in": 128,
+    "query_key_col": 125,
+    "query_mark_col": 127
+   },
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "H_forward_backward_grad",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "P1b/full_graft": {
+     "loss": 701.4757080078125,
+     "ce": 11.36840534210205,
+     "grad_norm_backbone": 1830.4451110623777,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      17
+     ]
+    },
+    "P1b/backbone_only": {
+     "loss": 11.33724594116211,
+     "ce": 11.33724594116211,
+     "grad_norm_backbone": 1830.8072223812342,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      17
+     ]
+    },
+    "P0/full_graft": {
+     "loss": 14.144885063171387,
+     "ce": 11.294805526733398,
+     "grad_norm_backbone": 1830.6090899202973,
+     "ncr_params_with_grad": 47,
+     "o_raw_shape": [
+      8,
+      17
+     ]
+    },
+    "P0/backbone_only": {
+     "loss": 11.33724594116211,
+     "ce": 11.33724594116211,
+     "grad_norm_backbone": 1830.8072223812342,
+     "ncr_params_with_grad": 0,
+     "o_raw_shape": [
+      8,
+      17
+     ]
+    }
+   },
+   "elapsed_s": 1.41
+  },
+  {
+   "item": "J_read_ablation_exact_zero",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "max_abs_diff": 0.0
+   },
+   "elapsed_s": 0.05
+  },
+  {
+   "item": "I_checkpoint_resume_bit_identical",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "ckpt_dir": "/ephemeral/scaleaxis/smoke_ckpt",
+    "max_abs_logit_diff": 0.0,
+    "recorded_d_ncr": 17
+   },
+   "elapsed_s": 10.74
+  },
+  {
+   "item": "K_NEG_unpadded_T_crashes_kernel_floor",
+   "kind": "negative",
+   "expect_substr": "_MIN_KERNEL_T",
+   "status": "PASS",
+   "fired_with": "AssertionError",
+   "message": "sequence length 118 < _MIN_KERNEL_T=128 -- chunk_delta_rule's backward crashes below this floor (F15-LM, measured 2026-07-02). Choose seq_len/ctx_len/continuation_len >= 128.",
+   "elapsed_s": 0.0
+  },
+  {
+   "item": "L_throughput_memory_utilisation",
+   "kind": "positive",
+   "status": "PASS",
+   "detail": {
+    "batch_size": 32,
+    "steps_timed": 30,
+    "s_per_step": 0.3793,
+    "projected_gpu_h_20k_steps": 2.107,
+    "peak_mem_gb": 17.094,
+    "sm_util_samples": [
+     100,
+     100,
+     100,
+     100,
+     100,
+     92,
+     92,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     95,
+     100,
+     100,
+     96,
+     96,
+     100,
+     96,
+     100
+    ],
+    "sm_util_median": 100,
+    "sm_util_max": 100,
+    "packing_headroom_by_mem_80gb": 4
+   },
+   "elapsed_s": 13.34
+  }
+ ]
+}

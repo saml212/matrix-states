@@ -1,0 +1,289 @@
+{
+ "script": "depthext_eval.py",
+ "prereg": "EXPERIMENT_LOG.md 2026-08-22 #2 final block (commit 9bf2f40)",
+ "wrapper_rationale": "kscaling_battery.py md5 5735c788563d9a21f2198c9f5b4793d5 has a fixed hop grid and no custom-hop flag; this wrapper calls the SAME eval_arm_at_hops path with the same guards. Nothing audited modified.",
+ "cell": "DEPTHEXT_depthext6_kscaling_K16_compB_s1",
+ "tag": "depthext6_kscaling_K16_compB_s1",
+ "ckpt": "/ephemeral/kscaling/ckpts/kscaling_K16_compB_s1/kscaling_K16_compB_s1.ckpt.pt",
+ "K": 16,
+ "d_ncr": 17,
+ "ckpt_recorded_d_ncr": 17,
+ "metric_of_record": "retrieval24_acc",
+ "metric_note": "historical name; argmax over exactly K slots, K-generic",
+ "chance": 0.0625,
+ "chance_sd_at_n": 0.015128841196122723,
+ "wall_band": [
+  0.01711347641163183,
+  0.10788652358836817
+ ],
+ "wall_band_mult": 3.0,
+ "depth_ladder": [
+  36,
+  132,
+  516,
+  2052,
+  8196,
+  32772
+ ],
+ "squaring_profile": [
+  5,
+  7,
+  9,
+  11,
+  13,
+  15
+ ],
+ "ladder_diagnostics": {
+  "r_fix": 4,
+  "residues": [
+   4,
+   4,
+   4,
+   4,
+   4,
+   4
+  ],
+  "n_squarings": [
+   5,
+   7,
+   9,
+   11,
+   13,
+   15
+  ],
+  "n_applies": [
+   2,
+   2,
+   2,
+   2,
+   2,
+   2
+  ],
+  "effective_distance": 4,
+  "rung1_matches_fixed_dist_table": true,
+  "ladder_guard": "identity + train-residue legs of the pinned _assert_ladder_sound, PLUS single-residue enforcement. The kscaling pairwise-DISTINCTNESS leg is deliberately NOT applied: it is the breadth-ladder guard and asserts the negation of this fixed-distance construction (see kscaling_config's FIXED_DIST_PROBE docstring, same convention). DISCLOSED for adjudication."
+ },
+ "same_ground_truth_by_construction_per_K": true,
+ "same_ground_truth_label": "All rungs of this K share residue r_fix (mod K): IDENTICAL GROUND TRUTH BY CONSTRUCTION per K. Spread across rungs is numerical squaring-depth cost, not compositional information.",
+ "n": 256,
+ "base_seed": 90210,
+ "ckpt_step": 20000,
+ "ckpt_seed": 1,
+ "ckpt_seed_source": "checkpoint",
+ "pool_seed": 1,
+ "pools_matched": true,
+ "ckpt_cell_id": "kscaling_K16_compB_s1",
+ "runner_tag": "ncr_kscaling_runner_v1",
+ "anchor_runner_tag_override": null,
+ "freeze_entity_adapter": false,
+ "freeze_flag_source": "checkpoint",
+ "recipe": "TRAINABLE-contrastive (compB)",
+ "cell_config": {
+  "cfg_aux_loss_type": "contrastive+cosine",
+  "cfg_freeze_entity_adapter": false,
+  "cfg_seed": 1,
+  "cfg_K": 16,
+  "cfg_d_ncr": 17,
+  "cfg_status": "COMPLETED",
+  "cfg_step": 20000
+ },
+ "matched": {
+  "P1b": {
+   "regime": "P1b",
+   "teacher_force": true,
+   "hops": [
+    36,
+    132,
+    516,
+    2052,
+    8196,
+    32772
+   ],
+   "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding); the READ is under test -- CAPABILITY curve",
+   "note": null,
+   "elapsed_s": 2.6475870609283447,
+   "per_hop": {
+    "h=36": {
+     "h": 36,
+     "residue": 4,
+     "n_squarings": 5,
+     "n_applies": 2,
+     "acc": 0.99609375,
+     "margin_over_chance": 0.93359375,
+     "within_chance_3sd": false
+    },
+    "h=132": {
+     "h": 132,
+     "residue": 4,
+     "n_squarings": 7,
+     "n_applies": 2,
+     "acc": 0.984375,
+     "margin_over_chance": 0.921875,
+     "within_chance_3sd": false
+    },
+    "h=516": {
+     "h": 516,
+     "residue": 4,
+     "n_squarings": 9,
+     "n_applies": 2,
+     "acc": 0.953125,
+     "margin_over_chance": 0.890625,
+     "within_chance_3sd": false
+    },
+    "h=2052": {
+     "h": 2052,
+     "residue": 4,
+     "n_squarings": 11,
+     "n_applies": 2,
+     "acc": 0.86328125,
+     "margin_over_chance": 0.80078125,
+     "within_chance_3sd": false
+    },
+    "h=8196": {
+     "h": 8196,
+     "residue": 4,
+     "n_squarings": 13,
+     "n_applies": 2,
+     "acc": 0.6953125,
+     "margin_over_chance": 0.6328125,
+     "within_chance_3sd": false
+    },
+    "h=32772": {
+     "h": 32772,
+     "residue": 4,
+     "n_squarings": 15,
+     "n_applies": 2,
+     "acc": 0.34375,
+     "margin_over_chance": 0.28125,
+     "within_chance_3sd": false
+    }
+   },
+   "result": {
+    "h=36": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 0.9996134638786316,
+     "answer_accuracy": 0.06640625,
+     "n": 256,
+     "offtarget_margin": 0.9868047833442688,
+     "retrieval24_acc": 0.99609375,
+     "o_pairwise_cos": 0.011992237530648708,
+     "target_pairwise_cos": 0.011155027896165848
+    },
+    "h=132": {
+     "recovered_frac@0.9": 0.984375,
+     "mean_cos": 0.991516649723053,
+     "answer_accuracy": 0.08984375,
+     "n": 256,
+     "offtarget_margin": 0.9887871146202087,
+     "retrieval24_acc": 0.984375,
+     "o_pairwise_cos": 0.017024852335453033,
+     "target_pairwise_cos": 0.008214532397687435
+    },
+    "h=516": {
+     "recovered_frac@0.9": 0.9609375,
+     "mean_cos": 0.9734452962875366,
+     "answer_accuracy": 0.12890625,
+     "n": 256,
+     "offtarget_margin": 0.948877215385437,
+     "retrieval24_acc": 0.953125,
+     "o_pairwise_cos": 0.009620648808777332,
+     "target_pairwise_cos": 0.013644055463373661
+    },
+    "h=2052": {
+     "recovered_frac@0.9": 0.8828125,
+     "mean_cos": 0.9180380702018738,
+     "answer_accuracy": 0.09765625,
+     "n": 256,
+     "offtarget_margin": 0.9108389019966125,
+     "retrieval24_acc": 0.86328125,
+     "o_pairwise_cos": 0.008225471712648869,
+     "target_pairwise_cos": 0.008705160580575466
+    },
+    "h=8196": {
+     "recovered_frac@0.9": 0.734375,
+     "mean_cos": 0.7636106014251709,
+     "answer_accuracy": 0.125,
+     "n": 256,
+     "offtarget_margin": 0.7569676041603088,
+     "retrieval24_acc": 0.6953125,
+     "o_pairwise_cos": 0.011503242887556553,
+     "target_pairwise_cos": 0.0072034443728625774
+    },
+    "h=32772": {
+     "recovered_frac@0.9": 0.37890625,
+     "mean_cos": 0.5340946912765503,
+     "answer_accuracy": 0.0859375,
+     "n": 256,
+     "offtarget_margin": 0.5387406945228577,
+     "retrieval24_acc": 0.34375,
+     "o_pairwise_cos": 0.0074011883698403835,
+     "target_pairwise_cos": 0.010322284884750843
+    },
+    "mean_recovered_frac@0.9": 0.8235677083333334,
+    "mean_mean_cos": 0.863386462132136,
+    "mean_answer_accuracy": 0.09895833333333333,
+    "mean_offtarget_margin": 0.8551693856716156,
+    "mean_retrieval24_acc": 0.8059895833333334
+   }
+  },
+  "P0": {
+   "regime": "P0",
+   "teacher_force": false,
+   "hops": [
+    32772
+   ],
+   "regime_meaning": "LEARNED-WRITE (model's own encoder writes) -- WALL curve, chance = 1/K = 0.0625",
+   "note": "deepest rung only (15 squarings, h=32772); the #2 cost cap carried to the extended profile. NOTE: the archived four-rung wave ran P0 at 11 squarings, so this P0 reading is NOT comparable to it -- P1b is what Rule R-delta reads.",
+   "elapsed_s": 0.707160472869873,
+   "per_hop": {
+    "h=32772": {
+     "h": 32772,
+     "residue": 4,
+     "n_squarings": 15,
+     "n_applies": 2,
+     "acc": 0.0625,
+     "margin_over_chance": 0.0,
+     "within_chance_3sd": true
+    }
+   },
+   "result": {
+    "h=32772": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": -0.001984936883673072,
+     "answer_accuracy": 0.0625,
+     "n": 256,
+     "offtarget_margin": -0.0009352752240374684,
+     "retrieval24_acc": 0.0625,
+     "o_pairwise_cos": -0.001653413288295269,
+     "target_pairwise_cos": 0.009087842889130116
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": -0.001984936883673072,
+    "mean_answer_accuracy": 0.0625,
+    "mean_offtarget_margin": -0.0009352752240374684,
+    "mean_retrieval24_acc": 0.0625
+   }
+  }
+ },
+ "elapsed_s": 8.858544826507568,
+ "self_check_defects": [],
+ "self_check": "PASS",
+ "driver": {
+  "driver": "depthext6_driver.py",
+  "parent": "depthext_eval.py",
+  "parent_md5": "e95ffe192c66d3e054f3febc37fe4a91",
+  "parent_unmodified": true,
+  "squaring_profile_requested": [
+   5,
+   7,
+   9,
+   11,
+   13,
+   15
+  ],
+  "archived_profile_is_prefix": true,
+  "prereg_extension": "NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 sec 4.6.1 (the FATAL-2 repair) + sec 5.2 Rule R-delta; the {13,15} rungs come from the SAME rule of record (smallest h in [2^s, 2^(s+1)) with h == r_fix mod K).",
+  "extends_never_retracts": "sec 4.6.1 condition 2: the 13/15 readings EXTEND #8's 11-squaring verdict of record and never retract it.",
+  "only_field_modified_post_hoc": "matched.P0.note (a label, not a number)"
+ }
+}
