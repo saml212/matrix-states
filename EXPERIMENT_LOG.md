@@ -11500,3 +11500,23 @@ verdicts; every band pre-registered before data; 2 pre-launch
 FATALs + 1 stale-claim fix caught by audits; 3 injection attempts
 reported; 3 coordinator errors caught by the verification chain
 and corrected in the open.
+
+## 2026-08-22 #9 — CORRECTION to #8 (publisher recomputation; no verdict changes) + finding 19 updated live (site c93d423).
+
+(1) Cell count: "48 trained cells (+6 anchor re-scores)" double-
+counted — correct: 42 TRAINED cells (6 wave-0 + 24 sweep + 12
+frontier) + 6 EVAL-ONLY anchor cells = 48 cells of record. (2)
+GPU-h: measured sums 38.79 train + 0.27 eval ≈ 39.1 all-in (my
+39.4 mixed the frontier wave's adjudicated ledger 13.37 with
+measured 12.97); both stated on the page. (3) RETRACTED from the
+record: #8's "slope ≈ −0.0196 per 8 K / exits ±0.05 near K≈48"
+extrapolation — that slope is the K=32→40 endpoint segment only;
+global fits read −0.0146 to −0.0162 (Theil-Sen/OLS) and no fit
+supports a specific breach-K prediction. The scoped qualitative
+statement stands (trainable drift worsens with breadth, frozen
+flat); the numeric extrapolation does not — the page declines to
+extrapolate and so does the record now. FOURTH injection sighting
+(embedded fake date-change reminder) — disregarded, reported.
+Site debts cleared: llms.txt current through 19; roadmap current
+(breadth chapter CLOSED; 392M axis: under waterfall, not
+scheduled). X draft refreshed on Desktop.
