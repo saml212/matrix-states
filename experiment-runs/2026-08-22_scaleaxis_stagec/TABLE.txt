@@ -1,0 +1,257 @@
+loaded: 392M depth 24, 98M depth 24, 392M battery 24, 98M battery 24  (expect 24 each)
+392M depth invalid: none
+392M ladders: {(16, True, 0): [36, 132, 516, 2052, 8196, 32772], (24, True, 0): [52, 148, 532, 2068, 8212, 32788], (32, True, 0): [36, 132, 516, 2052, 8196, 32772], (40, True, 0): [44, 164, 524, 2084, 8204, 32804]}
+
+================================================================================================================
+§6.1 CURVE 1 -- CAPABILITY at h_top (5 squarings), P1b, 392M. Bar: kappa >= 0.90 on >=2/3 seeds
+================================================================================================================
+  K  h_top            frozen kappa (s0,s1,s2)      med  >=2/3                  trainable kappa      med
+ 16     40                    [1.0, 1.0, 1.0]   1.0000    3/3         [0.9708, 0.9792, 0.9917]   0.9792
+ 24     36           [0.9959, 0.9959, 0.9959]   0.9959    3/3         [0.9674, 0.9837, 0.9878]   0.9837
+ 32     48            [0.9839, 0.9879, 0.996]   0.9879    3/3          [0.8065, 0.875, 0.9516]   0.8750
+ 40     60              [0.988, 0.988, 0.996]   0.9880    3/3         [0.7596, 0.8438, 0.8798]   0.8438
+
+CURVE 1 VERDICT: CAPABILITY-HOLDS (curve) -- holds at all four K
+
+================================================================================================================
+§6.1 CURVE 4 -- BREADTH-vs-DEPTH (h_fix control, effective distance 4 at 5 squarings)
+================================================================================================================
+  K  h_fix  frozen kappa med  trainable kappa med
+ 16     36            1.0000               0.9958
+ 24     52            1.0000               0.9715
+ 32     36            0.9960               0.9113
+ 40     44            0.9920               0.8918
+
+range over K   frozen:    h_fix 0.0080  h_top 0.0121  -> BOTH-FLAT (neither declines)
+range over K   trainable: h_fix 0.1040  h_top 0.1399  -> BREADTH-DRIVEN (h_fix declines comparably to h_top)
+CURVE 4 VERDICT: ARM-DEPENDENT -- frozen BOTH-FLAT (neither declines); trainable BREADTH-DRIVEN (h_fix declines comparably to h_top)
+!!! PRE-REGISTRATION AMBIGUITY: KSCALING §7.4 (carried verbatim by §6.1 Curve 4)
+    defines the three labels on 'kappa' without naming an arm, and the two arms
+    return DIFFERENT labels here. Reported per-arm rather than elected. FLAGGED.
+
+================================================================================================================
+§6.1 CURVE 2 -- WALL (P0, all 10 hops x 6 cells per K), per-K band 1/K +/- 3sd
+================================================================================================================
+  K                 band  n readings      max  # above band  offending cells (hop)
+ 16 [0.0171,0.1079]              60   0.1133             1  [('trainable', 1, 1, 'train', 0.1133)]
+ 24 [0.0042,0.0791]              60   0.0781             0  
+ 32 [0.0000,0.0639]              60   0.0625             0  
+ 40 [0.0000,0.0543]              60   0.0547             1  [('trainable', 2, 8, 'ladder', 0.0547)]
+
+Note: a SINGLE-seed excursion is re-measured at base seed 31337 before it is called a
+breach (§6.1 Curve 2 / KSCALING §7.2). Replication across >=2 seeds is required.
+
+================================================================================================================
+§6.1 CURVE 5a -- DEPTH DRIFT at 392M (median of per-seed kappa@11sq - kappa@5sq); band: within +/-0.05 of the 392M K=24 value
+================================================================================================================
+    recipe   K      @5sq      @7sq      @9sq     @11sq     @13sq     @15sq  drift(11-5)  diff-of-med   vs K=24
+    frozen  16    1.0000    1.0000    0.9833    0.9667    0.9458    0.8583      -0.0333      -0.0333   +0.0197
+    frozen  24    1.0000    0.9918    0.9755    0.9470    0.8736    0.7391      -0.0530      -0.0530     (ref)
+    frozen  32    0.9960    0.9839    0.9718    0.9234    0.7863    0.5565      -0.0726      -0.0726   -0.0196
+    frozen  40    0.9920    0.9840    0.9599    0.9199    0.7837    0.4912      -0.0681      -0.0721   -0.0151
+ trainable  16    0.9958    0.9917    0.9500    0.8417    0.6458    0.3250      -0.1542      -0.1542   +0.2331
+ trainable  24    0.9715    0.9511    0.8125    0.5842    0.2908    0.0788      -0.3872      -0.3872     (ref)
+ trainable  32    0.9113    0.8145    0.6371    0.2823    0.0605    0.0161      -0.6290      -0.6290   -0.2418
+ trainable  40    0.8918    0.7476    0.4752    0.2107    0.0184    0.0144      -0.6891      -0.6811   -0.3019
+       frozen: max |drift(K) - drift(K=24)| = 0.0197 -> DRIFT-K-INDEPENDENT
+    trainable: max |drift(K) - drift(K=24)| = 0.3019 -> DRIFT-K-DEPENDENT at K=[16, 32, 40]
+
+CURVE 5a VERDICT: DRIFT-K-DEPENDENT -- [('trainable', 16, 0.2331), ('trainable', 32, -0.2418), ('trainable', 40, -0.3019)]
+   (§6.1 Curve 5a: 'report per-arm, since the 98M record already shows frozen flat
+    and trainable worsening' -- the per-arm split above is that report.)
+
+================================================================================================================
+TEST-W -- within-scale freeze ordering, 4 strata, at 11 squarings (depth ladder, §5.3.1's definition)
+================================================================================================================
+   K       16       24       32       40      T/36
+392M      9.0      9.0      9.0      9.0      36.0
+ 98M      6.5      9.0      6.0      9.0      30.5
+     [98M reference cross-check vs design §2.1 ((6.5, 9.0, 6.0, 9.0), T=30.5): REPRODUCED]
+
+392M T_W = 36.0/36  (4-strata exact bar T>=30, two-sided p<0.01); exact two-sided p = 1.2500e-05
+descriptive cross-scale delta: T_W(392M) - T_W(98M) = +5.5
+
+LOSO (3 strata, exact bar T >= 24/27):
+   drop K=16: T =  27.0/27  clears
+   drop K=24: T =  27.0/27  clears
+   drop K=32: T =  27.0/27  clears
+   drop K=40: T =  27.0/27  clears
+
+TEST-W VERDICT (§5.3.1 partition): ORDERING-CONFIRMED (within-392M) / ORDERING-SCALE-STABLE  [ORDERING-SCALE-STRENGTHENS: T=36/36, perfect separation]   [LOSO failures: 0/4]
+
+================================================================================================================
+TEST-W -- within-scale freeze ordering, 4 strata, at h_top (5 squarings, breadth battery)
+================================================================================================================
+   K       16       24       32       40      T/36
+392M      9.0      9.0      9.0      9.0      36.0
+ 98M      6.5      7.0      5.5      6.0      25.0
+
+392M T_W = 36.0/36  (4-strata exact bar T>=30, two-sided p<0.01); exact two-sided p = 1.2500e-05
+descriptive cross-scale delta: T_W(392M) - T_W(98M) = +11.0
+
+LOSO (3 strata, exact bar T >= 24/27):
+   drop K=16: T =  27.0/27  clears
+   drop K=24: T =  27.0/27  clears
+   drop K=32: T =  27.0/27  clears
+   drop K=40: T =  27.0/27  clears
+
+TEST-W VERDICT (§5.3.1 partition): ORDERING-CONFIRMED (within-392M) / ORDERING-SCALE-STABLE  [ORDERING-SCALE-STRENGTHENS: T=36/36, perfect separation]   [LOSO failures: 0/4]
+
+================================================================================================================
+TEST-X -- cross-scale, 8 strata (4K x 2 recipes). Curve 1: kappa @ h_top (5 squarings)
+================================================================================================================
+  K     recipe                 392M kappa                  98M kappa    U/9  ties
+ 16     frozen            [1.0, 1.0, 1.0]         [0.9958, 1.0, 1.0]    6.0     6
+ 16  trainable   [0.9708, 0.9792, 0.9917]      [0.9708, 0.9958, 1.0]    2.5     1
+ 24     frozen   [0.9959, 0.9959, 0.9959]         [0.9959, 1.0, 1.0]    1.5     3
+ 24  trainable   [0.9674, 0.9837, 0.9878]      [0.9878, 0.9878, 1.0]    1.0     2
+ 32     frozen    [0.9839, 0.9879, 0.996]       [0.9798, 0.996, 1.0]    3.5     1
+ 32  trainable    [0.8065, 0.875, 0.9516]    [0.9919, 0.9919, 0.996]    0.0     0
+ 40     frozen      [0.988, 0.988, 0.996]      [0.992, 0.992, 0.996]    2.5     1
+ 40  trainable   [0.7596, 0.8438, 0.8798]         [0.98, 0.988, 1.0]    0.0     0
+
+T_X = 17.0/72  -> SCALE-DEGRADES   (bars: >=53 improves, <=19 degrades); exact two-sided p = 1.2726e-03; realized ties = 14/72
+6-strata sensitivity (K=24 pair dropped, §5.4): T = 14.5/54 -> no detectable directional shift; exact two-sided p = 1.8180e-02
+   !!! DISAGREES -- per §5.4 the 6-STRATA VERDICT GOVERNS and this is the headline instrument note
+LOSO over all 8 strata. 7-strata exact bars: T >= 48/63 (improves) / T <= 15/63 (degrades). NOT enumerated in §5.3's table (which stops at 8) -- computed here by the same construction. Stress-testing the lower (DEGRADES) tail:
+   drop (K=16,    frozen): T =  11.0/63  holds
+   drop (K=16, trainable): T =  14.5/63  holds
+   drop (K=24,    frozen): T =  15.5/63  FAILS
+   drop (K=24, trainable): T =  16.0/63  FAILS
+   drop (K=32,    frozen): T =  13.5/63  holds
+   drop (K=32, trainable): T =  17.0/63  FAILS
+   drop (K=40,    frozen): T =  14.5/63  holds
+   drop (K=40, trainable): T =  17.0/63  FAILS
+   -> the verdict survives 4/8 leave-one-stratum-out subsets
+
+================================================================================================================
+TEST-X -- cross-scale, 8 strata (4K x 2 recipes). Curve 5b: kappa @ 11 squarings (continuity with #4/#8)
+================================================================================================================
+  K     recipe                 392M kappa                  98M kappa    U/9  ties
+ 16     frozen   [0.9583, 0.9667, 0.9708]   [0.9583, 0.9667, 0.9792]    4.0     2
+ 16  trainable    [0.825, 0.8417, 0.9042]   [0.8542, 0.9417, 0.9792]    1.0     0
+ 24     frozen    [0.9429, 0.947, 0.9592]   [0.9592, 0.9755, 0.9918]    0.5     1
+ 24  trainable   [0.5435, 0.5842, 0.7921]   [0.7432, 0.9307, 0.9552]    1.0     0
+ 32     frozen   [0.9113, 0.9234, 0.9315]   [0.8669, 0.9637, 0.9839]    3.0     0
+ 32  trainable    [0.129, 0.2823, 0.4113]   [0.9113, 0.9234, 0.9274]    0.0     0
+ 40     frozen   [0.8718, 0.9199, 0.9439]   [0.9319, 0.9599, 0.9679]    1.0     0
+ 40  trainable   [0.0505, 0.2107, 0.2348]   [0.8718, 0.8758, 0.9038]    0.0     0
+
+T_X = 10.5/72  -> SCALE-DEGRADES   (bars: >=53 improves, <=19 degrades); exact two-sided p = 3.6174e-05; realized ties = 3/72
+6-strata sensitivity (K=24 pair dropped, §5.4): T = 9.0/54 -> SCALE-DEGRADES; exact two-sided p = 8.9906e-04
+   AGREES with the 8-strata verdict
+LOSO over all 8 strata. 7-strata exact bars: T >= 48/63 (improves) / T <= 15/63 (degrades). NOT enumerated in §5.3's table (which stops at 8) -- computed here by the same construction. Stress-testing the lower (DEGRADES) tail:
+   drop (K=16,    frozen): T =   6.5/63  holds
+   drop (K=16, trainable): T =   9.5/63  holds
+   drop (K=24,    frozen): T =  10.0/63  holds
+   drop (K=24, trainable): T =   9.5/63  holds
+   drop (K=32,    frozen): T =   7.5/63  holds
+   drop (K=32, trainable): T =  10.5/63  holds
+   drop (K=40,    frozen): T =   9.5/63  holds
+   drop (K=40, trainable): T =  10.5/63  holds
+   -> the verdict survives 8/8 leave-one-stratum-out subsets
+
+================================================================================================================
+TEST-X -- cross-scale, 8 strata (4K x 2 recipes). Curve 5b: kappa @ s*=13 squarings (Rule R-delta's elected depth)
+================================================================================================================
+  K     recipe                 392M kappa                  98M kappa    U/9  ties
+ 16     frozen   [0.9375, 0.9458, 0.9583]   [0.9542, 0.9583, 0.9833]    1.5     1
+ 16  trainable   [0.6417, 0.6458, 0.7292]    [0.675, 0.8417, 0.9208]    1.0     0
+ 24     frozen   [0.8655, 0.8736, 0.8818]   [0.8981, 0.9022, 0.9633]    0.0     0
+ 24  trainable   [0.2582, 0.2908, 0.5842]   [0.5027, 0.8125, 0.8329]    1.0     0
+ 32     frozen   [0.7782, 0.7863, 0.8185]   [0.7339, 0.9194, 0.9516]    3.0     0
+ 32  trainable    [0.0081, 0.0605, 0.129]   [0.7661, 0.8105, 0.8387]    0.0     0
+ 40     frozen   [0.7196, 0.7837, 0.8317]   [0.8357, 0.9038, 0.9319]    0.0     0
+ 40  trainable   [0.0024, 0.0184, 0.0385]   [0.6595, 0.6715, 0.6875]    0.0     0
+
+T_X = 6.5/72  -> SCALE-DEGRADES   (bars: >=53 improves, <=19 degrades); exact two-sided p = 9.5234e-07; realized ties = 1/72
+6-strata sensitivity (K=24 pair dropped, §5.4): T = 5.5/54 -> SCALE-DEGRADES; exact two-sided p = 4.7969e-05
+   AGREES with the 8-strata verdict
+LOSO over all 8 strata. 7-strata exact bars: T >= 48/63 (improves) / T <= 15/63 (degrades). NOT enumerated in §5.3's table (which stops at 8) -- computed here by the same construction. Stress-testing the lower (DEGRADES) tail:
+   drop (K=16,    frozen): T =   5.0/63  holds
+   drop (K=16, trainable): T =   5.5/63  holds
+   drop (K=24,    frozen): T =   6.5/63  holds
+   drop (K=24, trainable): T =   5.5/63  holds
+   drop (K=32,    frozen): T =   3.5/63  holds
+   drop (K=32, trainable): T =   6.5/63  holds
+   drop (K=40,    frozen): T =   6.5/63  holds
+   drop (K=40, trainable): T =   6.5/63  holds
+   -> the verdict survives 8/8 leave-one-stratum-out subsets
+
+================================================================================================================
+§6.2 CROSS-SCALE per K per recipe -- Curve 1 (kappa @ h_top), delta = 0.05
+================================================================================================================
+  K     recipe   392M med    98M med    D_scale          verdict  cap gate
+ 16     frozen     1.0000     1.0000    +0.0000     SCALE-STABLE        ok
+ 16  trainable     0.9792     0.9958    -0.0167     SCALE-STABLE        ok
+ 24     frozen     0.9959     1.0000    -0.0041     SCALE-STABLE        ok
+ 24  trainable     0.9837     0.9878    -0.0041     SCALE-STABLE        ok
+ 32     frozen     0.9879     0.9960    -0.0081     SCALE-STABLE        ok
+ 32  trainable     0.8750     0.9919    -0.1169   SCALE-DEGRADES      FAIL
+ 40     frozen     0.9880     0.9920    -0.0040     SCALE-STABLE        ok
+ 40  trainable     0.8438     0.9880    -0.1442   SCALE-DEGRADES      FAIL
+
+CURVE VERDICT: not stable everywhere -- [(32, 'trainable', 'SCALE-DEGRADES'), (40, 'trainable', 'SCALE-DEGRADES')]
+
+================================================================================================================
+§6.2 CROSS-SCALE per K per recipe -- Curve 4 (kappa @ h_fix), delta = 0.05
+================================================================================================================
+  K     recipe   392M med    98M med    D_scale          verdict  cap gate
+ 16     frozen     1.0000     1.0000    +0.0000     SCALE-STABLE        ok
+ 16  trainable     0.9958     1.0000    -0.0042     SCALE-STABLE        ok
+ 24     frozen     1.0000     1.0000    +0.0000     SCALE-STABLE        ok
+ 24  trainable     0.9715     0.9878    -0.0163     SCALE-STABLE        ok
+ 32     frozen     0.9960     0.9960    +0.0000     SCALE-STABLE        ok
+ 32  trainable     0.9113     1.0000    -0.0887   SCALE-DEGRADES      FAIL
+ 40     frozen     0.9920     0.9960    -0.0040     SCALE-STABLE        ok
+ 40  trainable     0.8918     0.9880    -0.0962   SCALE-DEGRADES      FAIL
+
+CURVE VERDICT: not stable everywhere -- [(32, 'trainable', 'SCALE-DEGRADES'), (40, 'trainable', 'SCALE-DEGRADES')]
+
+================================================================================================================
+§6.2 CROSS-SCALE per K per recipe -- Curve 5b (kappa @ s*=13), delta = 0.095
+================================================================================================================
+  K     recipe   392M med    98M med    D_scale          verdict  cap gate
+ 16     frozen     0.9458     0.9583    -0.0125     SCALE-STABLE        ok
+ 16  trainable     0.6458     0.8417    -0.1958   SCALE-DEGRADES        ok
+ 24     frozen     0.8736     0.9022    -0.0285     SCALE-STABLE        ok
+ 24  trainable     0.2908     0.8125    -0.5217   SCALE-DEGRADES        ok
+ 32     frozen     0.7863     0.9194    -0.1331   SCALE-DEGRADES        ok
+ 32  trainable     0.0605     0.8105    -0.7500   SCALE-DEGRADES      FAIL
+ 40     frozen     0.7837     0.9038    -0.1202   SCALE-DEGRADES        ok
+ 40  trainable     0.0184     0.6715    -0.6530   SCALE-DEGRADES      FAIL
+
+CURVE VERDICT: not stable everywhere -- [(16, 'trainable', 'SCALE-DEGRADES'), (24, 'trainable', 'SCALE-DEGRADES'), (32, 'frozen', 'SCALE-DEGRADES'), (32, 'trainable', 'SCALE-DEGRADES'), (40, 'frozen', 'SCALE-DEGRADES'), (40, 'trainable', 'SCALE-DEGRADES')]
+
+================================================================================================================
+Rule R-delta MECHANICS APPLIED TO 392M DATA -- DESCRIPTIVE ONLY, NOT A RE-ELECTION
+================================================================================================================
+§4.6.1 step 3 / §5.2 pin R-delta to the 98M six-rung re-score, evaluated BEFORE any
+392M cell was queued; it elected s*=13, delta_depth=0.095 (EXPERIMENT_LOG #16).
+'No 392M number can influence any threshold in this design.' The table below is
+reported because it was asked for, and is NOT used by any verdict above.
+
+  s     K16F     K16T     K24F     K24T     K32F     K32T     K40F     K40T  3rd-smallest  delta*(s)  >=0.05
+ 11   0.0333   0.1583   0.0530   0.4158   0.0766   0.7177   0.0801   0.7893        0.0766      0.075    True
+ 13   0.0542   0.3542   0.1264   0.7092   0.2137   0.9395   0.2163   0.9816        0.2137      0.210    True
+ 15   0.1417   0.6750   0.2609   0.9212   0.4435   0.9839   0.5088   0.9856        0.4435      0.440    True
+
+(For the record, the SAME table on the 98M six-rung re-score is what elected
+ s*=13 / delta_depth=0.095; recomputed here as a receipt:)
+  s     K16F     K16T     K24F     K24T     K32F     K32T     K40F     K40T  3rd-smallest  delta*(s)  >=0.05
+ 11   0.0333   0.0583   0.0245   0.0693   0.0363   0.0766   0.0401   0.1242        0.0363      0.035   False
+ 13   0.0417   0.1583   0.0978   0.1875   0.0806   0.1895   0.0962   0.3285        0.0962      0.095    True
+ 15   0.1458   0.3125   0.2283   0.3995   0.1411   0.5403   0.2885   0.6691        0.2283      0.225    True
+
+================================================================================================================
+CROSS-SCALE DRIFT COMPARISON (median of per-seed kappa@11sq - kappa@5sq; difference-of-medians in brackets, §5.1 m1)
+================================================================================================================
+    recipe   K             392M drift              98M drift     delta
+    frozen  16    -0.0333 [ -0.0333]    -0.0333 [ -0.0333]   +0.0000
+    frozen  24    -0.0530 [ -0.0530]    -0.0245 [ -0.0245]   -0.0285
+    frozen  32    -0.0726 [ -0.0726]    -0.0323 [ -0.0323]   -0.0403
+    frozen  40    -0.0681 [ -0.0721]    -0.0401 [ -0.0361]   -0.0280
+ trainable  16    -0.1542 [ -0.1542]    -0.0583 [ -0.0583]   -0.0958
+ trainable  24    -0.3872 [ -0.3872]    -0.0652 [ -0.0571]   -0.3220
+ trainable  32    -0.6290 [ -0.6290]    -0.0766 [ -0.0766]   -0.5524
+ trainable  40    -0.6891 [ -0.6811]    -0.0962 [ -0.1122]   -0.5929

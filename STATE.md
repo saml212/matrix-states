@@ -1,3 +1,16 @@
+**2026-08-22 tick #3 (Fable) — SCALE CHAPTER COMPLETE (EXPERIMENT_LOG
+2026-08-22 #10-#21): 392M program ran 24/24 training + 26 eval cells,
+0 failures, ~70 GPU-h vs ~111 priced. VERDICTS: capability
+NO-DETECTABLE-SHIFT at 4x params (frozen at ceiling every K);
+WALL-SCALE-STABLE; ORDERING-SCALE-STRENGTHENS to PERFECT T=36/36
+both readouts; trainable arm SCALE-DEGRADES at K>=32 (pending
+mandatory attribution arm before publication); depth-tail (>=13sq)
+degrades both arms (same gate). Gauntlet: 5 design rounds + build
+audit caught 4+1 FATALs pre-launch; 11 injection sightings; every
+number recomputed from raws. NEXT: attribution wave (extended-steps
+control, final training payload) + finding 20 + flagship
+consolidation. Runway ~5 days, ~1,050 GPU-h unallocated.**
+
 **2026-08-22 tick #2 (Fable) — BREADTH CHAPTER COMPLETE (EXPERIMENT_LOG
 2026-08-22 #1-#8): capability FLAT AT CEILING (K,d)=(12,13)->(40,41)
 [3.3x, 48/48 cells, both recipes, ends at DESIGN limit K=44-impossible

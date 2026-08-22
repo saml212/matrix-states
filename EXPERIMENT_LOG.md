@@ -11711,3 +11711,60 @@ is "the frozen/trainable ordering amplifies enormously with scale
 at large K," which is confound-clean (both arms share the token
 budget). Archive: experiment-runs/2026-08-22_scaleaxis_sweep/
 (repo+SSD, 48 files).
+
+## 2026-08-22 #21 — SCALE CHAPTER VERDICT OF RECORD (Stage C: 24 depth-ext cells + 2 re-measures, 0.145 GPU-h, 0 failures; instrument reproduced the frozen 98M reference exactly before any comparison ran).
+
+**Within-392M (§6.1, all bands as pinned):** CAPABILITY-HOLDS
+(frozen κ≥0.90 3/3 seeds at every K; medians 1.0000/0.9959/0.9879/
+0.9880). WALL-HOLDS at all four K — both single-seed excursions
+re-measured away (K=16 compB_s1: an h=1 toehold-class reading,
+0.1133→0.0859 in band; K=40 compB_s2: h=8 deep rung over by 0.0004,
+→0.0156) ⇒ **WALL-SCALE-STABLE** (holds at both scales at every
+ported K). **ORDERING-CONFIRMED at the maximum the statistic
+allows: T_W=36.0/36 PERFECT separation at BOTH readouts (11sq and
+h_top), exact p=1.25e-05, LOSO 4/4 — sub-case
+ORDERING-SCALE-STRENGTHENS** (98M reference: 30.5 and 25.0;
+descriptive deltas +5.5/+11.0). Curve 4 ARM-DEPENDENT: frozen
+BOTH-FLAT (ranges 0.008-0.012); trainable BREADTH-DRIVEN (0.104-
+0.140). Curve 5a: frozen drift K-independent (max dev 0.0197);
+trainable K-dependent (max 0.3019).
+
+**Cross-scale (TEST-X, §5.4/§6.2):** Curve 1 at h_top — the
+8-strata reading (17.0/72) DISAGREES with the 6-strata (14.5/54,
+no-detectable-shift); per the PRE-REGISTERED rule the 6-strata
+GOVERNS: **capability shows NO detectable directional shift at 4×
+params** (the 8-strata reading is tie-heavy, 14/72, the §5.5
+ceiling effect, LOSO 4/8). Per-K Curve 1: SCALE-STABLE 6/8;
+SCALE-DEGRADES only at K=32/K=40 TRAINABLE (−0.1169/−0.1442, both
+also failing the κ gate). **Depth robustness (Curve 5b) is the one
+robust cross-scale degradation: SCALE-DEGRADES at 11sq (T=10.5/72)
+and s*=13 (6.5/72), LOSO 8/8, exact p to 9.5e-07 — BOTH arms lose
+very-deep-read robustness (≥13 squarings ≈ 8000+ hops) at 392M;
+per-K at s*=13: 6/8 cells degrade incl. frozen K=32/40; frozen
+K=16/24 stable.** SCALE-IMPROVES observed nowhere (§5.5 had
+declared it per-K-unreachable on Curve 1; TEST-X read the other
+direction).
+
+**Publication discipline:** every SCALE-DEGRADES above carries the
+token-budget confound (one-directional; both arms share budget, so
+the ORDERING results are confound-clean) — the design's MANDATORY
+attribution arm (extended-steps control) must run before any
+SCALE-DEGRADES is published as a scale claim. Dispatching next as
+the grant's final training payload. Agent flags adopted: R-δ
+correctly NOT applied to 392M (descriptive only, per "no 392M
+number influences any threshold"); §5.3.1 partition applied over
+the raw bar; the un-enumerated 7-strata LOSO bar computed by the
+same construction (T≥48/63, ≤15/63) and RECORDED as a design gap,
+not a silent election; Curve 4 reported per-arm (arm naming = a
+second design gap). Archive: experiment-runs/
+2026-08-22_scaleaxis_stagec/ (repo+SSD).
+
+**THE CHAPTER'S THROUGH-LINE (the flagship's closing paragraph):**
+at 4× parameters, everything the architecture recipe promises
+SURVIVES — exact-write capability at ceiling at every breadth, the
+learned-write wall absolute at both scales, and the freeze
+ordering strengthening to perfect separation — while the two
+things that degrade (trainable-adapter breadth capability at K≥32;
+very-deep fp read tails in both arms) are exactly the things the
+recipe already excludes or the paper already bounds. The
+capability separation is scale-stable; its moat widens.
