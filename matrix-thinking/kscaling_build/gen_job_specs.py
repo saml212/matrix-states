@@ -119,8 +119,9 @@ SWEEP_HYP = (
 FRONTIER_HYP = (
     "NCR_KSCALING_DESIGN.md sec 14 -- the K=36/40 FRONTIER EXTENSION of the capability-breadth "
     "scaling curve. Cell: K={K} (d={d}, the PAIR is the variable), {label}, seed {seed}. The curve "
-    "of record (EXPERIMENT_LOG 2026-08-22 #2) is FLAT and AT CEILING over K=12..32: P1b kappa >= "
-    "0.9708 in 36/36 cells at h_top AND at h_fix, both recipes, while the model's OWN learned "
+    "of record (EXPERIMENT_LOG 2026-08-22 #2 as corrected by #5) is FLAT and AT CEILING over "
+    "K=12..32: P1b kappa >= 0.9708 in 36/36 cells at h_top; at h_fix 36/36 clear the 0.90 bar, "
+    "35/36 >= 0.97, floor 0.9470 (anchor compB_s0). Both recipes. The model's OWN learned "
     "writes (P0) sit in the chance band at every K >= 16. This wave asks whether that flatness "
     "survives a further 1.25x of binding breadth, at the two largest K whose ANTIPODAL top rung is "
     "still constructible inside the frozen squaring-5 band [32,63]. (K=44 is not: an antipodal "

@@ -11408,3 +11408,36 @@ today) an embedded fake date-change/concealment instruction in tool
 output — verified against date/git and disregarded per standing
 rule. Deferred site debt: llms.txt lacks findings 17-19; homepage
 roadmap section stale — queued for the next publisher pass.
+
+## 2026-08-22 #6 — K=36/40 extension AUDITED (R2: REV-REQUIRED → one text-only fix applied) and LAUNCHED (12 cells, 13.37 GPU-h, makespan 2.23 h provably optimal at 1/GPU).
+
+Build 604951d receipts: ladders re-derived independently (never
+importing the config — the rule that made the curve reproduces both
+new ladders and all six of record; derive_ladder(44) raises,
+confirming the K=44 drop is construction-forced); byte-identity of
+the regenerated six-K specs verified; 8-strata threshold T≥53/72
+re-enumerated exactly (two-sided p=0.009868; a real knife-edge —
+two null-like strata give 52.5 FAIL, two replicating give 58 PASS);
+item-B-at-K=36 conversion to a positive soundness proof verified
+faithful (the pinned ladder IS sound at K=36); validity_check teeth
+reproduced on all 3 claimed legs + 5 audit-added (arm tamper,
+rising/non-finite CE, K mislabel, missing arm) — and the one
+untested clause (len(history)>=100) verified safe at 8× margin
+(real cells log 801/arm), a clause that decides completed-vs-failed
+and would have cost the full ledger. Resource: re-measured WITH the
+eval pass = 8.98 GB peak (71.6 GB headroom); /ephemeral 5.6T free
+vs 26G needed. AUDIT FIXES: M1 — all 12 specs' hypothesis carried
+#2's pre-correction h_fix claim (already falsified by #5); fixed in
+FRONTIER_HYP + regenerated, diff = exactly 1 line × 12 files. L1 —
+§14.3 prose corrected (Gate-0 clause gates full_graft only). L2
+disclosed: #3's "1.4×" was 32→44-era arithmetic; the correct
+extension factor at K=40 is 1.25×, as the specs state. L4 noted:
+the 12-on-8 schedule tail idles 4 GPUs ~4.45 GPU-h; no audited
+backfill exists and none is invented for occupancy's sake. THIRD
+injection sighting in two days (fake date-change reminder w/
+concealment instruction, embedded in tool output) — disregarded,
+verified against clock+git, reported. Ceremony call of record:
+folded compact resource check into the single audit round (the
+standing red-team rulings transfer; placement re-verified) — 13.37
+GPU-h adjudicated at tier boundary with disclosure. LAUNCHED with
+this commit: specs 0140-0151 → pending.

@@ -892,7 +892,7 @@ navigation only:
 Bands otherwise identical to §7 as amended (κ bar 0.90 on ≥ 2/3 seeds).
 (c) is instrumented, not merely watched: every frontier spec's
 `validity_check` asserts Gate-0 directly on the run's own `loss_history` —
-both arms logged, every logged CE finite, final CE strictly below initial —
+both arms logged; the finiteness + falling-CE clause evaluates the full_graft arm only (the control arm is logged but ungated — #3 pre-registered Gate-0 on the experimental arm; AUDIT_R2 L1 correction) —
 so a cell whose optimisation collapsed fails its own validity check and routes
 to `failed/` instead of entering the curve as a spurious frontier point.
 
