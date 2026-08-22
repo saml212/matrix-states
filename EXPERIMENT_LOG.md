@@ -11669,3 +11669,24 @@ calibration 18.61 + sweep 65.05 = 83.66 GPU-h @×3.75, matching
 experiment-runs/2026-08-22_scaleaxis_a0/ (repo+SSD). ELEVENTH
 injection sighting (builder round, two variants incl. a fake
 file-modified reminder) — disregarded, reported, standing condition.
+
+## 2026-08-22 #19 — 392M CALIBRATION HARVEST: ALL LICENSE LEGS CLEAR — THE CAPABILITY HOLDS AT 4× SCALE ON FIRST MEASUREMENT. LICENSE-SWEEP GRANTED; 18 sweep cells staged.
+
+Six cells, 0 failures, 2.855-2.882 GPU-h each (17.2 total). Legs:
+Gate-0 CE 10.90-11.22 → 3.772-4.585, finite, COMPLETED 20000 ✓ (the
+FROZEN_BIAS ⅓-token-budget convergence risk did NOT materialize on
+the synthetic objective); in-dist P1b κ = 1.000 at h∈{1,2,3} in ALL
+six ✓; deep P1b κ at h_top=36: primary 0.9959/0.9959/0.9959, compB
+0.9878/0.9674/0.9837 ✓ (bar 0.90). P0 in band 6/6 (max 0.0781 vs
+0.0791). **β reconciliation (C2's rule) FIRED and resolved
+favorably: realized/realized ratio 3.467 vs priced R(24)=4.25,
+divergence −18.4% > 15% ⇒ re-entered P1 at the realized ratio ⇒
+NOMINAL (≤4.0).** Re-priced trained ledger ≈ 17.2 + 18×2.87 ≈ 69
+GPU-h (vs 99.8 priced) — the graft-overhead component of A0's
+recorded miss was probe-bias (β₃₉₂<1 as the audit's M2 anticipated),
+not real cost. Spec ceilings (priced at ×3.75) stand as valid loose
+breakers. Instrument note: score_calib initially passed --scale to
+the battery (env-resolved, rejected loudly, fixed) — the battery's
+scale comes from NCR_SCALE + the d-guard; no number affected.
+LICENSE_SWEEP_SCALEAXIS dropped + 0200-0217 staged with this commit
+(longest-first naming: K40 sextet → K32 → K16).
