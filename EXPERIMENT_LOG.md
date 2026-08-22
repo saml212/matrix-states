@@ -11585,3 +11585,26 @@ disregarded and reported.
 ## 2026-08-22 #14 — 392M VERIFY R2: REV-REQUIRED (1 NEW FATAL / 7 MAJOR / 8 minor). All three R1 FATAL fixes DISCHARGE exactly on re-derivation (rank-alone band returns the published verdicts incl. T=30.5/36 and 61.5/72; all 24 new rungs + R-δ receipts + tie cap exact; F3 mechanics + 226GB + memory exact). The new FATAL was CREATED by the R1 fix: Stage A0's R divides phase0-timing by realized wall-clock — incompatible instruments, measured 1.55× apart in our own 2026-07-17 archive (per-arm cuda.synchronize kills pipelining) — so R>5.0 aborts spuriously under the ENTIRE plausible graft range (computed R 5.39-6.20; threshold clears only below ρ=3.23). Fix: two 98M probes at A0.3 (~0.02 GPU-h), R := phase0÷phase0. MAJORs to fix in REV-R2: unify the three inconsistent ordering-band maps (INDETERMINATE currently overlaps the MODAL outcome T≈30.5); P4 VRAM gate keyed to a never-emitted number (FATAL-3 class reintroduced); §8.3 wall claim backwards (worker claims by FILENAME sort — shortest-first 10.84h vs longest-first 10.19h; state the filename-order reality); §4.6.1 must verify all 48 ckpt paths (the 6 anchors set δ*(13)); reader needs missed-window recovery + a worker-claim exclusion for its GPU; RESTORE R0's publishable 2-cell floor on the R>5.0 branch (silently deleted, no changelog row — the exact silent-weakening class the verify brief named). Deviations: (a) watcher ARCHITECTURE ratified, "blind by construction" claim REJECTED — re-point at the LOG_EVERY=25 line (provably metric-free); (b) pricing ratified, scope into gates as B6/B7; (c) 48-cell re-score ratified w/ 2 conditions (verify all paths; deeper rungs EXTEND not qualify #8). SEVENTH + EIGHTH injection sightings (same pattern), disregarded, tallied.
 
 ## 2026-08-22 #15 — 392M DRAFT-R2 received (2aca91d): ALL verify-R2 items adopted (FATAL closed like-for-like with the 1.5500× instrument factor pinned as a standing note; unified band partition with INDETERMINATE dominating the modal region; P4/B8 re-keyed to emitting instruments; claim-order reality = spec naming, longest-first pinned at 10.19h; 48/48 ckpt paths named; hardened reader w/ worker-exclusion mechanics; floor RESTORED as the K=24 frozen trio ≈12.4 GPU-h w/ changelog row; B6/B7/B8 gates w/ forced-fail tests). Threshold reversal 5.0→4.5 ARGUED on the consistent basis (111.6 GPU-h ≈ the 112 line both drafts used; G=1.29 anomaly leg agrees) — coordinator spot-checked and ACCEPTED. Ledger 87-99 headline / 120-126 worst / NEW 130 gate on the second contingency. CEREMONY CALL: design phase CLOSED after R0→attack→R1→verify→R2 (5 rounds, 4 FATALs total, all discharged); BUILD OPENS; the build audit is the remaining independent check and must re-verify R2's deltas (the KSCALING precedent: build audits catch design-band defects too). NINTH injection sighting — §9.1 now records the pattern as a standing campaign condition, not incidents.
+
+## 2026-08-22 #16 — 392M BUILD COMPLETE (100648c) + 98M six-rung re-score HARVEST (48/48, 0 failures): Rule R-δ elects s*=13, δ_depth=0.095 (data, not the 0.060 projection; reachability 6/8 AT the rule's floor, 2/4 frozen); ordering EXTENSION strengthens (T=68.0 @13sq, 67.0 @15sq vs bar 53 — #8's verdict extends, no retraction); archived rungs reproduce 192/192. Build audit dispatched.
+
+Build receipts: gates 20/0 at all four K with every forced-fail
+FIRED (incl. A0.2's first-ever MIN_KERNEL_T measurement at
+d_state=128 — floor HOLDS, K=16 clears at zero margin by design,
+T−1 crashes; B5 cross-scale refusal proven non-vacuous with
+matched-scale positive controls); literal spec e2e clean with
+teeth; params measured == formula EXACTLY at all four K
+(392,095,889 → 392,175,785; ratio 4.008); memory 17.1-23.5 GB
+NOMINAL (eval adds 0 GB at 392M — the #6 +1.3 GB correction does
+not reproduce at scale, noted); SM util 97-100%. B1 found THREE
+constants beyond the design's 21 — battery provenance(64,768)
+would have recorded HALF the true integ param count in every 392M
+record; graft duplicate _MIN_KERNEL_T; depthext SQUARING_PROFILE —
+all ported. Deviations 10 items, all disclosed and accepted by
+coordinator; A0.3/A0.4 deliberately UNRUN (P1 is a launch decision;
+ceilings marked PROJECTED-NOT-LAUNCH-READY pending audit + A0).
+§5.5's "conservative linear lower bound" VIOLATED in 1/8 cells
+(K16_frozen) — recorded as a design-projection error caught by
+data; Rule R-δ's mechanics (not the projection) govern, and its
+election is mechanical from the measured table. P0@15sq labeled
+NOT-comparable to archived P0@11sq in every record (P1b unaffected).
