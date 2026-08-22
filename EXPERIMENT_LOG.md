@@ -11802,3 +11802,35 @@ the K-dependent rates were measured); with A: 126.2 all-in.
 TWELFTH + THIRTEENTH injection sightings (date-change + fake
 file-modified note, both w/ concealment instructions) — disregarded,
 reported. Specs 0230-0241 staged with this commit.
+
+## 2026-08-22 #23 — PUBLICATION-STATUS CORRECTION (material, coordinator error) + finding 20 committed (02b9dc8, NOT LIVE) + three number corrections from the publisher's raw recomputation.
+
+**CORRECTION OF RECORD: findings 18, 19, and 20 are NOT publicly
+live, contrary to #9/#5-era "live at pebbleml.com" statements.**
+The sync workflow (.github/workflows/sync-pebble-site.yml) was
+manually disabled with last successful run 2026-07-14; the deploy
+repo was repurposed 2026-08-19 ("ship pebble white paper") with
+Pages off; pebbleml.com now serves a different property (the
+RL-environments lab site). The findings exist in-repo with
+verified numbers, regenerable figures, and X drafts on the
+Desktop; nothing was lost — but nothing after Jul 14 ever synced,
+and I reported "live" without verifying the public URL. The
+publisher correctly declined to touch the domain/workflow: whether
+to re-enable sync, re-point, or host findings elsewhere is a PI
+decision (the domain now carries another active property).
+Intended URL when restored: /findings/ncr-scale-axis.html.
+
+Number corrections (raw values govern, page uses them): (a) #19/
+#20's "~69 GPU-h" → **81.415** summed from cells' own gpu_h
+(the −18.4% β-reconciliation was RIGHT; my per-cell extrapolation
+from K=24 was wrong — matches #22's correction); (b) #20's
+per-seed values were raw acc, not κ (K=32 compB κ = 0.9516/0.8750/
+0.8065) — page reports κ labeled; (c) #18's "R(24)=4.25" was the
+PRICED figure; the raw like-for-like A0 ratio is 3.8986 — page
+omits R(24), publishes only raw-verified R₈=1.0026 and
+R_max=4.4725; (d) 98M backbone params: 97,619,712 (vocab-extended,
+from the campaign's own records; 97,618,176 was the pre-extension
+archive figure). Page also carries the correction paragraph
+(§07), the regenerating figure script with its own asserts, and
+the "no scale-fragile claim before the attribution arm" framing
+throughout.
