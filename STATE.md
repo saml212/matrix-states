@@ -1,3 +1,17 @@
+**2026-08-22 tick (Fable) — THE K-CURVE IS IN (EXPERIMENT_LOG
+2026-08-22 #1/#2): CAPABILITY-HOLDS at ceiling 36/36 cells across
+(K,d)=(12,13)→(32,33), both recipes, h_top + h_fix control;
+WALL-BREACHED-AT-K=12 (real, h=1-only toehold κ~0.05, independently
+reproduced) / WALL-HOLDS K≥16 (excursions re-measured away);
+ORDERING-NEGLIGIBLE at 5 squarings (T=32/54, consistent w/ 08-21 #8
+depth-amplification); separation WIDENS with breadth. ~25.6 GPU-h,
+0 failed cells, 2 pre-launch FATALs caught by gauntlet. Depth-
+extension eval (across-K drift + ordering at 9-11 squarings,
+pre-registered #2) dispatched. Publisher dispatched (finding 19).
+NEXT PAYLOAD DECISION OPEN: remaining window ~1300 GPU-h, gated
+options = K>32 extension (new ceremony), seed extensions, K=12
+toehold mechanism, params-at-392M; surfacing to PI.**
+
 **2026-08-21 tick (Fable) — MATCHED-POOL RE-ADJUDICATION: freeze-effect
 separation RETRACTED as entity-pool artifact (08-18 tick #6 items 2-4
 superseded — see EXPERIMENT_LOG 2026-08-21 #3/#6); premise finding +

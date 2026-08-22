@@ -11236,3 +11236,67 @@ exact-write regime — capability at ceiling at the widest K.**
 Battery outputs: ~/ncr_kscaling/results/k32_wave0_*_kscaling.json
 (archived with this wave). LICENSE_SWEEP_KSCALING sentinel dropped +
 24 gated cells queued (3 waves of 8, ~2.5 h) with this commit.
+
+## 2026-08-22 #2 — K-SCALING SWEEP HARVEST: THE CURVE OF RECORD. CAPABILITY-HOLDS at every K (36/36 at ceiling); WALL-BREACHED-AT-K=12 (h=1 toehold only, independently confirmed) and WALL-HOLDS at K≥16; ORDERING-NEGLIGIBLE at 5 squarings; BOTH-FLAT control. Total ≈25.6 GPU-h, 36 cells, 0 failures.
+
+All bands pre-registered (design §7 as amended by the adjudicated
+audit, #11 of 08-21); matched pools everywhere; n=256; ckpt_step
+20000 on every cell; archive experiment-runs/2026-08-22_kscaling_sweep/
+(+ wave0 dir) repo+SSD.
+
+**CURVE 1 — CAPABILITY-HOLDS (curve), the flagship scaling result.**
+P1b κ at h_top(K), frozen arm, 3 seeds: K=12 {1.0000, 0.9957,
+1.0000}; K=16 {1.0000, 1.0000, 0.9958}; K=20 {1.0000, 0.9959,
+0.9959}; K=24 anchor {1.0000, 0.9959, 1.0000}; K=28 {0.9959,
+1.0000, 0.9959}; K=32 {0.9960, 0.9798, 1.0000}. Trainable arm
+equivalently at ceiling (min κ 0.9708). 36/36 cells clear the 0.90
+bar at h_top AND h_fix. Exact composition breadth does not degrade
+over (K, d=K+1) from (12,13) to (32,33) — 2.7× — at matched
+squaring profile.
+
+**CURVE 2 — THE WALL: BREACHED-AT-K=12, HOLDS at K≥16, and the
+structure is the finding.** The K=12 breach is ENTIRELY at h=1
+(train hop): own-write acc 0.121-0.148 vs chance 0.0833, band-top
+0.1352 — 5/6 seeds over, both recipes, and the independent-draw
+re-measure (seed 31337, both re-measured cells 0.1406) REPRODUCES
+it. κ_P0(h=1, K=12) ≈ 0.04-0.07: SGD writes capture a weak 1-hop
+toehold at the smallest breadth. Every deep hop is in band at every
+K; the h=1 exceedance rate falls 5/6 → 1/6 → 1/6 → 0 by K=28.
+Single-seed excursions at K=16 (0.1250), K=20 (0.1094), K=24-anchor
+(h=52, 0.0859) all FAILED to reproduce under seed-31337 re-measure
+(0.0977 / 0.0820 / 0.0547, all in band) — outliers per §7.2's
+re-measure clause, so WALL-HOLDS(K) stands at 16/20/24/28/32.
+**Combined headline: the capability-vs-learned-write separation
+WIDENS with breadth — at K=12 SGD gets a 1-hop sliver (κ~0.05,
+depth still absolute); by K≥16 the wall is absolute everywhere.**
+
+**CURVE 3 — ORDERING-NEGLIGIBLE at this operating point.**
+Stratified within-K exact permutation T = 32/54 (threshold ≥42,
+lower tail ≤12): the frozen-vs-trainable ordering does not appear
+at h_top's 5-squaring depth — fully consistent with #8 of 08-21
+(the graded ordering emerges at 9-11 squarings). No contradiction;
+the §7.3 seed-extension escalation does NOT trigger.
+
+**CURVE 4 — BOTH-FLAT.** h_fix κ ≥ 0.979 in all 36 cells: the flat
+capability curve is not probe easiness.
+
+**Instrument notes:** battery gained --base-seed (re-measure
+extension, post-audit, mechanical; a record-vs-actual seed mismatch
+in my first patch was caught before deployment — the recorded seed
+now provably drives the eval); battery md5 of record now
+5735c788563d9a21f2198c9f5b4793d5, as-run copy archived. Anchor
+re-score used the audited --anchor-runner-tag allowlist; the K=24
+anchor's 6-rung re-score on the collision-free ladder replaces the
+5-effective-point pinned profile for cross-K comparisons.
+
+**PRE-REGISTRATION (next payload, eval-only ~0.3 GPU-h): DEPTH
+EXTENSION ACROSS K.** On all 36 cells + 6 anchor cells: P1b at
+fixed-residue ladders h ≡ r_fix(K) mod K spanning squarings
+{5,7,9,11} per K (same construction as #7/#8: identical ground
+truth per K, labeled). Questions: (a) does the #8 depth-DRIFT
+magnitude depend on K? (b) does the frozen-vs-trainable ordering
+(negligible at 5 squarings) open at 9-11 squarings UNIFORMLY across
+K? Bands: DRIFT-K-INDEPENDENT = per-K drift (κ@11sq − κ@5sq) within
+±0.05 of the K=24 value at every K; ORDERING-AT-DEPTH-CONFIRMED =
+stratified T ≥ 42/54 at 11 squarings (same test/thresholds as #2);
+ORDERING-AT-DEPTH-NEGLIGIBLE = below. Dispatched to the eval agent.
