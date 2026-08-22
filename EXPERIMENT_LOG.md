@@ -11333,3 +11333,53 @@ strata: threshold recomputed at build from the same exact-permutation
 construction). 12 cells (2K × 2 recipes × 3 seeds) ≈ 10 GPU-h ⇒
 ceremony tier: single audit round on the extension delta; packing
 per the standing declined ruling (1 cell/GPU).
+
+## 2026-08-22 #4 — DEPTH-EXTENSION ACROSS K HARVEST (36 cells, 0.061 GPU-h): ORDERING-AT-DEPTH-CONFIRMED (exact stratified T=43.5/54, p=1.20e-3); DRIFT-K-INDEPENDENT (median convention, ELECTED with disclosure); WALL HOLDS AT 11 SQUARINGS 36/36 including K=12.
+
+Pre-registration #2 (of 08-22); archive experiment-runs/
+2026-08-22_depthext_across_k/ repo+SSD. Inventory correction
+adopted: 36 distinct cells (the K=24 stratum IS the anchor sextet;
+my dispatch double-counted — agent caught it). All ladders derived
+single-residue (r=4) per K, squarings exactly {5,7,9,11}, same
+ground truth per K by construction, labeled.
+
+**(b) ORDERING-AT-DEPTH-CONFIRMED (verdict of record).** Stratified
+within-K exact permutation at 11 squarings: T = 43.5/54 ≥ 42, exact
+enumerated null P(T≥43.5) = 1.20e-3; every stratum at or above null
+mean. Depth progression T = 31.0 → 40.5 → 47.0 → 43.5 (5→7→9→11
+sq); the 5-sq value reproduces #2's Curve-3 T=32 within half a pair
+— two independent waves agree, and the 5-vs-11 contrast IS the
+finding (#8's depth-amplification now established ACROSS breadth).
+DISCLOSED FRAGILITY (recorded, does not alter the pinned verdict):
+margin 1.5 pairs; T peaks at 9 sq (47.0) — the 11-sq dip is one
+frozen cell (K=32 primary_s1: 0.9883→0.8711 over 9→11 sq, the same
+cell that read the sweep's lowest frozen κ 0.9798 — a weak-seed
+candidate); leave-one-stratum-out (not pre-registered) would dip
+below bar without K=24 or K=28. The in-build K=36/40 wave adds two
+strata under a build-time pre-registered 8-strata threshold — the
+ordering claim's robustness is adjudicated THERE, not by ad-hoc
+re-testing here.
+
+**(a) DRIFT-K-INDEPENDENT — ELECTED on the MEDIAN aggregator,
+with the ambiguity disclosed rather than buried:** the
+pre-registration failed to pin the across-seed aggregator; medians
+(the #2/#8 house convention, elected on that precedent) put every
+K within ±0.05 of the K=24 reference (max deviation +0.0430,
+trainable K=12); MEANS would fail the band (trainable K=12 dev
+0.0768) because three trainable cells collapse steeply at depth
+(K=24 compB_s0 −0.1953, K=20 compB_s1 −0.1602, K=16 compB_s1
+−0.1328) — named here so the per-cell tail is part of the record,
+not hidden by the median.
+
+**P0 wall at the deepest rung (11 sq): HOLDS 36/36** in per-K
+binomial bands — including K=12 (0.0469-0.0938 vs band top 0.1352):
+the K=12 breach remains h=1-only even at 2056 physical hops.
+
+**Instrument judgment call ADOPTED as correct:** the wrapper
+bypassed the breadth-ladder pairwise-distinctness guard for the
+single-residue fixed-distance construction — per kscaling_config's
+own documented FIXED_DIST_PROBE convention — replacing it with the
+applicable legs (identity, train-residue) plus explicit
+single-residue enforcement; rationale recorded in a ladder_guard
+field on all 36 JSONs. This is the guard working as designed for a
+different ladder type, not an exemption.

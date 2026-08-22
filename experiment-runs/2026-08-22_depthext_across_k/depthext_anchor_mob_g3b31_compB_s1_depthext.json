@@ -1,0 +1,221 @@
+{
+ "script": "depthext_eval.py",
+ "prereg": "EXPERIMENT_LOG.md 2026-08-22 #2 final block (commit 9bf2f40)",
+ "wrapper_rationale": "kscaling_battery.py md5 5735c788563d9a21f2198c9f5b4793d5 has a fixed hop grid and no custom-hop flag; this wrapper calls the SAME eval_arm_at_hops path with the same guards. Nothing audited modified.",
+ "cell": "DEPTHEXT_depthext_anchor_mob_g3b31_compB_s1",
+ "tag": "depthext_anchor_mob_g3b31_compB_s1",
+ "ckpt": "/ephemeral/reseed_ckpts/mob_g3b31_compB_s1_ckpts/mob_g3b31_compB_s1.ckpt.pt",
+ "K": 24,
+ "d_ncr": 25,
+ "ckpt_recorded_d_ncr": 25,
+ "metric_of_record": "retrieval24_acc",
+ "metric_note": "historical name; argmax over exactly K slots, K-generic",
+ "chance": 0.041666666666666664,
+ "chance_sd_at_n": 0.012489144591960207,
+ "wall_band": [
+  0.004199232890786046,
+  0.07913410044254729
+ ],
+ "wall_band_mult": 3.0,
+ "depth_ladder": [
+  52,
+  148,
+  532,
+  2068
+ ],
+ "squaring_profile": [
+  5,
+  7,
+  9,
+  11
+ ],
+ "ladder_diagnostics": {
+  "r_fix": 4,
+  "residues": [
+   4,
+   4,
+   4,
+   4
+  ],
+  "n_squarings": [
+   5,
+   7,
+   9,
+   11
+  ],
+  "n_applies": [
+   3,
+   3,
+   3,
+   3
+  ],
+  "effective_distance": 4,
+  "rung1_matches_fixed_dist_table": true,
+  "ladder_guard": "identity + train-residue legs of the pinned _assert_ladder_sound, PLUS single-residue enforcement. The kscaling pairwise-DISTINCTNESS leg is deliberately NOT applied: it is the breadth-ladder guard and asserts the negation of this fixed-distance construction (see kscaling_config's FIXED_DIST_PROBE docstring, same convention). DISCLOSED for adjudication."
+ },
+ "same_ground_truth_by_construction_per_K": true,
+ "same_ground_truth_label": "All rungs of this K share residue r_fix (mod K): IDENTICAL GROUND TRUTH BY CONSTRUCTION per K. Spread across rungs is numerical squaring-depth cost, not compositional information.",
+ "n": 256,
+ "base_seed": 90210,
+ "ckpt_step": 20000,
+ "ckpt_seed": 1,
+ "ckpt_seed_source": "checkpoint",
+ "pool_seed": 1,
+ "pools_matched": true,
+ "ckpt_cell_id": "mob_g3b31_compB_s1",
+ "runner_tag": "ncr_gate3_wave1_runner_v1",
+ "anchor_runner_tag_override": "ncr_gate3_wave1_runner_v1",
+ "freeze_entity_adapter": false,
+ "freeze_flag_source": "checkpoint",
+ "recipe": "TRAINABLE-contrastive (compB)",
+ "cell_config": {
+  "cfg_aux_loss_type": "contrastive+cosine",
+  "cfg_freeze_entity_adapter": false,
+  "cfg_seed": 1,
+  "cfg_K": 24,
+  "cfg_d_ncr": 25,
+  "cfg_status": "COMPLETED",
+  "cfg_step": 20000
+ },
+ "matched": {
+  "P1b": {
+   "regime": "P1b",
+   "teacher_force": true,
+   "hops": [
+    52,
+    148,
+    532,
+    2068
+   ],
+   "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding); the READ is under test -- CAPABILITY curve",
+   "note": null,
+   "elapsed_s": 1.433119773864746,
+   "per_hop": {
+    "h=52": {
+     "h": 52,
+     "residue": 4,
+     "n_squarings": 5,
+     "n_applies": 3,
+     "acc": 0.99609375,
+     "margin_over_chance": 0.9544270833333334,
+     "within_chance_3sd": false
+    },
+    "h=148": {
+     "h": 148,
+     "residue": 4,
+     "n_squarings": 7,
+     "n_applies": 3,
+     "acc": 1.0,
+     "margin_over_chance": 0.9583333333333334,
+     "within_chance_3sd": false
+    },
+    "h=532": {
+     "h": 532,
+     "residue": 4,
+     "n_squarings": 9,
+     "n_applies": 3,
+     "acc": 0.97265625,
+     "margin_over_chance": 0.9309895833333334,
+     "within_chance_3sd": false
+    },
+    "h=2068": {
+     "h": 2068,
+     "residue": 4,
+     "n_squarings": 11,
+     "n_applies": 3,
+     "acc": 0.93359375,
+     "margin_over_chance": 0.8919270833333334,
+     "within_chance_3sd": false
+    }
+   },
+   "result": {
+    "h=52": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 0.9997490048408508,
+     "answer_accuracy": 0.05859375,
+     "n": 256,
+     "offtarget_margin": 0.021140635013580322,
+     "retrieval24_acc": 0.99609375,
+     "o_pairwise_cos": 0.9784389138221741,
+     "target_pairwise_cos": 0.9794427752494812
+    },
+    "h=148": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 0.9998785257339478,
+     "answer_accuracy": 0.02734375,
+     "n": 256,
+     "offtarget_margin": 0.021035373210906982,
+     "retrieval24_acc": 1.0,
+     "o_pairwise_cos": 0.9784713983535767,
+     "target_pairwise_cos": 0.9794973134994507
+    },
+    "h=532": {
+     "recovered_frac@0.9": 0.9921875,
+     "mean_cos": 0.9933291673660278,
+     "answer_accuracy": 0.02734375,
+     "n": 256,
+     "offtarget_margin": 0.02071589231491089,
+     "retrieval24_acc": 0.97265625,
+     "o_pairwise_cos": 0.9660691618919373,
+     "target_pairwise_cos": 0.9785845279693604
+    },
+    "h=2068": {
+     "recovered_frac@0.9": 0.96875,
+     "mean_cos": 0.9685173034667969,
+     "answer_accuracy": 0.05078125,
+     "n": 256,
+     "offtarget_margin": 0.019778728485107422,
+     "retrieval24_acc": 0.93359375,
+     "o_pairwise_cos": 0.9188118577003479,
+     "target_pairwise_cos": 0.9791261553764343
+    },
+    "mean_recovered_frac@0.9": 0.990234375,
+    "mean_mean_cos": 0.9903685003519058,
+    "mean_answer_accuracy": 0.041015625,
+    "mean_offtarget_margin": 0.020667657256126404,
+    "mean_retrieval24_acc": 0.9755859375
+   }
+  },
+  "P0": {
+   "regime": "P0",
+   "teacher_force": false,
+   "hops": [
+    2068
+   ],
+   "regime_meaning": "LEARNED-WRITE (model's own encoder writes) -- WALL curve, chance = 1/K = 0.0417",
+   "note": "deepest rung only (11 squarings), per the #2 cost cap",
+   "elapsed_s": 0.1759328842163086,
+   "per_hop": {
+    "h=2068": {
+     "h": 2068,
+     "residue": 4,
+     "n_squarings": 11,
+     "n_applies": 3,
+     "acc": 0.04296875,
+     "margin_over_chance": 0.0013020833333333356,
+     "within_chance_3sd": true
+    }
+   },
+   "result": {
+    "h=2068": {
+     "recovered_frac@0.9": 1.0,
+     "mean_cos": 0.9894851446151733,
+     "answer_accuracy": 0.046875,
+     "n": 256,
+     "offtarget_margin": 0.00016188621520996094,
+     "retrieval24_acc": 0.04296875,
+     "o_pairwise_cos": 1.0,
+     "target_pairwise_cos": 0.9794127345085144
+    },
+    "mean_recovered_frac@0.9": 1.0,
+    "mean_mean_cos": 0.9894851446151733,
+    "mean_answer_accuracy": 0.046875,
+    "mean_offtarget_margin": 0.00016188621520996094,
+    "mean_retrieval24_acc": 0.04296875
+   }
+  }
+ },
+ "elapsed_s": 5.524691104888916,
+ "self_check_defects": [],
+ "self_check": "PASS"
+}
