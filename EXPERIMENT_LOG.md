@@ -11768,3 +11768,37 @@ things that degrade (trainable-adapter breadth capability at K≥32;
 very-deep fp read tails in both arms) are exactly the things the
 recipe already excludes or the paper already bounds. The
 capability separation is scale-stable; its moat widens.
+
+## 2026-08-22 #22 — ATTRIBUTION ARM: OPTION A ELECTED (full 12-cell compliance, 43.93 GPU-h resume basis) and LAUNCHED — the grant's final training wave. Ledger correction to #20. Builder caught a launch-losing ceiling instruction.
+
+Election rationale of record: the design's §7.2 arm is MANDATORY
+before any SCALE-DEGRADES publication; option B (8 cells, 33.61
+GPU-h) is non-compliant for V3's per-K rows at trainable K=16/24 —
+the two most token-starved cells (D/N 0.209/0.284), precisely where
+token-budget rescue is most likely; the builder stated this against
+the cheaper option's interest. A costs +10.32 GPU-h with ~1,050
+unallocated; all-in 126.2 sits inside §8.2's 130 second-contingency
+gate (the arm is the FIRST contingency; branch (B) never fired — no
+fresh gate needed). RESUME basis elected (the design's own pricing
+arithmetic; parent checkpoints hardlinked under fresh cell ids,
+records of record untouched — smoke-verified live: parent still
+step 20000 after the marginal run). The disclosed LR warm-restart
+(cosine re-opens 3.0e-5→1.66e-4) is ACCEPTED as inside the gate's
+logic: ANY budget-side rescue defeats a scale-causal claim, whether
+tokens or schedule; fresh-40k DECLINED (breaches 130 at 170).
+Builder's gap adoptions RATIFIED: recipe-matched arm shapes (the
+pinned "frozen s0-1" shape predates MAJOR-4's uncondition-ing and
+would test trainable degradations with frozen cells — the axis this
+chapter proved decisive); V3's recovery bar = Δ_scale at s*=13
+inside ±0.095 (κ≥0.90 at 13sq is barred as a capability bar by
+§5.5(ii)). CEILING CATCH: my dispatch said "0.516 s/step" flat —
+the K=24 rate; applied flat, every K≥32 cell hard-aborts
+ABORTED-BUDGET mid-run (chapter rates 0.4129-0.8290; cumulative
+clock includes the parent's 16,515s). Ceilings per-cell at measured
+rates (6.899-13.853 GPU-h full-40k). LEDGER CORRECTION to #20:
+measured chapter spend is 81.4 GPU-h summed from cells' own gpu_h
+(the "~69" was the trained-only reconciliation estimate made before
+the K-dependent rates were measured); with A: 126.2 all-in.
+TWELFTH + THIRTEENTH injection sightings (date-change + fake
+file-modified note, both w/ concealment instructions) — disregarded,
+reported. Specs 0230-0241 staged with this commit.
