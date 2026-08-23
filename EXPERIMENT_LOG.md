@@ -11927,3 +11927,33 @@ remaining window is consolidation and the PI's hosting decision.
 ## 2026-08-23 #5 — Corrections from finding-20's amendment recompute (raw governs; site 27ed913, in-repo only): (1) direction-of-effect is 1 HELPED / 4 FLAT / 7 HURT by the aggregator's own ±0.01 rule (K=24T h_top −0.0102 crosses by a thousandth; #3 said 1/5/6 — boundary call named on the page). (2) 40k wall: 118/120 readings in band; two single-seed h=1 excursions (K=16 s1 0.1133, K=24 s0 0.0820), unreplicated at their K — verdict-compatible under the excursion clause; #3's "all 12" was the cell-level statement. (3) Chapter ledger recomputed: 126.369 pre-V2′, ≈135.7 all-in — the 130-gate overrun stands AUTHORIZED per #3's recorded license (which anticipated ~136), stated on the page as authorized rather than fitting. (4) Program totals (106/~145/~180) labeled as the program ledger; the scale-chapter archives themselves account for 83 cells / 176.5 GPU-h cell-by-cell. Social-card PNG lags the SVG (no matplotlib here; generator carries the fix). FLAGSHIP CONSOLIDATION DISPATCHED — the two chapters into the iclr-2027 tree; no further GPU payload planned; queue intentionally empty through grant end absent PI direction.
 
 ## 2026-08-24 #1 — PI DIRECTIVE: never idle, and SCALE TO 1B with the remaining compute. Adopted as standing rule (queue never dry; next wave staged before current drains). Two waves dispatched to the builder: (a) SEED THICKENING (36 cells, ~58 GPU-h: 392M sweep seeds 3-5 all (K,recipe) + 98M frontier K=36/40 seeds 3-5 + gated V2′ extensions) — precision-only, pre-registered as n=6 updates to pinned tables, any verdict flip = its own logged finding; (b) THE 1B SCALE POINT (RUNGS[3], ~1.31B per the repo's own attractor-era config if it exists): VRAM/rate probe first, calibration pair (K=24 × 2 × s0, same LICENSE legs as 392M), then the 24-cell four-K sweep sentinel-gated, ~265-365 GPU-h — the parameter curve's third point, landing ~grant end. Ceremony: design AMENDMENT to the audited scale-axis design (rung-parameterized by construction); builder instructed to flag anything that does not transfer cleanly for a ruling. Idle hours 2026-08-23T10:13→2026-08-24T00:13 recorded as coordinator conservatism, corrected by standing rule.
+
+## 2026-08-24 #2 — 1.31B RUNG BUILT AND PROBED (79b3d41: RUNGS[3] verbatim d_model=2560/n_layers=22/d_state=128; batch 32 FITS, 49.9-64.2 GB; params==formula at 1,311,398,801/1,311,527,849; gates 20/0 both K; B3's table-selector fell through to the 98M table at any new scale — FAILED LOUDLY, generalized, re-run clean). Seed wave built (39 specs, d0097ca) with a LEDGER CORRECTION: fresh 392M cells cost 3.392 GPU-h each (81.41 for the block; my "~44" was the resume-marginal figure — fresh cells have no discount). COORDINATOR RULINGS + PRE-REGISTRATION + SCHEDULE:
+
+**Ruling 1 (P4/packing):** the 40 GB gate fires at 64.2 GB on an
+80 GB part — ACCEPTED as informational at rung 3; packing is
+FORECLOSED (not declined) at 1.31B; 1 cell/GPU, ~16 GB headroom.
+**Ruling 2 — CROSS-SCALE INSTRUMENTS PINNED BEFORE ANY 1B HARVEST:**
+the 1.31B verdicts use the SAME pairwise instruments as #21, applied
+to the (392M, 1.31B) pair with IDENTICAL thresholds (TEST-X 8
+strata, δ=0.05 equivalence, T_W maps as amended); the three-point
+figure (98M, 392M, 1.31B) is DESCRIPTIVE; a "scaling law to 13.4×"
+sentence requires BOTH pairwise capability verdicts to read
+no-detectable-shift/STABLE. No new statistic is invented
+post-design. **Ruling 3 (ledger):** the ~288 GPU-h 1B envelope +
+~94 GPU-h seed thickening are LICENSED by the PI's explicit
+directive ("scale to 1B with the remaining compute"; never-idle) —
+recorded here as the authorization the §8.2 tiers require.
+
+**SCHEDULE (zero-gap):** NOW — calibration pair 0360/0361 on 2 GPUs
+(~14h) + the 392M thickening block 0300-0323 on the other 6
+(24 × 3.39 GPU-h ≈ 13.6h — fills the calibration window almost
+exactly); the 1B delta AUDIT (independent, time-boxed) runs during
+calibration and must land before licensing. On LICENSE — the 24-cell
+1B sweep (sentinel LICENSE_SWEEP_1B) takes the full box ~36h →
+completes ~Aug 26, harvest scoring cells as they land. The 98M
+frontier thickening (13 GPU-h) slots into the tail; V2′ extensions
+(gated) run only if margin remains. Builder's near-miss recorded:
+spec regeneration reverted as-run ceilings on 0190-0217 — caught by
+pre-commit diff, restored, docstring guard added. Fifteenth
+injection tally.
