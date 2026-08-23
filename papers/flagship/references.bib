@@ -175,3 +175,179 @@ url={https://openreview.net/forum?id=Spof4PusVI}
       url={https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct},
       note={Model release and card, Hugging Face, September 9, 2025},
 }
+
+% ---- Sections 6/7 (05a/05b) novelty-gate citations, added 2026-08-23 ----
+% PROVENANCE: all ten IDs below were verified against the live arXiv
+% abstract page (https://arxiv.org/abs/<id>: exact title, full author
+% list, year, venue-if-noted, opening abstract sentence cross-checked
+% against research/kscaling-novelty-2026-08-21.md and
+% research/scale-axis-novelty-2026-08-22.md's descriptions) BEFORE the
+% BibTeX itself was fetched verbatim from https://arxiv.org/bibtex/<id>,
+% same programmatic-BibTeX-only route as the CORE block above. All ten
+% matched their memo description on the first fetch; zero flags, zero
+% confabulations this sweep. arXiv:2312.04927 (Zoology) was checked
+% against this file and is already present above as
+% arora2023zoologymeasuringimprovingrecall — not re-added.
+%
+% Note for the PI's editor pass: drożdż2026entitytrackingemergessubbillion
+% contains a non-ASCII character (ż) in the cite key itself (verbatim
+% from arXiv's own bibtex export, not house-typo'd) — biber/biblatex
+% handles this fine but classic BibTeX may not; ASCII-fold to
+% "drozdz2026..." at compile time if the build uses classic BibTeX.
+%
+% None of these ten keys currently appear as a \cite/\citet/\citep call
+% in latex/sections/05a_breadth_scaling.tex or 05b_parameter_scaling.tex
+% (checked directly, both files, 2026-08-23) — the entries were missing
+% from references.bib entirely, so there was nothing to resolve. See the
+% key-mapping table below for where each SHOULD land; chapter files are
+% intentionally left unedited per this task's scope.
+
+@misc{schlag2021lineartransformerssecretlyfast,
+      title={Linear Transformers Are Secretly Fast Weight Programmers},
+      author={Imanol Schlag and Kazuki Irie and Jürgen Schmidhuber},
+      year={2021},
+      eprint={2102.11174},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2102.11174},
+}
+
+@misc{siems2025deltaproductimprovingstatetrackinglinear,
+      title={DeltaProduct: Improving State-Tracking in Linear RNNs via Householder Products},
+      author={Julien Siems and Timur Carstensen and Arber Zela and Frank Hutter and Massimiliano Pontil and Riccardo Grazzi},
+      year={2025},
+      eprint={2502.10297},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2502.10297},
+}
+
+@misc{grazzi2025unlockingstatetrackinglinearrnns,
+      title={Unlocking State-Tracking in Linear RNNs Through Negative Eigenvalues},
+      author={Riccardo Grazzi and Julien Siems and Arber Zela and Jörg K. H. Franke and Frank Hutter and Massimiliano Pontil},
+      year={2025},
+      eprint={2411.12537},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2411.12537},
+}
+
+@misc{wang2025testtimeregressionunifyingframework,
+      title={Test-time regression: a unifying framework for designing sequence models with associative memory},
+      author={Ke Alexander Wang and Jiaxin Shi and Emily B. Fox},
+      year={2025},
+      eprint={2501.12352},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2501.12352},
+}
+
+@misc{liu2023transformerslearnshortcutsautomata,
+      title={Transformers Learn Shortcuts to Automata},
+      author={Bingbin Liu and Jordan T. Ash and Surbhi Goel and Akshay Krishnamurthy and Cyril Zhang},
+      year={2023},
+      eprint={2210.10749},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2210.10749},
+}
+
+@misc{drożdż2026entitytrackingemergessubbillion,
+      title={Entity tracking emerges in sub-billion parameter language models and exceeds human performance in naturalistic narratives},
+      author={Karolina Drożdż and Micha Heilbron},
+      year={2026},
+      eprint={2608.18083},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2608.18083},
+}
+
+@misc{shaj2026kalmanlinearattentionparallel,
+      title={Kalman Linear Attention: Parallel Bayesian Filtering For Efficient Language Modelling and State Tracking},
+      author={Vaisakh Shaj and Cameron Barker and Aidan Scannell and Andras Szecsenyi and Elliot J. Crowley and Amos Storkey},
+      year={2026},
+      eprint={2602.10743},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2602.10743},
+}
+
+@misc{lee2026heldouttransitionpairfalsifierlonghorizon,
+      title={A Held-Out Transition-Pair Falsifier for Long-Horizon Non-Abelian State Tracking},
+      author={Jeonghoon Lee},
+      year={2026},
+      eprint={2606.07254},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2606.07254},
+}
+
+@misc{li2025howlanguagemodelstrack,
+      title={(How) Do Language Models Track State?},
+      author={Belinda Z. Li and Zifan Carl Guo and Jacob Andreas},
+      year={2025},
+      eprint={2503.02854},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2503.02854},
+}
+
+@misc{guo2026loglinearattention,
+      title={Log-Linear Attention},
+      author={Han Guo and Songlin Yang and Tarushii Goel and Eric P. Xing and Tri Dao and Yoon Kim},
+      year={2026},
+      eprint={2506.04761},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2506.04761},
+}
+
+% ---- Key-mapping table (PI's editor pass): SHOULD-cite key -> chapter/location ----
+% Sourced from research/kscaling-novelty-2026-08-21.md (Sec 6 / 05a, K-axis)
+% and research/scale-axis-novelty-2026-08-22.md (Sec 7 / 05b, param-axis).
+% No chapter file was edited; these are proposals only.
+%
+%   schlag2021lineartransformerssecretlyfast
+%     -> 05a Sec 6.1 (repeated-squaring O(log h) read-path definition,
+%        ~lines 20-32): nearest prior mechanism (fast weight programmers).
+%   wang2025testtimeregressionunifyingframework
+%     -> 05a Sec 6.1 (P1b closed-form write definition, ~lines 37-41):
+%        nearest prior on pseudoinverse writes as a framework
+%        (M_t = V_t(K_t^+)^T), no composition reads / no contrast curve.
+%   siems2025deltaproductimprovingstatetrackinglinear
+%   grazzi2025unlockingstatetrackinglinearrnns
+%     -> 05a Sec 6.1 (P0 SGD-learned write definition, ~lines 42-43) and
+%        Sec 6.4 (the learned-write wall / K=12 toehold, ~lines 213-270):
+%        nearest prior on group word problems via SGD-learned serial
+%        transitions; no closed-form writes, no Z^h reads.
+%   liu2023transformerslearnshortcutsautomata
+%     -> 05a Sec 6.1 (repeated-squaring O(log h) read-path definition,
+%        ~lines 20-32, as contrast): O(log T) depth via attention layers,
+%        not fast-weight matrix powers.
+%   li2025howlanguagemodelstrack
+%     -> 05a Sec 6.4 (the learned-write wall / toehold discussion,
+%        ~lines 213-270): nearest framing for emergent-vs-engineered
+%        state tracking (K is not their organizing axis).
+%   guo2026loglinearattention
+%     -> 05a Sec 6.1 (repeated-squaring O(log h) read-path definition,
+%        ~lines 20-32, as contrast): O(log T) reads over TIME, not
+%        hop-depth of a written relation.
+%   shaj2026kalmanlinearattentionparallel
+%     -> 05b Sec 7.1 (precedent-class discussion, ~lines 41-48, alongside
+%        the existing Arora/Jelassi prose cites): nearest
+%        capability-separation FRAMING at token-scale (no param-scale
+%        curve) -- "watch this line" per the novelty memo.
+%   drożdż2026entitytrackingemergessubbillion
+%     -> 05b Sec 7.1 (precedent-class discussion, ~lines 41-48): the
+%        CONTRAST shape -- entity tracking improves with scale, opposite
+%        of this chapter's flat-ceiling/floor prediction; memo explicitly
+%        flags this as sharpening the claim.
+%   lee2026heldouttransitionpairfalsifierlonghorizon
+%     -> 05b Sec 7.1 (precedent-class discussion, ~lines 41-48), and/or
+%        05a Sec 6.1's Hamiltonian K-cycle task definition (~lines 25-27):
+%        nearest cycle-structured state-tracking INSTRUMENT (S3 x S3,
+%        custom recurrent model, no LM, no scale).
+%   grazzi2025unlockingstatetrackinglinearrnns (dup use)
+%     -> 05b Sec 7.1 (precedent-class discussion, ~lines 41-48): also the
+%        nearest neg-eigenvalue state-tracking mechanism at the param-scale
+%        leg of the novelty gate.
