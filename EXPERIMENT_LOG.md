@@ -11834,3 +11834,17 @@ archive figure). Page also carries the correction paragraph
 (§07), the regenerating figure script with its own asserts, and
 the "no scale-fragile claim before the attribution arm" framing
 throughout.
+
+## 2026-08-23 #1 — Attribution wave: 3 (then 4) cells flagged FAILED by a VALIDITY-CHECK FIELD-PATH BUG (training itself flawless: 40,000/40,000 steps, eval computed, read-ablation exact-zero, exit 0). Bug fixed in all 12 specs (24 file instances across queue dirs + build tree), corrected check re-run, all 4 cells PROMOTED to completed. 0 real failures; wave continues 8-claimed.
+
+The bug: the spec generator asserted (config.steps_target)==40000
+but the runner records steps_target at TOP LEVEL (actual value
+40000, correct); the assert read None → "not the extended budget."
+Why the smoke missed it: at 3 marginal steps the step>=40000 clause
+fails FIRST, so the relaxed-threshold smoke never exercised the
+steps_target clause — assert-order masking. The K=32 cells (first
+finishers) tripped it; K=40/K=16/K=24 cells would have followed.
+Adjudication: data valid (COMPLETED, step 40000, runner self-checks
+passed), checker wrong; per queue discipline the corrected check
+was re-executed against each cell's artifact and the spec moved
+failed→completed only on PASS (4/4). Repo mirror synced.
