@@ -1,0 +1,23 @@
+{
+ "scale": "1310m",
+ "rung": 3,
+ "K": 40,
+ "backbone": {
+  "d_model": 2560,
+  "d_state": 128,
+  "n_layers": 22,
+  "conv_size": 4,
+  "num_heads": 1,
+  "ffn_mult": 4
+ },
+ "total_param_exact_per_arm": 1311527849,
+ "t_in": 286,
+ "measured_params_per_arm": 1311527849,
+ "params_match_formula": true,
+ "batch_size": 32,
+ "s_per_step": 2.7445,
+ "peak_gb_train": 64.17,
+ "peak_gb_with_eval": 64.17,
+ "projected_gpu_h_20k": 15.247,
+ "oom": false
+}

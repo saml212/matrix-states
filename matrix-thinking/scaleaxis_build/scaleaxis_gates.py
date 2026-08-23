@@ -272,7 +272,11 @@ def main() -> int:
         tot = n_bb + n_ncr + n_int
         want_bb = KS.backbone_param_exact(vst)
         want_tot = KS.total_param_exact()
-        tbl = (KS.TOTAL_PARAM_TABLE_392M if SCALE == "392m" else KS.TOTAL_PARAM_TABLE_98M)
+        # PI 2026-08-23 rung 3: the table selection was a two-rung ternary and
+        # silently fell through to the 98M table at any new scale. B3 FIRED on
+        # it rather than passing (measured 1,311,398,801 vs the 98M table's
+        # 97,816,977) -- the gate has teeth; the selector was the defect.
+        tbl = KS.total_param_table()
         assert n_bb == want_bb, (n_bb, want_bb)
         assert n_ncr == KS.ncr_param_exact(R.H_NCR), (n_ncr, KS.ncr_param_exact(R.H_NCR))
         assert n_int == KS.integ_param_exact(bb["d_model"]), n_int
@@ -287,7 +291,8 @@ def main() -> int:
                 "measured_ncr_head": n_ncr, "measured_integ": n_int,
                 "measured_total_per_arm": tot, "design_sec34_table": tbl[K],
                 "ratio_to_98m": round(tot / KS.TOTAL_PARAM_TABLE_98M[K], 6)
-                                if K in KS.TOTAL_PARAM_TABLE_98M else None}
+                                if K in KS.TOTAL_PARAM_TABLE_98M else None,
+                "rung": KS.RUNG, "scale": SCALE}
 
     @neg("B3_NEG_wrong_d_model_fires", "d_model")
     def _b3n():

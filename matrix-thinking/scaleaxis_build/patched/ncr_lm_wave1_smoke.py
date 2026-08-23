@@ -240,9 +240,11 @@ BACKBONE_PARAM_TOLERANCE = _KSCFG.BACKBONE_PARAM_TOLERANCE   # 0.15, unchanged
 
 assert set(RUNG1_BACKBONE) == {"d_model", "d_state", "n_layers", "conv_size",
                                 "num_heads", "ffn_mult"}, sorted(RUNG1_BACKBONE)
-assert RUNG1_BACKBONE["d_model"] == (768 if _KSCFG.SCALE == "98m" else 1536), RUNG1_BACKBONE
-assert RUNG1_BACKBONE["d_state"] == (64 if _KSCFG.SCALE == "98m" else 128), RUNG1_BACKBONE
-assert RUNG1_BACKBONE["n_layers"] == (12 if _KSCFG.SCALE == "98m" else 16), RUNG1_BACKBONE
+# TABLE-DRIVEN (PI 2026-08-23, rung 3): the resolved dict must BE the rung the
+# scale selects, so adding a rung needs no new literal here.
+assert RUNG1_BACKBONE == _KSCFG.RUNGS[_KSCFG.RUNG], (RUNG1_BACKBONE, _KSCFG.RUNG)
+assert (RUNG1_BACKBONE["d_model"], RUNG1_BACKBONE["d_state"], RUNG1_BACKBONE["n_layers"]) == {
+    1: (768, 64, 12), 2: (1536, 128, 16), 3: (2560, 128, 22)}[_KSCFG.RUNG], RUNG1_BACKBONE
 # sec 3.1's SHADOW CONSTANT, closed: CONV_SIZE was a hand-copied duplicate of
 # RUNG1_BACKBONE["conv_size"] and drives buf_len -> the whole document geometry.
 # It is invariant under THIS port (4 -> 4) and is now read from the dict, but

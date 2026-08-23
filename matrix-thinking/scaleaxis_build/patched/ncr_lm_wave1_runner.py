@@ -1845,7 +1845,7 @@ def main():
                      help="K-SCALING PATCH R7: mandatory restatement of NCR_K. Must equal the "
                           "env var kscaling_config read; asserted in main(). Not a second source "
                           "of truth -- a tripwire against env/flag drift across 30 specs.")
-    ap.add_argument("--scale", required=True, choices=("98m", "392m"),
+    ap.add_argument("--scale", required=True, choices=("98m", "392m", "1310m"),
                      help="SCALE-AXIS PORT PATCH R2 (sec 3.6): mandatory restatement of NCR_SCALE, "
                           "asserted against the RESOLVED backbone dict on every mode. Same tripwire "
                           "as --k and for the same stated reason: the single easiest way to burn "

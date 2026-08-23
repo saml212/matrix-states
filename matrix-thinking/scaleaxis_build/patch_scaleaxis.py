@@ -113,11 +113,18 @@ PARAM_COUNT_TOLERANCE = 0.15       # lm_rd_rung_configs.py, unchanged by the por
 RUNGS: dict[int, dict] = {
     1: dict(d_model=768,  d_state=64,  n_layers=12, conv_size=4, num_heads=1, ffn_mult=4),
     2: dict(d_model=1536, d_state=128, n_layers=16, conv_size=4, num_heads=1, ffn_mult=4),
+    # RUNG 3 -- THE THIRD SCALE POINT (PI 2026-08-23). Taken VERBATIM from
+    # lm_rd_rung_configs.py RUNGS[3] on the box; NOT derived here, so the
+    # parameter curve's third point uses the repo's OWN 1.31B architecture,
+    # the same one the 14M->1.31B attractor span study used.
+    3: dict(d_model=2560, d_state=128, n_layers=22, conv_size=4, num_heads=1, ffn_mult=4),
 }
-RUNG_OF_SCALE = {"98m": 1, "392m": 2}
-BACKBONE_PARAM_TARGET_OF_SCALE = {"98m": 98_000_000, "392m": 392_000_000}
+RUNG_OF_SCALE = {"98m": 1, "392m": 2, "1310m": 3}
+BACKBONE_PARAM_TARGET_OF_SCALE = {"98m": 98_000_000, "392m": 392_000_000,
+                                  "1310m": 1_310_000_000}
 # sec 4.5: only these four K are ported. K=12/20/28/36 are deliberately NOT.
 PORTED_K_GRID_392M = (16, 24, 32, 40)
+PORTED_K_GRID_1310M = (16, 24, 32, 40)      # same four K -- same bands, same instruments
 
 
 def _scale_from_env() -> str:
@@ -199,6 +206,7 @@ def assert_param_table() -> None:
 
 TOTAL_PARAM_TABLE_392M = {16: 392_095_889, 24: 392_122_521,
                           32: 392_149_153, 40: 392_175_785}   # sec 3.4's table, verbatim
+
 TOTAL_PARAM_TABLE_98M = {12: 97_809_805, 16: 97_816_977, 20: 97_824_149,
                          24: 97_831_321, 28: 97_838_493, 32: 97_845_665,
                          36: 97_852_837, 40: 97_860_009}      # gen_job_specs MEASURED table'''),
@@ -213,7 +221,7 @@ CHANCE: float = 1.0 / K_NCR
 # SCALE-AXIS PORT PATCH C2. At 392M only sec 4.5's four ported K exist. Without
 # this, `NCR_K=12 NCR_SCALE=392m` would build a perfectly valid cell that no
 # band, no reference table and no cross-scale stratum in the design covers.
-if SCALE == "392m":
+if SCALE in ("392m", "1310m"):
     assert K_NCR in PORTED_K_GRID_392M, (
         f"NCR_K={K_NCR} is not one of the FOUR ported K {PORTED_K_GRID_392M} "
         f"(NCR_SCALE_AXIS_DESIGN.md sec 4.5). K in {{12,20,28,36}} are deliberately NOT "
@@ -265,6 +273,23 @@ DEEP_LADDER: tuple[int, ...] = LADDER_TABLE[K_NCR]""",
      '''assert_ladder_table()
 assert_param_table()          # SCALE-AXIS PORT PATCH C5: sec 3.4's four measured endpoints
 
+# Rung 3, DERIVED by the same sec 3.4 formula (validated at rungs 1 and 2
+# against FOUR independently-measured endpoints, re-checked by
+# assert_param_table() one line above). Built HERE rather than in the C1 block
+# because it needs ncr_param_exact/integ_param_exact, which are defined below
+# it. scaleaxis_gates B3 checks the MEASURED nn.Module count against this table
+# at the running K, so the derivation is verified against hardware, not trusted.
+TOTAL_PARAM_TABLE_1310M = {
+    k: (backbone_param_exact(VOCAB_SIZE + VOCAB_RESERVED_EXTRA, RUNGS[3])
+        + ncr_param_exact(64, k) + integ_param_exact(RUNGS[3]["d_model"], k))
+    for k in (16, 24, 32, 40)}
+
+
+def total_param_table() -> dict:
+    """The sec 3.4 table for THIS run's rung."""
+    return {1: TOTAL_PARAM_TABLE_98M, 2: TOTAL_PARAM_TABLE_392M,
+            3: TOTAL_PARAM_TABLE_1310M}[RUNG]
+
 DEEP_LADDER: tuple[int, ...] = LADDER_TABLE[K_NCR]'''),
 ]
 
@@ -302,9 +327,11 @@ BACKBONE_PARAM_TOLERANCE = _KSCFG.BACKBONE_PARAM_TOLERANCE   # 0.15, unchanged
 
 assert set(RUNG1_BACKBONE) == {"d_model", "d_state", "n_layers", "conv_size",
                                 "num_heads", "ffn_mult"}, sorted(RUNG1_BACKBONE)
-assert RUNG1_BACKBONE["d_model"] == (768 if _KSCFG.SCALE == "98m" else 1536), RUNG1_BACKBONE
-assert RUNG1_BACKBONE["d_state"] == (64 if _KSCFG.SCALE == "98m" else 128), RUNG1_BACKBONE
-assert RUNG1_BACKBONE["n_layers"] == (12 if _KSCFG.SCALE == "98m" else 16), RUNG1_BACKBONE
+# TABLE-DRIVEN (PI 2026-08-23, rung 3): the resolved dict must BE the rung the
+# scale selects, so adding a rung needs no new literal here.
+assert RUNG1_BACKBONE == _KSCFG.RUNGS[_KSCFG.RUNG], (RUNG1_BACKBONE, _KSCFG.RUNG)
+assert (RUNG1_BACKBONE["d_model"], RUNG1_BACKBONE["d_state"], RUNG1_BACKBONE["n_layers"]) == {
+    1: (768, 64, 12), 2: (1536, 128, 16), 3: (2560, 128, 22)}[_KSCFG.RUNG], RUNG1_BACKBONE
 # sec 3.1's SHADOW CONSTANT, closed: CONV_SIZE was a hand-copied duplicate of
 # RUNG1_BACKBONE["conv_size"] and drives buf_len -> the whole document geometry.
 # It is invariant under THIS port (4 -> 4) and is now read from the dict, but
@@ -393,7 +420,7 @@ TRAIN_HOPS = tuple(KS.TRAIN_HOPS)                   # sec 3.1 Task-1 train range
                      help="K-SCALING PATCH R7: mandatory restatement of NCR_K. Must equal the "
                           "env var kscaling_config read; asserted in main(). Not a second source "
                           "of truth -- a tripwire against env/flag drift across 30 specs.")
-    ap.add_argument("--scale", required=True, choices=("98m", "392m"),
+    ap.add_argument("--scale", required=True, choices=("98m", "392m", "1310m"),
                      help="SCALE-AXIS PORT PATCH R2 (sec 3.6): mandatory restatement of NCR_SCALE, "
                           "asserted against the RESOLVED backbone dict on every mode. Same tripwire "
                           "as --k and for the same stated reason: the single easiest way to burn "
