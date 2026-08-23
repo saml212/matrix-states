@@ -11897,3 +11897,29 @@ its own promotion glob silently no-opped while printing PASS —
 caught by checking the queue COUNT, not the print (the recurring
 lesson, self-applied); 4/4 then genuinely promoted, failed/ empty.
 Archive: experiment-runs/2026-08-23_attribution_arm/ (repo+SSD).
+
+## 2026-08-23 #4 — V2′ VERDICT: SCALE-DEGRADES AT K=40 TRAINABLE STANDS, CLEANLY STRENGTHENED — THE SCIENCE PROGRAM'S LAST GATE IS DISCHARGED.
+
+V2′ (constant-LR resume, 2 cells, 40,000 steps, ~9.2 GPU-h
+marginal, 0 failures): κ@h_top = 0.7276/0.8598 vs parents
+0.760/0.844 — UNRECOVERED (0/2 ≥ 0.90) and UNDAMAGED (within the
+parent band; no V2-style collapse), the pre-registered middle
+branch exactly. Therefore: (a) the K=40 trainable degradation is
+ARCHITECTURAL — not token-budget (V2′ doubled it), not schedule
+(V2′ removed the restart); (b) V2's collapse is attributed to the
+warm-restart schedule (same budget, constant LR, no damage) — an
+instrument finding with its own value (5.5× LR restarts destabilize
+trained NCR adapters at the breadth frontier); (c) wall in band
+both cells. FINAL CHAPTER LEDGER: all three attribution verdicts
+discharged — V1 K=32T TOKEN-BUDGET-LIMITED (withdrawn), V2 K=40T
+SCALE-DEGRADES-STRENGTHENED, V3 depth-tail SCALE-DEGRADES-STRONG.
+The scale chapter's publishable claims now all stand on discharged
+gates: capability scale-stable (frozen, every K, no detectable
+shift); wall scale-stable; ordering scale-strengthens to perfect;
+the trainable breadth frontier moves INWARD with scale (K=40
+architectural at 392M; K=32's apparent degradation was budget); the
+very-deep read tail degrades at scale in both arms. Archive:
+experiment-runs/2026-08-23_v2prime/ (repo+SSD). Total program:
+106 training cells + ~145 eval passes, 0 unrecovered failures,
+~180 GPU-h. THE GRANT'S TRAINING PROGRAM IS COMPLETE; the
+remaining window is consolidation and the PI's hosting decision.

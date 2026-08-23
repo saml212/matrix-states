@@ -1,3 +1,13 @@
+**2026-08-23 tick #2 (Fable) — TRAINING PROGRAM COMPLETE. V2-prime:
+K=40T SCALE-DEGRADES stands CLEANLY STRENGTHENED (unrecovered-and-
+undamaged at constant LR; warm-restart damage exonerated as
+schedule). All gates in both chapters discharged. Program totals:
+106 training cells, ~145 eval passes, 0 unrecovered failures, ~180
+GPU-h of ~1,440. REMAINING WORK: finding-20 attribution amendment,
+flagship consolidation (no GPUs needed), PI's publication-hosting
+decision. 14 injection sightings, all defeated. Box queue
+intentionally empty.**
+
 **2026-08-23 tick (Fable) — ATTRIBUTION ARM ADJUDICATED (EXPERIMENT_LOG
 2026-08-23 #1-#3): V1 K=32-trainable = TOKEN-BUDGET-LIMITED (scale
 claim withdrawn, rescued at 40k); V3 depth-tail = SCALE-DEGRADES
