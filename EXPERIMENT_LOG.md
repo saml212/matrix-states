@@ -11848,3 +11848,5 @@ Adjudication: data valid (COMPLETED, step 40000, runner self-checks
 passed), checker wrong; per queue discipline the corrected check
 was re-executed against each cell's artifact and the spec moved
 failed→completed only on PASS (4/4). Repo mirror synced.
+
+## 2026-08-23 #2 — Attribution wave adjudications: the claim-time-snapshot lesson (worker reads specs at CLAIM, so in-flight cells carry stale checkers — all re-adjudicated by corrected-check-on-artifact) + the GATE-0-MARGINAL clause ruled MIS-SCOPED for resumed segments (2 cells: CE flat at plateau, +0.026/+0.030 over 20k marginal steps at ±0.03 plateau noise; from-scratch Gate-0 tested 11→4.5). The flat CE is itself attribution EVIDENCE (extended budget moved training loss NOWHERE in those cells), recorded as such; the recovery verdicts rest on the pre-registered κ/Δ bars from the battery, not on CE. Cells 0230/0233 promoted on artifact evidence (COMPLETED 40000, self-checks passed, eval present); clause scoping recorded here rather than silently edited.
