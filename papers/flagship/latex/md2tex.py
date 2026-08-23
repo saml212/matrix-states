@@ -38,6 +38,20 @@ FIGMAP = {
     'A1': ('figA1_complement_scaffold.pdf', 'fig:complement', 1.0, '!htb'),
 }
 
+# Captioned tables. A '**Table N caption.** <text>' block immediately
+# followed by a markdown table emits a table float with that caption;
+# without the marker a markdown table keeps its previous behaviour (the
+# Table-1 seed table, or the ragged scriptsize manifest tabular).
+# Existing sections carry no markers, so their .tex is byte-identical.
+# Fields: (label, float placement, font size command).
+TABMAP = {
+    '2': ('tab:breadth-capability', 't', r'\small'),
+    '3': ('tab:breadth-wall', 't', r'\small'),
+    '4': ('tab:breadth-ordering', 't', r'\small'),
+    '5': ('tab:scale-capability', 't', r'\small'),
+    '6': ('tab:scale-breadth', 't', r'\small'),
+}
+
 # Order matters: longer literals first.
 CITEMAP = [
     ('Nichani, Lee, and\nBietti (2024)', r'\citet{nichani2024understandingfactualrecalltransformers}'),
@@ -78,6 +92,16 @@ def esc_text(s):
             out.append(p)
         else:
             p = p.replace('&', r'\&').replace('%', r'\%').replace('#', r'\#')
+            # Non-ASCII typography the .md sources use freely; the committed
+            # .tex has always carried the LaTeX spellings (they were being
+            # re-applied by hand after each regeneration). Doing it here
+            # keeps `python3 md2tex.py` a no-op on unchanged sources.
+            for uni, tex in (('§', r'\S'), ('–', '--'),
+                             ('—', '---'), ('→', r'$\rightarrow$'),
+                             ('×', r'$\times$'), ('≥', r'$\geq$'),
+                             ('≤', r'$\leq$'), ('≈', r'$\approx$'),
+                             ('±', r'$\pm$')):
+                p = p.replace(uni, tex)
             out.append(p)
     return ''.join(out)
 
@@ -130,6 +154,36 @@ def convert(md, is_appendix):
                     r'\caption{' + body + '}', r'\label{' + label + '}',
                     r'\end{figure}', '']
             continue
+        # captioned table blocks: '**Table N caption.** <text>' followed by
+        # a markdown table -> a numbered table float. Opt-in marker, so
+        # unmarked tables keep the legacy paths below.
+        m = re.match(r'^\\textbf\{Table (\w+) caption\.\}\s*(.*)', inline(ln))
+        if m:
+            tabnum, first = m.group(1), m.group(2)
+            cap = [first]
+            i += 1
+            while i < len(lines) and lines[i].strip() != '':
+                cap.append(lines[i]); i += 1
+            while i < len(lines) and lines[i].strip() == '':
+                i += 1
+            if i >= len(lines) or not lines[i].strip().startswith('|'):
+                raise SystemExit('Table %s caption is not followed by a table' % tabnum)
+            hdr = [c.strip() for c in lines[i].strip().strip('|').split('|')]
+            rows, j = [], i + 2
+            while j < len(lines) and lines[j].strip().startswith('|'):
+                rows.append([c.strip() for c in lines[j].strip().strip('|').split('|')])
+                j += 1
+            label, place, size = TABMAP[tabnum]
+            cellf = lambda c: esc_text(inline(c))
+            out += [r'\begin{table}[' + place + ']', r'\centering',
+                    r'\caption{' + esc_text(inline(' '.join(cap))) + '}',
+                    r'\label{' + label + '}', size,
+                    r'\begin{tabular}{' + 'l' + 'c' * (len(hdr) - 1) + '}',
+                    r'\toprule',
+                    ' & '.join(cellf(h) for h in hdr) + r' \\', r'\midrule']
+            out += [' & '.join(cellf(c) for c in r) + r' \\' for r in rows]
+            out += [r'\bottomrule', r'\end{tabular}', r'\end{table}', '']
+            i = j; continue
         # markdown tables
         if ln.strip().startswith('|') and i + 1 < len(lines) and re.match(r'^\s*\|[\s\-|]+\|\s*$', lines[i + 1]):
             hdr = [c.strip() for c in ln.strip().strip('|').split('|')]

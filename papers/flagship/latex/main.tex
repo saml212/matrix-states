@@ -55,6 +55,32 @@ Paper under double-blind review}
 \input{sections/03_rank_law}
 \input{sections/04_capability_separation}
 \input{sections/05_pathology_at_scale}
+% NEW (flagship consolidation, 2026-08-23): the two NCR scaling chapters.
+% Placed after Section 5, so they compile as Sections 6 and 7 and Related
+% Work / Discussion / Conclusion shift to 8 / 9 / 10.
+%
+% TWO THINGS THE PI MUST SETTLE BEFORE THE NEXT RENDER:
+% (1) Cross-reference resync. The existing chapters address sections by
+%     LITERAL number, not \ref. This pass did NOT edit them (consolidation
+%     charter: no edits to existing chapters). Eight literals now point one
+%     or two sections short and must be bumped by +2:
+%       01_introduction.md   "Section 7 discusses its scope limits"      -> 9
+%       04_capability_separation.md  "Section 6 states the resulting..." -> 8
+%                                    "Section 7 reports the learning..." -> 9
+%                                    "the Section 7 learning-rate grid"  -> 9
+%                                    fig:recall caption "(Section 7)"    -> 9
+%       06_related_work.md   "(Section 7 reports the full grid)"         -> 9
+%                            "Section 7 reports the completed measure."  -> 9
+%       07_discussion_limitations.md "Section 6 for the chance-level..." -> 8
+%                                    "(Section 6) live at other scales"  -> 8
+%       08_conclusion.md     "(Section 7): the transformer fails"        -> 9
+%     (Not "Section 4 of arXiv:2510.26692" in 06_related_work -- that is a
+%     section of a cited paper, not of this one.)
+% (2) Placement. These chapters extend Section 4's capability separation,
+%     not Section 5's pathology, so positions 5 and 6 are editorially
+%     stronger; the resync cost is identical either way.
+\input{sections/05a_breadth_scaling}
+\input{sections/05b_parameter_scaling}
 \input{sections/06_related_work}
 \input{sections/07_discussion_limitations}
 \input{sections/08_conclusion}

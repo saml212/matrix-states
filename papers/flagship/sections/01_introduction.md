@@ -87,6 +87,8 @@ Concretely, we contribute:
    the corresponding channel is empty by construction in delta-rule
    states, which bounds how far the scaffold generalizes.
 
+Sections 6 and 7 carry the capability result of Section 4 onto two further axes, binding breadth and parameter scale, inside a 98M-to-392M language-model graft.
+
 Every numerical claim in this paper traces to a pre-registered verdict
 record and an archived, checksummed raw artifact; the figures regenerate
 from those artifacts under checksum assertion. Each repaired instrument
