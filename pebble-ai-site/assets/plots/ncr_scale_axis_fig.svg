@@ -1,6 +1,6 @@
 <svg viewBox="0 0 840 470" width="100%" style="height:auto;display:block;" role="img" aria-labelledby="fig1title fig1desc" xmlns="http://www.w3.org/2000/svg">
 <title id="fig1title">Exact-write capability across binding breadth at two model scales, and the freeze-ordering statistic at both scales</title>
-<desc id="fig1desc">Left panel: chance-corrected accuracy at the antipodal top rung, plotted against the pair K, d equals K plus one, for K equals 16, 24, 32 and 40. The frozen-adapter arm sits at ceiling, between 0.988 and 1.000, at both 98M and 392M parameters, the two curves overlapping. The trainable-adapter arm sits at ceiling at 98M but at 392M falls below the capability bar of 0.90 from K equals 32 onward, reaching 0.844 at K equals 40, with all three seeds shown as separate points. Right panel: the within-scale ordering statistic, counting how many of 36 frozen-versus-trainable pairs the frozen arm wins. At eleven squarings it reads 30.5 at 98M and 36 of 36 at 392M; at the five-squaring top rung it reads 25 at 98M and 36 of 36 at 392M. A dashed line marks the pre-registered confirmation threshold of 31.5.</desc>
+<desc id="fig1desc">Left panel: chance-corrected accuracy at the antipodal top rung, plotted against the pair K, d equals K plus one, for K equals 16, 24, 32 and 40. The frozen-adapter arm sits at ceiling, between 0.988 and 1.000, at both 98M and 392M parameters, the two curves overlapping. The trainable-adapter arm sits at ceiling at 98M but at 392M falls below the capability bar of 0.90 from K equals 32 onward, reaching 0.844 at K equals 40, with all three seeds shown as separate points. Open diamonds show the discharged attribution control, the same trainable cells re-trained on double the tokens: at K equals 32 the point rises to 0.911, back over the capability bar, so that degradation was a token-budget effect; at K equals 40 the constant-learning-rate control reads 0.794, still far below the bar. Right panel: the within-scale ordering statistic, counting how many of 36 frozen-versus-trainable pairs the frozen arm wins. At eleven squarings it reads 30.5 at 98M and 36 of 36 at 392M; at the five-squaring top rung it reads 25 at 98M and 36 of 36 at 392M. A dashed line marks the pre-registered confirmation threshold of 31.5.</desc>
 <g stroke="#c9bfa4" stroke-width="1">
 <line x1="92.0" y1="333.3" x2="448.0" y2="333.3"/>
 <line x1="92.0" y1="279.7" x2="448.0" y2="279.7"/>
@@ -63,6 +63,13 @@
 <rect x="313.8" y="195.20000000000002" width="8.4" height="8.4"/>
 <rect x="413.8" y="228.60000000000002" width="8.4" height="8.4"/>
 </g>
+<line x1="318.0" y1="199.4" x2="318.0" y2="160.5" stroke="#24607F" stroke-width="1.1" opacity="0.55"/>
+<polygon points="318.0,155.1 323.4,160.5 318.0,165.9 312.6,160.5" fill="#FAF5E7" stroke="#24607F" stroke-width="1.6"/>
+<text x="309.0" y="163.9" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#24607F">0.911</text>
+<line x1="418.0" y1="232.8" x2="418.0" y2="286.5" stroke="#24607F" stroke-width="1.1" opacity="0.55"/>
+<polygon points="418.0,281.1 423.4,286.5 418.0,291.9 412.6,286.5" fill="#FAF5E7" stroke="#24607F" stroke-width="1.6"/>
+<text x="409.0" y="289.9" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#24607F">0.794</text>
+<text x="92.0" y="314.0" font-family="'Space Grotesk', sans-serif" font-size="10" fill="#24607F">◇ same cells at 2× tokens (40,000 steps)</text>
 <line x1="434.0" y1="78.3" x2="434.0" y2="232.8" stroke="#1a1a1a" stroke-width="1.2"/>
 <line x1="430.0" y1="78.3" x2="438.0" y2="78.3" stroke="#1a1a1a" stroke-width="1.2"/>
 <line x1="430.0" y1="232.8" x2="438.0" y2="232.8" stroke="#1a1a1a" stroke-width="1.2"/>

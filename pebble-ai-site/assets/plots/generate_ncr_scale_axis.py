@@ -18,6 +18,10 @@ passes each caught coordinator transcription errors this way.
                   depthext6_392m_*_depthext.json                   (24 cells)
   98M  depth    experiment-runs/2026-08-22_scaleaxis_stagec/ref98m_depth/
                   depthext6_*_depthext.json                        (24 cells)
+  attribution   experiment-runs/2026-08-23_attribution_arm/
+                  attrib_attrib40k_*_kscaling.json                 (12 cells, 40k steps)
+  V2' control   experiment-runs/2026-08-23_v2prime/
+                  v2p_v2prime_K40_compB_*_kscaling.json            (2 cells, constant LR)
 
 Fields read: matched.P1b.per_hop[*].acc, with role == "ladder_top" for the
 breadth battery and n_squarings == 11 for the depth ladder.
@@ -28,6 +32,11 @@ LEFT PANEL  — kappa at h_top (5 squarings, the antipodal top rung) against
               the pair (K, d=K+1), at both scales, both recipes. The frozen
               arms overlap at ceiling at both scales; the trainable arm
               falls away at 392M from K=32 on. That gap is the moat.
+              Overlaid as open diamonds: the discharged attribution control
+              — the same trainable cells re-run to 40,000 steps (2x tokens).
+              K=32 recovers over the capability bar (budget, not scale, so
+              that SCALE-DEGRADES verdict is withdrawn); K=40 does not, and
+              its constant-LR control (V2') rules the schedule out too.
 RIGHT PANEL — the within-scale freeze-ordering statistic T_W (frozen beats
               trainable, 4 strata x 9 cross-condition pairs, ties 1/2) at
               both readouts and both scales. The 31.5 line is §5.3.1's
@@ -36,7 +45,12 @@ RIGHT PANEL — the within-scale freeze-ordering statistic T_W (frozen beats
 
 The curve covers K=16..40 only; K=44's antipodal probe is
 construction-impossible in the matched squaring band (needs 3K/2 <= 63,
-derive_ladder(44) raises). See EXPERIMENT_LOG.md 2026-08-22 #3, #20, #21.
+derive_ladder(44) raises). See EXPERIMENT_LOG.md 2026-08-22 #3, #20, #21
+and 2026-08-23 #1-#4 (the attribution arm and the V2' constant-LR control).
+
+matplotlib is required only for the PNG social card; if it is missing the
+SVG fragment (the one the page actually inlines) is still regenerated, and
+the script says so rather than failing.
 """
 import glob
 import json
@@ -44,9 +58,13 @@ import os
 import statistics as st
 from pathlib import Path
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    HAVE_MPL = True
+except ModuleNotFoundError:                                     # SVG-only run
+    HAVE_MPL = False
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
@@ -120,6 +138,37 @@ D392 = load_depth11(RUNS / "2026-08-22_scaleaxis_stagec" / "depthext6_392m_*_dep
 D98 = load_depth11(RUNS / "2026-08-22_scaleaxis_stagec" / "ref98m_depth" / "depthext6_*_depthext.json", "98M depth")
 
 
+def load_extended(pattern, label, n_expect):
+    """{(K, frozen, seed): kappa at h_top} for the 40,000-step cells."""
+    out = {}
+    for p in sorted(glob.glob(str(pattern))):
+        r = json.load(open(p))
+        K = r["kscaling"]["K"]
+        assert r["self_check"] == "PASS", p
+        assert r["ckpt_step"] == 40000, p              # the DOUBLED budget
+        assert r["kscaling"]["d_ncr"] == K + 1, p
+        assert int(r.get("base_seed", 90210)) == 90210, p
+        top = [e for e in r["matched"]["P1b"]["per_hop"].values()
+               if e["role"] == "ladder_top"]
+        assert len(top) == 1 and top[0]["n_squarings"] == 5, p
+        out[(K, bool(r["freeze_entity_adapter"]), int(r["ckpt_seed"]))] = kappa(top[0]["acc"], K)
+    assert len(out) == n_expect, f"{label}: expected {n_expect} cells, got {len(out)}"
+    return out
+
+
+# The attribution arm: the same cells resumed to 40,000 steps (2x tokens),
+# seeds 0-1 only. Its K=40 trainable pair was damaged by the resume's
+# re-opened cosine (a 5.5x LR warm restart), so the K=40 point of record is
+# V2', the constant-LR re-run of the same two cells at the same budget.
+A40 = load_extended(RUNS / "2026-08-23_attribution_arm" / "attrib_attrib40k_*_kscaling.json",
+                    "attribution 40k", 12)
+V2P = load_extended(RUNS / "2026-08-23_v2prime" / "v2p_v2prime_K40_compB_*_kscaling.json",
+                    "V2' constant-LR", 2)
+EXT_TRAIN = {32: st.median([A40[(32, False, s)] for s in (0, 1)]),
+             40: st.median([V2P[(40, False, s)] for s in (0, 1)])}
+assert EXT_TRAIN[32] >= 0.90 > EXT_TRAIN[40], EXT_TRAIN   # V1 recovers, V2 does not
+
+
 def seeds(d, K, fz):
     return [d[(K, fz, s)] for s in (0, 1, 2)]
 
@@ -149,123 +198,13 @@ FROZ98, TRAIN98 = medians(B98, True), medians(B98, False)
 CAP_BAR = 0.90              # §6.1 Curve 1 capability bar, on kappa
 CONFIRM_BAR = 31.5          # §5.3.1: ORDERING-CONFIRMED requires T_W > 31.5
 EXACT_BAR = 30              # raw 4-strata exact two-sided p<0.01 bar
+YLO, YHI = 0.74, 1.02       # kappa axis of the left panel, both renderings
 
 print("kappa @ h_top medians")
 for lbl, row in (("frozen 392M", FROZ392), ("frozen  98M", FROZ98),
                  ("train  392M", TRAIN392), ("train   98M", TRAIN98)):
     print(f"  {lbl}: " + "  ".join(f"K={K}:{v:.4f}" for K, v in zip(KS, row)))
 print("T_W:", {f"{a} {b}": v for (a, b), v in TW.items()})
-
-# ───────────────────────── PNG (1200x675 X card) ─────────────────────────
-
-plt.rcParams["font.family"] = "DejaVu Sans"
-fig = plt.figure(figsize=(12, 6.75), dpi=100, facecolor=BG)
-
-YLO, YHI = 0.74, 1.02
-axL = fig.add_axes([0.068, 0.175, 0.535, 0.645], facecolor=BG)
-axL.set_xlim(-0.30, len(KS) - 0.70)
-axL.set_ylim(YLO, YHI)
-for s in ("top", "right", "bottom"):
-    axL.spines[s].set_visible(False)
-axL.spines["left"].set_color(TEXT)
-axL.set_yticks([0.75, 0.80, 0.85, 0.90, 0.95, 1.00])
-axL.set_yticklabels([f"{v:.2f}" for v in (0.75, 0.80, 0.85, 0.90, 0.95, 1.00)],
-                    fontfamily="DejaVu Sans Mono", fontsize=10, color=MUTED)
-axL.grid(axis="y", color="#d9cfb4", lw=0.8)
-axL.set_axisbelow(True)
-axL.set_xticks([])
-axL.set_ylabel("κ = (acc − 1/K)/(1 − 1/K)  at the antipodal top rung",
-               fontsize=10.5, color=TEXT)
-
-xs = list(range(len(KS)))
-axL.axhline(CAP_BAR, color=TEXT, lw=1.2, ls=(0, (5, 3)))
-axL.text(-0.26, CAP_BAR + 0.007, "capability bar  κ ≥ 0.90",
-         fontsize=9.5, color=TEXT, ha="left", fontfamily="DejaVu Sans Mono")
-
-# 98M references — open markers, dashed
-axL.plot(xs, FROZ98, "--o", color=ACCENT, lw=1.6, ms=6, mfc=BG, mew=1.6, zorder=3)
-axL.plot(xs, TRAIN98, "--s", color=BLUE, lw=1.6, ms=5.5, mfc=BG, mew=1.6, zorder=3)
-# 392M — filled, solid
-axL.plot(xs, FROZ392, "-o", color=ACCENT, lw=2.6, ms=7, zorder=5)
-for x, K in zip(xs, KS):
-    axL.plot([x] * 3, seeds(B392, K, False), "s", ms=4.6, color=BLUE,
-             alpha=0.42, mew=0, zorder=4)
-axL.plot(xs, TRAIN392, "-s", color=BLUE, lw=2.6, ms=6.5, zorder=5)
-
-# the moat
-xg = len(KS) - 1
-axL.annotate("", xy=(xg + 0.18, FROZ392[-1]), xytext=(xg + 0.18, TRAIN392[-1]),
-             arrowprops=dict(arrowstyle="<->", color=TEXT, lw=1.2))
-axL.text(xg + 0.10, (FROZ392[-1] + TRAIN392[-1]) / 2,
-         f"the moat at 392M\n{FROZ392[-1] - TRAIN392[-1]:.3f} κ at K=40",
-         fontsize=9.5, color=TEXT, va="center", ha="right")
-
-axL.text(0.02, 1.0125, "frozen adapter — 392M (solid) and 98M (open): both at ceiling",
-         fontsize=10.5, color=ACCENT, fontweight="bold")
-axL.text(0.02, 0.7575, "trainable adapter — 98M at ceiling (open), 392M falling from K=32 (solid)",
-         fontsize=10.5, color=BLUE, fontweight="bold")
-
-for x, K in zip(xs, KS):
-    axL.text(x, YLO - 0.013, f"K={K}", ha="center", fontsize=10.5,
-             fontfamily="DejaVu Sans Mono", color=TEXT)
-    axL.text(x, YLO - 0.028, f"d={K + 1}", ha="center", fontsize=9,
-             fontfamily="DejaVu Sans Mono", color=MUTED)
-fig.text(0.335, 0.082, "binding breadth — the pair (K, d = K+1); 3 seeds per arm per scale",
-         ha="center", fontsize=10.5, color=TEXT)
-fig.text(0.335, 0.042,
-         "P1b = EXACT teacher-forced operator substitution throughout — a read-path capability, not a learned write",
-         ha="center", fontsize=9.5, color=ACCENT)
-
-# ── right panel: the ordering statistic ──
-axR = fig.add_axes([0.685, 0.175, 0.285, 0.645], facecolor=BG)
-axR.set_xlim(-0.62, 3.62)
-axR.set_ylim(0, 38)
-for s in ("top", "right", "bottom"):
-    axR.spines[s].set_visible(False)
-axR.spines["left"].set_color(TEXT)
-axR.set_yticks([0, 9, 18, 27, 36])
-axR.set_yticklabels(["0", "9", "18", "27", "36"], fontfamily="DejaVu Sans Mono",
-                    fontsize=10, color=MUTED)
-axR.grid(axis="y", color="#d9cfb4", lw=0.8)
-axR.set_axisbelow(True)
-axR.set_xticks([])
-axR.set_ylabel("T_W — frozen-beats-trainable pairs (of 36)", fontsize=10.5, color=TEXT)
-
-bars = [(0.0, TW[("11sq", "98M")], "98M", False),
-        (0.9, TW[("11sq", "392M")], "392M", True),
-        (2.1, TW[("htop", "98M")], "98M", False),
-        (3.0, TW[("htop", "392M")], "392M", True)]
-for x, v, lab, filled in bars:
-    axR.bar(x, v, width=0.72, color=ACCENT if filled else "#b9a98a",
-            edgecolor=TEXT, lw=1.0, zorder=3)
-    axR.text(x, v - 2.6, f"{v:g}", ha="center", fontsize=12,
-             color=BG if filled else TEXT, fontweight="bold",
-             fontfamily="DejaVu Sans Mono", zorder=4)
-    axR.text(x, -1.6, lab, ha="center", fontsize=9.5, color=TEXT,
-             fontfamily="DejaVu Sans Mono")
-axR.axhline(CONFIRM_BAR, color=TEXT, lw=1.3, ls=(0, (5, 3)), zorder=5)
-axR.text(-0.70, CONFIRM_BAR, "31.5", fontsize=9.5, color=TEXT, ha="right",
-         va="center", fontfamily="DejaVu Sans Mono")
-axR.text(0.45, -4.0, "11 squarings\n≈2,052 hops", ha="center", fontsize=9.5, color=MUTED)
-axR.text(2.55, -4.0, "h_top\n5 squarings", ha="center", fontsize=9.5, color=MUTED)
-fig.text(0.828, 0.046, "dashed: ORDERING-CONFIRMED needs T > 31.5",
-         ha="center", fontsize=9.5, color=TEXT)
-fig.text(0.828, 0.012, "perfect separation at 392M, both readouts",
-         ha="center", fontsize=9.5, color=ACCENT)
-
-fig.text(0.026, 0.952,
-         "The capability separation survives 4× scale — and its moat widens",
-         fontsize=17, fontweight="bold", color=TEXT)
-fig.text(0.985, 0.905, "pebbleml.com/findings/ncr-scale-axis.html",
-         ha="right", va="center", fontsize=9, color=MUTED)
-fig.text(0.026, 0.905,
-         "98M → 392M, four breadths ported, 24 training cells + 26 eval cells, 0 failures",
-         fontsize=10, color=MUTED)
-
-out_png = HERE / "ncr_scale_axis_x.png"
-fig.savefig(out_png, facecolor=BG)
-plt.close(fig)
-print(f"wrote {out_png}")
 
 # ───────────────────── SVG fragment for the page figure ─────────────────────
 
@@ -301,7 +240,11 @@ a('<desc id="fig1desc">Left panel: chance-corrected accuracy at the antipodal to
   'sits at ceiling, between 0.988 and 1.000, at both 98M and 392M parameters, the two curves '
   'overlapping. The trainable-adapter arm sits at ceiling at 98M but at 392M falls below the '
   'capability bar of 0.90 from K equals 32 onward, reaching 0.844 at K equals 40, with all three '
-  'seeds shown as separate points. Right panel: the within-scale ordering statistic, counting how '
+  'seeds shown as separate points. Open diamonds show the discharged attribution control, the same '
+  'trainable cells re-trained on double the tokens: at K equals 32 the point rises to 0.911, back '
+  'over the capability bar, so that degradation was a token-budget effect; at K equals 40 the '
+  'constant-learning-rate control reads 0.794, still far below the bar. Right panel: the '
+  'within-scale ordering statistic, counting how '
   'many of 36 frozen-versus-trainable pairs the frozen arm wins. At eleven squarings it reads 30.5 '
   'at 98M and 36 of 36 at 392M; at the five-squaring top rung it reads 25 at 98M and 36 of 36 at '
   '392M. A dashed line marks the pre-registered confirmation threshold of 31.5.</desc>')
@@ -360,6 +303,18 @@ a(f'<g fill="{BLUE}">')
 for x, v in zip(XP, TRAIN392):
     a(f'<rect x="{x - 4.2}" y="{LY(v) - 4.2}" width="8.4" height="8.4"/>')
 a('</g>')
+
+# the discharged attribution control — open diamonds at 2x tokens
+for K, v in EXT_TRAIN.items():
+    x = XP[KS.index(K)]
+    y0, y1 = LY(TRAIN392[KS.index(K)]), LY(v)
+    a(f'<line x1="{x}" y1="{y0}" x2="{x}" y2="{y1}" stroke="{BLUE}" stroke-width="1.1" opacity="0.55"/>')
+    a(f'<polygon points="{poly([(x, y1 - 5.4), (x + 5.4, y1), (x, y1 + 5.4), (x - 5.4, y1)])}" '
+      f'fill="{BG}" stroke="{BLUE}" stroke-width="1.6"/>')
+    a(f'<text x="{x - 9}" y="{y1 + 3.4}" text-anchor="end" font-family="\'JetBrains Mono\', monospace" '
+      f'font-size="9.5" fill="{BLUE}">{v:.3f}</text>')
+a(f'<text x="{LX0 - 26}" y="{LY(YLO + 0.028)}" font-family="\'Space Grotesk\', sans-serif" '
+  f'font-size="10" fill="{BLUE}">◇ same cells at 2× tokens (40,000 steps)</text>')
 
 # the moat bracket at K=40
 mx = XP[-1] + 16
@@ -444,3 +399,129 @@ a('</svg>')
 out_svg = HERE / "ncr_scale_axis_fig.svg"
 out_svg.write_text("\n".join(S) + "\n")
 print(f"wrote {out_svg}")
+
+
+# ───────────────────────── PNG (1200x675 X card) ─────────────────────────
+
+if not HAVE_MPL:
+    print("matplotlib not installed — SVG regenerated, PNG social card left unchanged")
+else:
+    plt.rcParams["font.family"] = "DejaVu Sans"
+    fig = plt.figure(figsize=(12, 6.75), dpi=100, facecolor=BG)
+
+    axL = fig.add_axes([0.068, 0.175, 0.535, 0.645], facecolor=BG)
+    axL.set_xlim(-0.30, len(KS) - 0.70)
+    axL.set_ylim(YLO, YHI)
+    for s in ("top", "right", "bottom"):
+        axL.spines[s].set_visible(False)
+    axL.spines["left"].set_color(TEXT)
+    axL.set_yticks([0.75, 0.80, 0.85, 0.90, 0.95, 1.00])
+    axL.set_yticklabels([f"{v:.2f}" for v in (0.75, 0.80, 0.85, 0.90, 0.95, 1.00)],
+                        fontfamily="DejaVu Sans Mono", fontsize=10, color=MUTED)
+    axL.grid(axis="y", color="#d9cfb4", lw=0.8)
+    axL.set_axisbelow(True)
+    axL.set_xticks([])
+    axL.set_ylabel("κ = (acc − 1/K)/(1 − 1/K)  at the antipodal top rung",
+                   fontsize=10.5, color=TEXT)
+
+    xs = list(range(len(KS)))
+    axL.axhline(CAP_BAR, color=TEXT, lw=1.2, ls=(0, (5, 3)))
+    axL.text(-0.26, CAP_BAR + 0.007, "capability bar  κ ≥ 0.90",
+             fontsize=9.5, color=TEXT, ha="left", fontfamily="DejaVu Sans Mono")
+
+    # 98M references — open markers, dashed
+    axL.plot(xs, FROZ98, "--o", color=ACCENT, lw=1.6, ms=6, mfc=BG, mew=1.6, zorder=3)
+    axL.plot(xs, TRAIN98, "--s", color=BLUE, lw=1.6, ms=5.5, mfc=BG, mew=1.6, zorder=3)
+    # 392M — filled, solid
+    axL.plot(xs, FROZ392, "-o", color=ACCENT, lw=2.6, ms=7, zorder=5)
+    for x, K in zip(xs, KS):
+        axL.plot([x] * 3, seeds(B392, K, False), "s", ms=4.6, color=BLUE,
+                 alpha=0.42, mew=0, zorder=4)
+    axL.plot(xs, TRAIN392, "-s", color=BLUE, lw=2.6, ms=6.5, zorder=5)
+
+    # the discharged attribution control — the same trainable cells at 2x tokens
+    for K, v in EXT_TRAIN.items():
+        x = KS.index(K)
+        axL.plot([x, x], [TRAIN392[x], v], "-", color=BLUE, lw=1.0, alpha=0.55, zorder=4)
+        axL.plot([x], [v], "D", ms=6.5, color=BLUE, mfc=BG, mew=1.6, zorder=6)
+        axL.text(x - 0.06, v, f"{v:.3f}", ha="right", va="center", fontsize=9,
+                 color=BLUE, fontfamily="DejaVu Sans Mono")
+    axL.text(-0.26, YLO + 0.028,
+             "◇ same trainable cells at 2× tokens (40,000 steps) — the attribution control",
+             fontsize=9.5, color=BLUE)
+
+    # the moat
+    xg = len(KS) - 1
+    axL.annotate("", xy=(xg + 0.18, FROZ392[-1]), xytext=(xg + 0.18, TRAIN392[-1]),
+                 arrowprops=dict(arrowstyle="<->", color=TEXT, lw=1.2))
+    axL.text(xg + 0.10, (FROZ392[-1] + TRAIN392[-1]) / 2,
+             f"the moat at 392M\n{FROZ392[-1] - TRAIN392[-1]:.3f} κ at K=40",
+             fontsize=9.5, color=TEXT, va="center", ha="right")
+
+    axL.text(0.02, 1.0125, "frozen adapter — 392M (solid) and 98M (open): both at ceiling",
+             fontsize=10.5, color=ACCENT, fontweight="bold")
+    axL.text(0.02, 0.7575, "trainable adapter — 98M at ceiling (open), 392M falling from K=32 (solid)",
+             fontsize=10.5, color=BLUE, fontweight="bold")
+
+    for x, K in zip(xs, KS):
+        axL.text(x, YLO - 0.013, f"K={K}", ha="center", fontsize=10.5,
+                 fontfamily="DejaVu Sans Mono", color=TEXT)
+        axL.text(x, YLO - 0.028, f"d={K + 1}", ha="center", fontsize=9,
+                 fontfamily="DejaVu Sans Mono", color=MUTED)
+    fig.text(0.335, 0.082, "binding breadth — the pair (K, d = K+1); 3 seeds per arm per scale",
+             ha="center", fontsize=10.5, color=TEXT)
+    fig.text(0.335, 0.042,
+             "P1b = EXACT teacher-forced operator substitution throughout — a read-path capability, not a learned write",
+             ha="center", fontsize=9.5, color=ACCENT)
+
+    # ── right panel: the ordering statistic ──
+    axR = fig.add_axes([0.685, 0.175, 0.285, 0.645], facecolor=BG)
+    axR.set_xlim(-0.62, 3.62)
+    axR.set_ylim(0, 38)
+    for s in ("top", "right", "bottom"):
+        axR.spines[s].set_visible(False)
+    axR.spines["left"].set_color(TEXT)
+    axR.set_yticks([0, 9, 18, 27, 36])
+    axR.set_yticklabels(["0", "9", "18", "27", "36"], fontfamily="DejaVu Sans Mono",
+                        fontsize=10, color=MUTED)
+    axR.grid(axis="y", color="#d9cfb4", lw=0.8)
+    axR.set_axisbelow(True)
+    axR.set_xticks([])
+    axR.set_ylabel("T_W — frozen-beats-trainable pairs (of 36)", fontsize=10.5, color=TEXT)
+
+    bars = [(0.0, TW[("11sq", "98M")], "98M", False),
+            (0.9, TW[("11sq", "392M")], "392M", True),
+            (2.1, TW[("htop", "98M")], "98M", False),
+            (3.0, TW[("htop", "392M")], "392M", True)]
+    for x, v, lab, filled in bars:
+        axR.bar(x, v, width=0.72, color=ACCENT if filled else "#b9a98a",
+                edgecolor=TEXT, lw=1.0, zorder=3)
+        axR.text(x, v - 2.6, f"{v:g}", ha="center", fontsize=12,
+                 color=BG if filled else TEXT, fontweight="bold",
+                 fontfamily="DejaVu Sans Mono", zorder=4)
+        axR.text(x, -1.6, lab, ha="center", fontsize=9.5, color=TEXT,
+                 fontfamily="DejaVu Sans Mono")
+    axR.axhline(CONFIRM_BAR, color=TEXT, lw=1.3, ls=(0, (5, 3)), zorder=5)
+    axR.text(-0.70, CONFIRM_BAR, "31.5", fontsize=9.5, color=TEXT, ha="right",
+             va="center", fontfamily="DejaVu Sans Mono")
+    axR.text(0.45, -4.0, "11 squarings\n≈2,052 hops", ha="center", fontsize=9.5, color=MUTED)
+    axR.text(2.55, -4.0, "h_top\n5 squarings", ha="center", fontsize=9.5, color=MUTED)
+    fig.text(0.828, 0.046, "dashed: ORDERING-CONFIRMED needs T > 31.5",
+             ha="center", fontsize=9.5, color=TEXT)
+    fig.text(0.828, 0.012, "perfect separation at 392M, both readouts",
+             ha="center", fontsize=9.5, color=ACCENT)
+
+    fig.text(0.026, 0.952,
+             "The capability separation survives 4× scale — and its moat widens",
+             fontsize=17, fontweight="bold", color=TEXT)
+    fig.text(0.985, 0.905, "pebbleml.com/findings/ncr-scale-axis.html",
+             ha="right", va="center", fontsize=9, color=MUTED)
+    fig.text(0.026, 0.905,
+             "98M → 392M, four breadths ported, 24 training cells + 14 extended to 40,000 steps, "
+             "0 unrecovered failures",
+             fontsize=10, color=MUTED)
+
+    out_png = HERE / "ncr_scale_axis_x.png"
+    fig.savefig(out_png, facecolor=BG)
+    plt.close(fig)
+    print(f"wrote {out_png}")
