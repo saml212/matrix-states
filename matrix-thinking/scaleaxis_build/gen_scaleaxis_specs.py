@@ -319,7 +319,142 @@ def spec(job_id: str, k: int, recipe: str, seed: int, tier: str,
     }
 
 
+# ==========================================================================
+# SEED THICKENING (PI directive 2026-08-23): seeds 3,4,5 at every (K, recipe).
+# A SEPARATE entry point, exactly as gen_job_specs.py separates main_frontier()
+# -- "so that generating the frontier wave cannot rewrite, resurrect or
+# renumber a spec belonging to the completed wave". main() and validity() are
+# UNTOUCHED, so the as-run 0190-0217 still regenerate byte-identically.
+#
+# NO NEW DESIGN. Same generator, same recipe, same ladders, same bands, same
+# param assertions -- only the seed integer, the id block, the output dir and
+# the (now MEASURED) ceiling differ. This wave changes NO verdict: the bands
+# were pinned and adjudicated at n=3. It adds PRECISION -- n=3 -> n=6 per cell,
+# and the TEST-W ordering strata from 9 within-K pairs to 36. If any pinned
+# verdict FLIPS at n=6 that is a FINDING requiring its own log entry, never a
+# silent update.
+# ==========================================================================
+THICKEN_SEEDS = (3, 4, 5)
+THICKEN_ID_START = 300
+OUT_THICKEN = os.path.join(_HERE, "job_specs_thicken")
+
+
+def measured_20k(sweep_dir: str) -> dict:
+    """MEASURED per-(K, recipe) 20,000-step cost from the sweep of record.
+    The thickening cells are the SAME configuration as their n=3 siblings, so
+    their own siblings are the right price -- no projection is involved."""
+    import collections
+    if not os.path.isdir(sweep_dir):
+        raise SystemExit(f"--sweep-dir {sweep_dir!r} does not exist; the thickening wave is "
+                         f"priced from the MEASURED cost of its own n=3 siblings.")
+    agg = collections.defaultdict(list)
+    for p in sorted(glob.glob(os.path.join(sweep_dir, "*.json"))):
+        d = json.load(open(p))
+        if d.get("mode") != "calibration" or d.get("status") != "COMPLETED":
+            continue
+        ks = d.get("kscaling") or {}
+        r = "primary" if d["config"]["freeze_entity_adapter"] else "compB"
+        agg[(int(ks["K"]), r)].append(d.get("gpu_h") or (d.get("elapsed_s") or 0) / 3600.0)
+    assert len(agg) == 8, f"expected all 8 (K, recipe) cells in {sweep_dir}, got {sorted(agg)}"
+    return {k: sum(v) / len(v) for k, v in agg.items()}
+
+
+def validity_thicken(out_json: str, k: int, params: int) -> str:
+    """validity() plus the TOP-LEVEL steps_target clause. EXPERIMENT_LOG
+    2026-08-23 #1: the runner records steps_target at the TOP LEVEL of its
+    record, not under `config`; a checker that looked under config read None
+    and flagged four flawless cells as failed."""
+    base = validity(out_json, k, params)
+    return base[:-len('"')] + (
+        f"; assert d.get('steps_target')==20000, ('steps_target (TOP-LEVEL, EXPERIMENT_LOG "
+        f"2026-08-23 #1)', d.get('steps_target'))\"")
+
+
+def main_thicken() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sweep-dir", required=True)
+    ap.add_argument("--queue-ids", default=None)
+    args, _ = ap.parse_known_args([a for a in sys.argv[1:] if a != "thicken"])
+    real = measured_20k(args.sweep_dir)
+    os.makedirs(OUT_THICKEN, exist_ok=True)
+
+    written, n = [], THICKEN_ID_START
+    # sec 8.3's pinned dispatch order: longest-first, K=40 -> 32 -> 24 -> 16.
+    for k in (40, 32, 24, 16):
+        for recipe in ("primary", "compB"):
+            for seed in THICKEN_SEEDS:
+                sp = spec(f"{n:04d}_ncr_scaleaxis_392m_thicken_K{k}_{recipe}_s{seed}",
+                          k, recipe, seed, "sweep", None)
+                marg = real[(k, recipe)]
+                ceil_v = round(CEILING_MULT * 1.0026 * marg, 3)
+                ceilprov = (f"MEASURED (sec 3.6 PRIMARY): 1.5 x R_8 x this cell's OWN measured "
+                            f"20,000-step cost ({marg:.4f} GPU-h, mean of its three n=3 "
+                            f"siblings; R_8 = 1.0026 measured at Stage A0.4) = {ceil_v} GPU-h")
+                import re as _re
+                sp["cmd"] = _re.sub(r"--ceiling-gpuh [0-9.]+", f"--ceiling-gpuh {ceil_v}",
+                                    sp["cmd"])
+                sp["cmd"] = sp["cmd"].replace(f"scaleaxis392m_K{k}_{recipe}_s{seed}",
+                                              f"scaleaxis392m_thicken_K{k}_{recipe}_s{seed}")
+                cell = f"scaleaxis392m_thicken_K{k}_{recipe}_s{seed}"
+                sp["validity_check"] = validity_thicken(
+                    f"{EPH}/results/{cell}.json", k, KS.TOTAL_PARAM_TABLE_392M[k])
+                sp["gpu_h_estimate"] = round(marg, 3)
+                sp["tier"] = "scaleaxis_thicken"
+                sp["scaleaxis"]["ceiling_gpuh"] = ceil_v
+                sp["scaleaxis"]["ceiling_provenance"] = ceilprov
+                sp["scaleaxis"]["gpu_h_projection_basis"] = (
+                    f"MEASURED sibling cost {marg:.4f} GPU-h (not a projection)")
+                sp["scaleaxis"]["thickening"] = {
+                    "directive": "PI 2026-08-23 -- seed thickening of the flagship's central "
+                                 "tables; no new design, audited generator, new seeds only",
+                    "takes_n_from": 3, "takes_n_to": 6,
+                    "TEST_W_pairs_from": 9, "TEST_W_pairs_to": 36,
+                    "changes_no_verdict": ("bands were pinned and adjudicated at n=3; this wave "
+                                           "adds precision (CIs, LOSO robustness) and is reported "
+                                           "as n=6 updates to the SAME tables. A pinned verdict "
+                                           "FLIPPING at n=6 is a FINDING requiring its own "
+                                           "EXPERIMENT_LOG entry, never a silent update."),
+                    "sibling_seeds_of_record": [0, 1, 2],
+                }
+                sp["notes"] = ("CANDIDATE -- NOT queue-eligible; the coordinator stages on the "
+                               "build receipt. SEED-THICKENING wave (PI 2026-08-23): "
+                               "byte-pattern-identical to the audited sweep specs 0200-0217 "
+                               "modulo the seed integer, the id, the cell id and the MEASURED "
+                               "ceiling. No new design; the audited generator IS the machinery. "
+                               + sp["notes"].split("Built by the 392M SCALE-AXIS BUILD agent", 1)[1]
+                               if "Built by the 392M SCALE-AXIS BUILD agent" in sp["notes"]
+                               else sp["notes"])
+                written.append(sp)
+                n += 1
+
+    ids = [s["id"][:4] for s in written]
+    assert len(written) == 24 and len(set(ids)) == 24, ids
+    assert ids == [f"{i:04d}" for i in range(THICKEN_ID_START, THICKEN_ID_START + 24)], ids
+    if args.queue_ids:
+        existing = {ln.strip()[:4] for ln in open(args.queue_ids) if ln.strip()}
+        clash = sorted(set(ids) & existing)
+        assert not clash, f"ID COLLISION with queue history: {clash}"
+    for s in written:
+        with open(os.path.join(OUT_THICKEN, s["id"] + ".json"), "w") as f:
+            json.dump(s, f, indent=1)
+    tot = sum(s["gpu_h_estimate"] for s in written)
+    print(f"wrote {len(written)} CANDIDATE thickening specs to {OUT_THICKEN} "
+          f"({ids[0]}-{ids[-1]})")
+    print(f"  K in (40,32,24,16) x (primary, compB) x seeds {list(THICKEN_SEEDS)}")
+    print(f"  MEASURED ledger: {tot:.2f} GPU-h; dispatch order longest-first")
+    print("QUEUE-ELIGIBLE: NO.")
+    return 0
+
+
 def main() -> int:
+    """WARNING: writes to job_specs/, which holds the AS-RUN artifacts of the
+    0190-0217 wave -- including their Stage-A0 RE-PRICED ceilings, applied via
+    --ceilings-from at launch (condition C9). Re-running this WITHOUT
+    --ceilings-from reverts those specs to the PROJECTED placeholder and
+    destroys the as-run record. The seed-thickening wave therefore uses
+    main_thicken(), which writes to its own directory and never touches this
+    one -- the same separation gen_job_specs.py enforces for its frontier
+    wave."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--ceilings-from", default=None,
                     help="dir of Stage-A0 phase0-timing JSONs; re-derives every --ceiling-gpuh "
@@ -418,4 +553,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main_thicken() if "thicken" in sys.argv[1:] else main())

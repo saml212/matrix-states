@@ -278,6 +278,77 @@ def spec(job_id: str, seed: int, marginal: float, params: int) -> dict:
     }
 
 
+# ==========================================================================
+# V2' SEED EXTENSION (PI directive 2026-08-23). Constant-LR resume for the NEW
+# K=40 trainable seeds 3,4,5, GATED behind their parents completing. Separate
+# entry point so it can never renumber or rewrite 0250-0251.
+# ==========================================================================
+THICKEN_SEEDS = (3, 4, 5)
+THICKEN_ID_START = 350
+OUT_THICKEN = os.path.join(_HERE, "job_specs_v2prime_thicken")
+THICKEN_PARENT_SPECS = {3: "0303", 4: "0304", 5: "0305"}
+
+
+def main_thicken() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sweep-dir", default=None)
+    ap.add_argument("--queue-ids", default=None)
+    args, _ = ap.parse_known_args([a for a in sys.argv[1:] if a != "thicken"])
+    marginal = realized(args.sweep_dir)
+    params = KS.TOTAL_PARAM_TABLE_392M[K]
+    os.makedirs(OUT_THICKEN, exist_ok=True)
+
+    written = []
+    for i, seed in enumerate(THICKEN_SEEDS):
+        sp = spec(f"{THICKEN_ID_START + i:04d}_ncr_scaleaxis_v2prime_thicken_K{K}_{RECIPE}_s{seed}",
+                  seed, marginal, params)
+        old_parent = f"scaleaxis392m_K{K}_{RECIPE}_s{seed}"
+        new_parent = f"scaleaxis392m_thicken_K{K}_{RECIPE}_s{seed}"
+        old_cell = f"v2prime_K{K}_{RECIPE}_s{seed}"
+        new_cell = f"v2prime_thicken_K{K}_{RECIPE}_s{seed}"
+        for f in ("cmd", "validity_check"):
+            sp[f] = sp[f].replace(old_parent, new_parent).replace(old_cell, new_cell)
+        sp["tier"] = "scaleaxis_v2prime_thicken"
+        sp["v2prime"]["parent_cell"] = new_parent
+        sp["v2prime"]["parent_ckpt"] = f"{EPH}/ckpts/{new_parent}/{new_parent}.ckpt.pt"
+        sp["v2prime"]["parent_is_original_20k_not_damaged_40k"] = True
+        sp["v2prime"]["gated_on"] = (
+            f"HARD GATE: spec {THICKEN_PARENT_SPECS[seed]} "
+            f"(392M thickening cell {new_parent}) must reach status COMPLETED at step 20000 "
+            f"FIRST -- this spec RESUMES that cell's checkpoint and cannot run before it "
+            f"exists. Do NOT stage this until the parent is in completed/.")
+        sp["v2prime"]["seed_thickening"] = {
+            "directive": "PI 2026-08-23", "takes_V2prime_n_from": 2, "takes_V2prime_n_to": 5,
+            "note": ("0250-0251 carry seeds 0-1 from the sweep of record; these three carry the "
+                     "new thickening seeds, so the constant-LR control reaches n=5 at K=40 "
+                     "trainable -- the cell that drove the whole V2/V2' arc."),
+        }
+        sp["notes"] = (
+            f"CANDIDATE -- NOT queue-eligible, and DOUBLY so: this spec RESUMES the checkpoint "
+            f"of thickening cell {new_parent}, which does not exist until spec "
+            f"{THICKEN_PARENT_SPECS[seed]} completes. Staging it early would fail at the "
+            f"hardlink step (no parent ckpt) before any GPU work. " + sp["notes"])
+        written.append(sp)
+
+    ids = [s["id"][:4] for s in written]
+    assert ids == [f"{THICKEN_ID_START + i:04d}" for i in range(3)], ids
+    if args.queue_ids:
+        existing = {ln.strip()[:4] for ln in open(args.queue_ids) if ln.strip()}
+        clash = sorted(set(ids) & existing)
+        assert not clash, f"ID COLLISION with queue history: {clash}"
+    for s in written:
+        with open(os.path.join(OUT_THICKEN, s["id"] + ".json"), "w") as f:
+            json.dump(s, f, indent=1)
+    tot = sum(s["v2prime"]["marginal_gpu_h_measured"] for s in written)
+    print(f"wrote {len(written)} CANDIDATE V2' thickening specs to {OUT_THICKEN} "
+          f"({ids[0]}-{ids[-1]})")
+    print(f"  K={K} {RECIPE}, seeds {list(THICKEN_SEEDS)}, GATED behind specs "
+          f"{[THICKEN_PARENT_SPECS[s] for s in THICKEN_SEEDS]}")
+    print(f"  marginal spend: {tot:.2f} GPU-h (only after the parents complete)")
+    print("QUEUE-ELIGIBLE: NO.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--queue-ids", default=None)
@@ -310,4 +381,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main_thicken() if "thicken" in sys.argv[1:] else main())
