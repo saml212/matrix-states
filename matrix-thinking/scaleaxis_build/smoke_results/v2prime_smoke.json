@@ -1,0 +1,256 @@
+{
+ "smoke": "v2prime_smoke.py",
+ "design": "EXPERIMENT_LOG 2026-08-23 #3 (V2'), #1 (assert-order), #2 (Gate-0 scoping)",
+ "A": {
+  "test": "A_schedule",
+  "const_lr_from_runner": 2.9999999999999997e-05,
+  "parent_final_lr_expected": 3e-05,
+  "rows": [
+   {
+    "step": 20001,
+    "before_reopened_cosine": 0.0001660549487054892,
+    "after_v2prime_constant": 2.9999999999999997e-05,
+    "factor_removed": 5.5352
+   },
+   {
+    "step": 20025,
+    "before_reopened_cosine": 0.00016579920703055725,
+    "after_v2prime_constant": 2.9999999999999997e-05,
+    "factor_removed": 5.5266
+   },
+   {
+    "step": 20050,
+    "before_reopened_cosine": 0.00016553280641606543,
+    "after_v2prime_constant": 2.9999999999999997e-05,
+    "factor_removed": 5.5178
+   },
+   {
+    "step": 30000,
+    "before_reopened_cosine": 6.991807903688923e-05,
+    "after_v2prime_constant": 2.9999999999999997e-05,
+    "factor_removed": 2.3306
+   },
+   {
+    "step": 40000,
+    "before_reopened_cosine": 2.9999999999999997e-05,
+    "after_v2prime_constant": 2.9999999999999997e-05,
+    "factor_removed": 1.0
+   }
+  ],
+  "warm_restart_factor_at_20001": 5.5352,
+  "flag_off_equals_pinned_call": true,
+  "status": "PASS",
+  "failures": []
+ },
+ "B": {
+  "test": "B_clause_by_clause",
+  "spec": "0250_ncr_scaleaxis_v2prime_K40_compB_s0.json",
+  "n_clauses_exercised": 23,
+  "results": [
+   {
+    "clause": "POSITIVE CONTROL (unmutated record)",
+    "rc": 0,
+    "status": "PASS",
+    "message": ""
+   },
+   {
+    "clause": "status",
+    "rc": 1,
+    "expect_substr": "status",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('status', 'ABORTED-BUDGET')"
+   },
+   {
+    "clause": "step",
+    "rc": 1,
+    "expect_substr": "step",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('step', 39999)"
+   },
+   {
+    "clause": "steps_target_TOP_LEVEL",
+    "rc": 1,
+    "expect_substr": "steps_target",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('steps_target', 20000)"
+   },
+   {
+    "clause": "steps_target_UNDER_CONFIG_MUST_NOT_SATISFY",
+    "rc": 1,
+    "expect_substr": "steps_target",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('steps_target', None)"
+   },
+   {
+    "clause": "runner_tag",
+    "rc": 1,
+    "expect_substr": "runner_tag",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('runner_tag', 'ncr_kscaling_runner_v1')"
+   },
+   {
+    "clause": "const_lr_on_resume",
+    "rc": 1,
+    "expect_substr": "const_lr_on_resume",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('const_lr_on_resume', False)"
+   },
+   {
+    "clause": "resume_start_step",
+    "rc": 1,
+    "expect_substr": "resume_start_step",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('resume_start_step', 0)"
+   },
+   {
+    "clause": "resume_const_lr",
+    "rc": 1,
+    "expect_substr": "resume_const_lr",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('resume_const_lr', 0.0001660549)"
+   },
+   {
+    "clause": "resume_const_lr_none",
+    "rc": 1,
+    "expect_substr": "resume_const_lr",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('resume_const_lr', None)"
+   },
+   {
+    "clause": "K",
+    "rc": 1,
+    "expect_substr": "'K'",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('K', 32)"
+   },
+   {
+    "clause": "d_ncr",
+    "rc": 1,
+    "expect_substr": "d_ncr",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('d_ncr', 33)"
+   },
+   {
+    "clause": "h_top",
+    "rc": 1,
+    "expect_substr": "h_top",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('h_top', 48)"
+   },
+   {
+    "clause": "deep_ladder",
+    "rc": 1,
+    "expect_substr": "deep_ladder",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('deep_ladder', [4, 8, 17, 18, 37, 48])"
+   },
+   {
+    "clause": "scale",
+    "rc": 1,
+    "expect_substr": "scale",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('scale', '98m')"
+   },
+   {
+    "clause": "backbone",
+    "rc": 1,
+    "expect_substr": "backbone",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('backbone', {'d_model': 768, 'd_state': 128, 'n_layers': 16, 'conv_size': 4, 'num_heads': 1, 'ffn_mult': 4})"
+   },
+   {
+    "clause": "freeze_entity_adapter",
+    "rc": 1,
+    "expect_substr": "RECIPE MISMATCH",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('RECIPE MISMATCH -- V2 prime is the TRAINABLE arm', True)"
+   },
+   {
+    "clause": "params_per_arm",
+    "rc": 1,
+    "expect_substr": "params.per_arm",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('params.per_arm vs design sec 3.4', 97860009)"
+   },
+   {
+    "clause": "loss_history_arms",
+    "rc": 1,
+    "expect_substr": "loss_history arms",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('loss_history arms', ['full_graft'])"
+   },
+   {
+    "clause": "backbone_only_len",
+    "rc": 1,
+    "expect_substr": "backbone_only len",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('backbone_only len', 5)"
+   },
+   {
+    "clause": "full_graft_len",
+    "rc": 1,
+    "expect_substr": "full_graft len",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: ('full_graft len', 5)"
+   },
+   {
+    "clause": "non_finite_CE",
+    "rc": 1,
+    "expect_substr": "non-finite CE",
+    "fired": true,
+    "names_the_clause": true,
+    "status": "PASS",
+    "message": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError: non-finite CE in loss_history (Gate-0-marginal, plateau-tolerant: finiteness only)"
+   },
+   {
+    "clause": "gate0_marginal_plateau_or_rise_MUST_PASS",
+    "rc": 0,
+    "status": "PASS",
+    "message": ""
+   }
+  ],
+  "lesson": "EXPERIMENT_LOG 2026-08-23 #1 -- assert-order masking: every clause is made FIRST-TO-FAIL once, so no clause can hide behind an earlier one",
+  "status": "PASS"
+ },
+ "overall": "PASS"
+}

@@ -1224,13 +1224,27 @@ def restore_arms_and_opts(ckpt: dict, vocab_size_total: int, lr: float, device: 
 # ---------------------------------------------------------------------------
 # Main two-arm training+eval cell.
 # ---------------------------------------------------------------------------
+def resume_const_lr(start_step: int, max_lr: float, warmup_steps: int) -> float:
+    """V2' (EXPERIMENT_LOG 2026-08-23 #3): the parent's FINAL learning rate,
+    DERIVED from the parent's own completed schedule rather than hand-set.
+
+    get_lr returns `max_lr * min_lr_ratio` for any `step >= total_steps`, so
+    evaluating the parent's schedule AT its own last step gives the value the
+    parent actually ended on -- 3.0e-05 at max_lr = 3e-4. Holding this for the
+    whole marginal segment is what makes the extended cell differ from its
+    parent in TOKENS ONLY, which is the entire point of the control."""
+    return get_lr(start_step, max_lr=max_lr, warmup_steps=warmup_steps,
+                  total_steps=start_step)
+
+
 def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size: int,
                       lr: float, warmup_steps: int, ceiling_gpuh: float, seed: int,
                       device: str, out_path: str, ckpt_path: str, stop_file: str,
                       ckpt_every: int, eval_every: int, teacher_force_operator: bool = False,
                       aux_read_loss_weight: float = 0.0, ortho_reg_weight: float = 0.0,
                       aux_loss_type: str = "cosine", contrastive_temperature: float = 0.07,
-                      freeze_entity_adapter: bool = False) -> dict:
+                      freeze_entity_adapter: bool = False,
+                      const_lr_on_resume: bool = False) -> dict:
     if os.path.exists(out_path):
         with open(out_path) as f:
             prev = json.load(f)
@@ -1290,12 +1304,32 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
         start_step = 0
         cumulative_elapsed_s = 0.0
 
+    # V2' PATCH R8: resolve the constant BEFORE the record is built, so the value
+    # the loop uses is the value the record reports and a validity_check can
+    # assert it. Meaningful only on a RESUME -- at start_step == 0 there is no
+    # parent schedule to inherit, and the flag is recorded as inactive.
+    const_lr = None
+    if const_lr_on_resume and start_step > 0:
+        const_lr = resume_const_lr(start_step, lr, warmup_steps)
+        print(f"[{cell_id}] V2' CONSTANT-LR RESUME ACTIVE: holding lr={const_lr:.6e} "
+              f"(the parent's own final value at step {start_step}) for ALL of steps "
+              f"{start_step + 1}..{steps} -- the cosine is NOT re-opened", flush=True)
+    elif const_lr_on_resume:
+        print(f"[{cell_id}] V2' --const-lr-on-resume given but start_step == 0 (no parent "
+              f"schedule to inherit) -- INACTIVE, normal schedule used", flush=True)
+
     n_params = {name: arm_params(arm) for name, arm in arms.items()}
     assert n_params["full_graft"] == n_params["backbone_only"], "two arms must be param-count-identical"
 
     rec = dict(
         cell_id=cell_id, runner_tag=RUNNER_TAG, mode="calibration",
         status="RUNNING", step=start_step, steps_target=steps,
+        # V2' provenance. NOTE `steps_target` is TOP-LEVEL here, NOT under
+        # `config` -- EXPERIMENT_LOG 2026-08-23 #1's field-path bug lived in a
+        # checker that looked for it under config. These three sit beside it.
+        const_lr_on_resume=bool(const_lr_on_resume),
+        resume_const_lr=const_lr,
+        resume_start_step=start_step,
         kscaling=KS.provenance(H_NCR, RUNG1_BACKBONE["d_model"]),
         config=dict(K=K_NCR, d_ncr=D_NCR, h_ncr=H_NCR, backbone=RUNG1_BACKBONE,
                     vocab_size_total=vocab_size_total, seed=seed, batch_size=batch_size,
@@ -1348,7 +1382,11 @@ def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size:
     rec["teacher_force_check"] = {"active": teacher_force_operator, "ncr_zero_grad_checks_passed": 0}
 
     for step in range(start_step + 1, steps + 1):
-        cur_lr = get_lr(step, max_lr=lr, warmup_steps=warmup_steps, total_steps=steps)
+        # V2' PATCH R10 -- THE ONE BEHAVIOURAL LINE. When the constant is active
+        # the schedule is held flat at the parent's final LR for the whole
+        # marginal segment; otherwise this is byte-equivalent to the pinned call.
+        cur_lr = (const_lr if const_lr is not None
+                  else get_lr(step, max_lr=lr, warmup_steps=warmup_steps, total_steps=steps))
         idx = torch.randint(0, len(TRAIN_HOPS), (1,), generator=data_gen, device=device).item()
         hop_value = TRAIN_HOPS[idx]
         batch = build_task1_document(cfg, pools, data_gen, batch_size, hop_value, device)
@@ -1815,6 +1853,13 @@ def main():
     ap.add_argument("--cell-id", default=None)
     ap.add_argument("--out", required=True)
     ap.add_argument("--ckpt-dir", default=None)
+    ap.add_argument("--const-lr-on-resume", action="store_true",
+                     help="V2' (EXPERIMENT_LOG 2026-08-23 #3): on RESUME, hold the learning "
+                          "rate at the parent's own final value for the entire marginal "
+                          "segment instead of re-opening the cosine over the new --steps. "
+                          "Removes the 5.5x warm restart that damaged the K=40 trainable "
+                          "attribution cells (kappa 0.8438 -> 0.5513) and made that control "
+                          "uninformative. No-op when starting from scratch. OFF BY DEFAULT.")
     ap.add_argument("--stop-file", default=None)
     ap.add_argument("--teacher-force-operator", action="store_true",
                      help="sec G3-B9 diagnostic mode (--mode calibration only): replace the "
@@ -1973,7 +2018,8 @@ def main():
         ortho_reg_weight=args.ortho_reg_weight,
         aux_loss_type=args.aux_loss_type,
         contrastive_temperature=args.contrastive_temperature,
-        freeze_entity_adapter=args.freeze_entity_adapter)
+        freeze_entity_adapter=args.freeze_entity_adapter,
+        const_lr_on_resume=args.const_lr_on_resume)
     return 0
 
 

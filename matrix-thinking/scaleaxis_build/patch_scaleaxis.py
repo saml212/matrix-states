@@ -440,6 +440,108 @@ TRAIN_HOPS = tuple(KS.TRAIN_HOPS)                   # sec 3.1 Task-1 train range
     ("R4_cell_id_default", '''    cell_id = args.cell_id or f"kscaling_K{K_NCR}_s{args.seed}"''',
      '''    cell_id = args.cell_id or f"scaleaxis_{SCALE}_K{K_NCR}_s{args.seed}"'''),
 
+    # ======================================================================
+    # V2' -- CONSTANT-LR RESUME (EXPERIMENT_LOG 2026-08-23 #3's V2 adjudication).
+    # The attribution arm's resume RE-OPENED the cosine: get_lr is warmup+cosine
+    # to 0.1*max_lr over `total_steps`, so resuming a 20,000-step parent with
+    # --steps 40000 recomputed the schedule over 40,000 and jumped the LR from
+    # 3.00e-05 (the parent's floor) to ~1.66e-04 -- a 5.5x WARM RESTART. That was
+    # disclosed before the arm ran, and it then ACTIVELY DAMAGED the K=40
+    # trainable cells (kappa 0.8438 -> 0.5513, the largest movement in the arm),
+    # making the V2 control UNINFORMATIVE IN THE HARMFUL DIRECTION: sec 7.2's
+    # licensing logic ("under-training can only manufacture DEGRADES") assumes a
+    # NON-HARMFUL extension, so a damaged cell cannot strengthen the verdict.
+    #
+    # V2' removes the schedule variable. On resume the LR is HELD at the PARENT'S
+    # OWN FINAL VALUE for the entire marginal segment -- no warm restart, no
+    # re-opened cosine, nothing else changed. The constant is DERIVED from the
+    # parent's completed schedule, never hand-set:
+    #     resume_const_lr(start_step) = get_lr(start_step, lr, warmup, start_step)
+    # which for a parent that ran its full budget is exactly 0.1 * max_lr.
+    # Opt-in and OFF BY DEFAULT, so every existing cell is bit-unaffected.
+    # ======================================================================
+    ("R6_const_lr_helper",
+     "def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size: int,",
+     '''def resume_const_lr(start_step: int, max_lr: float, warmup_steps: int) -> float:
+    """V2' (EXPERIMENT_LOG 2026-08-23 #3): the parent's FINAL learning rate,
+    DERIVED from the parent's own completed schedule rather than hand-set.
+
+    get_lr returns `max_lr * min_lr_ratio` for any `step >= total_steps`, so
+    evaluating the parent's schedule AT its own last step gives the value the
+    parent actually ended on -- 3.0e-05 at max_lr = 3e-4. Holding this for the
+    whole marginal segment is what makes the extended cell differ from its
+    parent in TOKENS ONLY, which is the entire point of the control."""
+    return get_lr(start_step, max_lr=max_lr, warmup_steps=warmup_steps,
+                  total_steps=start_step)
+
+
+def run_two_arm_cell(cell_id: str, steps: int, batch_size: int, eval_batch_size: int,'''),
+
+    ("R7_const_lr_param",
+     '''                      aux_loss_type: str = "cosine", contrastive_temperature: float = 0.07,
+                      freeze_entity_adapter: bool = False) -> dict:
+    if os.path.exists(out_path):''',
+     '''                      aux_loss_type: str = "cosine", contrastive_temperature: float = 0.07,
+                      freeze_entity_adapter: bool = False,
+                      const_lr_on_resume: bool = False) -> dict:
+    if os.path.exists(out_path):'''),
+
+    ("R8_const_lr_resolve",
+     '''    n_params = {name: arm_params(arm) for name, arm in arms.items()}
+    assert n_params["full_graft"] == n_params["backbone_only"], "two arms must be param-count-identical"''',
+     '''    # V2' PATCH R8: resolve the constant BEFORE the record is built, so the value
+    # the loop uses is the value the record reports and a validity_check can
+    # assert it. Meaningful only on a RESUME -- at start_step == 0 there is no
+    # parent schedule to inherit, and the flag is recorded as inactive.
+    const_lr = None
+    if const_lr_on_resume and start_step > 0:
+        const_lr = resume_const_lr(start_step, lr, warmup_steps)
+        print(f"[{cell_id}] V2' CONSTANT-LR RESUME ACTIVE: holding lr={const_lr:.6e} "
+              f"(the parent's own final value at step {start_step}) for ALL of steps "
+              f"{start_step + 1}..{steps} -- the cosine is NOT re-opened", flush=True)
+    elif const_lr_on_resume:
+        print(f"[{cell_id}] V2' --const-lr-on-resume given but start_step == 0 (no parent "
+              f"schedule to inherit) -- INACTIVE, normal schedule used", flush=True)
+
+    n_params = {name: arm_params(arm) for name, arm in arms.items()}
+    assert n_params["full_graft"] == n_params["backbone_only"], "two arms must be param-count-identical"'''),
+
+    ("R9_const_lr_record",
+     '''        status="RUNNING", step=start_step, steps_target=steps,''',
+     '''        status="RUNNING", step=start_step, steps_target=steps,
+        # V2' provenance. NOTE `steps_target` is TOP-LEVEL here, NOT under
+        # `config` -- EXPERIMENT_LOG 2026-08-23 #1's field-path bug lived in a
+        # checker that looked for it under config. These three sit beside it.
+        const_lr_on_resume=bool(const_lr_on_resume),
+        resume_const_lr=const_lr,
+        resume_start_step=start_step,'''),
+
+    ("R10_const_lr_loop",
+     '''    for step in range(start_step + 1, steps + 1):
+        cur_lr = get_lr(step, max_lr=lr, warmup_steps=warmup_steps, total_steps=steps)''',
+     '''    for step in range(start_step + 1, steps + 1):
+        # V2' PATCH R10 -- THE ONE BEHAVIOURAL LINE. When the constant is active
+        # the schedule is held flat at the parent's final LR for the whole
+        # marginal segment; otherwise this is byte-equivalent to the pinned call.
+        cur_lr = (const_lr if const_lr is not None
+                  else get_lr(step, max_lr=lr, warmup_steps=warmup_steps, total_steps=steps))'''),
+
+    ("R11_const_lr_flag",
+     '''    ap.add_argument("--stop-file", default=None)''',
+     '''    ap.add_argument("--const-lr-on-resume", action="store_true",
+                     help="V2' (EXPERIMENT_LOG 2026-08-23 #3): on RESUME, hold the learning "
+                          "rate at the parent's own final value for the entire marginal "
+                          "segment instead of re-opening the cosine over the new --steps. "
+                          "Removes the 5.5x warm restart that damaged the K=40 trainable "
+                          "attribution cells (kappa 0.8438 -> 0.5513) and made that control "
+                          "uninformative. No-op when starting from scratch. OFF BY DEFAULT.")
+    ap.add_argument("--stop-file", default=None)'''),
+
+    ("R12_const_lr_call",
+     '''        freeze_entity_adapter=args.freeze_entity_adapter)''',
+     '''        freeze_entity_adapter=args.freeze_entity_adapter,
+        const_lr_on_resume=args.const_lr_on_resume)'''),
+
     ("R5_build_arm_named_pair", '''    integ = NCRIntegration(RUNG1_BACKBONE["d_model"], D_NCR, vocab_size_total,
                             adapter="linear", read_inject="add").to(device)''',
      '''    integ = NCRIntegration(RUNG1_BACKBONE["d_model"], D_NCR, vocab_size_total,
