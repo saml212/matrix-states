@@ -1,0 +1,102 @@
+loaded  40k: battery 12 depth 12 | 20k: battery 24 depth 24 | 98M: battery 24 depth 48
+
+========================================================================================================
+V1 / V2 -- Curve 1 @ h_top.  BAR: kappa >= 0.90 on 2/2 extended seeds => TOKEN-BUDGET-LIMITED
+========================================================================================================
+cell                         20k s0   20k s1   20k s2  20k med |   40k s0   40k s1  40k med  >=0.90  verdict
+K=32 compB/trainable         0.9516   0.8750   0.8065   0.8750 |   0.9153   0.9073   0.9113     2/2  TOKEN-BUDGET-LIMITED
+K=40 compB/trainable         0.7596   0.8438   0.8798   0.8438 |   0.4391   0.6635   0.5513     0/2  SCALE-DEGRADES STANDS (strengthened by the control)
+
+V1 (K=32 trainable): TOKEN-BUDGET-LIMITED
+
+V2 (K=40 trainable): SCALE-DEGRADES STANDS (strengthened by the control)
+
+========================================================================================================
+V3 -- Curve 5b @ s*=13.  BAR: |Delta_scale vs the SAME 98M twin| <= 0.095 => TOKEN-BUDGET-LIMITED
+========================================================================================================
+cell                        98M med  20k med    D_20k |   40k s0   40k s1  40k med     D_40k  |D|<=.095  verdict
+K=16 compB/trainable         0.8417   0.6458  -0.1958 |   0.5542   0.6667   0.6104   -0.2313      False  SCALE-DEGRADES STANDS
+K=24 compB/trainable         0.8125   0.2908  -0.5217 |   0.3601   0.1848   0.2724   -0.5401      False  SCALE-DEGRADES STANDS
+K=32 compB/trainable         0.8105   0.0605  -0.7500 |   0.0766   0.0282   0.0524   -0.7581      False  SCALE-DEGRADES STANDS
+K=40 compB/trainable         0.6715   0.0184  -0.6530 |  -0.0096   0.0104   0.0004   -0.6711      False  SCALE-DEGRADES STANDS
+K=32 primary/frozen          0.9194   0.7863  -0.1331 |   0.7944   0.7298   0.7621   -0.1573      False  SCALE-DEGRADES STANDS
+K=40 primary/frozen          0.9038   0.7837  -0.1202 |   0.6835   0.7636   0.7236   -0.1803      False  SCALE-DEGRADES STANDS
+
+V3 (depth tail, both arms): 0/6 cells TOKEN-BUDGET-LIMITED; 6/6 SCALE-DEGRADES STANDS
+
+--------------------------------------------------------------------------------------------------------
+SEED-MATCHED SENSITIVITY -- 20k restricted to seeds {0,1}, the same seeds the arm ran
+--------------------------------------------------------------------------------------------------------
+cell                        98M med(3)  20k med(3)  20k med(0,1)  40k med(0,1)  D_40k vs 98M(3)  verdict same?
+K=16 compB/trainable            0.8417      0.6458        0.6854        0.6104          -0.2313           True
+K=24 compB/trainable            0.8125      0.2908        0.4212        0.2724          -0.5401           True
+K=32 compB/trainable            0.8105      0.0605        0.0948        0.0524          -0.7581           True
+K=40 compB/trainable            0.6715      0.0184        0.0284        0.0004          -0.6711           True
+K=32 primary/frozen             0.9194      0.7863        0.8024        0.7621          -0.1573          False
+K=40 primary/frozen             0.9038      0.7837        0.7756        0.7236          -0.1803           True
+(last column: does the V3 verdict change if the 98M twin is also restricted to seeds {0,1}?)
+
+--------------------------------------------------------------------------------------------------------
+DIRECTION OF THE EXTENSION EFFECT -- does the extra budget HELP or HURT?
+ATTRIBUTION_ARM.md §1: 'Under-training can only manufacture DEGRADES. It cannot
+manufacture STABLE and it cannot manufacture IMPROVES.' That argument assumes the
+extension is non-harmful. Cells where 40k < 20k violate that assumption.
+--------------------------------------------------------------------------------------------------------
+cell                         readout   20k med   40k med    change  direction
+K=16 compB/trainable           h_top    0.9792    0.9812   +0.0021  flat
+K=16 compB/trainable           s*=13    0.6458    0.6104   -0.0354  HURT
+K=24 compB/trainable           h_top    0.9837    0.9735   -0.0102  HURT
+K=24 compB/trainable           s*=13    0.2908    0.2724   -0.0183  HURT
+K=32 compB/trainable           h_top    0.8750    0.9113   +0.0363  HELPED
+K=32 compB/trainable           s*=13    0.0605    0.0524   -0.0081  flat
+K=40 compB/trainable           h_top    0.8438    0.5513   -0.2925  HURT
+K=40 compB/trainable           s*=13    0.0184    0.0004   -0.0180  HURT
+K=32 primary/frozen            h_top    0.9879    0.9960   +0.0081  flat
+K=32 primary/frozen            s*=13    0.7863    0.7621   -0.0242  HURT
+K=40 primary/frozen            h_top    0.9880    0.9860   -0.0020  flat
+K=40 primary/frozen            s*=13    0.7837    0.7236   -0.0601  HURT
+
+========================================================================================================
+FULL DEPTH PROFILE, median kappa -- 20k (3 seeds) vs 40k (2 seeds) vs 98M (3 seeds)
+========================================================================================================
+cell                        budget      @5sq      @7sq      @9sq     @11sq     @13sq     @15sq
+K=16 compB/trainable           98M    1.0000    0.9917    0.9583    0.9417    0.8417    0.6875
+K=16 compB/trainable           20k    0.9958    0.9917    0.9500    0.8417    0.6458    0.3250
+K=16 compB/trainable           40k    0.9958    0.9729    0.9187    0.8250    0.6104    0.2437
+K=24 compB/trainable           98M    0.9878    0.9755    0.9715    0.9307    0.8125    0.6005
+K=24 compB/trainable           20k    0.9715    0.9511    0.8125    0.5842    0.2908    0.0788
+K=24 compB/trainable           40k    0.9735    0.9572    0.8288    0.6209    0.2724    0.0482
+K=32 compB/trainable           98M    1.0000    0.9758    0.9597    0.9234    0.8105    0.4597
+K=32 compB/trainable           20k    0.9113    0.8145    0.6371    0.2823    0.0605    0.0161
+K=32 compB/trainable           40k    0.9133    0.8629    0.5927    0.2500    0.0524    0.0222
+K=40 compB/trainable           98M    0.9880    0.9760    0.9679    0.8758    0.6715    0.3309
+K=40 compB/trainable           20k    0.8918    0.7476    0.4752    0.2107    0.0184    0.0144
+K=40 compB/trainable           40k    0.6695    0.3470    0.1026    0.0104    0.0004    0.0084
+K=32 primary/frozen            98M    0.9960    0.9960    0.9919    0.9637    0.9194    0.8589
+K=32 primary/frozen            20k    0.9960    0.9839    0.9718    0.9234    0.7863    0.5565
+K=32 primary/frozen            40k    0.9960    0.9859    0.9637    0.9294    0.7621    0.4415
+K=40 primary/frozen            98M    0.9960    0.9960    0.9920    0.9599    0.9038    0.7115
+K=40 primary/frozen            20k    0.9920    0.9840    0.9599    0.9199    0.7837    0.4912
+K=40 primary/frozen            40k    0.9920    0.9780    0.9679    0.9018    0.7236    0.4010
+
+========================================================================================================
+MARGINAL-CE TABLE (all 12 cells) -- full_graft CE over the RESUMED segment
+is the #2 plateau finding universal, or specific to 0230/0233?
+========================================================================================================
+cell                       seed     status   step  CE@start    CE@end    delta  GATE-0 clause
+K=16 compB/trainable          0  COMPLETED  40000    3.2680    2.9087  -0.3593         passes
+K=16 compB/trainable          1  COMPLETED  40000    3.8001    1.1146  -2.6855         passes
+K=24 compB/trainable          0  COMPLETED  40000    4.4313    3.9213  -0.5101         passes
+K=24 compB/trainable          1  COMPLETED  40000    4.4303    3.2560  -1.1743         passes
+K=32 compB/trainable          0  COMPLETED  40000    4.5575    4.2148  -0.3427         passes
+K=32 compB/trainable          1  COMPLETED  40000    4.4908    4.4678  -0.0230         passes
+K=40 compB/trainable          0  COMPLETED  40000    4.6434    4.6698  +0.0263          FIRES
+K=40 compB/trainable          1  COMPLETED  40000    4.6271    4.5726  -0.0545         passes
+K=32 primary/frozen           0  COMPLETED  40000    4.6214    4.5766  -0.0448         passes
+K=32 primary/frozen           1  COMPLETED  40000    4.6357    4.4394  -0.1963         passes
+K=40 primary/frozen           0  COMPLETED  40000    4.5966    4.5944  -0.0023         passes
+K=40 primary/frozen           1  COMPLETED  40000    4.6305    4.6605  +0.0301          FIRES
+
+summary: n=12  min=-2.6855  max=+0.0301  median=-0.1254  |delta| max=2.6855
+cells with CE NOT decreasing over the marginal segment (GATE-0 clause fires): 2/12 -> K40Ts0(+0.0263), K40Fs1(+0.0301)
+#2 measured +0.026/+0.030 at 0230/0233 against +/-0.03 plateau noise.

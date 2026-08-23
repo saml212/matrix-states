@@ -1,0 +1,8 @@
+32	compB	0	attrib40k_K32_compB_s0	/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K32_compB_s0/attrib40k_K32_compB_s0.ckpt.pt	/ephemeral/scaleaxis/attribution/results/attrib40k_K32_compB_s0.json	COMPLETED	40000
+32	compB	1	attrib40k_K32_compB_s1	/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K32_compB_s1/attrib40k_K32_compB_s1.ckpt.pt	/ephemeral/scaleaxis/attribution/results/attrib40k_K32_compB_s1.json	COMPLETED	40000
+40	compB	0	attrib40k_K40_compB_s0	/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K40_compB_s0/attrib40k_K40_compB_s0.ckpt.pt	/ephemeral/scaleaxis/attribution/results/attrib40k_K40_compB_s0.json	COMPLETED	40000
+40	compB	1	attrib40k_K40_compB_s1	/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K40_compB_s1/attrib40k_K40_compB_s1.ckpt.pt	/ephemeral/scaleaxis/attribution/results/attrib40k_K40_compB_s1.json	COMPLETED	40000
+32	primary	0	attrib40k_K32_primary_s0	/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K32_primary_s0/attrib40k_K32_primary_s0.ckpt.pt	/ephemeral/scaleaxis/attribution/results/attrib40k_K32_primary_s0.json	COMPLETED	40000
+32	primary	1	attrib40k_K32_primary_s1	/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K32_primary_s1/attrib40k_K32_primary_s1.ckpt.pt	/ephemeral/scaleaxis/attribution/results/attrib40k_K32_primary_s1.json	COMPLETED	40000
+40	primary	0	attrib40k_K40_primary_s0	/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K40_primary_s0/attrib40k_K40_primary_s0.ckpt.pt	/ephemeral/scaleaxis/attribution/results/attrib40k_K40_primary_s0.json	COMPLETED	40000
+40	primary	1	attrib40k_K40_primary_s1	/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K40_primary_s1/attrib40k_K40_primary_s1.ckpt.pt	/ephemeral/scaleaxis/attribution/results/attrib40k_K40_primary_s1.json	COMPLETED	40000

@@ -1,3 +1,15 @@
+**2026-08-23 tick (Fable) — ATTRIBUTION ARM ADJUDICATED (EXPERIMENT_LOG
+2026-08-23 #1-#3): V1 K=32-trainable = TOKEN-BUDGET-LIMITED (scale
+claim withdrawn, rescued at 40k); V3 depth-tail = SCALE-DEGRADES
+CONFIRMED-STRONG 6/6 (budget trains the model, robustness doesn't
+return); V2 K=40-trainable = STANDS-UNSTRENGTHENED (warm-restart
+damaged the control; V2-prime constant-LR control dispatched, ~9.2
+GPU-h, 130-gate fired + licensed by recorded adjudication). Chapter
+ledger ~126 all-in (cumulative-vs-marginal resolved). Wall holds at
+doubled budget everywhere. Remaining: V2-prime verdict -> finding 20
+amendment -> flagship consolidation. Publication hosting still
+awaiting PI decision (findings 18-20 in-repo only).**
+
 **2026-08-22 tick #3 (Fable) — SCALE CHAPTER COMPLETE (EXPERIMENT_LOG
 2026-08-22 #10-#21): 392M program ran 24/24 training + 26 eval cells,
 0 failures, ~70 GPU-h vs ~111 priced. VERDICTS: capability

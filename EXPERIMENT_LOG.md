@@ -11850,3 +11850,50 @@ was re-executed against each cell's artifact and the spec moved
 failed→completed only on PASS (4/4). Repo mirror synced.
 
 ## 2026-08-23 #2 — Attribution wave adjudications: the claim-time-snapshot lesson (worker reads specs at CLAIM, so in-flight cells carry stale checkers — all re-adjudicated by corrected-check-on-artifact) + the GATE-0-MARGINAL clause ruled MIS-SCOPED for resumed segments (2 cells: CE flat at plateau, +0.026/+0.030 over 20k marginal steps at ±0.03 plateau noise; from-scratch Gate-0 tested 11→4.5). The flat CE is itself attribution EVIDENCE (extended budget moved training loss NOWHERE in those cells), recorded as such; the recovery verdicts rest on the pre-registered κ/Δ bars from the battery, not on CE. Cells 0230/0233 promoted on artifact evidence (COMPLETED 40000, self-checks passed, eval present); clause scoping recorded here rather than silently edited.
+
+## 2026-08-23 #3 — ATTRIBUTION ARM ADJUDICATED (12/12 at 40k steps, 24 scorings, 0 real failures; marginal spend ≈44.5 GPU-h — the 88.42 sum is CUMULATIVE gpu_h incl. parents, ≈2× parent sums 43.9 ✓; chapter all-in ≈125.9, INSIDE the 130 gate).
+
+**V1 (K=32 trainable): TOKEN-BUDGET-LIMITED.** κ@h_top recovers
+0.8750 → 0.9113 median, 2/2 seeds ≥0.90 (0.9153/0.9073). The
+Curve-1 SCALE-DEGRADES at K=32 trainable is WITHDRAWN as a scale
+claim and reported as token-budget-limited, per the pinned rule.
+
+**V2 (K=40 trainable): SCALE-DEGRADES STANDS but the control is
+COMPROMISED — adjudicated UNSTRENGTHENED.** The extension actively
+damaged the cells (0.8438 → 0.5513 median, the largest movement in
+the arm). §7.2's licensing logic ("under-training can only
+manufacture DEGRADES") assumes a non-harmful extension; the
+disclosed 5.5× LR warm-restart makes this control uninformative in
+the harmful direction. The pre-registered text returns
+"strengthened"; the honest adjudication is STANDS-UNSTRENGTHENED
+with the control compromise recorded. **V2′ dispatched: constant-LR
+resumed extension at K=40T s0/s1 (~9.2 GPU-h marginal + a small
+runner patch + smoke), pre-registered: TOKEN-BUDGET-LIMITED iff
+κ≥0.90 2/2; unrecovered-and-undamaged ⇒ SCALE-DEGRADES stands
+cleanly strengthened; collapses-again ⇒ the damage is not the
+schedule (a new instability finding). THE 130-GPU-h GATE FIRES on
+this third contingency: licensed by recorded coordinator
+adjudication — grounds: ~900 GPU-h unallocated in a closing window,
+the verdict materially decides the flagship's central scale claim,
+and the marginal cost is 7% of remaining budget.**
+
+**V3 (depth tail, both arms): SCALE-DEGRADES STANDS, 6/6, in the
+STRONG form.** No cell returns inside ±0.095 at s*=13 (movements
+AWAY from zero in all six); and the marginal-CE table shows ten of
+twelve cells moved training loss substantially (median −0.125, max
+−2.686 at the most token-starved cells) while κ still failed to
+recover — more budget demonstrably trains the model yet does not
+restore deep-read robustness. The 2/12 plateau cells are exactly
+#2's pair, reproduced to the digit. Seed-matched sensitivity flips
+only K=32F (nearest the bar); both conventions reported, the
+pre-registration's 2-vs-3-seed convention gap RECORDED as a design
+gap (third of the chapter).
+
+**Direction-of-effect (instrument finding):** the extension helped
+once (V1's rescue), was flat five times, hurt six — "more tokens at
+this schedule mostly make it worse." Wall holds at 40k in all 12
+(no learned-write toehold at doubled budget). Agent process note:
+its own promotion glob silently no-opped while printing PASS —
+caught by checking the queue COUNT, not the print (the recurring
+lesson, self-applied); 4/4 then genuinely promoted, failed/ empty.
+Archive: experiment-runs/2026-08-23_attribution_arm/ (repo+SSD).
