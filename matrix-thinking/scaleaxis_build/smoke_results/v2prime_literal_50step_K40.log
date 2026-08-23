@@ -1,0 +1,25 @@
++ mkdir -p /ephemeral/scaleaxis/v2plit/results /ephemeral/scaleaxis/v2plit/ckpts/LIT_v2prime_K40_compB_s0
++ '[' -f /ephemeral/scaleaxis/v2plit/ckpts/LIT_v2prime_K40_compB_s0/LIT_v2prime_K40_compB_s0.ckpt.pt ']'
++ ln /ephemeral/scaleaxis/ckpts/scaleaxis392m_K40_compB_s0/scaleaxis392m_K40_compB_s0.ckpt.pt /ephemeral/scaleaxis/v2plit/ckpts/LIT_v2prime_K40_compB_s0/LIT_v2prime_K40_compB_s0.ckpt.pt
++ cd /home/nvidia/ncr_scaleaxis
++ NCR_SCALE=392m
++ NCR_K=40
++ /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --k 40 --scale 392m --mode calibration --device cuda --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --eval-every 50 --ckpt-every 50 --steps 20050 --const-lr-on-resume --ceiling-gpuh 13.82 --aux-loss-type contrastive+cosine --contrastive-temperature 0.07 --seed 0 --cell-id LIT_v2prime_K40_compB_s0 --out /ephemeral/scaleaxis/v2plit/results/LIT_v2prime_K40_compB_s0.json --ckpt-dir /ephemeral/scaleaxis/v2plit/ckpts/LIT_v2prime_K40_compB_s0
++ tee -a /ephemeral/scaleaxis/v2plit/results/LIT_v2prime_K40_compB_s0.log
+[scaleaxis] SCALE=392m rung=2 backbone={'d_model': 1536, 'd_state': 128, 'n_layers': 16, 'conv_size': 4, 'num_heads': 1, 'ffn_mult': 4} backbone_params=391,872,512 total_per_arm=392,175,785 runner_tag=ncr_scaleaxis_runner_v1
+[kscaling] K=40 d_ncr=41 chance=0.0250 ladder=(4, 8, 16, 17, 32, 60) h_top=60 (residue 20 == K/2) fixed_dist_probe=44 t_in=286 doc_left_pad=0
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+======================================================================
+NCR REAL-LM WAVE-1 CALIBRATION RUNNER (sec G3-B6) mode=calibration device=cuda torch=2.12.1+cu130 cuda_available=True
+gpu=NVIDIA H100 80GB HBM3
+======================================================================
+[LIT_v2prime_K40_compB_s0] RESUMING from checkpoint at step 20000 (cumulative_elapsed_s=16515, seed=0 verified, freeze_entity_adapter=False verified)
+[LIT_v2prime_K40_compB_s0] V2' CONSTANT-LR RESUME ACTIVE: holding lr=3.000000e-05 (the parent's own final value at step 20000) for ALL of steps 20001..20050 -- the cosine is NOT re-opened
+fatal: not a git repository (or any of the parent directories): .git
+[LIT_v2prime_K40_compB_s0] read-ablation exact-zero check PASSED (pre-train, max_abs_diff=0.00e+00)
+[LIT_v2prime_K40_compB_s0] same-op assertion (read-target vs write-key) PASSED for both arms (pre-train)
+[LIT_v2prime_K40_compB_s0] step 20025/20050  full_graft_loss=4.6573 backbone_only_loss=4.5334  lr=3.00e-05  16536s  full_graft_aux_loss=2.3732  full_graft_ortho_loss=0.0245  full_graft_l_ctr=3.8593  full_graft_l_cos=0.8870
+[LIT_v2prime_K40_compB_s0] step 20050/20050  full_graft_loss=4.6671 backbone_only_loss=4.5524  lr=3.00e-05  16557s  full_graft_aux_loss=2.4164  full_graft_ortho_loss=0.0250  full_graft_l_ctr=3.8864  full_graft_l_cos=0.9465
+[LIT_v2prime_K40_compB_s0] eval computed at step 20050 -> /ephemeral/scaleaxis/v2plit/results/LIT_v2prime_K40_compB_s0.json updated (values withheld from stdout, blind discipline sec G3-B6)
+[LIT_v2prime_K40_compB_s0] read-ablation exact-zero check PASSED (post-train, max_abs_diff=0.00e+00)
+[LIT_v2prime_K40_compB_s0] COMPLETED at step 20050/20050 in 16571s -> /ephemeral/scaleaxis/v2plit/results/LIT_v2prime_K40_compB_s0.json
