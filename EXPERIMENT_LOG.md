@@ -11992,3 +11992,16 @@ for reasoning-null-moss invalid). AXIOM/PALM (Paris) exist but CFPs
 unverified (agent budget); TAI-Eval unchecked. ra-handoff to be
 corrected accordingly. SUBMISSION IS A PI ACTION (OpenReview
 account); checklist delivered.
+
+## 2026-08-24 #4 — 1.31B CALIBRATION: ALL LICENSE LEGS CLEAR — THE CAPABILITY IS AT CEILING AT 1.31 BILLION PARAMETERS. LICENSE-SWEEP-1B GRANTED; the 22-cell sweep (0370-0393 minus the audit-killed aliases 0382/0385) staged with this commit.
+
+Legs: Gate-0 CE 11.76 → 4.494/4.370, COMPLETED 20000, both cells ✓;
+in-dist P1b κ = 1.000 at h∈{1,2,3} both ✓; deep P1b κ@h_top=36:
+primary **1.0000** (a perfect deep read at 1.31B), compB 0.9796 ✓
+(bar 0.90). P0 in band both (0.0703/0.0625 vs 0.0791). Rate
+reconciliation: realized 10.130 GPU-h/cell vs probe-interpolated
+9.7-10.5 — CENTERED, no re-price; sweep ledger ~250 GPU-h / ~35h
+wall stands. Thickening COMPLETE at 392M (24/24 — the scale
+chapter's n=6 dataset exists); 98M frontier fill 2/6 done, 4 more
+cycling. Last-cell projection: ~02:00-05:00Z Aug 26. The parameter
+curve's third point is now a sweep away.
