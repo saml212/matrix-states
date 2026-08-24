@@ -11957,3 +11957,38 @@ frontier thickening (13 GPU-h) slots into the tail; V2′ extensions
 spec regeneration reverted as-run ceilings on 0190-0217 — caught by
 pre-commit diff, restored, docstring guard added. Fifteenth
 injection tally.
+
+## 2026-08-24 #3 — 1B AUDIT ADJUDICATED (REV-narrow → PASS-LICENSE-SWEEP on election (b)) + CFP VERIFICATION: THE REAL NeurReps EA DEADLINE IS AUG 24 AoE (~31h), NOT AUG 29.
+
+Audit adjudications: R2-1 ELECTION (b) — specs 0382/0385 alias the
+calibration pair's paths (1B put K=24 seeds in both calibration and
+sweep, unlike 392M's sextet structure); they are NOT QUEUED; sweep =
+22 cells, true ledger 249.7 GPU-h (β-corrected floor 265.6). R2-2
+RESOLVED-NO-ACTION: the audit read the queue statically; the
+calib_priority tmux watcher (verified alive) restores holdback the
+moment the calibration pair claims — no idle window exists. R2-3
+ADOPTED: license ETA corrected to 13:20-14:05Z Aug 24; last-cell
+landing 23:30Z Aug 25 – 05:20Z Aug 26 — Aug 26 HOLDS WITH NO SLACK
+(one K=40 re-run costs ~16h). R2-5 FIXED: the inert docstring
+"guard" replaced with the audit's SystemExit refusal (installed,
+parses, OUT symbol verified) — regeneration without --ceilings-from
+now dies loudly instead of destroying as-run ceilings. R2-4/LOWs
+recorded (β ledger floor; sentinel token leaks into calibration
+hypothesis text — cosmetic; d_equals_k_plus_1 clause dropped vs
+spec of record — the battery's own d-guard covers it at harvest;
+BOX_TREE_MD5 staleness).
+
+**CFP verification (live-fetched, agent report of record):**
+NeurReps 2026 EA track deadline = **AUG 24 AoE** (the workshop set
+its own date; "Aug 29" was the NeurIPS-wide suggested default).
+papers/neurreps-ea/ + papers/rank-recruitment-ws/ both target this
+track, both anonymized on the official template, EA dual-submission
+unrestricted (flagship-safe), portal =
+openreview.net/group?id=NeurIPS.cc/2026/Workshop/NeurReps_Extended_Abstracts.
+**UniReps 2026 DOES NOT CURRENTLY EXIST as a venue** (site says TBA;
+absent from all 102 accepted workshops) — papers/unireps-ea/ needs a
+re-home, planning updated. ICBINB 2026 pivoted to biology (backup
+for reasoning-null-moss invalid). AXIOM/PALM (Paris) exist but CFPs
+unverified (agent budget); TAI-Eval unchecked. ra-handoff to be
+corrected accordingly. SUBMISSION IS A PI ACTION (OpenReview
+account); checklist delivered.

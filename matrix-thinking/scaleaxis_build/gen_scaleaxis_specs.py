@@ -465,6 +465,13 @@ def main() -> int:
                     help="sec 8.3's 9.02 h ELECT-or-DECLINE; DECLINED by default")
     args = ap.parse_args()
 
+    if not args.ceilings_from and glob.glob(os.path.join(OUT, "*.json")):
+        raise SystemExit(
+            "REFUSING to regenerate job_specs/ without --ceilings-from: it holds the AS-RUN "
+            "0190-0217 specs with Stage-A0 RE-PRICED ceilings (3.867-6.586). Re-running "
+            "without --ceilings-from reverts them to the PROJECTED placeholder and destroys "
+            "the as-run record. Pass --ceilings-from <stage-A0 dir>, or move job_specs/ aside.")
+
     contended, r8, solo_gpuh = None, None, None
     if args.ceilings_from:
         contended, solo_gpuh, eight, solo_s = {}, {}, [], {}
