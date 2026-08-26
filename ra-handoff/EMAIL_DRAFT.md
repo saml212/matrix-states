@@ -1,12 +1,16 @@
 # Email draft — Sam → Will
 
+**Repo:** https://github.com/saml212/matrix-states (private)
+**Updated:** 2026-08-25
+
 ---
 
 ## 🔴 BEFORE YOU SEND: rotate the Hugging Face token
 
-**Do not add Will as a collaborator on `saml212/matrix-states` until this is
-done.** Adding a collaborator grants full read access to the git *history*, and
-there is a live credential in it.
+**Do not add Will as a collaborator on
+https://github.com/saml212/matrix-states until this is done.** Adding a
+collaborator grants full read access to the git *history*, and there is a live
+credential in it.
 
 **What's there.** A real hardcoded Hugging Face token was committed at
 `matrix-thinking/H100_SETUP.md` in commit `ecb9f74`. It was redacted from HEAD in
@@ -29,12 +33,15 @@ and read it.
    its git history. **Rotating alone is sufficient to make the leaked value
    worthless**; the scrub is hygiene, and given the SHA-citation cost it may be
    right to skip it.
-3. Then add Will as a collaborator.
+3. Then add Will as a collaborator: **https://github.com/saml212/matrix-states**
+   → **Settings** → **Collaborators** → **Add people** → invite
+   **Williamlarson2023@gmail.com** (Write access is enough; Admin is not needed).
+   He gets an email invite that expires in 7 days.
 
 Related: the repo is still private for this reason, and this is also the blocker
 on ever making it public.
 
-**Also confirm before sending:** the five attachments and `ra_package.zip` are at
+**Also confirm before sending:** the six documents and `ra_package.zip` are at
 `ra-handoff/` in the repo, and a copy of the zip and this draft are on your
 Desktop.
 
@@ -89,15 +96,24 @@ between what the model can execute and what it can learn to write is the result.
 
 Two chapters just landed proving that separation is scale-stable: across binding
 loads from 12 to 40, and from 98M to 392M parameters, the capability stays flat
-at ceiling and the wall holds. A 1.31B run is on the GPUs right now and should
-land around the 26th.
+at ceiling and the wall holds. A 1.31B run — a third scale point — is draining on
+the GPUs right now and should finish around the 26th. The partial readings look
+like more of the same, flat at ceiling at every load measured so far, but they're
+informal until the full sweep drains and the pre-registered tests run. Don't let
+anyone write them into a paper before then; the docs say so too.
 
-**What I'm sending.** A folder called `ra-handoff/` in the repo, with five
-documents:
+**What I'm sending.** A folder called `ra-handoff/` in the repo —
+https://github.com/saml212/matrix-states — with six documents:
 
-- **README.md** — the master brief. The whole program in two pages, how the
-  evidence chain works, how to work in the repo, and a glossary because we
-  invented a lot of vocabulary and defined almost none of it.
+- **README.md** — **your starting point.** Short: what the job is, what the work
+  is in plain language, where everything lives, and the three things to do on day
+  one. Read this first and it should take fifteen minutes.
+- **AGENT_INSTRUCTIONS.md** — **this one is for your Claude, not for you.** Point
+  your agent at it at the start of a session. It's the detailed brief: how the
+  evidence chain works, how each paper tree builds, which files are read-only,
+  what it can change freely and what it has to check with us about first. It also
+  has the glossary, which you'll want too — we invented a lot of vocabulary and
+  defined almost none of it in the papers.
 - **PAPERS.md** — every paper tree, what it claims, how it builds, how finished
   it is, and what its venue situation actually is. Fifteen trees. One published,
   one live, seven finished-but-unsubmitted, six superseded.
@@ -115,12 +131,21 @@ editorial questions listed out for you, including one that's just arithmetic: it
 currently runs 23 pages of main text against a 9-page limit. After that, the
 workshop stack.
 
-One thing worth raising with me in your first week: I froze all of this in
-mid-July while the GPUs ran, and most of the venue deadlines have since passed.
-There's one that might still be live — a NeurIPS workshop deadline around Aug 29
-— and three papers are sitting completely finished for exactly those venues. It's
-in the playbook. Tell me what you think we should do about it; I may have the
-priority order wrong for this particular week.
+**On the calendar, which is worse than I thought.** I froze all of this in
+mid-July while the GPUs ran, and the venue deadlines have since passed —
+including one I had wrong. I'd been planning against an Aug 29 NeurIPS workshop
+date; that turned out to be only the conference-wide *suggested* default, and
+NeurReps actually closed **Aug 24**. Two finished papers were built for exactly
+that track. `[SAM: say here whether you got neurreps-ea and rank-recruitment-ws
+in before it closed — Will's first move depends on the answer.]` On top of that,
+UniReps isn't running this year at all, and ICBINB moved to biology, so a third
+and fourth paper lost their homes too.
+
+Net: nothing is on a clock right now, six finished papers need new venues, and
+the NeurIPS accepted-workshop list — 102 workshops, now published — has never
+been read end to end. That scan is probably an afternoon and it unblocks most of
+the backlog. It's all laid out in the playbook. Tell me what you think the order
+should be.
 
 **A few things I want to say plainly.**
 
@@ -144,10 +169,11 @@ time you submit. We're in a good position on this — the science is fully
 auditable from raw data by anyone who wants to check, which is a much stronger
 place to stand than most people have.
 
-**One housekeeping item.** The repo is private and I need to rotate a credential
-before I add you. I'll do that and send the invite separately, probably same
-day. The zip is self-contained in the meantime, so you can start reading
-immediately.
+**One housekeeping item.** The repo is https://github.com/saml212/matrix-states.
+It's private, and I need to rotate a credential that's sitting in the git history
+before I add anyone to it. I'll do that and send the GitHub invite separately,
+probably same day — it'll come to this address. The zip is self-contained in the
+meantime, so you can start reading immediately.
 
 Call me once you've read the README. I'd rather talk through the program than
 have you reverse-engineer my reasoning from the docs.
@@ -160,12 +186,13 @@ Sam
 
 ## Attachments
 
-**`ra_package.zip`** (2.0 MB, 21 files) — send this one file. It contains:
+**`ra_package.zip`** (~2.1 MB, 22 files) — send this one file. It contains:
 
 | Contents | Notes |
 |---|---|
 | `MANIFEST.txt` | One-line description of every file, with page counts and status |
-| `README.md` | Master brief |
+| `README.md` | **Will's starting point** — the human brief |
+| `AGENT_INSTRUCTIONS.md` | **For Will's Claude** — evidence-chain rules, build systems, permissions, glossary |
 | `PAPERS.md` | Portfolio inventory |
 | `SUBMISSION_PLAYBOOK.md` | Submission mechanics + open decisions |
 | `DATA_MAP.md` | Artifact locations |

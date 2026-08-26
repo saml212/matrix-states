@@ -4,10 +4,18 @@ The generic motion for getting these papers out the door, plus the specific
 decisions nobody has made yet.
 
 **Standing caveat.** Every venue policy below was true when this repo last
-checked it (mid-July 2026) or is generic mechanics. **Policies change and
-deadlines move. Verify against the live CFP before you act.** The repo's own
-convention is good: when a live fetch fails, write `UNVERIFIED — cache fallback`
-and name the stand-in rather than guessing. Keep doing that.
+checked it — **mid-July 2026 for most of it, with a targeted live re-fetch on
+2026-08-24** (`EXPERIMENT_LOG.md` 2026-08-24 #3) that corrected the NeurReps
+deadline, established that UniReps 2026 does not exist, and killed the ICBINB
+backup — or is generic mechanics. **Policies change and deadlines move. Verify
+against the live CFP before you act.** The repo's own convention is good: when a
+live fetch fails, write `UNVERIFIED — cache fallback` and name the stand-in
+rather than guessing. Keep doing that.
+
+⚠ **The lesson from the Aug-24 correction, stated once because it cost this
+portfolio a deadline:** a conference-wide *suggested* workshop deadline is not a
+deadline. Individual workshops set their own and they are usually earlier. Always
+fetch the workshop's own CFP.
 
 ---
 
@@ -206,12 +214,14 @@ carries the specific checklist.
 | Venue | Platform | Format | Archival | Status as last checked |
 |---|---|---|---|---|
 | **ICLR 2027** | OpenReview | 9pp main text, ICLR kit, double-blind | **Archival** | CFP **not live** (404 on iclr.cc/Conferences/2027 as of 2026-07-10). Projected abstract Sep 19 / full Sep 24 2026 — **third-party aggregators, never official** |
-| **NeurReps 2026 (EA)** | OpenReview | 4pp excl. refs/appendix, **single .tex**, JMLR kit from the NeurReps style zip, draftwatermark kept | Non-archival | 2026 CFP was unpublished; 2025 pattern was Aug 29 → Sep 4 extended |
-| **UniReps 2026 (EA)** | OpenReview | 4pp main text (CR 5pp), NeurIPS kit | Non-archival | 2026 CFP skeleton up at **`unireps.org/2026`**; deadlines "TBD AoE" |
-| **NeurIPS 2026 workshops** (generic) | OpenReview | per workshop | usually non-archival | Accepted-workshop list was due 2026-07-11; **suggested paper deadline Aug 29 2026 AoE**; mandatory notification Sep 29; workshops Dec 11–13 |
+| **NeurReps 2026 (EA)** | OpenReview, group `NeurIPS.cc/2026/Workshop/NeurReps_Extended_Abstracts` | 4pp excl. refs/appendix, **single .tex**, JMLR kit from the NeurReps style zip, draftwatermark kept | Non-archival, **dual submission unrestricted** (flagship-safe) | **Deadline was AUG 24 2026 AoE — PASSED.** Live-verified 2026-08-24 |
+| **UniReps 2026 (EA)** | — | 4pp main text (CR 5pp), NeurIPS kit | — | **DOES NOT EXIST as a 2026 venue.** `unireps.org` says TBA; absent from all 102 accepted NeurIPS workshops. Verified 2026-08-24 |
+| **NeurIPS 2026 workshops** (generic) | OpenReview | per workshop | usually non-archival | Accepted list **is published: 102 workshops**. ⚠ The Aug 29 2026 AoE date is only the NeurIPS-wide **suggested** default — **individual workshops set their own, earlier dates** (NeurReps set Aug 24). Never plan against the suggested date. Mandatory notification Sep 29; workshops Dec 11–13 |
 | **Efficient Reasoning @ COLM 2026** | OpenReview | 4–10pp main text, COLM 2026 kit (GitHub tag `2026`) | Non-archival | Deadline was **Jul 19 2026 AoE — passed** |
 | **MOSS @ COLM 2026** | OpenReview | 4pp main content, models ≤3B params, soft 10²⁰ FLOP cap | Non-archival | Deadline was Jul 3 2026 AoE with a capacity-gated late window; notification Jul 24 — **both passed** |
-| **ICBINB** | OpenReview | per instance | non-archival | Last instance was an ICLR 2026 workshop; next ~Jan–Feb 2027 (projected). The on-record backup for the null paper |
+| **ICBINB** | OpenReview | per instance | non-archival | ⚠ **ICBINB 2026 pivoted to biology** (verified 2026-08-24) — **no longer a valid backup** for the null paper. Last ML instance was an ICLR 2026 workshop |
+| **AXIOM / PALM (Paris)** | — | — | — | Both **exist**; CFPs **UNVERIFIED** (the verification agent ran out of budget). Candidate re-homes — fetch live before proposing |
+| **TAI-Eval** | — | — | — | **Unchecked.** Named as a candidate, never fetched |
 
 **ICLR-specific mechanics** for the flagship: abstract deadline precedes the
 full-paper deadline by several days and is **binding** — you cannot submit a
@@ -225,34 +235,50 @@ current build uses the `iclr2026` kit as the sanctioned stand-in.
 
 ## 5. ⚠ The calendar reality
 
-The portfolio was frozen 2026-07-17. It is now **2026-08-24**. Here is the
-honest state of the clocks:
+The portfolio was frozen 2026-07-17. It is now **2026-08-25**, and a live CFP
+re-fetch on 2026-08-24 (`EXPERIMENT_LOG.md` 2026-08-24 #3, the report of record)
+closed the last open clock. The honest state:
 
-- **Passed:** Efficient Reasoning @ COLM (Jul 19) — kills B4 and B5 at that
-  venue. MOSS @ COLM (Jul 3 + late window; notification Jul 24) — kills B7 and
-  B8 at that venue, and the required late-add email was never sent.
-- **Imminent:** the **NeurIPS 2026 workshop suggested deadline, Aug 29 2026
-  AoE — five days out.** NeurReps and UniReps are both NeurIPS workshops and
-  both historically land near that date. **This is the only live clock in the
-  portfolio, and three papers (B1, B2, B3) are ACCEPT-READY for exactly those
-  two venues with built bundles.**
-- **Never run:** the Jul-11 accepted-workshop-list refresh that `VENUE_MAP.md`
-  and three `venue-requirements.md` files all schedule. **Do this first.** It
-  simultaneously (a) confirms NeurReps and UniReps are on the 2026 list and
-  gives their real deadlines, (b) supplies the measurement-workshop venue that
-  B6 has been waiting on for six weeks, and (c) supplies re-homing candidates
-  for B4, B5, and B7.
-- **Ahead:** ICLR 2027, projected late September. The flagship's real deadline.
+- **Passed — COLM family.** Efficient Reasoning @ COLM (Jul 19) kills B4 and B5
+  at that venue. MOSS @ COLM (Jul 3 + late window; notification Jul 24) kills B7
+  and B8 at that venue, and the required late-add email was never sent.
+- **Passed — NeurReps 2026 EA, Aug 24 2026 AoE.** ⚠ This is the correction that
+  matters most. The repo had been planning against **Aug 29**, which is only the
+  **NeurIPS-wide *suggested* default**; NeurReps set its own, earlier date. Two
+  ACCEPT-READY papers (**B1 `neurreps-ea`, B3 `rank-recruitment-ws`**) were built
+  for exactly that track, both anonymized on the official template, dual
+  submission unrestricted. **Whether they went in is a question only Sam can
+  answer — ask him in your first conversation.** If they did not, they are
+  finished papers that need re-homing.
+  **Generalize the lesson:** never plan against a conference-wide *suggested*
+  deadline. Individual workshops set their own, and they are usually earlier.
+- **Never existed — UniReps 2026.** Not a live venue this year (site says TBA;
+  absent from all 102 accepted NeurIPS workshops). **B2 needs a re-home**
+  regardless of clocks.
+- **Died as a backup — ICBINB 2026**, which pivoted to biology. **B7 now has no
+  identified home at all.**
+- **Partially run:** the Jul-11 accepted-workshop-list refresh that `VENUE_MAP.md`
+  and three `venue-requirements.md` files all schedule. The list **has landed —
+  102 accepted workshops** — and was consulted on 2026-08-24, but only to answer
+  the two targeted NeurReps/UniReps questions above. **The end-to-end scan has
+  still never been done**, and it is now the single highest-value venue action:
+  it supplies the venue B6 has been waiting on since July, and re-homing
+  candidates for B1, B2, B3, B4, B5 and B7 at once. Candidates already named but
+  **unverified**: AXIOM and PALM (Paris) exist with unfetched CFPs; TAI-Eval is
+  unchecked.
+- **Ahead:** ICLR 2027, projected late September. The flagship's real deadline,
+  and now the only forward-looking one in the portfolio.
 
-**Practical reading:** the highest-value first action in this whole handoff may
-not be the flagship. It is to spend an hour on `neurips.cc`'s accepted-workshop
-list, get the real 2026 deadlines for NeurReps and UniReps, and — if the clock
-allows — push B1 and B2 out the door as-is or lightly edited. They are done.
-Then the flagship, which has weeks.
+**Practical reading.** With no live clock left, the short-run exception that used
+to outrank the flagship is gone, and **the PI's stated priority — the flagship —
+is now simply correct.** Two things still belong in week one because they are
+cheap and they unblock everything else: (1) ask Sam whether B1 and B3 were
+submitted before Aug 24 closed, and (2) spend an afternoon on the 102-workshop
+list producing a re-homing shortlist for the homeless papers. Then the flagship,
+which has weeks and needs all of them.
 
-Discuss the ordering with Sam. The PI's stated priority is the flagship first,
-and that's the right long-run call; the Aug-29 clock is a short-run exception
-worth raising rather than deciding unilaterally.
+**Submission itself is a PI action** — it requires Sam's OpenReview account.
+Prepare the bundles and run the §7 checklist; he presses the button.
 
 ---
 
@@ -278,20 +304,24 @@ Each of these is genuinely open. The repo does not decide them; you and Sam do.
    has the strongest single figure in the portfolio. Candidates: a NeurIPS
    memory / long-context / efficiency workshop, ICLR 2027 workshops, or
    arXiv-only.
-4. **Does `reasoning-null-moss` get re-homed or shelved?** ICBINB is the
-   on-record backup and is the natural home for a carefully-bounded null.
-   Its next instance is ~Jan–Feb 2027, which is a long wait for a finished paper.
+4. **Where does `reasoning-null-moss` go now that ICBINB is gone?** ⚠ Updated
+   2026-08-24: **ICBINB 2026 pivoted to biology**, so the on-record backup — the
+   natural home for a carefully-bounded null — is **invalid**. This paper now has
+   no identified venue at all. Candidates: a negative-results or science-of-DL
+   workshop off the 102-item NeurIPS list, a future ICBINB instance if it returns
+   to ML, or **arXiv-only**, which for a well-bounded null is a respectable
+   outcome and takes the priority date immediately.
 5. **Does `kwall` survive as a standalone paper?** It is 13 pages against a 4-page
    cap, has no figures, and has an unmet novelty-gate obligation. Its content is
    the ancestor of the flagship's NCR chapters. Options: cut it hard and ship it
    as a workshop paper, fold it into the flagship as an appendix, or retire it
    with the K-wall story told inside the breadth chapter.
-6. **Can NeurReps take two submissions from one group?** `neurreps-ea` and
-   `rank-recruitment-ws` are both aimed at NeurReps 2026 EA. The repo believes
-   this is allowed and did a de-dup pass so they don't repeat each other's
-   numbers. **Verify against the actual 2026 CFP before submitting both.** If
-   not, one of them re-homes to UniReps — but `unireps-ea` is already there, so
-   it would need a third venue.
+6. ~~**Can NeurReps take two submissions from one group?**~~ **ANSWERED
+   2026-08-24: yes — NeurReps EA dual submission is unrestricted.** `neurreps-ea`
+   and `rank-recruitment-ws` could both have gone, and the de-dup pass that made
+   them non-overlapping companions was the right call. The blocker was never
+   permission; it was the **Aug 24 AoE deadline**, which has passed. The live
+   question is now **whether Sam submitted them**, and if not, where they both go.
 7. **Does the ICML workshop paper go to arXiv, and who posts it?** It is
    accepted, presented, non-archival, and the package is built. The only blocker
    is cs.LG endorsement. **Also reconcile the Samuel-vs-Sam author name before

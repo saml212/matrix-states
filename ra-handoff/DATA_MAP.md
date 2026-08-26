@@ -1,7 +1,10 @@
 # DATA_MAP — where every artifact lives
 
-Companion to `README.md`. This tells you where to find the raw number behind any
-claim, and what has to come off the GPU box before the grant expires.
+Companion to `README.md` (the human brief) and `AGENT_INSTRUCTIONS.md` (the
+agent brief). This tells you where to find the raw number behind any claim, and
+what has to come off the GPU box before the grant expires.
+
+**Updated 2026-08-25.**
 
 ---
 
@@ -108,7 +111,7 @@ Each page names its raw archives and its regenerating plot script (under
 step, and the `d = K+1` mapping before plotting.
 
 **When a page and the log disagree, the page wins.** The correction entries name
-each case — see `README.md` §2.
+each case — see `AGENT_INSTRUCTIONS.md` §2.3.
 
 **⚠ These pages are NOT live on the web.** The site sync GitHub Action
 (`.github/workflows/sync-pebble-site.yml`, mirrors `pebble-ai-site/` to
@@ -122,7 +125,7 @@ public, that's a decision for Sam about where they'd live now.
 
 ---
 
-## 4. The box (ephemeral — dies ~2026-09-01)
+## 4. The box (ephemeral — dies ~2026-08-31)
 
 **Instance:** `youthful-indigo-turkey` (nvidia-pebble), hostname
 `brev-ukptqsu65`, 8×H100 80GB SXM, GCP asia-southeast1-c.
@@ -133,6 +136,10 @@ it) then `brev refresh`. Default user `nvidia`, home `/home/nvidia`,
 passwordless sudo.
 **Do not stop or delete the instance.** The grant is uptime-metered surplus
 credits that expire; there is no saving to be had by idling it.
+**Operative expiry: ~2026-08-31.** As of 2026-08-25 the PI recorded **six days of
+grant remaining, ~1,100 GPU-h**
+(`matrix-thinking/scaleaxis_build/job_specs_1b/EXPERIMENT_LOG.md` 2026-08-25 #1).
+Older docs say "~Sep 1"; treat **Aug 31** as the date you plan against.
 
 | Path | What |
 |---|---|
@@ -159,7 +166,7 @@ self-describes as "do not commit it; delete when absorbed," so it may vanish.
 Everything in it that matters long-term has been folded into this file. Read it
 while it's there.
 
-### ⚠ 4a. What must come off `/ephemeral/` BEFORE ~2026-09-01
+### ⚠ 4a. What must come off `/ephemeral/` BEFORE ~2026-08-31
 
 The instance cannot be stopped, only deleted, and the grant expires. When it
 goes, `/ephemeral/` (5.9 TB) goes with it. **Nothing in the repo depends on a
@@ -223,8 +230,14 @@ of them appear to have been posted.
 
 ## 6. `EXPERIMENT_LOG.md` — how to navigate 900 KB
 
-**Path:** repo root. 908,999 bytes, 11,959 lines. **Append-only** — stated
+**Path:** repo root. ~909 KB, ~11,960 lines. **Append-only** — stated
 explicitly in the file at line 1475, and visible in how corrections work.
+
+⚠ **There are also wave-local `EXPERIMENT_LOG.md` files** under build
+directories — e.g. `matrix-thinking/scaleaxis_build/job_specs_1b/EXPERIMENT_LOG.md`,
+which holds the 2026-08-25 #1 entry on the 1.31B sweep. They are real records,
+but they are **not** the root log, and an entry number like "2026-08-25 #1" is
+ambiguous between them. **Always cite the full path.**
 
 Three formatting eras, in file order:
 
@@ -289,7 +302,7 @@ verdict survives. Ones you should read before touching the scaling chapters:
 
 Ask Sam. Specifically:
 
-- **More data / another run:** possible until ~2026-09-01 on the grant, and a
+- **More data / another run:** possible until ~2026-08-31 on the grant, and a
   conversation about rented hardware after that. Bring a hypothesis and a rough
   GPU-h estimate — the program prices every wave before launching it, and that
   is the language the queue speaks.

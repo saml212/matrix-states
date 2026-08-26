@@ -4,16 +4,29 @@ Fifteen paper trees. One published, one live, seven complete-but-unsubmitted,
 six superseded or consumed. This file says what each one claims, how it builds,
 how finished it is, and what the venue situation actually is.
 
-> **⚠ Read this first: almost every deadline in this repo has passed.**
+> **⚠ Read this first: every deadline in this repo has passed.**
 > The whole portfolio was written 2026-07-09 → 2026-07-17 and then frozen while
 > the GPU program ran. Every venue note in every tree was live-verified in
-> mid-July and **has not been refreshed since**. Specifically: the Efficient
-> Reasoning @ COLM deadline (Jul 19) passed, the MOSS notification date
-> (Jul 24) passed, and the NeurIPS-2026 accepted-workshop-list refresh that four
-> separate files schedule for Jul 11 **has no on-disk record of having been
-> run**. The one clock that may still be live is the NeurIPS workshop
-> suggested deadline, **Aug 29 2026 AoE — five days out**. Re-verify every CFP
-> before you act on anything below. Details in `SUBMISSION_PLAYBOOK.md` §5.
+> mid-July and then went stale. **A live CFP re-fetch on 2026-08-24 —
+> `EXPERIMENT_LOG.md` 2026-08-24 #3, the report of record — changed the picture
+> materially:**
+>
+> - **NeurReps 2026 EA closed Aug 24 2026 AoE**, not Aug 29. The workshop set its
+>   own date; "Aug 29" was the NeurIPS-wide *suggested* default that this repo had
+>   been planning against. **B1 and B3 both targeted that track.** Confirm with
+>   Sam whether he submitted before it closed.
+> - **UniReps 2026 does not currently exist as a venue** — the site says TBA and
+>   it is absent from all 102 accepted NeurIPS 2026 workshops. **B2 needs a
+>   re-home** independent of any clock.
+> - **ICBINB 2026 pivoted to biology**, invalidating the on-record backup for B7.
+> - Efficient Reasoning @ COLM (Jul 19) and MOSS @ COLM (Jul 3 + late window,
+>   notification Jul 24) had already passed.
+>
+> **Net: no live clock is currently known, and six trees need re-homing.** The
+> NeurIPS accepted-workshop list *is* now published (102 workshops) but has never
+> been scanned end-to-end for candidates — that scan is the highest-value venue
+> action available. Re-verify every CFP live before acting on anything below.
+> Details in `SUBMISSION_PLAYBOOK.md` §4–§5.
 
 ---
 
@@ -78,7 +91,30 @@ the d×d matrix state is a representational medium:
   loss-neutral at every scale but its geometric benefit does not transfer past
   14M.
 - **§6 Breadth scaling** and **§7 Parameter scaling** — **NEW, added
-  2026-08-23.** The NCR chapters. See `README.md` §1.
+  2026-08-23.** The NCR chapters. Full technical summary in
+  `AGENT_INSTRUCTIONS.md` §1.
+- **The third scale point (1.31B) — landing; tables update pending final
+  harvest.** ⚠ **Do not write it into the paper yet, but plan for it.**
+  Calibration **cleared all license legs** (root `EXPERIMENT_LOG.md`
+  **2026-08-24 #4**): deep P1b κ at h_top = 36 reads **1.0000** primary / 0.9796
+  compB against a 0.90 bar, P0 in band both. The 22-cell sweep is draining; the
+  interim readout —
+  `matrix-thinking/scaleaxis_build/job_specs_1b/EXPERIMENT_LOG.md`
+  **2026-08-25 #1**, explicitly labelled **informal, 11/16 scored** — reads
+  **frozen at ceiling at every measured K** (K=24 0.9918/0.9878; K=32
+  0.9798/1.0000/0.9960; K=40 0.9920/0.9960), wall in band 11/11, trainable
+  degradation persisting (K=32 0.8065, K=40 0.7877). Last-cell projection was
+  ~02:00–05:00Z 2026-08-26. **Verdicts come from the pinned tests at full drain,
+  not from that interim readout**, and that entry lives in the wave-local log,
+  **not** the root `EXPERIMENT_LOG.md` — cite the full path.
+  **The instrument question is now settled** (root `EXPERIMENT_LOG.md`
+  **2026-08-24 #2**, Ruling 2, pinned before any 1B harvest): 1.31B verdicts use
+  the **same pairwise instruments** as the 98M-vs-392M chapter applied to the
+  **(392M, 1.31B)** pair at **identical thresholds**; the three-point figure is
+  **DESCRIPTIVE**; a "scaling law to 13.4×" sentence requires **both** pairwise
+  capability verdicts to read no-detectable-shift/STABLE; **no new statistic is
+  invented post-design.** A three-point *figure* is fine. A three-point *trend
+  statistic* is not, and must not be invented to get one.
 - **Appendix A** (R9): the c\*·I complement scaffold, architecture-conditional.
 
 **Completeness.** All 13 section files written. Evidence rows R0–R12 in
@@ -157,7 +193,7 @@ it has shipped).
 All eight are content-complete. All were frozen mid-July. The blockers are
 venue decisions and PI stamps, not writing.
 
-## B1. `papers/neurreps-ea/` — ACCEPT-READY, arXiv package staged
+## B1. `papers/neurreps-ea/` — ACCEPT-READY, **deadline passed 2026-08-24**
 
 **Title:** *The Rank the Task Demands: A Causal Rank Law for Matrix Memories
 Trained on Group Composition* (Candidate A, adjudicated final)
@@ -171,8 +207,16 @@ non-archival, "no restrictions" on dual submission (so ICLR-flagship-safe),
 double-blind on OpenReview. Required template is the NeurReps JMLR/PMLR style
 zip; the EA track uses `\documentclass[mlabstract,onecolumn]{jmlr}` and the
 paper must be a **single .tex file**.
-**Deadline:** 2025 reference was Aug 29 → Sep 4 extended. The 2026 CFP was
-unpublished at prep time. **Re-verify.**
+**⚠ Deadline: AUG 24 2026 AoE — PASSED.** Live-verified 2026-08-24
+(`EXPERIMENT_LOG.md` 2026-08-24 #3): the workshop set its own date; the "Aug 29"
+this repo planned against was the NeurIPS-wide *suggested* default, and the 2025
+Aug 29 → Sep 4 pattern did not repeat. Everything else verified good at the same
+time: anonymized on the official template, EA dual-submission **unrestricted**
+(so flagship-safe), portal
+`openreview.net/group?id=NeurIPS.cc/2026/Workshop/NeurReps_Extended_Abstracts`.
+**First action: confirm with Sam whether he submitted before it closed.** If he
+did, this is in review and the next step is camera-ready prep. If not, the paper
+is finished and homeless — re-home it.
 **Build:** `make` → 3× `tectonic --keep-intermediates main.tex`. 8 pages
 (4pp body). `make bundle` flattens to a single .tex. `make figures` regenerates
 2 md5-asserted figures.
@@ -187,24 +231,34 @@ grep zero hits. Render inspection PASS 0/0/0 across all 8 pages. Abstract 223
 words.
 **arXiv:** `arxiv/neurreps-ea-arxiv-v1.zip` is **built and ready**, never
 uploaded. cs.LG primary / cs.NE secondary, CC BY 4.0, Sam Larson (Pebble AI).
-**Next steps:** re-verify the 2026 CFP → OpenReview upload → post arXiv v1. At
-camera-ready: uncomment the author block, restore the self-citation that was cut
-for double-blind, remove the draftwatermark.
+**Next steps:** **confirm submitted-or-not with Sam** → if not submitted, re-home
+(it is fully finished, so any representation-learning or geometry workshop is a
+candidate) → post arXiv v1 either way, which is unblocked by the venue question
+except for the cs.LG endorsement. At camera-ready: uncomment the author block,
+restore the self-citation that was cut for double-blind, remove the
+draftwatermark.
 
-## B2. `papers/unireps-ea/` — ACCEPT-READY, arXiv package staged
+## B2. `papers/unireps-ea/` — ACCEPT-READY, **its venue does not exist in 2026**
 
 **Title:** *Dimension, Not Solvability: Trained Matrix States Converge to the
 Minimal Faithful Representation Dimension* (Candidate A, adjudicated final)
 **Claim:** Same evidence base as B1, different headline — angled at convergent
 representations. Effective ranks 1.88/2.85/2.83/3.59/4.74 vs `d_min` 2/3/3/4/5,
 all 19 seeds in band, ρ = 0.9747; the S₄/A₅ TOST is the designed head-to-head.
-**Venue:** **UniReps 2026, Extended Abstract track** — 4pp main text
-(camera-ready 5pp), non-archival, NeurIPS LaTeX template, anonymized,
-OpenReview. Deadlines were "TBD AoE" on the 2026 CFP skeleton.
-**⚠ URL correction on record:** the tree's `VENUE_REQUIREMENTS.md` points at
-`unireps-2025.netlify.app` and guesses a `unireps-2026.netlify.app` successor
-that **404s**. The real 2026 home is **`unireps.org/2026/call-for-papers`**
-(corrected in `papers/VENUE_MAP.md`; zero requirement deltas).
+**Venue of record (now dead):** UniReps 2026, Extended Abstract track — 4pp main
+text (camera-ready 5pp), non-archival, NeurIPS LaTeX template, anonymized,
+OpenReview. Deadlines were "TBD AoE" on a 2026 CFP *skeleton* that never became a
+real venue. **The format spec is still a useful target shape; the venue is not.**
+**⚠ THE VENUE DOES NOT EXIST THIS YEAR — RE-HOME REQUIRED.** Live-verified
+2026-08-24 (`EXPERIMENT_LOG.md` 2026-08-24 #3): **UniReps 2026 does not currently
+exist as a venue.** `unireps.org` says TBA, and UniReps is absent from all **102**
+accepted NeurIPS 2026 workshops. This supersedes the earlier URL correction (the
+tree's `VENUE_REQUIREMENTS.md` points at `unireps-2025.netlify.app` and guesses a
+`unireps-2026.netlify.app` successor that 404s; `papers/VENUE_MAP.md` was
+corrected to `unireps.org/2026/call-for-papers`) — the URL was the smaller
+problem. The paper is finished and has nowhere to go until you pick somewhere.
+Note it shares its evidence base with B1, so if B1 also ends up homeless, the two
+should be re-homed as a coordinated pair rather than independently.
 **Build:** `make` → 3× tectonic. 7 pages (body ends p.4). No pagination
 bistability in this tree, but the triple pass is kept for determinism.
 **Completeness:** ACCEPT-READY. 10/10 bib entries, 8 arXiv-verified. 30 evidence
@@ -214,9 +268,11 @@ v4 PASS 0/0/0.
 **Note:** this tree has **no `detector/` directory** and no `07_final_review.md`
 in either gauntlet round — the only Gen-2 tree missing both. Its readiness call
 comes from `papers/SUBMISSION_PACKAGE.md` §2, not from an in-tree final review.
-**Next steps:** as B1.
+**Next steps:** **pick a new venue** (scan the 102-workshop NeurIPS list; ICLR
+2027 workshops are the other natural pool) → retarget the template if the new
+venue needs it → post arXiv v1, which does not wait on the venue.
 
-## B3. `papers/rank-recruitment-ws/` — READY, waiting on the 2026 CFP
+## B3. `papers/rank-recruitment-ws/` — READY, **deadline passed 2026-08-24**
 
 **Title:** *When the Gradient Sees Rank: Provable Necessity, Causal Recruitment,
 and Exact Composition in Trained Matrix Memories*
@@ -231,15 +287,21 @@ exactly through 21-fold self-application in 4/5 seeds.
 disclosed in both briefs; an "ESCALATION-1" de-dup pass edited B1 to point at
 this paper as a companion rather than repeat its numbers. Confirm the venue
 permits two submissions from one group before submitting both.
-**Deadline:** as B1. **Re-verify.**
+**⚠ Deadline: AUG 24 2026 AoE — PASSED**, same as B1 and verified in the same
+2026-08-24 fetch. The dual-submission question that was open here is **answered**:
+NeurReps EA dual submission is **unrestricted**, so two submissions from one group
+was never the blocker — the clock was. **Confirm with Sam whether he submitted;
+otherwise re-home**, ideally alongside B1 since the de-dup pass made them a
+deliberate companion pair.
 **Build:** `make` → 3× tectonic. 7 pages. `make figures` needs
 `DRY_RUN_BYPASS=1` (the repo's pre-train hook pattern-matches `python3 …py`).
 **Completeness:** READY-AFTER-CHANGES with the change list dispositioned;
 detector DISCHARGED at round 1. 12 evidence rows (R1–R10 with R1b, R2b),
 including two documented in-row corrections against the base draft.
-**Next steps:** PI title stamp → 2026 CFP re-verify → swap the
-`anonymous.4open.science` placeholder for a real anonymized code snapshot
-(flagged non-blocking) → OpenReview.
+**Next steps:** confirm submitted-or-not with Sam → PI title stamp → re-home if
+not submitted → swap the `anonymous.4open.science` placeholder for a real
+anonymized code snapshot (flagged non-blocking) → OpenReview (a **PI action** —
+it needs Sam's account).
 
 ## B4. `papers/capacity-colm-er/` — SUBMISSION-READY, **deadline passed**
 
@@ -273,7 +335,8 @@ Detector round 1 was split (68% / 90%) and was signed off as
 *byte*, capacity is approximately conserved over the measured range. Both sides
 of that arithmetic are stated in the paper. Keep it that way.
 **Next steps:** **needs re-homing.** Options: a NeurIPS 2026 memory/efficiency
-workshop off the accepted list (Aug 29 clock), ICLR 2027 workshops, or arXiv-only.
+workshop off the 102-item accepted list (**verify each workshop's own deadline —
+several have already closed**), ICLR 2027 workshops, or arXiv-only.
 
 ## B5. `papers/mstar-colm-er/` — READY, **deadline passed**
 
@@ -374,8 +437,15 @@ Round-2 final review: SUBMISSION-READY. The brief carries an explicit
 claim dead for the re-verified readings, and discloses that waves 3–4 (46 of 366
 readings) were **not** independently re-verified — "an open item, not silently
 extended by analogy." Keep that disclosure.
-**Next steps:** **needs re-homing.** ICBINB (next instance ~Jan–Feb 2027) is the
-on-record backup and is a natural fit for a bounded null. Or arXiv-only.
+**⚠ Its backup venue is also gone.** Live-verified 2026-08-24
+(`EXPERIMENT_LOG.md` 2026-08-24 #3): **ICBINB 2026 pivoted to biology**, so the
+on-record backup for this paper is **invalid**. A carefully-bounded null now has
+no identified home at all.
+**Next steps:** **needs re-homing, from scratch.** Candidates to verify live: a
+NeurIPS 2026 workshop off the 102-item accepted list with a negative-results or
+science-of-DL angle; a future ICBINB instance if it returns to ML; or arXiv-only,
+which for a bounded null is a perfectly respectable outcome and takes the
+priority date now.
 
 ## B8. `papers/kwall/` — DRAFT, the least finished tree
 
@@ -570,14 +640,14 @@ trilogy — it is the clearest single statement of that arc in the repo.
 
 | # | Tree | Status | Venue of record | Next step |
 |---|---|---|---|---|
-| A1 | `papers/flagship/` | **LIVE**, 26pp, detector cap-hit | arXiv → ICLR 2027 (CFP unverified) | Rewrite; fix a 23pp-vs-9pp page budget; 6 open questions |
-| B1 | `papers/neurreps-ea/` | ACCEPT-READY | NeurReps 2026 EA | Re-verify CFP; OpenReview; **arXiv zip is built** |
-| B2 | `papers/unireps-ea/` | ACCEPT-READY | UniReps 2026 EA (`unireps.org/2026`) | Re-verify CFP; OpenReview; **arXiv zip is built** |
-| B3 | `papers/rank-recruitment-ws/` | READY | NeurReps 2026 EA (same venue as B1) | PI title stamp; CFP re-verify |
+| A1 | `papers/flagship/` | **LIVE**, 26pp, detector cap-hit; 1.31B third scale point landing | arXiv → ICLR 2027 (CFP unverified) | Rewrite; fix a 23pp-vs-9pp page budget; 6 open questions; hold the 1.31B tables for final harvest |
+| B1 | `papers/neurreps-ea/` | ACCEPT-READY | NeurReps 2026 EA — **closed Aug 24 AoE** | **Confirm with Sam whether submitted; else re-home.** arXiv zip is built |
+| B2 | `papers/unireps-ea/` | ACCEPT-READY | **UniReps 2026 does not exist** | **Re-home** (pair with B1 if B1 is also homeless). arXiv zip is built |
+| B3 | `papers/rank-recruitment-ws/` | READY | NeurReps 2026 EA — **closed Aug 24 AoE** | **Confirm with Sam whether submitted; else re-home.** PI title stamp |
 | B4 | `papers/capacity-colm-er/` | SUBMISSION-READY, zero TODOs | Efficient Reasoning @ COLM — **passed** | **Re-home** |
 | B5 | `papers/mstar-colm-er/` | READY, detector adjudicated | Efficient Reasoning @ COLM — **passed** | **Re-home** |
 | B6 | `papers/measurement-ws/` | SUBMISSION-READY | **NONE — never chosen** | **Pick a venue.** Best orphan in the set |
-| B7 | `papers/reasoning-null-moss/` | SUBMISSION-READY | MOSS @ COLM late window — **passed**, email never sent | **Re-home** (ICBINB is the on-record backup) |
+| B7 | `papers/reasoning-null-moss/` | SUBMISSION-READY | MOSS @ COLM late window — **passed**, email never sent | **Re-home from scratch** — the ICBINB backup died too (pivoted to biology) |
 | B8 | `papers/kwall/` | DRAFT, 13pp vs 4pp cap | MOSS @ COLM (stale) | Decide: cut to 4pp, absorb, or retire |
 | C1 | `matrix-thinking/submissions/icml-mi-workshop-2026/` | ✅ **PUBLISHED** | ICML 2026 MI Workshop | **arXiv (blocked on endorsement)**; reconcile author name |
 | C2 | `matrix-thinking/submissions/iclr-2027/` | FROZEN, ~85% done | ICLR 2027 — conflicts with A1 | **Settle absorb-vs-separate**; compile it (tectonic works now) |
@@ -606,8 +676,12 @@ Efficient Reasoning — allowed; papers 3+5 both to MOSS — allowed if capacity
 permits; all sibling carriers non-archival so none compromises ICLR
 eligibility). Two explicitly flagged open questions: the flagship/iclr-2027
 absorb decision, and paper 3's entire venue assignment. **And a 4-item refresh
-checklist for when the NeurIPS accepted-workshop list lands, which there is no
-record of anyone running.**
+checklist for when the NeurIPS accepted-workshop list lands.** Status as of
+2026-08-25: **the list has landed (102 accepted workshops) and was consulted
+once**, on 2026-08-24, but only to answer two targeted questions — it confirmed
+NeurReps' real Aug 24 deadline and established that UniReps is absent. **The full
+4-item refresh, and any end-to-end scan for re-homing candidates, remains
+unrun.**
 
 **`papers/SUBMISSION_PACKAGE.md`** (2026-07-10, 195 lines) — the submission
 dossier for **only** `neurreps-ea` and `unireps-ea`. Final titles (both
