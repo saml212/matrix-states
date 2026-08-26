@@ -255,6 +255,70 @@ def spec(job_id, k, recipe, seed, tier):
     }
 
 
+# ==========================================================================
+# 1B SEED THICKENING (PI 2026-08-23, six-day window). Seeds 3,4,5 at every
+# (K, recipe), taking the THIRD scale point to n=6 to match 98M and 392M.
+# SEPARATE entry point so it can never rewrite or renumber 0360-0393.
+# ==========================================================================
+THICKEN_SEEDS = (3, 4, 5)
+THICKEN_ID_START = 400
+OUT_THICKEN = os.path.join(_HERE, "job_specs_1b_thicken")
+
+
+def main_thicken() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--queue-ids", default=None)
+    args, _ = ap.parse_known_args([a for a in sys.argv[1:] if a != "thicken"])
+    os.makedirs(OUT_THICKEN, exist_ok=True)
+    written, n = [], THICKEN_ID_START
+    for k in SWEEP_K:                       # longest-first, sec 8.3
+        for recipe in ("primary", "compB"):
+            for seed in THICKEN_SEEDS:
+                sp = spec(f"{n:04d}_ncr_scaleaxis_1b_thicken_K{k}_{recipe}_s{seed}",
+                          k, recipe, seed, "sweep")
+                old = f"scaleaxis1310m_K{k}_{recipe}_s{seed}"
+                new = f"scaleaxis1310m_thicken_K{k}_{recipe}_s{seed}"
+                for f in ("cmd", "validity_check"):
+                    sp[f] = sp[f].replace(old, new)
+                sp["tier"] = "scaleaxis1b_thicken"
+                sp["scaleaxis1b"]["thickening"] = {
+                    "directive": "PI 2026-08-23 -- take the THIRD scale point to n=6, matching "
+                                 "98M and 392M",
+                    "takes_n_from": 3, "takes_n_to": 6,
+                    "within_K_pairs_from": 9, "within_K_pairs_to": 36,
+                    "sibling_seeds_of_record": [0, 1, 2],
+                    "changes_no_verdict": ("the 1B bands are the SAME bands, pinned before any "
+                                           "1B number existed; this wave adds precision. A "
+                                           "pinned verdict FLIPPING at n=6 is a FINDING with "
+                                           "its own entry, never a silent update."),
+                }
+                sp["notes"] = ("CANDIDATE -- NOT queue-eligible. 1B SEED-THICKENING (PI "
+                               "2026-08-23): byte-pattern-identical to the audited 1B sweep "
+                               "specs 0370-0393 modulo the seed integer, the id and the cell "
+                               "id. Same measured ceilings, same rung-3 assertions. Gated on "
+                               "the SAME LICENSE_SWEEP_1B sentinel as its n=3 siblings. "
+                               + sp["notes"])
+                written.append(sp)
+                n += 1
+    ids = [x["id"][:4] for x in written]
+    assert len(written) == 24 and ids == [f"{i:04d}" for i in range(THICKEN_ID_START,
+                                                                    THICKEN_ID_START + 24)], ids
+    if args.queue_ids:
+        existing = {ln.strip()[:4] for ln in open(args.queue_ids) if ln.strip()}
+        clash = sorted(set(ids) & existing)
+        assert not clash, f"ID COLLISION: {clash}"
+    for x in written:
+        with open(os.path.join(OUT_THICKEN, x["id"] + ".json"), "w") as f:
+            json.dump(x, f, indent=1)
+    tot = sum(x["gpu_h_estimate"] for x in written)
+    print(f"wrote {len(written)} CANDIDATE 1B thickening specs to {OUT_THICKEN} "
+          f"({ids[0]}-{ids[-1]})")
+    print(f"  MEASURED ledger: {tot:.2f} GPU-h  (per-cell mean {tot/24:.3f}); "
+          f"wall on 8 GPUs ~{tot/8:.1f} h")
+    print("QUEUE-ELIGIBLE: NO.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--queue-ids", default=None)
@@ -293,4 +357,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main_thicken() if "thicken" in sys.argv[1:] else main())
