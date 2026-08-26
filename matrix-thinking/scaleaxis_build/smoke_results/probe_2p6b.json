@@ -1,0 +1,22 @@
+{
+ "candidate": "d_model=3584 n_layers=24 d_state=128 (DERIVED; largest 2.6B-class candidate INSIDE the _MAX_N_LAYERS=24 guard)",
+ "backbone": {
+  "d_model": 3584,
+  "d_state": 128,
+  "n_layers": 24,
+  "conv_size": 4,
+  "num_heads": 1,
+  "ffn_mult": 4
+ },
+ "measured_params_per_arm": 2691191977,
+ "after_construction_gb": 43.34,
+ "oom_at_batch": [
+  32,
+  16,
+  8,
+  4
+ ],
+ "last_oom": "CUDA out of memory. Tried to allocate 196.00 MiB. GPU 0 has a total capacity of 79.18 GiB of which 168.19 MiB is free. Including non-PyTorch memory, this process has 79.01 GiB memory in use. Of the allocated memory 77.38",
+ "oom": true,
+ "verdict": "OOM AT EVERY BATCH DOWN TO 4"
+}
