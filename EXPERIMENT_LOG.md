@@ -12014,3 +12014,30 @@ curve's third point is now a sweep away.
 ## 2026-08-25 #4 — 1.31B BATTERY HARVEST (interim adjudication; scoring truth 20/22 + 2 calib — the 2 K=16 frozen gaps were OOM-vs-thickening contention, checkpoints intact, now queued to the agent's VRAM-gated opportunistic runner h1b2): **TEST-X PAIR 2 (392M→1.31B) READS NO-DETECTABLE-SHIFT ON CAPABILITY, 8- AND 6-STRATA AGREEING (T_X=31.5/72, p=0.49; 25.0/54)** — combined with pair 1 (#21), Ruling 2's requirement is met: **the scaling-law-to-13.4× sentence is SUPPORTED on the capability instrument** (aggregate rank statement; the claim lives on the frozen arm, medians 0.9918-0.9960 at every K at 1.31B). Trainable collapses at K≥32 (0/3 seeds over bar at both) — the moat's third point. **ATTRIBUTION ARM LICENSED AND STAGED with this commit** (K=40 trainable Δ_scale=−0.0561 crosses δ ⇒ SCALE-DEGRADES per the armed-conditional; specs 0430-0435 queue behind the thickening wave). RULING on the flagged K=32 gap ("inside δ but §6.1 gate fails" has no §6.2 label): recorded as INDETERMINATE-BY-DESIGN-GAP, counted NEITHER way; the arm's K=32 cells resolve it empirically — a fourth design gap for the record. DEFERRED per the agent's load-bearing caveat: Curve-1 per-K and TEST-W at 1.31B are NOT adjudicated until the two K=16 frozen cells score (the n=1 "frontier at K=16" and 3-pair-stratum artifacts are mechanical); the single K=16 wall excursion (0.1367, toehold-class) awaits its 31337 re-measure. Depth-side (Curves 5a/5b, TEST-W@11sq, TEST-X depth) PENDING — 1/24 depth-ext cells done, remainder unattended behind ~8h of thickening. Re-pin ruling granted-NOT-exercised (new sibling driver pins the scaleaxis parent directly; cleaner). Stray-log premise notes in the agent report predate the 9dcb6e8 migration — resolved.
 
 ## 2026-08-26 #1 — Election (b) SUPERSEDED by ruling WAIT after the eval agent corrected my cost basis (third coordinator pricing error of the campaign, each caught by agent verification: I priced the reservation against 392M thickening cells at 3.4 GPU-h; the running batch is 1.31B cells at ~14-15 GPU-h, first slot freeing ~13h out). Preemption REJECTED (discards real training; the calendar needs nothing it buys: depth tables land ~late Aug 26, attribution completes ~Aug 27, wire ~Aug 31). h1b3 reservation runner stands armed (verified against queue_worker.sh:107-112's own predicate, dual-leg 3 GiB hold, two-loss escalation, 30-min heartbeat); payload order: 2 battery gaps → K=16 wall re-measure → 24 depth-ext cells → RELEASE. My correction back: the 17 pending are the SMALLER thickening cells (longest-first put K=40/32 on the GPUs first), so the wave tracks the 269 GPU-h ledger. Deferred adjudications remain deferred until the manifest drains.
+
+## 2026-08-27 #1 — PRE-DATA RULING on the K=16/1.31B wall question + contention root-cause of record. The K=16 frozen s2 h=1 excursion SURVIVED its independent-draw re-measure (0.1367 → 0.1172, both over band-top 0.1079) — the FIRST excursion in the program to reproduce (all four prior, at both smaller scales, collapsed and were ruled outliers). The deciding cell (K16_primary_s0, the one unscored battery cell) is queued behind a busy box.
+
+**RULING (made NOW, before s0's score exists): "replicated across ≥2
+seeds" in §6.1 Curve 2 means TWO TRAINING SEEDS reading over band.
+A training seed reproducing under a second EVAL draw (what s2 just
+did) establishes that the excursion is ROBUST — not an eval-draw
+fluke — but does NOT constitute replication. Therefore: s0 over
+band ⇒ WALL-BREACHED-AT-K=16 at 1.31B (the §6.2
+WALL-SCALE-DEGRADES case — "a 13.4× model learns an h=1 toehold
+the smaller models could not," which the design marks as arguably
+its most publishable outcome and forbids reporting as a failure);
+s0 in band ⇒ WALL-HOLDS(K=16) WITH ONE ROBUST SINGLE-SEED
+EXCURSION, itself a reportable seed-level finding. Either way the
+result enters the record as pre-adjudicated by this entry.**
+
+Contention root-cause of record (agent's own diagnosis, against its
+own prior claim): the reservation predicate judged "free" from
+nvidia-smi alone, but workers CLAIM (claimed/<id>.g<N>.json) before
+they ALLOCATE — during that window a spoken-for GPU reads idle. The
+harvest reserved into that window on GPU 0; its 3.6+20.5 GiB
+co-residents OOM'd six thickening cells AND the K16_primary_s0
+scoring attempt — one cause, both symptom classes. Fixed
+claim-directory-first with 20s late-claim re-check and backoff
+(score_last_cell.sh, running). Six cells requeued and training;
+attribution arm 0430-0435 RUNNING; depth-ext verified complete
+24/24. FINAL_TABLES.txt (complete) follows the next free slot.
