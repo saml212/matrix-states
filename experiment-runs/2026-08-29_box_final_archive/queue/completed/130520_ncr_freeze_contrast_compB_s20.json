@@ -1,0 +1,10 @@
+{
+ "id": "130520_ncr_freeze_contrast_compB_s20",
+ "lane": "NCR",
+ "hypothesis": "FREEZE-CONTRAST BALANCE, trainable arm (final motivated seed wave). Brings compB to n=18 against the frozen arm's n=16 so the effect size is estimated on matched n. After this wave the seed-based program is COMPLETE: compA/primary are variance-saturated, compB's distribution is characterized (n=14 continuous, left-skewed), and further seeds would be padding rather than payload \u2014 a direction decision, not a scheduling one.",
+ "cmd": "mkdir -p /home/nvidia/ncr_g3b31_contrastive/results && cd /home/nvidia/ncr_g3b31_contrastive && /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --mode calibration --device cuda --cell-id mob_g3b31_compB_s20 --steps 20000 --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --aux-loss-type contrastive+cosine --contrastive-temperature 0.07 --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 6.0 --seed 20 --out results/mob_g3b31_compB_s20.json --ckpt-dir /ephemeral/reseed_ckpts/mob_g3b31_compB_s20_ckpts 2>&1 | tee -a results/mob_g3b31_compB_s20.log",
+ "gpu_h_estimate": 1.0,
+ "output_dir": "/home/nvidia/ncr_g3b31_contrastive/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_g3b31_contrastive/results/mob_g3b31_compB_s20.json')); assert d.get('status')=='COMPLETED', d.get('status'); assert d.get('step',0)>=20000\"",
+ "notes": "Coordinator-generated 2026-08-18 post-incident. Config-only on md5-pinned runner 9a93198b, checkpoints on /ephemeral per the new disk policy."
+}

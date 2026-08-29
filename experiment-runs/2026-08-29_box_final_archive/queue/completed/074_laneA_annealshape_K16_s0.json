@@ -1,0 +1,10 @@
+{
+ "id": "074_laneA_annealshape_K16_s0",
+ "lane": "A",
+ "hypothesis": "Q2 Probe B-16 (K=16, anneal_frac=0.75 vs the implicit 0.5 baseline, fixed 80K-step budget): does more supported-formation steps (60K vs 40K before alpha->0) improve K=16's write quality (baseline mean delta=0.1040), and is Q1's 1x->2x delta improvement substantially an anneal-length effect rather than a budget effect? Both directions are mechanistically live (more crutch-support vs fewer post-crutch consolidation steps, 20K vs 40K) -- either outcome is informative (NCR_NEXT_LEVER_DESIGN.md S1.2/S2.2, Q2(e)).",
+ "cmd": "cd /home/nvidia/ncr && /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell --K 16 --seed 0 --steps 80000 --outdir /home/nvidia/ncr/results_earlyln_annealshape --anneal-frac 0.75 --ceiling-gpuh 1.0 --stop-file /home/nvidia/ncr/results_earlyln_annealshape/STOP",
+ "gpu_h_estimate": 0.4263,
+ "output_dir": "/home/nvidia/ncr/results_earlyln_annealshape",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr/results_earlyln_annealshape/earlyln_K16_s0.json')); assert d.get('status')=='COMPLETED'; assert d.get('train',{}).get('step')==80000; assert 'eval' in d and d.get('blank_out',{}).get('passed') is True; assert d.get('anneal_frac')==0.75\"",
+ "notes": "MEASURED cost basis (S11.2's own K=16 80K 4-seed rate -- anneal_frac changes ONLY when the LN blend reaches 0, not the per-step LN-blend op count, so the SAME rate applies, NCR_NEXT_LEVER_DESIGN.md S2.2 -- an analytic prediction, not a measurement, hence the launch-order mitigation: the first Probe-B job released gets a T+10min live health check before the rest deploy. Ceiling 1.0 GPU-h/cell. Separate outdir (/home/nvidia/ncr/results_earlyln_annealshape) is REQUIRED: same (K,seed,steps) as the frac=0.5 baseline in results_earlyln_scale/ -- identical skip-if-COMPLETED collision hazard as every other probe this program has deployed. Validity check additionally asserts the record carries anneal_frac==0.75, per S5's own pinned validity-check addendum."
+}

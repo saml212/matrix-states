@@ -1,0 +1,10 @@
+{
+ "id": "101_laneA_main_K20_s1",
+ "lane": "A",
+ "hypothesis": "Does the earlyln recipe (S8.9's parameter-free inter-hop LayerNorm, train-only, eval always pure-matmul-exact) let K=20 (d=40, h=64) converge and compose exactly at far depth, extending S11's own K=14/15/16/24 result up the K axis, per the task's K-ladder charter?",
+ "cmd": "cd /home/nvidia/ncr && /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell --K 20 --seed 1 --steps 80000 --outdir /home/nvidia/ncr/results_earlyln_scale --ceiling-gpuh 1.0 --stop-file /home/nvidia/ncr/results_earlyln_scale/STOP",
+ "gpu_h_estimate": 0.413,
+ "output_dir": "/home/nvidia/ncr/results_earlyln_scale",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr/results_earlyln_scale/earlyln_K20_s1.json')); assert d.get('status')=='COMPLETED'; assert d.get('train',{}).get('step')==80000; assert 'eval' in d and d.get('blank_out',{}).get('passed') is True\"",
+ "notes": "formula-extrapolated GPU-h estimate; --ceiling-gpuh is 2x the estimate (floor 1.0h) as the real safety bound; resume-safe (the script's own whole-cell skip-if-COMPLETED)."
+}

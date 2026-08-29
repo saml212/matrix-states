@@ -1,0 +1,10 @@
+{
+ "id": "0987_ncr_g3b24_rebalance_aux05_s2",
+ "lane": "NCR",
+ "hypothesis": "NCR_REAL_LM_DESIGN.md §G3-B24: with aux read-supervision weight lowered 3.0→0.5 (ortho 0.1 kept, all else identical to §G3-B20), the CE/decode path — gradient-starved in B20/B22 while write-learning solved — trains to the gate's existing pre-registered Task-1 PASS bands with write-learning retained. Config-only change on the audited runner (md5 bf4878124b970c30235e52b0b52dd4d1); PI go 2026-07-24 discharged §G3-B22's PI's-call gate; recorded in registry BEFORE this dispatch (commit 8b022f3 (§G3-B25 robustness replicate)).",
+ "cmd": "mkdir -p /home/nvidia/ncr_g3b24_rebalance/results && cd /home/nvidia/ncr_g3b24_rebalance && /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --mode calibration --device cuda --cell-id mob_g3b24_s2 --steps 20000 --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 6.0 --seed 2 --out results/mob_g3b24_s2.json --ckpt-dir results/mob_g3b24_s2_ckpts 2>&1 | tee -a results/mob_g3b24_s2.log",
+ "gpu_h_estimate": 5.0,
+ "output_dir": "/home/nvidia/ncr_g3b24_rebalance/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_g3b24_rebalance/results/mob_g3b24_s2.json')); assert d.get('status')=='COMPLETED', d.get('status'); assert d.get('step',0)>=20000\"",
+ "notes": "Spearhead (NCR GATE-3) job — sorts ahead of laneB refill filler by id. B20 measured 5.0 GPU-h at identical config; ceiling 6.0 enforced in-process. Secondary non-gating check afterward: recovered_frac vs B20 + optional §G3-B23-style read-only Z-probe on final ckpt."
+}

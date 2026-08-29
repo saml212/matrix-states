@@ -1,0 +1,10 @@
+{
+ "id": "130226_ncr_premise_reseed_primary_s6",
+ "lane": "NCR",
+ "hypothesis": "RUNWAY / CI-extension cell (seed=6) for the premise-battery multi-seed arm on the audited primary recipe. n=5 (seeds 0-4) is the pre-registered science; seeds 5-6 tighten the CI and exist primarily as durable queue runway under the GPU-hot doctrine. If a higher-value audited payload becomes available, PREFER IT over these.",
+ "cmd": "mkdir -p /home/nvidia/ncr_g3b31_contrastive/results && cd /home/nvidia/ncr_g3b31_contrastive && /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --mode calibration --device cuda --cell-id mob_g3b31_primary_s6 --steps 20000 --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --aux-loss-type contrastive+cosine --freeze-entity-adapter --contrastive-temperature 0.07 --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 6.0 --seed 6 --out results/mob_g3b31_primary_s6.json --ckpt-dir results/mob_g3b31_primary_s6_ckpts 2>&1 | tee -a results/mob_g3b31_primary_s6.log",
+ "gpu_h_estimate": 5.2,
+ "output_dir": "/home/nvidia/ncr_g3b31_contrastive/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_g3b31_contrastive/results/mob_g3b31_primary_s6.json')); assert d.get('status')=='COMPLETED', d.get('status'); assert d.get('step',0)>=20000\"",
+ "notes": "Coordinator-generated 2026-08-17. Config-only on md5-pinned runner 9a93198b. Lives in fallback_pool/: gpu_hot_monitor.sh promotes these ONLY when the live queue is empty, so real payload always wins the GPU."
+}

@@ -1,0 +1,10 @@
+{
+ "id": "1122_laneB_392mY_ds64_per_token_wikitext-mix-ext_s40",
+ "lane": "B",
+ "hypothesis": "Durable-queue refill 2026-07-21 (GPU-hot doctrine): additional replicate seed 40 (wikitext-mix-ext) for rung Y d_state=64 per_token at the SAME config as 033/034 and the 706-723 laneB series (dm=1536, ds=64, L=16, per_token, lambda 0.58, 67,547 steps). PRIMARY purpose: maintain >=2-day on-box queue depth so the 8xH100 never idle if the coordinator compacts before the NCR steer lands. SECONDARY: marginal CI-tightening on the d_state=64 rung. Outcome-safe: config fixed/matched by construction; does NOT reopen the attribution verdict and does not depend on the T2a param-axis instrument.",
+ "cmd": "mkdir -p /data/fixscale_ckpts/train/fixscale_fulltoken_arm_per_token_392mY_ds64_wikitext-mix-ext_s40 /home/nvidia/chapter2/deltanet_rd/results/fixscale/train && cd /home/nvidia/chapter2/deltanet_rd && /home/nvidia/tdenv/bin/python3 lm_pretrain_rd.py --corpus wikitext-mix-ext --data-dir /data/deltanet_rd_data --d-model 1536 --d-state 64 --n-layers 16 --seq-len 512 --batch-size 32 --steps 67547 --ckpt-every 3377 --seed 40 --internal-timeout 86400 --frozen-bias-arm per_token --frozen-bias-lambda 0.58 --ckpt-dir /data/fixscale_ckpts/train/fixscale_fulltoken_arm_per_token_392mY_ds64_wikitext-mix-ext_s40 --out /home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_fulltoken_arm_per_token_392mY_ds64_wikitext-mix-ext_s40.json",
+ "gpu_h_estimate": 15.76,
+ "output_dir": "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_fulltoken_arm_per_token_392mY_ds64_wikitext-mix-ext_s40.json')); assert d.get('complete') is True; assert d.get('steps_completed', 0) >= 67547 - 1\"",
+ "notes": "COST rail identical to 033/034/718-series: 0.840 s/step upper bound x 67,547 steps = 15.76 GPU-h/cell; --internal-timeout 86400s = ~1.5x that bound. Insurance refill only; if the PI steers NCR/ship these can be cancelled (mv to cancelled/) without loss -- config redundant-but-valid."
+}

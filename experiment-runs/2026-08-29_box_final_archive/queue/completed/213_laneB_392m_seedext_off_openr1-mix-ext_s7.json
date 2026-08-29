@@ -1,0 +1,10 @@
+{
+ "id": "213_laneB_392m_seedext_off_openr1-mix-ext_s7",
+ "lane": "B",
+ "hypothesis": "Tightens the n=3->n=7 CI on FROZEN_BIAS_LM_DESIGN.md S13.22's 392M-openr1-mix-ext reading (arm=off) -- the 392M-openr1 cell was the wave's one NULL (CI includes zero, n=3); more seeds resolve whether that's a genuine null or an n=3 underpowered read, without re-opening the already-recorded verdict.",
+ "cmd": "mkdir -p /data/fixscale_ckpts/train/fixscale_seedext_arm_off_392m_openr1-mix-ext_s7 /home/nvidia/chapter2/deltanet_rd/results/fixscale/train && cd /home/nvidia/chapter2/deltanet_rd && /home/nvidia/tdenv/bin/python3 lm_pretrain_rd.py --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data --d-model 1536 --d-state 128 --n-layers 16 --seq-len 512 --batch-size 32 --steps 20000 --ckpt-every 1000 --seed 7 --internal-timeout 36000 --frozen-bias-arm off --ckpt-dir /data/fixscale_ckpts/train/fixscale_seedext_arm_off_392m_openr1-mix-ext_s7 --out /home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_seedext_arm_off_392m_openr1-mix-ext_s7.json",
+ "gpu_h_estimate": 4.671,
+ "output_dir": "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_seedext_arm_off_392m_openr1-mix-ext_s7.json')); assert d.get('complete') is True; assert d.get('steps_completed', 0) >= 20000 - 1\"",
+ "notes": "cost basis: S13.22's own measured 392M rate (ref_per_step_s=0.836, per_cell_gpuh=4.671, fixscale_wave.py:117-118). HIGH confidence (measured, not extrapolated). No compounding-resume (matches the project's own disclosed fixscale-resume precedent) -- a mid-cell crash restarts this cell from step 0."
+}
