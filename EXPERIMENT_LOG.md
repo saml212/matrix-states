@@ -12045,3 +12045,49 @@ attribution arm 0430-0435 RUNNING; depth-ext verified complete
 ## 2026-08-29 #1 — THE DECIDING CELL READ 0.1133 (> band 0.1079): **WALL-BREACHED-AT-K=16 AT 1.31B — WALL-SCALE-DEGRADES, per the pre-data ruling of 2026-08-27 #1.** Two training seeds over band (s0 0.1133; s2 0.1367/0.1172 across two eval draws) at h=1 only; the same s0 cell reads P1b 0.9961 — capability intact. The finding, stated as §6.2 requires (never as failure): **at 13.4× parameters the model begins to LEARN a faint one-hop write at the smallest breadth — a toehold neither smaller scale could form — while the deep-composition wall and the exact-write capability stand untouched.** This is the 98M K=12 toehold's scale-echo, now at K=16, strengthening the "the wall is about depth and breadth, not raw associability" story. FINAL_TABLES.txt COMPLETE (254 lines, 24/24 all four datasets): Curve 1 CAPABILITY-HOLDS at all four K at 1.31B (the K=16 frontier artifact resolved as predicted — n=3 frozen κ incl. 0.9961); **TEST-W at 1.31B: T=36/36 PERFECT AT BOTH READOUTS, LOSO 0/4 — ORDERING-SCALE-STRENGTHENS now visible even at h_top**; TEST-X capability no-detectable-shift (both conventions) — the 13.4× scaling law STANDS; trainable K=40 SCALE-DEGRADES + K=32 gate-fails case per the recorded gap ruling. Program queue fully drained (thickening 24/24, attribution 6/6 trained, 0 failed); attribution SCORING launched on the freed box; n=9 surplus wave dispatched to the builder. Verdict-of-record entry follows attribution scoring.
 
 ## 2026-08-29 #2 — GRANT-FINAL WAVE STAGED (n=9 at 1.31B: 0440-0463, all 24 cells, measured-only pricing 279.34 GPU-h, LPT makespan 36.45h vs 47.1h runway — 10.6h harvest margin; builder's own probe projection was 3.8% low vs measured, vindicating measured-only a fourth time). 7 GPUs claimed immediately, 17 pending, util 99%. ARCHIVE-PULL CORRECTION: DATA_MAP's "~1TB free SSD" is a 7× ERROR — 139 GiB free vs 2.4 TB of /ephemeral checkpoints; full pull impossible. ELECTED: Tier A (K=40 s0 both recipes at all three scales, 82 GB — re-probe capability at every curve point) + Tier B (the flagship-named cells: 392M K=32 compB s0 [V1 withdrawal], v2prime K=40 compB s0 [control of record], 98M K=16 pair [wall-breach stratum], +22.2 GB) + all trivial items (queue logs, 622 specs, result JSONs, 113 MB). Tier A rsync STARTED (background, --ignore-existing, resumable). 1.31B K=16 checkpoints do NOT fit — accepted: K=40 is the 1.31B checkpoint of record. Attribution scoring mid-run (interim: K=32 s1 at 40k reads 0.8945 — approaches, misses the 0.90 bar; if pattern holds, K=32's 392M budget-rescue does NOT repeat at 1.31B ⇒ architectural at scale). Eighteenth injection (wrong on its own fact vs the box clock), disregarded.
+
+## 2026-08-29 #3 — THE THREE-SCALE CHAPTER'S VERDICT OF RECORD. Every pre-registered test adjudicated, every gate discharged, all instruments FINAL_TABLES-complete (254 lines, 24/24 × 4 datasets).
+
+**1. THE SCALING LAW (the flagship headline):** exact-write
+capability is FLAT AT CEILING across 98M → 392M → 1.31B (13.4×) —
+CAPABILITY-HOLDS at all four K at every scale; both pairwise TEST-X
+capability readouts no-detectable-shift (both strata conventions);
+Ruling 2's requirement met. The claim lives on the frozen arm
+(1.31B medians 0.9918-0.9960).
+
+**2. THE ORDERING:** strengthens monotonically with scale to
+STATISTICAL PERFECTION at 1.31B — T=36/36 at BOTH readouts (h_top
+AND 11sq), LOSO 0/4. At 98M it needed depth-amplification to
+detect; at 1.31B it saturates the statistic at the standard
+operating point. ORDERING-SCALE-STRENGTHENS, final.
+
+**3. THE MOAT (trainable degradation), now three-layered:**
+(a) K=40 trainable SCALE-DEGRADES at both scale steps, doubled
+budget never rescues (392M V2′: 0.73/0.86; 1.31B: 0.63-0.74, 0/3);
+(b) K=32 trainable: TOKEN-BUDGET-LIMITED at 392M (rescued 2/2) but
+NOT at 1.31B (0.80/0.89/0.82, 0/3) — **the budget-rescue is itself
+scale-dependent**, the sharpest form of the architectural claim;
+(c) the §6.2 gate-fails boundary case resolved empirically by (b).
+
+**4. THE WALL:** absolute at depth at every scale — and BREACHED
+exactly where theory says scale should bite first: h=1 (single
+association) at the smallest breadth. 98M: K=12 toehold. 1.31B:
+WALL-BREACHED-AT-K=16 (two training seeds, one reproducing under
+an independent eval draw; pre-data ruling of 08-27 #1 governs).
+The wall is about DEPTH and BREADTH, not raw associability; scale
+climbs the easiest corner at ~1 breadth-step per ~4× params while
+the composition wall stands untouched (P0 in band at every deep
+hop at every scale, incl. all 40k-step attribution cells).
+
+**5. Depth tails, drift, breadth-vs-depth:** as pinned — frozen
+flat/both-flat everywhere; trainable breadth-driven with
+K-dependent drift; Curve 5b cross-scale degradations stand with
+their attribution discharged.
+
+Program totals for the scale program (both chapters' extensions
+included): ~176 trained cells + ~250 eval passes, 0 unrecovered
+training failures, ~800 GPU-h. Preservation: pipeline armed
+(token-gated), Tier-A SSD pull running, T1b manifest expansion
+(control checkpoints into tier 1) RATIFIED. The n=9 wave (24
+cells) trains to ~Aug 30 midday; its harvest updates TABLES to
+n=9 but no verdict above depends on it.
