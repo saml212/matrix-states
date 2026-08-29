@@ -319,6 +319,89 @@ def main_thicken() -> int:
     return 0
 
 
+# ==========================================================================
+# n=9 SURPLUS WAVE (PI 2026-08-29). Seeds 6,7,8, ids 0440-0463. Priced from the
+# MEASURED gpu_h of the n=6 thickening cells (0400-0423, 24/24 COMPLETED, 0
+# failures) -- NOT from the probe projection, and not from any estimate. The
+# three prior directives under-priced by 46%, 39% and 28%; measured-only from
+# here. Separate entry point so it cannot renumber 0400-0423.
+# ==========================================================================
+N9_SEEDS = (6, 7, 8)
+N9_ID_START = 440
+OUT_N9 = os.path.join(_HERE, "job_specs_1b_n9")
+# MEASURED means over the three n=6 seeds, per (K, recipe). Source:
+# /ephemeral/scaleaxis1b/results/*thicken*.json, read 2026-08-29.
+MEASURED_N6 = {(16, "compB"): 7.8129, (16, "primary"): 7.8150,
+               (24, "compB"): 10.0759, (24, "primary"): 10.0904,
+               (32, "compB"): 12.8763, (32, "primary"): 12.8930,
+               (40, "compB"): 15.7868, (40, "primary"): 15.7647}
+
+
+def main_n9() -> int:
+    import re as _re
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--queue-ids", default=None)
+    ap.add_argument("--only-k", default=None, help="comma list, e.g. 16,24 -- the runway cut")
+    args, _ = ap.parse_known_args([a for a in sys.argv[1:] if a != "n9"])
+    ks_allowed = ([int(x) for x in args.only_k.split(",")] if args.only_k else list(SWEEP_K))
+    os.makedirs(OUT_N9, exist_ok=True)
+    written, n = [], N9_ID_START
+    for k in SWEEP_K:                                   # longest-first (sec 8.3)
+        if k not in ks_allowed:
+            n += 6
+            continue
+        for recipe in ("primary", "compB"):
+            for seed in N9_SEEDS:
+                sp = spec(f"{n:04d}_ncr_scaleaxis_1b_n9_K{k}_{recipe}_s{seed}",
+                          k, recipe, seed, "sweep")
+                old = f"scaleaxis1310m_K{k}_{recipe}_s{seed}"
+                new = f"scaleaxis1310m_n9_K{k}_{recipe}_s{seed}"
+                for f in ("cmd", "validity_check"):
+                    sp[f] = sp[f].replace(old, new)
+                meas = MEASURED_N6[(k, recipe)]
+                ceil_v = round(CEILING_MULT * meas, 3)
+                sp["cmd"] = _re.sub(r"--ceiling-gpuh [0-9.]+", f"--ceiling-gpuh {ceil_v}", sp["cmd"])
+                sp["gpu_h_estimate"] = round(meas, 3)
+                sp["tier"] = "scaleaxis1b_n9"
+                sp["scaleaxis1b"]["gpu_h_estimate"] = round(meas, 3)
+                sp["scaleaxis1b"]["ceiling_gpuh"] = ceil_v
+                sp["scaleaxis1b"]["ceiling_provenance"] = (
+                    f"{CEILING_MULT} x the MEASURED mean gpu_h of this exact (K, recipe) cell "
+                    f"over the three n=6 thickening seeds ({meas:.4f} GPU-h, spread "
+                    f"<0.06 GPU-h) = {ceil_v}. Measured, not projected, not estimated.")
+                sp["scaleaxis1b"]["n9"] = {
+                    "directive": "PI 2026-08-29 -- the grant's last training payload",
+                    "takes_n_from": 6, "takes_n_to": 9,
+                    "within_K_pairs_from": 36, "within_K_pairs_to": 81,
+                    "sibling_seeds_of_record": [0, 1, 2, 3, 4, 5],
+                    "priced_from": "MEASURED gpu_h of cells 0400-0423 (24/24 COMPLETED)",
+                    "changes_no_verdict": ("same bands, pinned before any 1B number existed; "
+                                           "this wave adds precision only. A pinned verdict "
+                                           "FLIPPING at n=9 is a FINDING with its own entry."),
+                }
+                sp["notes"] = ("CANDIDATE -- NOT queue-eligible. 1B n=9 SURPLUS WAVE (PI "
+                               "2026-08-29), the grant's LAST TRAINING PAYLOAD. "
+                               "Byte-pattern-identical to the audited 0370-0393 / 0400-0423 "
+                               "specs modulo the seed integer, the id and the cell id; the "
+                               "ONLY other change is the ceiling, now priced from MEASURED "
+                               "sibling cost rather than the probe projection. " + sp["notes"])
+                written.append(sp)
+                n += 1
+    ids = [x["id"][:4] for x in written]
+    assert len(set(ids)) == len(ids)
+    if args.queue_ids:
+        ex = {l.strip()[:4] for l in open(args.queue_ids) if l.strip()}
+        cl = sorted(set(ids) & ex)
+        assert not cl, f"ID COLLISION: {cl}"
+    for x in written:
+        json.dump(x, open(os.path.join(OUT_N9, x["id"] + ".json"), "w"), indent=1)
+    tot = sum(x["gpu_h_estimate"] for x in written)
+    print(f"wrote {len(written)} CANDIDATE 1B n=9 specs to {OUT_N9} ({ids[0]}-{ids[-1]})")
+    print(f"  MEASURED ledger: {tot:.2f} GPU-h over {len(written)} cells")
+    print("QUEUE-ELIGIBLE: NO.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--queue-ids", default=None)
@@ -357,4 +440,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main_thicken() if "thicken" in sys.argv[1:] else main())
+    sys.exit(main_n9() if "n9" in sys.argv[1:] else
+             main_thicken() if "thicken" in sys.argv[1:] else main())
