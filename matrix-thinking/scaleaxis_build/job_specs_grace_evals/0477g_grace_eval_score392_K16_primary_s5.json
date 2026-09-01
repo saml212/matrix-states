@@ -1,0 +1,11 @@
+{
+ "id": "0477g_grace_eval_score392_K16_primary_s5",
+ "lane": "NCR",
+ "tier": "grace_evals",
+ "hypothesis": "Protocol-audit finding M3 (2026-09-01): the 392M K=16 thickening checkpoints (seeds 3-5, both recipes, trained Aug 24-25, status COMPLETED) were NEVER scored, so the cross-scale h=1 comparison for the K=16 wall-breach question is n=3 (392M) vs n=9+ (1.31B). This scores scaleaxis392m_thicken_K16_primary_s5 with the standard battery (base seed 90210, matched pools, tag convention of score_sweep392.sh) to bring the 392M reference to n=6. Eval-only, ~1 min.",
+ "cmd": "cd /home/nvidia/ncr_scaleaxis && NCR_SCALE=392m NCR_K=16 /home/nvidia/tdenv/bin/python3 kscaling_battery.py --k 16 --ckpt /ephemeral/scaleaxis/ckpts/scaleaxis392m_thicken_K16_primary_s5/scaleaxis392m_thicken_K16_primary_s5.ckpt.pt --cellcfg /ephemeral/scaleaxis/results/scaleaxis392m_thicken_K16_primary_s5.json --tag sweep_scaleaxis392m_thicken_K16_primary_s5",
+ "gpu_h_estimate": 0.02,
+ "output_dir": "/home/nvidia/ncr_scaleaxis/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_scaleaxis/results/sweep_scaleaxis392m_thicken_K16_primary_s5_kscaling.json')); assert d.get('base_seed')==90210, d.get('base_seed'); assert d.get('ckpt_seed')==5, d.get('ckpt_seed'); m=d['matched']; assert 'P0' in m and 'P1b' in m; assert m['P0']['per_hop'] and m['P1b']['per_hop']\"",
+ "notes": "Staged 2026-09-01 by the paper agent on the protocol auditor's M3 finding. Same invocation as score_sweep392.sh (NCR_SCALE=392m, tag sweep_<cell>), cell substituted. Descriptive only; changes no adjudicated verdict; feeds the K=16 h=1 across-scale table (98M/392M/1.31B) the flagship needs."
+}

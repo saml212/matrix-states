@@ -1,0 +1,11 @@
+{
+ "id": "0477c_grace_eval_remeasure1b_K16_primary_s7",
+ "lane": "NCR",
+ "tier": "grace_evals",
+ "hypothesis": "PRE-REGISTERED RE-MEASURE CLAUSE (KSCALING 7.2 / NCR_SCALE_AXIS 6.1 Curve 2): the K=16/1.31B frozen h=1 P0 excursion in scaleaxis1310m_n9_K16_primary_s7 (base seed 90210) is re-measured at base seed 31337 before it may be called a breach. Protocol-audit finding F2 (2026-09-01): three of five known K=16 excursions (s5 0.1211, s6 0.1211, s7 0.1133) and compB s6 (0.1172) never went through the clause, so the grace wave's breach-rate numerator is undefined on the existing n=9 until these run. Eval-only, ~1-2 min on a free GPU. Byte-identical to run_1b_reserved.sh payload 2/3 (the K16 s2 re-measure) with the cell substituted.",
+ "cmd": "cd /home/nvidia/ncr_scaleaxis && NCR_SCALE=1310m NCR_K=16 /home/nvidia/tdenv/bin/python3 kscaling_battery.py --k 16 --ckpt /ephemeral/scaleaxis1b/ckpts/scaleaxis1310m_n9_K16_primary_s7/scaleaxis1310m_n9_K16_primary_s7.ckpt.pt --cellcfg /ephemeral/scaleaxis1b/results/scaleaxis1310m_n9_K16_primary_s7.json --base-seed 31337 --tag remeasure1b_scaleaxis1310m_n9_K16_primary_s7",
+ "gpu_h_estimate": 0.03,
+ "output_dir": "/home/nvidia/ncr_scaleaxis/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_scaleaxis/results/remeasure1b_scaleaxis1310m_n9_K16_primary_s7_kscaling.json')); assert d.get('base_seed')==31337, d.get('base_seed'); assert d.get('ckpt_seed')==7, d.get('ckpt_seed'); m=d['matched']; assert 'P0' in m and 'P1b' in m; assert m['P0']['per_hop'] and m['P1b']['per_hop']\"",
+ "notes": "Staged 2026-09-01 by the paper agent on the protocol auditor's F2 finding, in the GPU gap between the grace primary and compB blocks (ids 0477a-j sort before 0478). Reads the checkpoint of record; writes a NEW tagged JSON; touches nothing else. Verdict rule: excursion collapses into band [0.0171,0.1079] => outlier; reproduces => breach counts toward the rate."
+}
