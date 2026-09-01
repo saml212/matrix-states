@@ -1,0 +1,10 @@
+{
+ "id": "130606_ncr_freezegen_compD_s6",
+ "lane": "NCR",
+ "hypothesis": "MISSING 2x2 ARM: TRAINABLE + cosine ('compD'). The freeze contrast (08-18 #5, p=1.38e-08) rests entirely on the CONTRASTIVE aux setting (primary vs compB). This arm supplies the fourth cell so the freeze axis can be tested at the COSINE setting against compA (FROZEN+cosine, n=6, already 0.996-1.000). Bands PRE-REGISTERED in EXPERIMENT_LOG 2026-08-18 #6, committed 53f074f BEFORE these cells existed: WIN = median <=0.90 and max <0.9844; NULL = median >=0.99 and min >=0.9844; PARTIAL = anything between. Built config-only from compA's audited CANDIDATE by REMOVING exactly one flag (--freeze-entity-adapter); asserted in the generator. NO VERDICT until the parallel audit of the pre-registration clears.",
+ "cmd": "mkdir -p /home/nvidia/ncr_g3b31_contrastive/results && cd /home/nvidia/ncr_g3b31_contrastive && /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --mode calibration --device cuda --cell-id mob_g3b31_compD_s6 --steps 20000 --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --aux-loss-type cosine --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 6.0 --seed 6 --out results/mob_g3b31_compD_s6.json --ckpt-dir /ephemeral/reseed_ckpts/mob_g3b31_compD_s6_ckpts 2>&1 | tee -a results/mob_g3b31_compD_s6.log",
+ "gpu_h_estimate": 1.0,
+ "output_dir": "/home/nvidia/ncr_g3b31_contrastive/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_g3b31_contrastive/results/mob_g3b31_compD_s6.json')); assert d.get('status')=='COMPLETED', d.get('status'); assert d.get('step',0)>=20000\"",
+ "notes": "Coordinator-generated 2026-08-18. Runner md5 9a93198b (unchanged). Checkpoints on /ephemeral per the post-incident disk policy."
+}

@@ -1,0 +1,410 @@
+{
+ "script": "depthext_eval.py",
+ "prereg": "EXPERIMENT_LOG.md 2026-08-22 #2 final block (commit 9bf2f40)",
+ "wrapper_rationale": "kscaling_battery.py md5 5735c788563d9a21f2198c9f5b4793d5 has a fixed hop grid and no custom-hop flag; this wrapper calls the SAME eval_arm_at_hops path with the same guards. Nothing audited modified.",
+ "cell": "DEPTHEXT_depthext6_attrib_attrib40k_K32_compB_s1",
+ "tag": "depthext6_attrib_attrib40k_K32_compB_s1",
+ "ckpt": "/ephemeral/scaleaxis/attribution/ckpts/attrib40k_K32_compB_s1/attrib40k_K32_compB_s1.ckpt.pt",
+ "K": 32,
+ "d_ncr": 33,
+ "ckpt_recorded_d_ncr": 33,
+ "scale": "392m",
+ "backbone_config_scored": {
+  "vocab_size": 50259,
+  "d_model": 1536,
+  "d_state": 128,
+  "n_layers": 16,
+  "conv_size": 4,
+  "num_heads": 1,
+  "ffn_mult": 4,
+  "qk_l2norm_in_kernel": true,
+  "gated_delta_active": false,
+  "geo3_active": false,
+  "geo3_k_sel": 16,
+  "geo3_chunk_size": 64,
+  "geo3_n_iter": 12,
+  "geo3_resid_tol": 0.01,
+  "geo3_selection_mode": "beta_topk",
+  "geo3_excluded_token_ids": [
+   50256
+  ],
+  "hard_select_active": false,
+  "hard_select_mechanism": "hard_ste",
+  "hard_select_k_sel": 32,
+  "hard_select_chunk_size": 64,
+  "hard_select_b_pinned": null,
+  "hard_select_seed": 0,
+  "hard_select_tau_total_steps": null,
+  "hard_select_tau_anneal_frac": 0.1,
+  "hard_select_excluded_token_ids": [
+   50256
+  ],
+  "frozen_bias_arm": "off",
+  "frozen_bias_lambda": 0.58,
+  "frozen_bias_vocab_size": null,
+  "frozen_bias_seed": 20260705
+ },
+ "kscaling": {
+  "K": 32,
+  "d_ncr": 33,
+  "d_equals_k_plus_1": true,
+  "chance": 0.03125,
+  "train_hops": [
+   1,
+   2,
+   3
+  ],
+  "deep_ladder": [
+   4,
+   8,
+   17,
+   18,
+   37,
+   48
+  ],
+  "deep_ladder_residues": [
+   4,
+   8,
+   17,
+   18,
+   5,
+   16
+  ],
+  "deep_ladder_n_squarings": [
+   2,
+   3,
+   4,
+   4,
+   5,
+   5
+  ],
+  "deep_ladder_n_applies": [
+   1,
+   1,
+   2,
+   2,
+   3,
+   2
+  ],
+  "h_top": 48,
+  "h_top_residue": 16,
+  "h_top_is_antipodal": true,
+  "fixed_dist_probe": 36,
+  "fixed_dist_probe_residue": 4,
+  "fixed_dist_probe_shares_residue_with_rung1": true,
+  "eval_hops": [
+   4,
+   8,
+   17,
+   18,
+   37,
+   48,
+   36
+  ],
+  "doc_len": 231,
+  "doc_left_pad": 0,
+  "t_in": 230,
+  "min_kernel_T": 128,
+  "ladder_rule": "6 rungs, squaring profile (2,3,4,4,5,5); h_top = min h in [32,63] with h==K/2 mod K",
+  "config_module": "kscaling_config.py",
+  "config_module_tree": "/home/nvidia/ncr_scaleaxis",
+  "scale": "392m",
+  "rung": 2,
+  "backbone": {
+   "d_model": 1536,
+   "d_state": 128,
+   "n_layers": 16,
+   "conv_size": 4,
+   "num_heads": 1,
+   "ffn_mult": 4
+  },
+  "backbone_param_target": 392000000,
+  "vocab_size": 50257,
+  "vocab_size_total": 50259,
+  "backbone_param_exact": 391872512,
+  "total_param_exact_per_arm": 392149153,
+  "min_kernel_T_measured_at_dstate": 64,
+  "min_kernel_T_validated_at_this_dstate": false,
+  "ncr_param_exact": 175265,
+  "integ_param_exact": 101376
+ },
+ "metric_of_record": "retrieval24_acc",
+ "metric_note": "historical name; argmax over exactly K slots, K-generic",
+ "chance": 0.03125,
+ "chance_sd_at_n": 0.010874539771152386,
+ "wall_band": [
+  0.0,
+  0.06387361931345716
+ ],
+ "wall_band_mult": 3.0,
+ "depth_ladder": [
+  36,
+  132,
+  516,
+  2052,
+  8196,
+  32772
+ ],
+ "squaring_profile": [
+  5,
+  7,
+  9,
+  11,
+  13,
+  15
+ ],
+ "ladder_diagnostics": {
+  "r_fix": 4,
+  "residues": [
+   4,
+   4,
+   4,
+   4,
+   4,
+   4
+  ],
+  "n_squarings": [
+   5,
+   7,
+   9,
+   11,
+   13,
+   15
+  ],
+  "n_applies": [
+   2,
+   2,
+   2,
+   2,
+   2,
+   2
+  ],
+  "effective_distance": 4,
+  "rung1_matches_fixed_dist_table": true,
+  "ladder_guard": "identity + train-residue legs of the pinned _assert_ladder_sound, PLUS single-residue enforcement. The kscaling pairwise-DISTINCTNESS leg is deliberately NOT applied: it is the breadth-ladder guard and asserts the negation of this fixed-distance construction (see kscaling_config's FIXED_DIST_PROBE docstring, same convention). DISCLOSED for adjudication."
+ },
+ "same_ground_truth_by_construction_per_K": true,
+ "same_ground_truth_label": "All rungs of this K share residue r_fix (mod K): IDENTICAL GROUND TRUTH BY CONSTRUCTION per K. Spread across rungs is numerical squaring-depth cost, not compositional information.",
+ "n": 256,
+ "base_seed": 90210,
+ "ckpt_step": 40000,
+ "ckpt_seed": 1,
+ "ckpt_seed_source": "checkpoint",
+ "pool_seed": 1,
+ "pools_matched": true,
+ "ckpt_cell_id": "attrib40k_K32_compB_s1",
+ "runner_tag": "ncr_scaleaxis_runner_v1",
+ "anchor_runner_tag_override": null,
+ "freeze_entity_adapter": false,
+ "freeze_flag_source": "checkpoint",
+ "recipe": "TRAINABLE-contrastive (compB)",
+ "cell_config": {
+  "cfg_aux_loss_type": "contrastive+cosine",
+  "cfg_freeze_entity_adapter": false,
+  "cfg_seed": 1,
+  "cfg_K": 32,
+  "cfg_d_ncr": 33,
+  "cfg_status": "COMPLETED",
+  "cfg_step": 40000
+ },
+ "matched": {
+  "P1b": {
+   "regime": "P1b",
+   "teacher_force": true,
+   "hops": [
+    36,
+    132,
+    516,
+    2052,
+    8196,
+    32772
+   ],
+   "regime_meaning": "EXACT-WRITE (operator teacher-forced from the true binding); the READ is under test -- CAPABILITY curve",
+   "note": null,
+   "elapsed_s": 7.375238656997681,
+   "per_hop": {
+    "h=36": {
+     "h": 36,
+     "residue": 4,
+     "n_squarings": 5,
+     "n_applies": 2,
+     "acc": 0.91015625,
+     "margin_over_chance": 0.87890625,
+     "within_chance_3sd": false
+    },
+    "h=132": {
+     "h": 132,
+     "residue": 4,
+     "n_squarings": 7,
+     "n_applies": 2,
+     "acc": 0.859375,
+     "margin_over_chance": 0.828125,
+     "within_chance_3sd": false
+    },
+    "h=516": {
+     "h": 516,
+     "residue": 4,
+     "n_squarings": 9,
+     "n_applies": 2,
+     "acc": 0.53515625,
+     "margin_over_chance": 0.50390625,
+     "within_chance_3sd": false
+    },
+    "h=2052": {
+     "h": 2052,
+     "residue": 4,
+     "n_squarings": 11,
+     "n_applies": 2,
+     "acc": 0.2265625,
+     "margin_over_chance": 0.1953125,
+     "within_chance_3sd": false
+    },
+    "h=8196": {
+     "h": 8196,
+     "residue": 4,
+     "n_squarings": 13,
+     "n_applies": 2,
+     "acc": 0.05859375,
+     "margin_over_chance": 0.02734375,
+     "within_chance_3sd": true
+    },
+    "h=32772": {
+     "h": 32772,
+     "residue": 4,
+     "n_squarings": 15,
+     "n_applies": 2,
+     "acc": 0.04296875,
+     "margin_over_chance": 0.01171875,
+     "within_chance_3sd": true
+    }
+   },
+   "result": {
+    "h=36": {
+     "recovered_frac@0.9": 0.9375,
+     "mean_cos": 0.9557899236679077,
+     "answer_accuracy": 0.02734375,
+     "n": 256,
+     "offtarget_margin": 0.34062957763671875,
+     "retrieval24_acc": 0.91015625,
+     "o_pairwise_cos": 0.5933116674423218,
+     "target_pairwise_cos": 0.6531189680099487
+    },
+    "h=132": {
+     "recovered_frac@0.9": 0.92578125,
+     "mean_cos": 0.9330896735191345,
+     "answer_accuracy": 0.02734375,
+     "n": 256,
+     "offtarget_margin": 0.31832993030548096,
+     "retrieval24_acc": 0.859375,
+     "o_pairwise_cos": 0.585525393486023,
+     "target_pairwise_cos": 0.6416507363319397
+    },
+    "h=516": {
+     "recovered_frac@0.9": 0.70703125,
+     "mean_cos": 0.7744179368019104,
+     "answer_accuracy": 0.03125,
+     "n": 256,
+     "offtarget_margin": 0.24852389097213745,
+     "retrieval24_acc": 0.53515625,
+     "o_pairwise_cos": 0.42804351449012756,
+     "target_pairwise_cos": 0.6421637535095215
+    },
+    "h=2052": {
+     "recovered_frac@0.9": 0.36328125,
+     "mean_cos": 0.586350679397583,
+     "answer_accuracy": 0.03125,
+     "n": 256,
+     "offtarget_margin": 0.19183295965194702,
+     "retrieval24_acc": 0.2265625,
+     "o_pairwise_cos": 0.24214410781860352,
+     "target_pairwise_cos": 0.6456362009048462
+    },
+    "h=8196": {
+     "recovered_frac@0.9": 0.0703125,
+     "mean_cos": 0.23121297359466553,
+     "answer_accuracy": 0.0390625,
+     "n": 256,
+     "offtarget_margin": 0.05908118188381195,
+     "retrieval24_acc": 0.05859375,
+     "o_pairwise_cos": 0.05058536306023598,
+     "target_pairwise_cos": 0.6509513854980469
+    },
+    "h=32772": {
+     "recovered_frac@0.9": 0.0234375,
+     "mean_cos": 0.10211864113807678,
+     "answer_accuracy": 0.01171875,
+     "n": 256,
+     "offtarget_margin": -0.003194950520992279,
+     "retrieval24_acc": 0.04296875,
+     "o_pairwise_cos": 0.013576093129813671,
+     "target_pairwise_cos": 0.6479525566101074
+    },
+    "mean_recovered_frac@0.9": 0.5045572916666666,
+    "mean_mean_cos": 0.5971633046865463,
+    "mean_answer_accuracy": 0.027994791666666668,
+    "mean_offtarget_margin": 0.19253376498818398,
+    "mean_retrieval24_acc": 0.4388020833333333
+   }
+  },
+  "P0": {
+   "regime": "P0",
+   "teacher_force": false,
+   "hops": [
+    32772
+   ],
+   "regime_meaning": "LEARNED-WRITE (model's own encoder writes) -- WALL curve, chance = 1/K = 0.0312",
+   "note": "deepest rung only (15 squarings, h=32772); the #2 cost cap carried to the extended profile. NOTE: the archived four-rung 98M wave ran P0 at 11 squarings, so this P0 reading is NOT comparable to it -- P1b is what the cross-scale tests read.",
+   "elapsed_s": 1.380769968032837,
+   "per_hop": {
+    "h=32772": {
+     "h": 32772,
+     "residue": 4,
+     "n_squarings": 15,
+     "n_applies": 2,
+     "acc": 0.01953125,
+     "margin_over_chance": -0.01171875,
+     "within_chance_3sd": true
+    }
+   },
+   "result": {
+    "h=32772": {
+     "recovered_frac@0.9": 0.0,
+     "mean_cos": 0.4523436725139618,
+     "answer_accuracy": 0.015625,
+     "n": 256,
+     "offtarget_margin": -9.950995445251465e-05,
+     "retrieval24_acc": 0.01953125,
+     "o_pairwise_cos": 0.964851975440979,
+     "target_pairwise_cos": 0.6499355435371399
+    },
+    "mean_recovered_frac@0.9": 0.0,
+    "mean_mean_cos": 0.4523436725139618,
+    "mean_answer_accuracy": 0.015625,
+    "mean_offtarget_margin": -9.950995445251465e-05,
+    "mean_retrieval24_acc": 0.01953125
+   }
+  }
+ },
+ "elapsed_s": 21.109447479248047,
+ "self_check_defects": [],
+ "self_check": "PASS",
+ "driver": {
+  "driver": "depthext6_392m_driver.py",
+  "parent": "depthext_eval.py (scale-axis tree, B5 scale guard)",
+  "parent_md5": "e48eca7142382b20a4b467711c872ae5",
+  "parent_unmodified": true,
+  "scale": "392m",
+  "squaring_profile_requested": [
+   5,
+   7,
+   9,
+   11,
+   13,
+   15
+  ],
+  "archived_profile_is_prefix": true,
+  "ladder_matches_design_4_6_1_table": true,
+  "prereg": "NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 sec 4.6 Stage C + sec 4.6.1 ladder table",
+  "only_field_modified_post_hoc": "matched.P0.note (a label, not a number)"
+ }
+}

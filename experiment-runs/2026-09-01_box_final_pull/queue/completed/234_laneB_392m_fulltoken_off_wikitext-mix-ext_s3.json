@@ -1,0 +1,10 @@
+{
+ "id": "234_laneB_392m_fulltoken_off_wikitext-mix-ext_s3",
+ "lane": "B",
+ "hypothesis": "S13.11 item 8's own disclosed gap: does the 392M-wikitext-mix-ext reading (arm=off) change under a FULL, token-matched budget (67,547 steps, same 1.108B tokens as 98M's own full cells) instead of the reduced 20,000-step convention the CLOSED wave used? A single new seed, not a full n=3 -- purely descriptive/exploratory, does not reopen S13.22's verdict of record.",
+ "cmd": "mkdir -p /data/fixscale_ckpts/train/fixscale_fulltoken_arm_off_392m_wikitext-mix-ext_s3 /home/nvidia/chapter2/deltanet_rd/results/fixscale/train && cd /home/nvidia/chapter2/deltanet_rd && /home/nvidia/tdenv/bin/python3 lm_pretrain_rd.py --corpus wikitext-mix-ext --data-dir /data/deltanet_rd_data --d-model 1536 --d-state 128 --n-layers 16 --seq-len 512 --batch-size 32 --steps 67547 --ckpt-every 3377 --seed 3 --internal-timeout 72000 --frozen-bias-arm off --ckpt-dir /data/fixscale_ckpts/train/fixscale_fulltoken_arm_off_392m_wikitext-mix-ext_s3 --out /home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_fulltoken_arm_off_392m_wikitext-mix-ext_s3.json",
+ "gpu_h_estimate": 15.69,
+ "output_dir": "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_fulltoken_arm_off_392m_wikitext-mix-ext_s3.json')); assert d.get('complete') is True; assert d.get('steps_completed', 0) >= 67547 - 1\"",
+ "notes": "cost basis: 0.836 s/step (S13.22's own measured 392M rate) x 67,547 steps = 15.69 GPU-h. HIGH confidence on the rate; the step count is a deliberate choice (98M's own full-budget step count), not itself previously measured at 392M -- moderate confidence overall, disclosed. --internal-timeout raised to 72000s (20.0h) above the 15.69h estimate (audit fix, MAJOR M1: the _fixscale_cell default 36000s=10h guaranteed a timeout)."
+}

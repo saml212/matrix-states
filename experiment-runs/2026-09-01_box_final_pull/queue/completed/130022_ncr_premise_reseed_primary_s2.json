@@ -1,0 +1,10 @@
+{
+ "id": "130022_ncr_premise_reseed_primary_s2",
+ "lane": "NCR",
+ "hypothesis": "PREMISE-BATTERY MULTI-SEED REPLICATION (pre-registered in the 2026-08-13 harvest record: 'a multi-seed arm belongs to the follow-on wave'). Config-only reseed (seed=2) of the audited primary recipe on the md5-pinned runner 9a93198b. Purpose: give the AC=00/BD=11 finding (SGD write reads chance at every hop; exact-write substitution reads 0.977-1.0 at h=61) a multi-seed CI for the flagship claim. Fresh checkpoints are then scored with the SAME audited premise-battery instrument (pbe_repl).",
+ "cmd": "mkdir -p /home/nvidia/ncr_g3b31_contrastive/results && cd /home/nvidia/ncr_g3b31_contrastive && /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --mode calibration --device cuda --cell-id mob_g3b31_primary_s2 --steps 20000 --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --aux-loss-type contrastive+cosine --freeze-entity-adapter --contrastive-temperature 0.07 --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 6.0 --seed 2 --out results/mob_g3b31_primary_s2.json --ckpt-dir results/mob_g3b31_primary_s2_ckpts 2>&1 | tee -a results/mob_g3b31_primary_s2.log",
+ "gpu_h_estimate": 5.2,
+ "output_dir": "/home/nvidia/ncr_g3b31_contrastive/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_g3b31_contrastive/results/mob_g3b31_primary_s2.json')); assert d.get('status')=='COMPLETED', d.get('status'); assert d.get('step',0)>=20000\"",
+ "notes": "Coordinator-generated 2026-08-17 from 0992_ncr_g3b31_primary_s0.json.CANDIDATE (audited CANDIDATE). Config-only: cell-id + seed + output paths. No code change, no flag change. Runner md5 9a93198b642242f512ff8489e32b0a53 (verified on box)."
+}

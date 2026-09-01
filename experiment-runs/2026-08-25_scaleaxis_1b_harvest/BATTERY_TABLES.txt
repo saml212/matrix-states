@@ -1,0 +1,79 @@
+1310M battery cells 22/24 | 392M reference 24/24
+MISSING 1310M cells: ['K16_primary_s0', 'K16_primary_s1']
+all step 20000: True | self_check PASS: True
+
+====================================================================================================
+CURVE 1 -- CAPABILITY at h_top, 1.31B. Bar: kappa>=0.90 on >=2/3 seeds
+====================================================================================================
+  K  h_top                     frozen kappa      med    ok                    trainable kappa      med    ok
+ 16     40                         [0.9958]   0.9958   1/1           [0.9875, 0.9917, 0.9958]   0.9917   3/3
+ 24     36            [0.9878, 0.9918, 1.0]   0.9918   3/3           [0.9755, 0.9796, 0.9837]   0.9796   3/3
+ 32     48             [0.9798, 0.996, 1.0]   0.9960   3/3            [0.8065, 0.8427, 0.875]   0.8427   0/3
+ 40     60            [0.992, 0.992, 0.996]   0.9920   3/3           [0.7476, 0.7877, 0.8438]   0.7877   0/3
+
+CURVE 1: FRONTIER-AT-K=16
+
+====================================================================================================
+CURVE 4 -- BREADTH-vs-DEPTH (h_fix control) at 1.31B
+====================================================================================================
+  K  h_fix  frozen hfix  trainable hfix
+ 16     36       0.9917          0.9875
+ 24     52       0.9959          0.9552
+ 32     36       0.9960          0.8992
+ 40     44       0.9920          0.8558
+frozen   : hfix range 0.0043, htop range 0.0041 -> BOTH-FLAT
+trainable: hfix range 0.1317, htop range 0.2040 -> BREADTH-DRIVEN
+
+====================================================================================================
+CURVE 2 -- WALL at 1.31B (10 hops x cells per K)
+====================================================================================================
+K=16 band=[0.0171,0.1079] n= 40 max=0.1367 above=1  [('frozen', 2, 1, 'train', 0.1367)]
+K=24 band=[0.0042,0.0791] n= 60 max=0.0703 above=0  
+K=32 band=[0.0000,0.0639] n= 60 max=0.0508 above=0  
+K=40 band=[0.0000,0.0543] n= 60 max=0.0430 above=0  
+
+====================================================================================================
+TEST-W -- within-1310M freeze ordering @ h_top, 4 strata
+====================================================================================================
+     K       16       24       32       40        T
+ 1310M      2.5      9.0      9.0      9.0     29.5
+  392M      9.0      9.0      9.0      9.0     36.0
+
+4-strata exact bar T>=30; partition (design 5.3.1): CONFIRMED needs T>31.5 AND LOSO clears >=3/4
+   drop K=16: T= 27.0/27 clears (bar 24)
+   drop K=24: T= 20.5/27 FAILS (bar 24)
+   drop K=32: T= 20.5/27 FAILS (bar 24)
+   drop K=40: T= 20.5/27 FAILS (bar 24)
+TEST-W @h_top VERDICT: ORDERING-INDETERMINATE-AT-4-STRATA   (T=29.5/36, LOSO failures 3/4)
+
+====================================================================================================
+TEST-X pairwise (392M vs 1.31B) -- Curve 1 @ h_top, 8 strata, bars >=53 / <=19
+====================================================================================================
+  K     recipe                  1310M kappa                   392M kappa    U/9  ties
+ 16     frozen                     [0.9958]              [1.0, 1.0, 1.0]    0.0     0
+ 16  trainable     [0.9875, 0.9917, 0.9958]     [0.9708, 0.9792, 0.9917]    7.5     1
+ 24     frozen        [0.9878, 0.9918, 1.0]     [0.9959, 0.9959, 0.9959]    3.0     0
+ 24  trainable     [0.9755, 0.9796, 0.9837]     [0.9674, 0.9837, 0.9878]    3.5     1
+ 32     frozen         [0.9798, 0.996, 1.0]      [0.9839, 0.9879, 0.996]    5.5     1
+ 32  trainable      [0.8065, 0.8427, 0.875]      [0.8065, 0.875, 0.9516]    3.0     2
+ 40     frozen        [0.992, 0.992, 0.996]        [0.988, 0.988, 0.996]    6.5     1
+ 40  trainable     [0.7476, 0.7877, 0.8438]     [0.7596, 0.8438, 0.8798]    2.5     1
+
+T_X = 31.5/72 -> no detectable directional shift; exact two-sided p=4.907e-01; ties 7/72
+6-strata sensitivity (drop K=24): T=25.0/54 -> no detectable directional shift   AGREES
+
+====================================================================================================
+SEC 6.2 per-K per-recipe Delta_scale, Curve 1 @ h_top, delta=0.05  [ATTRIBUTION LICENSE INPUT]
+====================================================================================================
+  K     recipe  1310M med   392M med    D_scale          verdict  cap gate
+ 16     frozen     0.9958     1.0000    -0.0042     SCALE-STABLE        ok
+ 16  trainable     0.9917     0.9792    +0.0125     SCALE-STABLE        ok
+ 24     frozen     0.9918     0.9959    -0.0041     SCALE-STABLE        ok
+ 24  trainable     0.9796     0.9837    -0.0041     SCALE-STABLE        ok
+ 32     frozen     0.9960     0.9879    +0.0081     SCALE-STABLE        ok
+ 32  trainable     0.8427     0.8750    -0.0323 STABLE*(gate fails)      FAIL
+ 40     frozen     0.9920     0.9880    +0.0040     SCALE-STABLE        ok
+ 40  trainable     0.7877     0.8438    -0.0561   SCALE-DEGRADES      FAIL
+
+Trainable SCALE-DEGRADES at K = [40]
+ATTRIBUTION ARM (0430-0435) LICENSE: TRIGGERED -- armed-conditional per scaleaxis_build log 2026-08-25 #2

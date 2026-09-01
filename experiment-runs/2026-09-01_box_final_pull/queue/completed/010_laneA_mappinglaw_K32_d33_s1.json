@@ -1,0 +1,10 @@
+{
+ "id": "010_laneA_mappinglaw_K32_d33_s1",
+ "lane": "A",
+ "hypothesis": "Q1 WAVE-1 (K=32@d=33, ratio K+1): does K=32 converge/compose at this spare-convention, extending Probe A's own K=16/K=24 tight-spare win one K rung further, against K=32's own ALREADY-MEASURED d=2K=64 reference (0/4 DEAD, mean delta 0.803-1.05)? Feeds S1.6's REOPENS/CONVERGES-ONLY/CLOSED-AT-THIS-K verdict map and the mechanical optimal-d(K) ranking (NCR_MAPPING_LAW_DESIGN.md S1.2/S1.6).",
+ "cmd": "cd /home/nvidia/ncr && /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell --K 32 --seed 1 --steps 80000 --outdir /home/nvidia/ncr/results_earlyln_dratio --d-override 33 --ceiling-gpuh 1.0 --stop-file /home/nvidia/ncr/results_earlyln_dratio/STOP",
+ "gpu_h_estimate": 0.443,
+ "output_dir": "/home/nvidia/ncr/results_earlyln_dratio",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr/results_earlyln_dratio/earlyln_K32_s1.json')); assert d.get('status')=='COMPLETED'; assert d.get('train',{}).get('step')==80000; assert 'eval' in d and d.get('blank_out',{}).get('passed') is True; assert d.get('d')==33\"",
+ "notes": "Planning-rate cost basis (S1.4, measured-basis interpolation from K32's own real d=2K=64 rate 0.4795 GPU-h/cell, S0): d=K+1 priced ~7.6% below the 2K anchor (the twice-replicated K16/K24 discount), 1.25K/1.5K priced at the anchor rate (conservative, disclosed interpolation not a measurement). Ceiling 1.0 GPU-h/cell (S1.5: 2.0x planning rate, floor 1.0 -- floor binds for every K32 arm). Outdir shared with the existing K16/K24 d=K+1 Probe-A records -- zero-collision, K32 is a new (K,seed) key there. Validity check additionally asserts the record's own 'd' field equals the override (33), per S5's own pinned validity-check addendum."
+}

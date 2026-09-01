@@ -1,0 +1,10 @@
+{
+ "id": "450_laneC_deepen_K20_s6",
+ "lane": "C",
+ "hypothesis": "Regate-2026-07-12 refill: K=20 is the one rung \u00a711.2 leaves genuinely open (the K-scaling ladder was pinned at K in {14,15,16,24}; K=20 has never been measured under earlyln). Deepens n=6->n=8 on the SAME already-registered cell -- house fallback, not new science.",
+ "cmd": "cd /home/nvidia/ncr && /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell --K 20 --seed 6 --steps 80000 --outdir /home/nvidia/ncr/results_earlyln_scale --ceiling-gpuh 1.0 --stop-file /home/nvidia/ncr/results_earlyln_scale/STOP",
+ "gpu_h_estimate": 0.413,
+ "output_dir": "/home/nvidia/ncr/results_earlyln_scale",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr/results_earlyln_scale/earlyln_K20_s6.json')); assert d.get('status')=='COMPLETED'; assert d.get('train',{}).get('step')==80000; assert 'eval' in d and d.get('blank_out',{}).get('passed') is True\"",
+ "notes": "same formula-extrapolated estimate + ceiling convention as Lane A/C."
+}

@@ -1,0 +1,10 @@
+{
+ "id": "130104_ncr_premise_reseed_compA_s4",
+ "lane": "NCR",
+ "hypothesis": "PREMISE-BATTERY MULTI-SEED REPLICATION wave 2 (seeds 3-4; with wave 1's seeds 1-2 and the original s0 this gives n=5 per recipe). Config-only reseed (seed=4) of the audited compA recipe on md5-pinned runner 9a93198b, for the flagship's multi-seed CI on the AC=00/BD=11 premise finding.",
+ "cmd": "mkdir -p /home/nvidia/ncr_g3b31_contrastive/results && cd /home/nvidia/ncr_g3b31_contrastive && /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --mode calibration --device cuda --cell-id mob_g3b31_compA_s4 --steps 20000 --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --aux-loss-type cosine --freeze-entity-adapter --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 6.0 --seed 4 --out results/mob_g3b31_compA_s4.json --ckpt-dir results/mob_g3b31_compA_s4_ckpts 2>&1 | tee -a results/mob_g3b31_compA_s4.log",
+ "gpu_h_estimate": 5.2,
+ "output_dir": "/home/nvidia/ncr_g3b31_contrastive/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_g3b31_contrastive/results/mob_g3b31_compA_s4.json')); assert d.get('status')=='COMPLETED', d.get('status'); assert d.get('step',0)>=20000\"",
+ "notes": "Coordinator-generated 2026-08-17, config-only from the audited CANDIDATE (cell-id + seed + paths only). Serves as durable queue runway per the GPU-hot doctrine."
+}

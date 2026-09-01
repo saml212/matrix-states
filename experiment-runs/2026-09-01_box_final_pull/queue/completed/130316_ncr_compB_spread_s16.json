@@ -1,0 +1,10 @@
+{
+ "id": "130316_ncr_compB_spread_s16",
+ "lane": "NCR",
+ "hypothesis": "compB DEPTH-SPREAD CHARACTERIZATION. The 2026-08-18 multi-seed harvest found the compB arm (TRAINABLE entity adapter) reads P1b@h=61 = 0.6484/0.6172/0.9531/0.8516 across s1-s4, vs 0.9961-1.0000 for every compA and primary seed -- a real arm-level spread the single-seed run hid. This wave extends compB ONLY (n=4 fresh -> n=14) to characterize that distribution: is the low end a tail or a second mode? The flagship must report compB's spread rather than a pooled number, so the distribution's shape is a reporting input, not a new claim. Scored afterwards with the SAME unmodified audited instrument (pbe_repl, seed 90210, n=256).",
+ "cmd": "mkdir -p /home/nvidia/ncr_g3b31_contrastive/results && cd /home/nvidia/ncr_g3b31_contrastive && /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --mode calibration --device cuda --cell-id mob_g3b31_compB_s16 --steps 20000 --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --aux-loss-type contrastive+cosine --contrastive-temperature 0.07 --ckpt-every 10000 --eval-every 1000 --ceiling-gpuh 6.0 --seed 16 --out results/mob_g3b31_compB_s16.json --ckpt-dir /ephemeral/reseed_ckpts/mob_g3b31_compB_s16_ckpts 2>&1 | tee -a results/mob_g3b31_compB_s16.log",
+ "gpu_h_estimate": 1.0,
+ "output_dir": "/home/nvidia/ncr_g3b31_contrastive/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_g3b31_contrastive/results/mob_g3b31_compB_s16.json')); assert d.get('status')=='COMPLETED', d.get('status'); assert d.get('step',0)>=20000\"",
+ "notes": "Coordinator-generated 2026-08-18. Config-only (cell-id + seed + paths) on md5-pinned runner 9a93198b. Chosen OVER further uniform reseeding: compA/primary are already tight (0.996-1.000, n=4 each) so extra seeds there buy nothing; compB is the variable arm. || REQUEUED 2026-08-18 after the root filesystem hit 100% mid-wave (torch.save iostream error at the step-10000 checkpoint). Checkpoints now write to /ephemeral (5.7T free); results JSON stays on root (small)."
+}
