@@ -5358,3 +5358,226 @@ may now say "a compute-matched transformer reads at or below chance at
 every point of a 4-point learning-rate grid spanning 10⁻⁴–3×10⁻³ (3
 seeds × 20,000 matched steps, identical frozen protocol)" — strictly
 stronger than the FIX-2/FIX-3 "never searched" hedge it replaces.
+
+### 1.46 BASELINE-STRENGTHENING SWEEP — PRE-RUN RECORD (2026-09-01)
+
+Recorded per the gauntlet-bookkeeping hard rule (record before dispatch)
+and the standing pre-registration discipline. This round has **not been
+launched** — this entry, the new runner (`h2h_strengthen_rd.py`), and the
+30 box queue specs (`strengthen_specs/0600-0629`) are a build-and-audit
+deliverable; nothing here has touched a GPU.
+
+**Charter:** §1.44/§1.45 (FIX-5) searched ONE axis — learning rate — and
+the transformer baseline still read chance at every point
+(`TUNED_TRANSFORMER_STILL_BELOW_BAR`, best LR 1.02× chance vs the 3× bar).
+The PI wants a baseline that has been searched on EVERY axis that could
+plausibly rescue it — capacity, training length, AND learning rate —
+before the paper reports a ratio against it. Both outcomes remain
+publishable, pre-registered here exactly as §1.44 pre-registered FIX-5's:
+(a) the transformer trains to something real and the paper reports a
+ratio against a baseline that actually learned, or (b) it still doesn't,
+and the paper states "non-competitive after capacity × training-length ×
+LR search" — a strictly stronger disclaimer than "never searched" or
+"LR-searched only."
+
+**Grid, pinned (do not widen without a new pre-registration):**
+`arch=transformer`, `task="task1_sweep"` (→ `K=32` via `task_cfg`),
+`role="sweep"` (the AUD2-F4 structural dial guard — identical reasoning
+to §1.44's own, restated there in full). Seeds: `idx ∈ {0,1,2}`,
+`rd_episode_seed("task1_sweep", seed_idx, ckpt_idx=0)` — the byte-identical
+schedule (1,000,000 / 1,010,000 / 1,020,000) every other arm/round in this
+campaign that used this key already shares.
+
+- **Capacity** (`TRANSFORMER_KW` overrides):
+  - `C0 = {n_layers:2, d_model:256, n_heads:4, ffn_mult:4}` — the pinned
+    R3-F3 reference. **14,440,448 params** (14.44M; formula-verified
+    against `transformer_baseline_rd.count_transformer_params`, which
+    reproduces the fix5 checkpoint's own measured 57.8 MB to the byte:
+    14,440,448 × 4 = 57,761,792 bytes = 57.76 MB).
+  - `C1 = {n_layers:4, d_model:256, n_heads:4, ffn_mult:4}` —
+    **16,014,336 params** (16.01M, 1.109× C0).
+  - `C2 = {n_layers:6, d_model:512, n_heads:8, ffn_mult:4}` —
+    **44,613,632 params** (44.61M, 3.089× C0). `n_heads` doubles relative
+    to C0/C1 to keep `head_dim = d_model/n_heads = 64`, matching every
+    other arm's own `d_state=64`/head-dim convention in this campaign —
+    a consistency choice, not a code requirement (`n_heads` does not
+    appear in `count_transformer_params`'s closed form at all).
+- **lr:** `{1e-3 (fix5's own best-reading LR), 3e-4 (the frozen shared
+  default)}`.
+- **steps:** `{20,000 (FULL_STEPS, already measured for C0), 60,000 (3×
+  — training-length as its own axis)}`.
+
+**Reuse (disclosed, not silent — mirrors §1.44's own convention exactly):**
+C0 × {lr=1e-3, lr=3e-4} × 20,000 steps × 3 seeds (6 cells) is **NEVER
+relaunched** — cited verbatim from already-completed, committed artifacts:
+
+| lr | source | raw | remetric md5 |
+|---|---|---|---|
+| 1e-3 | fix5's own 9 fresh cells | `experiment-runs/2026-07-11_h2h_fix5_lrgrid/results/h2h_fix5_transformer_task1_lr1e-03_s{0,1,2}.json` | `9dde992e…` / `18f295e0…` / `422addde…` |
+| 3e-4 | the round-4 27-cell sweep (fix5's own reuse) | `experiment-runs/2026-07-10_h2h_sweep_harvest/h2h_transformer_task1_sweep_s{0,1,2}.json` | `988fdae3…` / `dc57f209…` / `0d715323…` |
+
+(full md5s of the six remetric files, verified against the copies already
+cited in §1.44/§1.45: `9dde992e61a7fad99262abba2b261b7f`,
+`18f295e06e3fa8d885501e7ec1ace2fe`, `422addde604d4ad476ba677726a2647e`,
+`988fdae364ad1cb6cd41e6c28ff9b564`, `dc57f209053ae9245492724cf9024e17`,
+`0d715323ffd03c020ddf759a4579d065` — all 6 files re-hashed locally this
+round and confirmed unchanged since §1.44). acc_A on record for these 6
+points: lr=1e-3 → 0.0352/0.0298/0.0310 (mean 0.0320, fix5's own best);
+lr=3e-4 → 0.0271/0.0293/0.0286 (mean 0.0283) — both far below the 0.09375
+bar, which is exactly why capacity/length are now in play.
+
+**Fresh cells = 30** (`h2h_strengthen_rd.strengthen_cells()`, asserted):
+`{C1,C2} × 2 lr × 2 steps × 3 seeds = 24`, plus `C0 × 2 lr × 60,000 steps
+× 3 seeds = 6`. `C0` never gets a fresh 20,000-step cell (that's the
+reused set above).
+
+**Mechanism (why this needed a new runner, not just a new fix5 config):**
+`h2h_cell_train_rd.build_arm_model` reads capacity from the MODULE-GLOBAL
+`TRANSFORMER_KW` dict — fix5 never needed to touch it (every fix5 cell
+shared C0). `h2h_strengthen_rd.apply_capacity_override(arch_kw)` mutates
+`TRANSFORMER_KW` **and** the separate `TAP_DIM["transformer"]` global IN
+PLACE, at process start, before either the train or the re-metric stage
+builds anything. Full reader audit (grep of `h2h_cell_train_rd.py`,
+performed before the runner was written):
+
+| Reader | Behavior under override | Handling |
+|---|---|---|
+| `build_arm_model` (`TransformerLM(vocab, **TRANSFORMER_KW)`) | dict-unpack at CALL time | safe — in-place mutation is picked up |
+| `ProbeRig.__init__` (`build_adapter_arm(TAP_DIM[arch], VALUE_DIM)`) | `TAP_DIM["transformer"]` is a SEPARATE global, hardcoded `256`, never derived from `TRANSFORMER_KW["d_model"]` | **must be overridden in tandem** — verified (CPU probe) that skipping it fails LOUDLY: a `mat1 and mat2 shapes cannot be multiplied` `RuntimeError` at the very first tap→adapter forward pass, never silently |
+| `_transformer_episode_chunks` (the eval VRAM guard, reads `TRANSFORMER_KW["n_heads"]`) | dict lookup at CALL time | safe |
+| `cap_length_tokens(M, TRANSFORMER_KW["n_layers"], TRANSFORMER_KW["d_model"])` (3 call sites, all axis-2 M-sweep machinery) | dict lookup at CALL time | safe, and irrelevant — this sweep never passes `M` |
+| `train_grammar_cell`'s `capped_mask_fn` (`cap_length_tokens(2, 2, 256)`, LITERAL hardcoded ints) | does **NOT** read `TRANSFORMER_KW` at all | **KNOWN NON-TRANSFERRING GAP, disclosed not fixed**: the report-only training-curve columns `recovered_frac_capped_M2`/`probe_cos_mean_capped_M2` are computed against the C0 cap-length for every capacity. Never the decision metric (`acc_A`, from `run_cell_round4`, unaffected). Flagged for coordinator ruling — patching it means editing shared code (`h2h_cell_train_rd.py`) outside this sweep's own file, so it is left alone and disclosed rather than silently assumed fine |
+
+Checkpoint round-trip (build → save → `load_h2h_checkpoint` under the SAME
+override → a real forward pass through both model and probe adapter) and
+the negative case (a MISMATCHED override before load → `RuntimeError`,
+never silent) are both exercised live on CPU-torch during this build and
+pinned as `h2h_strengthen_rd.py --selftest` items 2–4 (ALL PASS, see the
+runner's own docstring for the exact verified error strings).
+
+**Decision rule, pinned NOW (least-favorable-resolution discipline):**
+bar = **0.09375** (3× chance at K=32, the frozen §1.31.1 demonstration
+bar, verbatim — no new threshold). Per `(capacity, lr, steps)` config
+(3 seeds each):
+- **CLEARS** iff ≥2/3 seeds' `acc_A ≥ 0.09375` (inclusive).
+- **COMPETITIVE** iff ≥2/3 seeds' `acc_A ≥ 0.50` (inclusive, a new,
+  pre-registered-here threshold — "genuinely in the same league as the
+  contender," not merely "distinguishable from chance").
+- **Outcome A — no config clears:** the transformer is
+  NON-COMPETITIVE after an explicit capacity × training-length × LR
+  search — the separation strengthens to a search that covered all three
+  rescue axes, not LR alone.
+- **Outcome B — some config clears, none competitive:** report the best
+  clearing config's standing against the contender as a **paired
+  delta-CI** (`contender_acc_A − transformer_acc_A`, t(2,.975)=4.303 —
+  this campaign's own standing paired-CI statistic, e.g. §1.40's "paired
+  CIs exclude the margin by 3×+"; a naive ratio+CI is not used because it
+  is unstable near-zero denominators), plus the point ratio for prose,
+  explicitly disclosed as an OVER-BUDGET baseline (more params and/or
+  more tokens than the contender's own matched-budget cell).
+- **Outcome C — any config competitive:** the ratio at the BEST
+  competitive config becomes the headline, AND this triggers the
+  pre-registered horizon fan-out (mstar H2/H4/H8, `h2h_mstar_harvest_rd.py`'s
+  own protocol) as a **follow-on round, not run by this sweep** — a
+  separate dispatch applies once this verdict is recorded.
+- **Tie-break:** `argmax(mean_acc_A)` among clearing/competitive configs;
+  ALL clearing/competitive configs are disclosed, never just the best.
+
+**GPU-h ledger.** The only DIRECTLY MEASURED rate available is C0 at
+20,000 steps: **0.2524 GPU-h/cell training** (§1.6, 908.79 s/cell) +
+**0.0067 GPU-h/cell re-metric** (`experiment-runs/2026-07-11_h2h_fix5_lrgrid/MANIFEST.md`,
+"~24 s/cell"). C1/C2 have never run, so their rate is an ESTIMATE — stated
+method, not silently assumed: batch (32), context length, and
+queries/episode are IDENTICAL across every capacity in this grid, so
+per-token training compute is well-approximated as proportional to total
+parameter count for a fixed batch/sequence-length regime (Kaplan et al.,
+"Scaling Laws for Neural Language Models," 2020 — the ~6N FLOPs/token
+training heuristic). `n_heads` does not appear in
+`count_transformer_params`'s closed form, and the one term that DOES
+depend on head count — attention-score FLOPs, `n_heads·T²·head_dim` —
+is n_heads-invariant once `head_dim=d_model/n_heads` is substituted
+(`=T²·d_model`), so doubling `n_heads` at C2 changes zero terms in this
+estimate by construction. Re-metric cost (forward-only over a FIXED
+episode set) is treated as step-count-INDEPENDENT, scaled only by the
+params ratio.
+
+`GPU-h_train(cap,steps) ≈ 0.2524 · (params(cap)/params(C0)) · (steps/20000)`;
+`GPU-h_remetric(cap) ≈ 0.0067 · (params(cap)/params(C0))`.
+
+| Capacity | param ratio | train @20k | train @60k | remetric | 20k spec total | 60k spec total |
+|---|---|---|---|---|---|---|
+| C0 | 1.000 | 0.2524 (reused, not relaunched) | 0.7572 | 0.0067 | — | 0.7639 |
+| C1 | 1.109 | 0.2799 | 0.8397 | 0.0074 | 0.2873 | 0.8471 |
+| C2 | 3.089 | 0.7798 | 2.3394 | 0.0207 | 0.8005 | 2.3601 |
+
+**Total, 30 fresh cells: ≈30.35 GPU-h** (C1 6.807 + C2 18.964 + C0 4.583;
+recomputed mechanically by `h2h_strengthen_specs_gen.py` and cross-checked
+by `h2h_strengthen_rd.py --selftest` item 7 — both agree to 3 decimals).
+**This is well under the 50 GPU-h ceremony-tier line** (CLAUDE.md:
+<10 GPU-h → 1 audit round; 10–50 GPU-h → audit + pre-launch
+resource/placement red-team; only >50 GPU-h needs the full gauntlet) — so
+this round needs an audit round PLUS a pre-launch resource/placement
+red-team before dispatch, not the full multi-round gauntlet. **This
+estimate has NOT been calibration-verified on real hardware** (CLAUDE.md's
+"a calibration run before a big sweep is mandatory" rule) — the first
+strengthen cell to actually complete on box should be treated as that
+pilot, and the ledger revised from its realized rate before the remaining
+29 cells are trusted to fit the same envelope, exactly as §1.44 replaced
+its own projection with a realized figure in §1.45.
+
+**Checkpoint size** (fp32 model-only, no optimizer state — verified
+against the C0/fix5 precedent, which measures 57.8 MB for 14.44M params
+to the byte): C0 ≈57.8 MB, C1 ≈64.1 MB, C2 ≈178.5 MB. **Total fresh-cell
+checkpoint footprint ≈3.19 GB** (C1: 12×64.1MB≈0.77GB; C2: 12×178.5MB
+≈2.14GB; C0: 6×57.8MB≈0.35GB). Checkpoints write to `/data/h2h_strengthen_ckpts`
+(never the root fs, never the SSD archive path) per the queue-spec cmd.
+**Flagged for coordinator verification, not assumed:** the box `/data`
+volume is reported at ~95% full (2026-08-29 archive-pull correction:
+139 GiB free vs 2.4 TB of ephemeral checkpoints elsewhere on the same
+volume) — 3.19 GB is a small fraction of that headroom in isolation, but
+it is additive on top of whatever the 1.31B K=16 grace wave and any other
+concurrent lane are still holding; verify actual `/data` free space
+immediately before dispatch, and consider deleting a fresh checkpoint
+once its own re-metric JSON validates (the raw+remetric JSONs are this
+sweep's artifacts of record, not the checkpoint itself — mirroring the
+campaign's own precedent of not archiving every checkpoint past its
+re-metric pass).
+
+**Queue placement.** 30 spec JSONs,
+`matrix-thinking/deltanet_rd/strengthen_specs/0600-0629_h2h_strengthen_*.json`,
+schema copied field-for-field from
+`experiment-runs/2026-08-29_box_final_archive/queue/completed/005_laneA_probe_K128_s0.json`
+(`id`, `lane`, `hypothesis`, `cmd`, `gpu_h_estimate`, `output_dir`,
+`validity_check`, `notes`). IDs 0600-0629 sort AFTER the currently-running
+1.31B K=16 grace wave (0478-0485, per the coordinator's own live-box
+context at the time this record was written — **not independently
+re-verified against the box's live queue state from this workstation**;
+re-check `ls /home/nvidia/queue/pending` before dispatch if that ordering
+is load-bearing). `matrix-thinking/queue/queue_worker.sh` (read in full
+before this record was written) claims files by `ls pending | sort`
+order, one job per free GPU, and exports `CUDA_VISIBLE_DEVICES="$GPU"`
+before running the spec's `cmd` in `bash -c` — **verified, not assumed**
+— so every spec's `cmd` uses `--device cuda` (never `cuda:N`) and is
+itself robust to running on whichever GPU index the worker assigns. Each
+spec's `cmd` chains BOTH stages (train, then re-metric) for its one cell,
+since a queue job is one GPU-claim, one shot; each exports
+`HEADTOHEAD_PI_SIGNOFF=1 HEADTOHEAD_MATCH_GATE_SIGNOFF=1 H2H_DIAL_ROUND=4`
+itself (`queue_worker.sh`'s `bash -c "$cmd"` starts a bare shell — the
+launch-token env vars are NOT inherited from any wrapping stage script
+the way §1.44's `h2h_fix5_stage.sh` exported them once for its whole
+chain). Gate files (`GATE6_MATCH_GATE_PASSED.token`,
+`GATE7_PROBE_CAPACITY_NULL_PASSED.token`, `MARGINS_FROZEN.token`) are
+reused verbatim from the standing campaign state (already satisfied per
+§1.44's own record) — this round adds no new gates.
+
+**What this round does NOT do:** it does not touch `papers/` (verified —
+no file under `papers/` was read or written building this record). It
+does not retrain or re-read the contender/ablation arms (cited by
+reference only, for the Outcome B/C ratio report). It does not run the
+mstar horizon fan-out even if Outcome C fires — that is an explicitly
+pre-registered FOLLOW-ON dispatch, never silently folded into this
+sweep's own scope or GPU-h ledger. It does not launch anything — this
+record, the runner, and the specs are a build-and-audit deliverable;
+per this round's own ceremony tier (10–50 GPU-h), an audit round and a
+pre-launch resource/placement red-team are still owed before any spec in
+`strengthen_specs/` is moved into `/home/nvidia/queue/pending/`.
