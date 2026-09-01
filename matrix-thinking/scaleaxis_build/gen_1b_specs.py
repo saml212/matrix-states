@@ -402,6 +402,102 @@ def main_n9() -> int:
     return 0
 
 
+# ==========================================================================
+# GRACE WAVE (PI 2026-08-29). K=16 ONLY at 1.31B, seeds 9-16, both recipes.
+# PRIMARY SORTS FIRST BY CONSTRUCTION: the breach lives on the FROZEN arm and
+# the box's remaining life is unknown, so primary takes the lower id block and
+# whatever completes, completes. New entry point -- nothing renumbers.
+# ==========================================================================
+GRACE_SEEDS = tuple(range(9, 17))          # 9..16 inclusive = 8 seeds
+GRACE_K = 16
+GRACE_ID_START = 470                       # 0470-0477 primary, 0478-0485 compB
+OUT_GRACE = os.path.join(_HERE, "job_specs_1b_grace")
+GRACE_PREREG = (
+    "PRE-REGISTRATION, carried in every cell of this wave and fixed BEFORE any of it runs: "
+    "THIS WAVE CHANGES NO ADJUDICATED VERDICT. Every band it touches was pinned and adjudicated "
+    "at n<=9 and none is reopened here. Its ONE question is the K=16 / 1.31B h=1 WALL-BREACH "
+    "RATE on the FROZEN (primary) arm -- the fraction of scored seeds whose P0 reading at h=1 "
+    "sits above the per-K binomial band [0.0171, 0.1079] around chance = 1/16 = 0.0625. That "
+    "rate currently stands at 2 of the scored primary seeds. DELIVERABLE: the breach rate with "
+    "an EXACT (Clopper-Pearson) binomial confidence interval at WHATEVER n LANDS -- the box may "
+    "die mid-wave and that is priced in, so the estimator must be valid at any n, which an exact "
+    "interval is and a normal approximation is not. The SAME read is reported DESCRIPTIVELY on "
+    "compB. Single-seed excursions remain subject to KSCALING sec 7.2's re-measure clause (base "
+    "seed 31337) before any individual cell is called a breach; the RATE is over cells that "
+    "survive that clause. If this wave's rate moves a previously adjudicated WALL verdict, that "
+    "is a FINDING requiring its own EXPERIMENT_LOG entry, never a silent update.")
+
+
+def main_grace() -> int:
+    import re as _re
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--queue-ids", default=None)
+    args, _ = ap.parse_known_args([a for a in sys.argv[1:] if a != "grace"])
+    os.makedirs(OUT_GRACE, exist_ok=True)
+    written, n = [], GRACE_ID_START
+    for recipe in ("primary", "compB"):          # primary FIRST -> lower ids -> claimed first
+        for seed in GRACE_SEEDS:
+            sp = spec(f"{n:04d}_ncr_scaleaxis_1b_grace_K{GRACE_K}_{recipe}_s{seed}",
+                      GRACE_K, recipe, seed, "sweep")
+            old = f"scaleaxis1310m_K{GRACE_K}_{recipe}_s{seed}"
+            new = f"scaleaxis1310m_grace_K{GRACE_K}_{recipe}_s{seed}"
+            for f in ("cmd", "validity_check"):
+                sp[f] = sp[f].replace(old, new)
+            meas = MEASURED_N6[(GRACE_K, recipe)]
+            ceil_v = round(CEILING_MULT * meas, 3)
+            sp["cmd"] = _re.sub(r"--ceiling-gpuh [0-9.]+", f"--ceiling-gpuh {ceil_v}", sp["cmd"])
+            sp["gpu_h_estimate"] = round(meas, 3)
+            sp["tier"] = "scaleaxis1b_grace"
+            sp["scaleaxis1b"]["gpu_h_estimate"] = round(meas, 3)
+            sp["scaleaxis1b"]["ceiling_gpuh"] = ceil_v
+            sp["scaleaxis1b"]["ceiling_provenance"] = (
+                f"{CEILING_MULT} x the MEASURED mean gpu_h of this exact (K, recipe) cell over "
+                f"the n=6 thickening seeds ({meas:.4f} GPU-h) = {ceil_v}. Measured, not projected.")
+            sp["scaleaxis1b"]["grace_wave"] = {
+                "directive": "PI 2026-08-29 -- grace-period uptime is free; the final wave",
+                "question": "K=16 / 1.31B h=1 wall-breach RATE on the frozen arm",
+                "band": [0.0171, 0.1079], "chance": 0.0625,
+                "breaches_at_dispatch": "2 of the scored primary seeds",
+                "deliverable": "breach rate + EXACT (Clopper-Pearson) binomial CI at whatever n lands",
+                "compB_role": "same read, DESCRIPTIVE only",
+                "primary_sorts_first": True,
+                "box_may_die_mid_wave": "priced in; the estimator is valid at any n",
+                "changes_no_adjudicated_verdict": True,
+                "remeasure_clause": "KSCALING sec 7.2, base seed 31337, before any single cell "
+                                    "is called a breach",
+            }
+            sp["hypothesis"] = sp["hypothesis"] + " " + GRACE_PREREG
+            sp["notes"] = ("CANDIDATE -- NOT queue-eligible; the coordinator stages on receipt. "
+                           "1.31B GRACE WAVE (PI 2026-08-29), K=16 ONLY, the wall-breach "
+                           "stratum. PRIMARY TAKES THE LOWER ID BLOCK BY CONSTRUCTION "
+                           "(0470-0477 vs compB 0478-0485) because queue_worker.sh claims by "
+                           "`ls | sort`, so filename order is the only lever that decides what "
+                           "runs first if the box dies mid-wave -- and the breach lives on the "
+                           "frozen arm. Byte-pattern-identical to the audited 0370-0393 / "
+                           "0400-0423 / 0440-0463 specs modulo the seed integer, the id and the "
+                           "cell id; ceiling priced from MEASURED sibling cost. " + sp["notes"])
+            written.append(sp)
+            n += 1
+    ids = [x["id"][:4] for x in written]
+    assert len(written) == 16 and len(set(ids)) == 16, ids
+    prim = [x["id"] for x in written if "_primary_" in x["id"]]
+    comp = [x["id"] for x in written if "_compB_" in x["id"]]
+    assert max(prim) < min(comp), ("primary must sort before compB", prim, comp)
+    if args.queue_ids:
+        ex = {l.strip()[:4] for l in open(args.queue_ids) if l.strip()}
+        cl = sorted(set(ids) & ex)
+        assert not cl, f"ID COLLISION: {cl}"
+    for x in written:
+        json.dump(x, open(os.path.join(OUT_GRACE, x["id"] + ".json"), "w"), indent=1)
+    tot = sum(x["gpu_h_estimate"] for x in written)
+    print(f"wrote {len(written)} CANDIDATE 1B GRACE specs to {OUT_GRACE} ({ids[0]}-{ids[-1]})")
+    print(f"  K=16 only, seeds {GRACE_SEEDS[0]}-{GRACE_SEEDS[-1]}, primary {prim[0]}-{prim[-1]} "
+          f"THEN compB {comp[0]}-{comp[-1]}")
+    print(f"  MEASURED ledger: {tot:.2f} GPU-h; makespan on 8 GPUs ~{2*7.815:.2f} h")
+    print("QUEUE-ELIGIBLE: NO.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--queue-ids", default=None)
@@ -440,5 +536,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main_n9() if "n9" in sys.argv[1:] else
+    sys.exit(main_grace() if "grace" in sys.argv[1:] else
+             main_n9() if "n9" in sys.argv[1:] else
              main_thicken() if "thicken" in sys.argv[1:] else main())
