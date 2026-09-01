@@ -12091,3 +12091,5 @@ training failures, ~800 GPU-h. Preservation: pipeline armed
 (control checkpoints into tier 1) RATIFIED. The n=9 wave (24
 cells) trains to ~Aug 30 midday; its harvest updates TABLES to
 n=9 but no verdict above depends on it.
+
+## 2026-09-01 #1 — GRACE WAVE PRE-REGISTERED (PI: grace uptime is FREE — "do it"): K=16/1.31B breach-stratum thickening, seeds 9-16, both recipes, PRIMARY-FIRST staging (box death mid-wave is priced in; partial completion is the accepted shape). Question: the h=1 breach RATE on the frozen arm (seeds-over-band/n with exact binomial CI; currently 2 over among scored primary seeds) + the same descriptive read on compB. CHANGES NO ADJUDICATED VERDICT — precision only on the chapter's newest finding. ~125 GPU-h at measured rates if the box survives ~16h. Uploads continue in parallel (all three tiers flowing); n=6/n=9 scoring 48/72.
