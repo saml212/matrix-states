@@ -1,0 +1,11 @@
+{
+ "id": "0955_ncr_grace_fallback_score_392m_K16_compB_s8",
+ "lane": "NCR",
+ "tier": "grace_fallback_eval",
+ "hypothesis": "Battery scoring for fallback cell scaleaxis392m_n9_K16_compB_s8 (392m): P1b/P0 at K=16 with the standard instrument (base seed 90210, matched pools), same invocation as score_sweep392.sh / score_sweep1b.sh.",
+ "cmd": "cd /home/nvidia/ncr_scaleaxis && CK=$(ls /ephemeral/scaleaxis/ckpts/scaleaxis392m_n9_K16_compB_s8/*.ckpt.pt 2>/dev/null | tail -1) && NCR_SCALE=392m NCR_K=16 /home/nvidia/tdenv/bin/python3 kscaling_battery.py --k 16 --ckpt \"$CK\" --cellcfg /ephemeral/scaleaxis/results/scaleaxis392m_n9_K16_compB_s8.json --tag sweep_scaleaxis392m_n9_K16_compB_s8",
+ "gpu_h_estimate": 0.03,
+ "output_dir": "/home/nvidia/ncr_scaleaxis/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr_scaleaxis/results/sweep_scaleaxis392m_n9_K16_compB_s8_kscaling.json')); assert d.get('base_seed')==90210, d.get('base_seed'); assert d.get('ckpt_seed')==8, d.get('ckpt_seed'); m=d['matched']; assert m['P0']['per_hop'] and m['P1b']['per_hop']\"",
+ "notes": "Eval-only, ~1-2 min; sorted after every fallback training cell so it claims only once its checkpoint exists (a missing checkpoint fails validity and routes to failed/, harmless)."
+}

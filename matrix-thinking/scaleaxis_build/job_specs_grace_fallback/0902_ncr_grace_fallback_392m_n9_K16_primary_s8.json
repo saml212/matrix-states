@@ -1,0 +1,40 @@
+{
+ "id": "0902_ncr_grace_fallback_392m_n9_K16_primary_s8",
+ "lane": "NCR",
+ "tier": "grace_fallback",
+ "hypothesis": "Fallback seed-thickening of the K=16 stratum (see notes). NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 -- THE 392M SCALE AXIS. Cell: K=16 (d=17, the PAIR is the variable), FROZEN-contrastive (primary recipe), seed 3, backbone RUNG 2 (d_model=1536, d_state=128, n_layers=16) -- 4.008x the 98M rung-1 cells at MATCHED (K, d), MATCHED recipe and MATCHED 20,000 steps. HYPO",
+ "cmd": "mkdir -p /ephemeral/scaleaxis/results /ephemeral/scaleaxis/ckpts && cd /home/nvidia/ncr_scaleaxis && NCR_SCALE=392m NCR_K=16 /home/nvidia/tdenv/bin/python3 ncr_lm_wave1_runner.py --k 16 --scale 392m --mode calibration --device cuda --steps 20000 --batch-size 32 --eval-batch-size 64 --warmup-steps 200 --lr 3e-4 --aux-read-loss-weight 0.5 --ortho-reg-weight 0.1 --eval-every 1000 --ckpt-every 10000 --ceiling-gpuh 3.464 --aux-loss-type contrastive+cosine --freeze-entity-adapter --contrastive-temperature 0.07 --seed 8 --cell-id scaleaxis392m_n9_K16_primary_s8 --out /ephemeral/scaleaxis/results/scaleaxis392m_n9_K16_primary_s8.json --ckpt-dir /ephemeral/scaleaxis/ckpts/scaleaxis392m_n9_K16_primary_s8 2>&1 | tee -a /ephemeral/scaleaxis/results/scaleaxis392m_n9_K16_primary_s8.log",
+ "gpu_h_estimate": 2.303,
+ "output_dir": "/ephemeral/scaleaxis/results",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json, math; d=json.load(open('/ephemeral/scaleaxis/results/scaleaxis392m_n9_K16_primary_s8.json')); assert d.get('status')=='COMPLETED', d.get('status'); assert d.get('step',0)>=20000, d.get('step'); assert d.get('runner_tag')=='ncr_scaleaxis_runner_v1', d.get('runner_tag'); ks=d.get('kscaling') or {}; assert ks.get('K')==16, ('K', ks.get('K')); assert ks.get('d_ncr')==17, ('d_ncr', ks.get('d_ncr')); assert ks.get('d_equals_k_plus_1') is True; assert ks.get('h_top')==40, ('h_top', ks.get('h_top')); assert ks.get('deep_ladder')==[4, 9, 21, 22, 39, 40], ks.get('deep_ladder'); assert ks.get('scale')=='392m', ('scale', ks.get('scale')); bb=ks.get('backbone') or {}; assert (bb.get('d_model'), bb.get('d_state'), bb.get('n_layers'))==(1536,128,16), bb; pp=d.get('params') or {}; assert pp.get('per_arm')==392095889, ('PARAM COUNT vs design sec 3.4', pp.get('per_arm')); lh=d.get('loss_history') or {}; assert set(lh)=={'full_graft','backbone_only'}, sorted(lh); assert len(lh['backbone_only'])>=100, len(lh['backbone_only']); h=lh['full_graft']; assert len(h)>=100, len(h); assert all(math.isfinite(r[1]) for r in h), 'non-finite CE in loss_history'; assert h[-1][1] < h[0][1], ('GATE-0 NOT CONVERGED', h[0], h[-1]); assert d.get('steps_target')==20000, ('steps_target (TOP-LEVEL, EXPERIMENT_LOG 2026-08-23 #1)', d.get('steps_target'))\"",
+ "notes": "GRACE FALLBACK (paper agent, 2026-09-01 evening): byte-identical to the completed spec 0318_ncr_scaleaxis_392m_thicken_K16_primary_s3 modulo seed/id/cell-id. Purpose: extend the K=16 h=1 wall-excursion COMPARATOR to n=9 at this scale so the three-scale h=1 table (98M/392M/1.31B) is seed-matched to the 1.31B n=9; descriptive only, changes no adjudicated verdict (EXPERIMENT_LOG 2026-09-01 #3 M1/M3). Sorted at 09xx so it runs only when nothing earlier is pending. CANDIDATE -- NOT queue-eligible; the coordinator stages on the build receipt. SEED-THICKENING wave (PI 2026-08-23): byte-pattern-identical to the audited sweep specs 0200-0217 modulo the seed integer, the id, the cell id and the MEASURED ceiling. No new design; the audited generator IS the machinery.  2026-08-22 against repo commit 331f8d7 and design NCR_SCALE_AXIS_DESIGN.md DRAFT-R2 (commit 2aca9",
+ "scaleaxis": {
+  "scale": "392m",
+  "rung": 2,
+  "K": 16,
+  "d_ncr": 17,
+  "recipe": "primary",
+  "seed": 3,
+  "params_per_arm_design_sec3_4": 392095889,
+  "params_ratio_to_98m": 4.008465,
+  "ckpt_every": 10000,
+  "ceiling_gpuh": 3.464,
+  "ceiling_provenance": "MEASURED (sec 3.6 PRIMARY): 1.5 x R_8 x this cell's OWN measured 20,000-step cost (2.3032 GPU-h, mean of its three n=3 siblings; R_8 = 1.0026 measured at Stage A0.4) = 3.464 GPU-h",
+  "gpu_h_projection_basis": "MEASURED sibling cost 2.3032 GPU-h (not a projection)",
+  "queue_eligible": false,
+  "gate": "build audit + Stage A0 Rules P1-P4 + LICENSE_SWEEP_SCALEAXIS",
+  "thickening": {
+   "directive": "PI 2026-08-23 -- seed thickening of the flagship's central tables; no new design, audited generator, new seeds only",
+   "takes_n_from": 3,
+   "takes_n_to": 6,
+   "TEST_W_pairs_from": 9,
+   "TEST_W_pairs_to": 36,
+   "changes_no_verdict": "bands were pinned and adjudicated at n=3; this wave adds precision (CIs, LOSO robustness) and is reported as n=6 updates to the SAME tables. A pinned verdict FLIPPING at n=6 is a FINDING requiring its own EXPERIMENT_LOG entry, never a silent update.",
+   "sibling_seeds_of_record": [
+    0,
+    1,
+    2
+   ]
+  }
+ }
+}
