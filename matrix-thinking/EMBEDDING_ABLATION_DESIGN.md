@@ -1,7 +1,8 @@
-# Parameter-Matched Matrix-vs-Flat Embedding Ablation — Pre-Registration
+# Parameter-Matched Matrix-vs-Flat-vs-Flatten Embedding Ablation — Pre-Registration
 
-**Status:** DESIGNED, NOT LAUNCHED. Queue specs staged only
-(`matrix-thinking/embed_ablation_specs/0640-0661`). Nothing in this
+**Status:** DESIGNED, NOT LAUNCHED. REV-narrow (post-audit revision).
+Queue specs staged only (`matrix-thinking/embed_ablation_specs/
+phase_A_probes/0640-0645` + `phase_B_seeded/0646-0669`). Nothing in this
 document authorizes a GPU launch; it is a pre-registration for the
 research-cascade novelty/audit gate to review first.
 
@@ -9,6 +10,18 @@ research-cascade novelty/audit gate to review first.
 design does not touch `matrix-thinking/deltanet_rd/h2h_strengthen_rd.py`
 or `HEAD_TO_HEAD_DEMO_DESIGN.md` (both under edit by another agent as of
 this writing) and shares no code with either.
+
+## Audit REV-narrow changelog (what changed since the first pass, and why)
+
+| Item | Fix |
+|---|---|
+| F1 (FATAL) harvest | Rewrote `harvest()`/`_harvest_records()`: filters to `complete is True AND steps_target>=2000 AND role!='probe' (role field OR filename)`; asserts exactly 3 valid records per `(arm,match,size)` group (0 = not run yet, fine; 1-2 or 4+ = FATAL, raises); added `--harvest-selftest` that builds the exact synthetic scenario (15 clean cells across 5 groups + 2 probe-like records + 1 `CEILING_STOP` record) and proves the verdict is byte-identical with/without the 3 extras (§8b). Probe results now write to a separate `results/probes/` subdirectory. |
+| F2 (FATAL) gating | Specs split into `embed_ablation_specs/phase_A_probes/` (0640-0645, no dependencies) and `phase_B_seeded/` (0646-0669), each with its own `README.md` stating phase B is staged only after phase A's 4→**6** probe JSONs are read and `--check-admission` passes (re-deriving `--steps` if the measured rate is off). Same sentence restated in §6 below. |
+| M1 (MAJOR) eval windows | `evaluate()` now reseeds a **fresh** `torch.Generator` from `corpus_fixed_seed(corpus_name)` (the `lm_pretrain_rd.py` AUDIT FIX-1 pattern) at the **start of every call** — every seed, arm, and T-leg scores identical validation windows in identical order. `--eval-batches` default raised 20→50. |
+| M2 (MAJOR, RULING) init | `TARGET_STD=0.02` applied explicitly: matrix arm's `embed_u,embed_v,pos_u,pos_v` init at `std=sqrt(target_std)` (CLAUDE.md's outer-product rule); flat/flatten arms' embedding+pos tables init at `std=target_std` directly; flat/flatten's positional term now scaled by `*0.1` to match the matrix arm's own scaling (previously unscaled — an accidental asymmetry). §4.4 records both, and that `round1_vector_script.py`/`round2_matrix_script.py` had **no explicit init at all** (a historical gap this design fixes, not merely inherits). |
+| M3 (MAJOR, RULING) third arm | Added the **`flatten`** arm (§2.1b, §4): the matrix arm's own outer-product embedding, flattened to a `d²` vector, resized into the flat arm's own dense backbone family, `d_model` solved to ±1% params. The pre-registered claim is now **two independent decisions**: `STRENGTHEN-01` (matrix vs flatten — embedding mechanism, finding 01) and `STRENGTHEN-04` (matrix vs flat-P — architecture at equal params, finding 04). §1 and §7 rewritten accordingly. Ledger grows from 22→30 cells, 15.622→**20.434 GPU-h**, still ≤30 GPU-h total and ≤2 GPU-h/cell. |
+| M4 (MAJOR) admission | Added `check_admission()` / `--check-admission`: reads phase-A probe JSONs, asserts the last three T=1 evals are monotone non-increasing per arm, extrapolates the measured rate to the intended `--steps`, and reports/stops if that would exceed 2 GPU-h/cell. §6 and both phase READMEs state this is mandatory before phase B is staged. |
+| minor | `LambdaLR`'s warmup fixed (`(step+1)/warmup`, not `step/warmup` — step 0 no longer trains at LR=0); `CEILING_STOP` now forces one more eval pass before saving so `final_evals` is never stale/empty; the empirical anchor is corrected to `exp_d16_v2`'s **actual** `CONFIG`/class-default values — `n_thinking_layers=12`, `max_len=2048` (the historical `SUMMARY.txt`'s own prose, "8 layers", was wrong — verified by reading the script's `CONFIG` dict and `MatrixThinker.__init__` default directly, not the stale summary text); `_gen_specs.py`'s dead `f"T{8 if steps > 500 else 8}"` ternary replaced with the literal `T8`; ~3.3 GB estimated host RAM per process disclosed (§5). |
 
 ## 0. What this fixes
 
@@ -19,7 +32,9 @@ on inspection of the raw evidence, are weaker than their own text admits:
 
 - **Run 18** (`EXPERIMENT_LOG.md` line 673): matrix 2.4M params vs flat
   24.0M params (**10x asymmetric**, flat favored). The finding page itself
-  flags this as "unfair on params... supporting data, not headline."
+  flags this as "unfair on params... supporting data, not headline." This
+  is also, architecturally, the historical ancestor of this design's new
+  `flatten` arm (§2.1b) — same recipe, now params-matched.
 - **Run 22** (`EXPERIMENT_LOG.md` line 745, titled "Param-Matched
   Ablation" despite not being one): matrix 2,552,788 params (mat_dim=16,
   12 layers) vs flat 5,658,428 params (d_model=256, 12 layers) — **2.2x
@@ -44,47 +59,64 @@ on inspection of the raw evidence, are weaker than their own text admits:
   page itself calls it "a pre-registration check... not a BPB comparison."
 
 This design replaces all of that with one properly gated ablation: 3
-seeds, 2 sizes, a total-parameter match verified by instantiating the
-real `nn.Module` (not eyeballing config numbers), a hard negative test
-that a mismatch fails loudly, both arms guaranteed to finish (or record an
-explicit `CEILING_STOP`, never silently truncate), and a metric that is
-not byte BPB.
+seeds, 2 sizes, 3 arms, a total-parameter match verified by instantiating
+the real `nn.Module` (not eyeballing config numbers), a hard negative test
+that a mismatch fails loudly, all arms guaranteed to finish (or record an
+explicit `CEILING_STOP` with a forced final eval, never silently
+truncate), a metric that is not byte BPB, and two independently-decided,
+narrowly-scoped claims rather than one conflated one (M3).
 
-## 1. Hypothesis and falsifier
+## 1. Hypotheses and falsifiers (TWO independent claims, audit M3)
 
-**Hypothesis (one sentence):** At equal total parameter count (±1%) and
-equal depth (same `n_layers`, same iterative-refinement `T`), a
-matrix-native model — outer-product embedding (`u⊗v`) plus RowThenCol
-matrix operations — reaches a lower T=1 token-BPB on a GPT-2-tokenized
-corpus than a flat-vector model with a direct embedding table and
-standard transformer operations.
+The original single hypothesis conflated two different questions finding
+01 and finding 04 actually ask. They are now separated and decided
+independently — `harvest()` computes both and never merges them.
 
-**Falsifier (one sentence):** The matrix arm does **not** beat the
-params-matched flat arm's T=1 token-BPB, by a margin exceeding the
-observed seed spread, on at least 2 of 3 seeds, at **both** registered
-model sizes.
+### 1a. STRENGTHEN-01 — embedding mechanism (matrix vs flatten)
 
-No third outcome is defined (see §7, Decision rule). This deliberately
-narrows finding 01's three-comparison, mechanism-agnostic claim to a
-single clean test; it does **not** attempt to adjudicate finding 01's own
-open question (rank-1 structure vs factored parameterization — the
-ALBERT-style-bottleneck three-way ablation the finding page names as its
-own Priority 1) or finding 04's compute-side claim (that is a per-layer
-parameter-count argument, not a trainability claim, and is not testable
-by a training run at all — see §2.3).
+**Hypothesis:** At equal total params and equal depth, keeping the
+outer-product embedding **and** matrix-native downstream ops (the full
+`matrix` arm) reaches lower T=1 token-BPB than keeping the **same**
+outer-product embedding but flattening it into a standard dense backbone
+(the `flatten` arm, §2.1b/§4). This isolates the operation family while
+holding the embedding mechanism fixed — Run 18's own historical recipe,
+now genuinely params-matched.
+
+**Falsifier:** `matrix` does **not** beat the params-matched `flatten`
+arm's T=1 token-BPB, by a margin exceeding the seed spread, on at least
+2 of 3 seeds, at **both** registered sizes.
+
+### 1b. STRENGTHEN-04 — architecture at equal params (matrix vs flat-P)
+
+**Hypothesis:** At equal total params and equal depth, the full `matrix`
+arm (outer-product embedding + matrix ops) reaches lower T=1 token-BPB
+than a fully `flat` arm (direct embedding table + standard ops) — varying
+**both** embedding and operations at once.
+
+**Falsifier:** `matrix` does **not** beat the params-matched `flat-P`
+arm's T=1 token-BPB, by a margin exceeding the seed spread, on at least
+2 of 3 seeds, at **both** registered sizes.
+
+No third outcome is defined for either claim (see §7). Neither claim
+attempts to adjudicate finding 01's own open question (rank-1 structure
+vs factored parameterization — the ALBERT-style-bottleneck three-way
+ablation the finding page names as its own Priority 1 — the `flatten` arm
+here is NOT that ablation, it shares the embedding exactly rather than
+matching only its parameter count) or finding 04's compute-side claim
+(a per-layer parameter-count fact, not a trainability claim — see §2.3).
 
 ## 2. Closing the reshape-equivalence loophole
 
 `CLAUDE.md`'s hard rule: *"any d²-dim vector can be reshaped to a d×d
 matrix and vice versa. Structure only matters if OPERATIONS preserve
-it. Flatten = structure gone."* Two places this bites, both closed below.
+it. Flatten = structure gone."* Three places this bites, all closed below.
 
-### 2.1 Embedding
+### 2.1 Embedding — matrix vs flat
 
 - **Matrix arm:** `embed_u, embed_v: Embedding(V, d)`; token embedding is
   the explicit outer product `M = u ⊗ v`, a **rank-1** `d×d` matrix built
   from `2d` free parameters. This is `matrix_thinker.py`'s
-  `MatrixEmbedding`/`round2_matrix_script.py`'s embed pattern, unchanged.
+  `MatrixEmbedding`/`round2_matrix_script.py`'s embed pattern.
 - **Flat arm:** `embed: Embedding(V, d_model)`, a **direct lookup table**
   with `d_model` free parameters per token, no bilinear construction, no
   rank restriction. The flat embedding is never computed as `u⊗v` and is
@@ -94,6 +126,25 @@ it. Flatten = structure gone."* Two places this bites, both closed below.
   that produced Run 22's asymmetry) or forced to a particular relation to
   `2d`.
 
+### 2.1b Embedding — matrix vs flatten (the NEW arm, audit M3)
+
+The `flatten` arm deliberately does the opposite of §2.1's separation: it
+shares the **exact same** `embed_u, embed_v, pos_u, pos_v` construction
+and outer product as the `matrix` arm (same `mat_dim`, same init, §4.4)
+— then flattens the resulting `(d,d)` matrix `M` to a `d²`-vector and
+resizes it (`nn.Linear(d², d_model)`) into the flat arm's own dense
+`VectorThinkingBlock` backbone family. This is Run 18's exact historical
+recipe ("same outer-product embedding, then FLATTEN to a 256-dim vector,
+standard transformer") — the difference from Run 18 is that `d_model`
+(the backbone's OWN operating width, distinct from the embedding's fixed
+`d²`) is solved for total-param equality (§4.2) rather than left at the
+full `d²` width, which is what made Run 18 10x asymmetric. Because
+`matrix` and `flatten` share their embedding bit-for-bit, any T=1 BPB gap
+between them isolates the **operations**, not the embedding — this is
+what makes STRENGTHEN-01 (§1a) a genuine embedding-mechanism-controlled
+test, distinct from STRENGTHEN-04 (§1b), which varies embedding and
+operations together.
+
 ### 2.2 Backbone operations
 
 - **Matrix arm:** every projection (`RowThenColProjection`) computes
@@ -101,23 +152,25 @@ it. Flatten = structure gone."* Two places this bites, both closed below.
   `vec(M)` is `(Bᵀ ⊗ A)` — a **Kronecker-restricted** subspace of the
   full `d²×d²` linear group. Not every `d×d → d×d` linear map is
   expressible this way (this is exactly finding 04's own framing).
-- **Flat arm:** every layer uses `nn.MultiheadAttention` and `nn.Linear`
-  on the flat `d_model`-vector — **full, unrestricted** `d_model×d_model`
-  weight matrices (in_proj, out_proj, both FFN layers). The flat arm's
-  linear maps are strictly more general than the Kronecker family the
-  matrix arm is confined to, at any `d_model`, and in particular strictly
-  more general than "the matrix arm reshaped" would be even at
-  `d_model = d²` (a full `d²×d²` Linear can express `(Bᵀ⊗A)` as a special
-  case, but the flat arm here trains its own independent full weight
-  matrix — it is not initialized from, tied to, or reachable by any
-  operation on the matrix arm's parameters).
+- **Flat and flatten arms:** every layer uses `nn.MultiheadAttention` and
+  `nn.Linear` on a flat vector — **full, unrestricted** linear maps
+  (in_proj, out_proj, both FFN layers), the identical `VectorThinkingBlock`
+  class for both arms. Both arms' linear maps are strictly more general
+  than the Kronecker family the matrix arm is confined to, at any width,
+  and in particular strictly more general than "the matrix arm reshaped"
+  would be even at width `d²` (a full `d²×d²` Linear can express
+  `(Bᵀ⊗A)` as a special case, but neither the flat nor flatten arm trains
+  a weight tied to, initialized from, or reachable by any operation on
+  the matrix arm's parameters — flatten's `resize_in` Linear is a freshly
+  initialized, independently trained weight, not a projector derived from
+  `A`/`B`).
 
-**Net effect:** if the matrix arm still wins at equal total parameters
-despite the flat arm having access to a strictly larger per-parameter
+**Net effect:** if `matrix` still wins at equal total parameters despite
+`flat`/`flatten` having access to a strictly larger per-parameter
 hypothesis class at every layer, that is evidence the win is about
 *structure*, not about which family happens to be more constrained. If
-the flat arm wins or ties, that is evidence for the reverse — either
-outcome is informative, which is what a clean ablation requires.
+`flat`/`flatten` wins or ties, that is evidence for the reverse — either
+outcome is informative for each of the two independently-decided claims.
 
 ### 2.3 What this design does NOT re-test
 
@@ -127,11 +180,11 @@ true by construction (verified by instantiating both `nn.Module`s, see
 `matrix-thinking/src/matrix_output_heads.py`'s own benchmark harness) and
 is not something a training run confirms or falsifies. What this design
 *does* inherit from finding 04 is the practical consequence: because we
-solve `d_model` for parameter equality rather than fixing it at `d²`
-(reshape parity), the flat arm's backbone FLOP cost lands close to the
-matrix arm's own (§4.2), not at the historical 8×-128× blowup — which is
-precisely why every registered cell fits comfortably under the 2 GPU-h
-ceiling (§5).
+solve the backbone's operating width for parameter equality rather than
+fixing it at `d²` (reshape parity), the flat/flatten arms' backbone FLOP
+cost lands close to the matrix arm's own (§4.2), not at the historical
+8×-128× blowup — which is precisely why every registered cell fits
+comfortably under the 2 GPU-h ceiling (§5).
 
 ## 3. Metric: token-BPB, not byte BPB
 
@@ -150,119 +203,170 @@ but no `bytes_per_token` field). Instead:
   `experiment-runs/2026-08-29_box_final_archive/queue/completed/
   645_laneB_392m_seedext_off_wikitext-mix-ext_s29.json`. `meta.json` for
   this corpus asserts `vocab_size == 50257`, `tokenizer == "gpt2"`,
-  `eot_separated == True` — both arms' legacy architecture (from
-  `round1_matrix_script.py` / `round1_vector_script.py`) already consumes
-  a GPT-2-vocab `Embedding(vocab_size, d)` table unmodified, so **no
-  architecture change is needed** to switch off byte-level vocab.
-  `wikitext-mix-ext` (not `openr1-mix-ext`) is used for **all** cells per
-  `CLAUDE.md`'s "use the same dataset for all experiments in a
-  comparison" rule.
+  `eot_separated == True` — all three arms already consume a GPT-2-vocab
+  `Embedding(vocab_size, ·)` table unmodified, so **no architecture
+  change is needed** to switch off byte-level vocab. `wikitext-mix-ext`
+  (not `openr1-mix-ext`) is used for **all** cells per `CLAUDE.md`'s "use
+  the same dataset for all experiments in a comparison" rule.
 - **Headline metric — token-BPB:** `cross_entropy_nats / ln(2)`, i.e.
   bits per GPT-2 token (NOT bits per raw byte — no byte-length claim is
   made anywhere in this design). Also reported: val loss in nats, and
   perplexity, for continuity with the historical Round-1/Round-2 numbers.
-- **Both T=1 and T=8** are reported for both arms at every checkpoint and
-  at the final step, closing Run 22's actual failure mode (its flat arm
-  never reached a finished T=1/T=8 pair — it died mid-run). The runner
+- **Both T=1 and T=8** are reported for all three arms at every checkpoint
+  and at the final step, closing Run 22's actual failure mode (its flat
+  arm never reached a finished T=1/T=8 pair — it died mid-run). The runner
   (`embed_ablation_rd.py`) writes `final_evals: {T1: {...}, T8: {...}}`
   unconditionally at every `--eval-interval` and forces one last eval at
-  the terminal step (`COMPLETED` or `CEILING_STOP`), so a JSON with
-  `complete: false` still carries whatever T1/T8 pair its last completed
-  eval produced — the harvest script only accepts `complete: true` cells
-  into the decision rule (§7), but a `CEILING_STOP` cell's partial curve
-  is still inspectable for diagnosis.
+  the terminal step whether that is `COMPLETED` or `CEILING_STOP` (the
+  minor fix in this REV — the first pass only forced this on the
+  ceiling-stop path retroactively; it is now unconditional on both exits),
+  so a JSON with `complete: false` still carries a real T1/T8 pair from
+  the moment it stopped — `harvest()` only accepts `complete: true` cells
+  into either decision (§7), but a `CEILING_STOP` cell's curve is still
+  inspectable for diagnosis.
+- **Eval windows are now seed/arm/T-invariant (audit M1).** `evaluate()`
+  reseeds a fresh `torch.Generator` from `corpus_fixed_seed(corpus_name)`
+  — `zlib.crc32` of the corpus name, ported from `lm_pretrain_rd.py`'s own
+  `corpus_fixed_seed` / AUDIT FIX-1 pattern, whose own comment reads
+  "NEVER from the training seed" — at the **start of every call**. Before
+  this fix, the validation generator was seeded from `args.seed + 10000`,
+  so different training seeds (and the T=1 vs T=8 legs, called
+  back-to-back) would score **different** random windows, adding sampling
+  noise that could look like a model difference. `--eval-batches` is also
+  raised from 20 to 50 (more windows per eval, tighter variance).
 
 ## 4. Architecture and parameter matching
 
-Both arms reuse the **exact** module definitions from
+All three arms reuse the module definitions from
 `experiment-runs/8xh100-session1/round1_matrix_script.py` /
 `round1_vector_script.py` / `round2_matrix_script.py` (copied
-module-for-module into `matrix-thinking/src/embed_ablation_rd.py`, single-
-GPU, DDP stripped since every cell fits on one H100) — this ablation
+module-for-module into `matrix-thinking/src/embed_ablation_rd.py`,
+single-GPU, DDP stripped since every cell fits on one H100), plus the new
+`FlattenThinker` class (§2.1b) built from the same pieces — this ablation
 changes the comparison's rigor, not the architecture the claims were made
 about. `T` (iterative-refinement count) never changes parameter count in
-either arm — the `n_layers`-deep stack is weight-shared and applied `T`
-times (`_one_iteration`); only `n_layers` and `d`/`d_model` set the
+any arm — the `n_layers`-deep stack is weight-shared and applied `T`
+times (`_one_iteration`); only `n_layers` and the operating width set the
 parameter budget. This is why the "depth vs params" tension the task
 brief anticipated (Run 22's "130× per layer" problem) turns out to be
 solvable at equal `n_layers` in this regime (§4.3) — the knob that trades
-against total params is width (`d_model`), not iteration count.
+against total params is width, not iteration count.
 
 ### 4.1 Registered sizes
 
-| Size | `mat_dim` (matrix) | `n_layers` | `n_heads` | max_len |
+| Size | `mat_dim` (matrix/flatten) | `n_layers` | `n_heads` (matrix/flat-P) | max_len |
 |---|---|---|---|---|
 | S | 16 | 6 | 4 | 512 |
 | M | 24 | 8 | 4 | 512 |
 
 `n_iterations` (T) = 8 for training and for the "matrix model's iterative
 T" eval leg, at both sizes (matches Round 2's T=8 convention). Eval always
-reports T∈{1, 8}.
+reports T∈{1, 8}. The `flatten` arm's OWN `n_heads` is solved independently
+(§4.3) — it is not required to equal the registered `n_heads` column above.
 
-### 4.2 Parameter counts (verified by real `nn.Module` instantiation, not
-hand algebra — see `embed_ablation_rd.py --selftest` output in §8)
+### 4.2 Parameter counts (verified by real `nn.Module` instantiation via
+`embed_ablation_rd.py --selftest`, output in §8)
 
 Vocab `V = 50,257` (GPT-2), `max_len = 512`.
 
-| Size | Arm | Config | embed | backbone | head | **total** |
-|---|---|---|---|---|---|---|
-| S | matrix | mat_dim=16, L=6 | 1,608,224 | 37,074 | 804,880¹ | **2,466,562** |
-| S | flat-P (primary, params-matched) | d_model=**24**, L=6 | 1,206,168 | 76,224² | 1,206,168 | **2,468,016** (ratio 1.0006, diff **0.059%**) |
-| S | flat-D (disclosed control, unmatched) | d_model=**32** (=2·mat_dim), L=6 | 1,608,224 | 76,224² | 1,608,224 | **3,309,120** (ratio **1.342**) |
-| M | matrix | mat_dim=24, L=8 | 2,412,336 | 111,000 | 1,207,320¹ | **3,755,808** |
-| M | flat-P (primary, params-matched) | d_model=**36**, L=8 | 1,809,252 | 226,176² | 1,809,252 | **3,765,168** (ratio 1.0025, diff **0.249%**) |
-| M | flat-D (disclosed control, unmatched) | d_model=**48** (=2·mat_dim), L=8 | 2,412,336 | 226,176² | 2,412,336 | **5,075,520** (ratio **1.351**) |
+| Size | Arm | Config | total params | ratio vs matrix | diff |
+|---|---|---|---|---|---|
+| S | matrix | mat_dim=16, L=6 | **2,466,562** | 1.0 | — |
+| S | flat-P (primary, params-matched) | d_model=24, n_heads=4, L=6 | **2,468,016** | 1.0006 | **0.059%** |
+| S | flatten-P (primary, params-matched, NEW) | mat_dim=16→resize→d_model=16, n_heads=8, L=6 | **2,452,544** | 0.9943 | **0.568%** |
+| S | flat-D (disclosed control, unmatched) | d_model=32 (=2·mat_dim), L=6 | **3,309,120** | 1.3416 | 34.159% |
+| M | matrix | mat_dim=24, L=8 | **3,755,808** | 1.0 | — |
+| M | flat-P (primary, params-matched) | d_model=36, n_heads=4, L=8 | **3,765,168** | 1.0025 | **0.249%** |
+| M | flatten-P (primary, params-matched, NEW) | mat_dim=24→resize→d_model=25, n_heads=1, L=8 | **3,770,412** | 1.0039 | **0.389%** |
+| M | flat-D (disclosed control, unmatched) | d_model=48 (=2·mat_dim), L=8 | **5,075,520** | 1.3514 | 35.138% |
 
-¹ matrix head = `MultiProbeHead(d, V, K=d)`: `2·K·d + K·V`.
-² flat backbone per layer = `4d_model²+4d_model` (MHA) `+ 4d_model` (2×LayerNorm)
-`+ 8d_model²+5d_model` (FFN) = `12·d_model² + 13·d_model`, × `n_layers`.
+All four `-P` (params-matched) rows are within the ±1% gate; both `-D`
+rows are outside it by construction (pre-registered as unmatched, §4.3).
 
-**Key upshot (closes the "structurally impossible" framing from Run 22 /
-`CLAUDE.md`'s "130× per layer" note):** because `V·d_model` (embed+head)
-dominates both arms' budgets at GPT-2 vocab scale, and because `d_model`
-is *solved* rather than fixed at `d²`, the search space is large enough
-that params-matched (flat-P) converges to **<0.3% mismatch at equal
-`n_layers`** for both registered sizes — the historical "can't match both
-per-layer FLOPs and total params" tension only bites when `d_model` is
-constrained to equal `d²` (reshape parity), which this design never does.
-flat-D is kept as the disclosed, PRE-REGISTERED params-**unmatched**
-control (§4.3) precisely so the old Run-22-style comparison (flat gets
-more params, ratio ~1.34-1.35×, structurally similar direction to Run 22's
-2.2× and Run 18's 10×) stays visible alongside the new one.
+**Why `flatten`'s `n_heads` differs from `flat`'s (audit-discovered
+during this REV):** solving `flatten`'s width at size M with `n_heads`
+fixed at 4 (matching `flat`'s registered value) tops out at **1.09%**
+mismatch — just outside the ±1% gate, because the valid-width step size
+(multiples of 4) is too coarse near the target. `solve_matched_width()`
+now tries `n_heads ∈ {8,4,2,1}` in order and stops at the first that hits
+tol, which is how size M's `flatten` arm lands at `n_heads=1` (plain,
+single-head attention — a perfectly valid `nn.MultiheadAttention`
+configuration) at 0.389%. `flat`'s own solve is untouched (kept at its
+already-verified `n_heads=4` for both sizes, 0.059%/0.249%) — only the
+new `flatten` arm needed the wider search.
 
-### 4.3 The two pre-registered arms, and which is the verdict carrier
+### 4.3 The three pre-registered arms, and which are the verdict carriers
 
 Per the task brief's requirement: *"pre-register BOTH a depth-matched/
 params-unmatched arm and a params-matched/depth-unmatched arm."* Since
 depth-matching-at-equal-params turns out to be achievable here (§4.2),
-the second arm is realized as depth-matched-but-params-**unmatched**
-(flat-D) rather than params-matched-but-depth-unmatched — the task brief
-explicitly permits substituting whichever pairing is the one that
-actually binds in a given regime, and here that is a `d_model` choice, not
-an `n_layers` choice:
+the depth-matched arm is realized as depth-matched-but-params-**unmatched**
+(flat-D) rather than params-matched-but-depth-unmatched:
 
-- **Arm P — params-matched, `n_layers` equal (PRIMARY / VERDICT CARRIER).**
-  `d_model` solved via `solve_matched_d_model()` to land within ±1% of the
-  matrix arm's total params, gated by `check_param_match()` — a >1%
-  mismatch **raises `RuntimeError`** before training starts (verified in
-  §8's negative test). This is the arm §1's falsifier and §7's decision
-  rule are evaluated against.
-- **Arm D — depth-matched (`n_layers` equal), params UNMATCHED
-  (secondary/disclosed control).** `d_model = 2·mat_dim` fixed (the
-  embedding-only "natural" width — same free-parameter count per token as
-  the matrix embedding's `(u,v)` pair, but the backbone and head end up
-  larger). Ratio disclosed (~1.34-1.35×, flat favored), never gated. Not
-  used for §7's decision — reported so a reader can see how much the
-  ±1%-gated matching (vs. the old un-gated reshape-parity choice) actually
-  moves the T=1 gap.
+- **matrix — reference arm for both decisions.**
+- **flat-P (params-matched, VERDICT CARRIER for STRENGTHEN-04).** Width
+  solved via `solve_matched_d_model()` to land within ±1% of the matrix
+  arm's total params, gated by `check_param_match()` — a >1% mismatch
+  **raises `RuntimeError`** before training starts (verified in §8's
+  negative test).
+- **flatten-P (params-matched, VERDICT CARRIER for STRENGTHEN-01, NEW
+  audit M3).** Matrix arm's own embedding, flattened + resized (§2.1b),
+  width solved via `solve_matched_d_model_flatten()`. Only `--match P` is
+  registered — no unmatched control is defined for this arm (the task
+  brief's depth/params tension was already addressed by flat-D; adding a
+  second unmatched control would not test anything new).
+- **flat-D (depth-matched, `n_layers` equal), params UNMATCHED
+  (secondary/disclosed control, NOT a verdict carrier for either
+  decision).** `d_model = 2·mat_dim` fixed (the embedding-only "natural"
+  width — same free-parameter count per token as the matrix embedding's
+  `(u,v)` pair, but the backbone and head end up larger). Ratio disclosed
+  (~1.34-1.35×, flat favored), never gated. Reported so a reader can see
+  how much the ±1%-gated matching (vs. the old un-gated reshape-parity
+  choice) actually moves the T=1 gap.
 
-If any future re-registration of these sizes ever pushes Arm P's search
-outside ±1% (e.g. a much smaller `mat_dim` where the vocab term stops
-dominating), the fallback is explicit in `build_arm()`: the search widens
-first (`lo`/`hi` bounds), and only if that still fails does the design
-need a THIRD arm (params-matched via `n_layers_flat` search instead of
-`d_model`) — not built here because it is not needed for either registered
-size (§8 confirms both pass at <0.3%).
+`harvest()` only ever reads `match="P"` groups when scoring
+STRENGTHEN-01/04 (§7); `flat-D` is reported separately, under a
+`flat-D_disclosed_not_gating` key, and is excluded from both decisions by
+construction (its `match` field is `"D"`, never matched by the decision
+functions' `groups.get((arm, "P", size), [])` lookups).
+
+### 4.4 Initialization (audit M2, RULING — applied explicitly, not
+inherited from the historical scripts)
+
+`CLAUDE.md`: *"Outer-product embedding init: u,v std must be sqrt(target_
+std), not target_std. Products have std=σ²."* `TARGET_STD = 0.02`
+throughout (matching the CLAUDE.md example value):
+
+- **matrix, flatten (share the same embedding construction):**
+  `embed_u.weight, embed_v.weight, pos_u.weight, pos_v.weight` init at
+  `std = sqrt(TARGET_STD) ≈ 0.1414`, so the **constructed** `M = u⊗v`
+  entries have `std ≈ TARGET_STD = 0.02` (verified empirically in §8:
+  `embed_u std=0.1412` vs the theoretical `0.1414`).
+- **flat (and flatten's post-flatten backbone has no analogous table):**
+  `embed.weight, pos.weight` init at `std = TARGET_STD = 0.02` directly
+  — no factoring to compensate for, so the direct std IS the target
+  (verified in §8: `flat embed std=0.0200` exactly).
+- **Positional-term scaling parity:** the matrix arm has always scaled
+  its positional outer-product contribution by `*0.1` before adding it to
+  the token embedding (`M = M + pos_outer_product * 0.1`). The historical
+  `round1_vector_script.py`'s flat arm added its positional term with
+  **no** scaling at all — an accidental asymmetry this design fixes: both
+  `VectorThinker` and `FlattenThinker` now also scale their positional
+  term by `*0.1`, so the only asymmetry left between arms is the
+  operation family, not an accidental init/scale mismatch (this is a
+  direct instance of §2's "close the reshape-equivalence loophole"
+  discipline applied to init, not just to the forward pass).
+- **Historical gap disclosed:** neither `round1_matrix_script.py`,
+  `round1_vector_script.py`, nor `round2_matrix_script.py` set ANY
+  explicit init for these tables (confirmed by reading all three files —
+  no `nn.init.*` call touches `embed_u`/`embed_v`/`pos_u`/`pos_v`/`embed`/
+  `pos` anywhere in them). Every historical Run 10/11/12/13/18/22 number
+  cited in §0 was produced with PyTorch's default `nn.Embedding` init
+  (`N(0,1)`), not the CLAUDE.md rule. This design does not merely inherit
+  that gap — it is the first script in this line to apply the rule.
+  Other parameters (RowThenCol's `A,B`, the multiplicative layer's gates,
+  etc.) keep their historical inits unchanged — M2's ruling was scoped to
+  the outer-product embedding specifically, not a general re-init pass.
 
 ## 5. FLOPs and memory (CLAUDE.md checklist item 2 — computed on paper,
 cross-checked against a real prior run's measured wall time)
@@ -279,86 +383,144 @@ FLOP-bound, so a naive FLOPs/throughput estimate would badly underestimate
 real wall time (finding 04 measured only an 8× realized speedup at `d=16`
 against a 128× parameter-count gap, for exactly this reason).
 
-**Empirical anchor instead:** `exp_d16_v2_SUMMARY.txt` (a real completed
-8×H100 run, same architecture family) — `mat_dim=16, n_layers=8, T=8,
-batch=96/GPU, seq_len=512, 3000 steps, GPT-2 vocab, 2,552,788 params` took
-**82.0 min wall time**. Since DDP replicates the model per GPU with no
-per-step cross-GPU dependency beyond the gradient all-reduce, this 82 min
-is also the single-GPU wall time for that exact per-GPU workload — i.e.
-**1.367 GPU-h** for that config. Every cell's `gpu_h_estimate` in
-§6/`embed_ablation_specs/*.json` is this anchor scaled linearly by
-`(batch/96) · (steps/3000) · (params/2,552,788)` — a linear scaling in
-tokens-processed and total-params, which is the right first-order model
-given both arms are embed/head-GEMM-dominated (§4.2) rather than
-backbone-FLOP-dominated.
+**Empirical anchor instead (corrected in this REV):** `exp_d16_v2_
+SUMMARY.txt`'s prose ("mat_dim=16, 8 layers") is **stale/wrong** —
+verified by reading `exp_d16_v2_script.py`'s actual `CONFIG` dict
+(`"n_thinking_layers": 12`, `"max_len": 2048`) and the `MatrixThinker`
+class's own default (`n_layers=12`, `max_len=2048`), which is what the
+run actually instantiated. The correct anchor: `mat_dim=16, n_layers=12,
+max_len=2048, T=8, batch=96/GPU, seq_len=512, 3000 steps, GPT-2 vocab,
+2,552,788 params` took **82.0 min wall time**. Since DDP replicates the
+model per GPU with no per-step cross-GPU dependency beyond the gradient
+all-reduce, this 82 min is also the single-GPU wall time for that exact
+per-GPU workload — i.e. **1.367 GPU-h** for that config (this numeric
+anchor value is unchanged from the first pass; only its layer-count/
+max_len description was wrong and is now corrected). Every cell's
+`gpu_h_estimate` in §6/`embed_ablation_specs/*.json` is this anchor
+scaled linearly by `(batch/96) · (steps/3000) · (params/2,552,788)` — a
+linear scaling in tokens-processed and total-params, which is the right
+first-order model given all three arms are embed/head-GEMM-dominated
+(§4.2) rather than backbone-FLOP-dominated.
 
-**Memory:** activations are `(B, L, d, d)` tensors (matrix arm) or
-`(B, L, d_model)` (flat arm) × `n_layers` × the gradient-checkpointing
-recompute factor (`torch.utils.checkpoint`, already wired into both
-`_one_iteration` methods, ported unchanged from `round1_*_script.py`).
-At `B=64, L=512, d≤36`, the largest activation tensor is on the order of
+**GPU memory:** activations are `(B, L, d, d)` tensors (matrix/flatten
+arms, pre-resize) or `(B, L, d_model)` (flat/flatten arms, post-resize) ×
+`n_layers` × the gradient-checkpointing recompute factor
+(`torch.utils.checkpoint`, wired into every `_one_iteration` method). At
+`B=64, L=512, d≤36`, the largest activation tensor is on the order of
 `64·512·36·36·4 bytes ≈ 212 MB` per matrix-valued activation buffer, and
-checkpointing means only per-layer boundaries are retained — total
-training memory footprint is in the **low single-digit GB**, nowhere near
-the 80GB H100 ceiling that `CLAUDE.md`'s other hard rules (batch=96 at
+checkpointing means only per-layer boundaries are retained — total GPU
+memory footprint is in the **low single-digit GB**, nowhere near the
+80GB H100 ceiling that `CLAUDE.md`'s other hard rules (batch=96 at
 mat_dim=32 being the max, the 50K-vocab logits tensor being the VRAM
 bottleneck) were written about — those rules were calibrated for models
 an order of magnitude larger in vocab-projection batch×seq product than
-what a single-GPU, batch=64 cell here produces. **Memory is not a binding
-constraint for this design**; the binding constraint is wall-clock GPU-h,
-addressed by the `--ceiling-gpuh` hard stop (§6).
+what a single-GPU, batch=64 cell here produces. **GPU memory is not a
+binding constraint for this design**; the binding constraint is
+wall-clock GPU-h, addressed by the `--ceiling-gpuh` hard stop (§6).
+
+**Host RAM (disclosed, audit minor-fix item — not previously stated):**
+`load_corpus_tokens()` loads the ENTIRE `train.pt` + `val.pt` token
+tensors into host RAM via `torch.load(map_location="cpu")` before any
+`.to(device)` transfer, per process. This was NOT measured directly (no
+box access from this sandbox — §10) and is **estimated** at **~3.3 GB
+host RAM per process**: int64 GPT-2 tokens are 8 bytes each, and an
+extended-mix corpus on the order of ~400M combined train+val tokens
+(consistent with `SCALE_TRANSFER_DESIGN.md`'s own sizing note that these
+corpora support "rung 2's 1.5B-token/run target" without excessive
+epoching) gives `~400M × 8 bytes ≈ 3.2-3.3 GB`. This is per-process, so N
+concurrently-running cells on the box's 8 GPUs could sum to `~3.3N GB`
+host RAM (e.g. ~26 GB at full 8-way concurrency) — small relative to a
+typical server's host RAM but not previously disclosed anywhere in this
+design. Confirm against the first probe cell's actual process RSS before
+assuming this figure; do not treat it as measured.
 
 ## 6. GPU-h ledger (≤2 GPU-h/cell, ≤30 GPU-h total — both satisfied)
 
-22 queue specs total: 4 rate probes (500 steps each, mirrors
-`005_laneA_probe_K128_s0.json`'s own Phase-0a discipline: measure real
-per-step cost before committing the seeded-cell budget) + 18 seeded cells
-(2 sizes × 3 arm-configs {matrix, flat-P, flat-D} × 3 seeds).
+30 queue specs total (grew from 22 in the first pass — audit M3 added a
+third arm): **phase A** = 6 rate/admission probes (500 steps each,
+`embed_ablation_specs/phase_A_probes/0640-0645`, one per {matrix, flat,
+flatten} × {S, M}) + **phase B** = 24 seeded cells
+(`embed_ablation_specs/phase_B_seeded/0646-0669`, 4 arm-configs {matrix,
+flat-P, flat-D, flatten-P} × 2 sizes × 3 seeds).
 
 | Cell group | n | GPU-h/cell (formula) | Subtotal |
 |---|---|---|---|
-| probe_matrix_S, probe_flat_S, probe_matrix_M, probe_flat_M | 4 | 0.147–0.224 | 0.741 |
+| 6 phase-A probes (matrix/flat/flatten × S/M) | 6 | 0.146–0.224 | 1.112 |
 | matrix_S_s{0,1,2} | 3 | 0.587 | 1.761 |
 | flatp_S_s{0,1,2} | 3 | 0.587 | 1.762 |
 | flatd_S_s{0,1,2} | 3 | 0.788 | 2.363 |
+| flatten_S_s{0,1,2} | 3 | 0.584 | 1.751 |
 | matrix_M_s{0,1,2} | 3 | 0.894 | 2.682 |
 | flatp_M_s{0,1,2} | 3 | 0.896 | 2.689 |
 | flatd_M_s{0,1,2} | 3 | 1.208 | 3.624 |
-| **Total** | **22** | max single cell **1.208** | **15.622 GPU-h** |
+| flatten_M_s{0,1,2} | 3 | 0.898 | 2.693 |
+| **Total** | **30** | max single cell **1.208** | **20.434 GPU-h** |
 
 Max single-cell estimate (1.208, flatd_M) is well under the 2 GPU-h cap
-(1.66× headroom); the 15.622 GPU-h total leaves ~1.9× headroom under the
-30 GPU-h budget for the case where real wall time runs above the formula
-estimate (the matrix arm's small-matmul kernel-launch overhead is the
-main risk direction per finding 04's own caution, §5). Every `cmd` also
-carries `--ceiling-gpuh 2.0` (0.5 for probes) as a hard stop, matching
-`005`'s own `--ceiling-gpuh` convention — a cell that runs long writes
-`status: "CEILING_STOP"` and exits cleanly rather than overrunning.
+(1.66× headroom); the 20.434 GPU-h total leaves ~1.47× headroom under the
+30 GPU-h budget. Every `cmd` also carries `--ceiling-gpuh 2.0` (0.5 for
+probes) as a hard stop, matching `005`'s own `--ceiling-gpuh` convention
+— a cell that runs long writes `status: "CEILING_STOP"` (with a forced
+final eval, per the minor fix) and exits cleanly rather than overrunning.
 
-**Sequencing:** run the 4 probes first (0640-0643). Their measured
-`gpu_h_actual_approx` should be read back before launching 0644+ — if any
-probe's actual GPU-h/step differs from the formula estimate by more than
-~2×, STOP and re-derive the seeded cells' `--steps` before proceeding
-(same discipline `005`'s own hypothesis field documents for its campaign).
-This document does not authorize skipping that check.
+**Sequencing / gating (audit F2, FATAL fix — restated here verbatim from
+`embed_ablation_specs/phase_A_probes/README.md` and `phase_B_seeded/
+README.md`):** run the 6 phase-A probes first. Once all 6 land, run
 
-## 7. Decision rule (pre-registered, no third outcome)
+```
+embed_ablation_rd.py --check-admission \
+    --probe-results-dir /home/nvidia/embed_ablation/results/probes \
+    --intended-steps 2000 --intended-batch 64
+```
 
-For each registered size independently: sort each arm's 3 seeds' T=1
-token-BPB. Compute `seed_spread = max(spread_matrix, spread_flat-P)`
-(max − min within each arm, whichever is larger). Pair the seeds (sorted
-order) and count a "win" per pair where `flat_BPB − matrix_BPB >
-seed_spread`. `size_pass = (wins ≥ 2) AND (n_pairs ≥ 3)`.
+**This must exit 0 before ANY `phase_B_seeded/` spec is queued.** It
+checks, per probe (audit M4): (a) the last three T=1 evals are monotone
+non-increasing (a coarse "is this actually learning" check — FAILS
+LOUDLY, never silently passes, on a diverging/flat-then-rising curve);
+(b) the probe's measured wall time, linearly extrapolated to
+`--intended-steps 2000 --intended-batch 64`, does not exceed 2.0 GPU-h/
+cell. If it exits nonzero, STOP — re-derive `--steps` for every
+`phase_B_seeded/` spec's `cmd` (and re-run this generator's `gpuh()` cost
+model with the measured rate) before staging or queuing anything in that
+directory. This document does not authorize skipping that check, and
+neither does either phase's own `README.md`.
 
-- **STRENGTHEN** iff `size_pass` is true at **both** S and M.
-- **DROP** otherwise (any size failing, including ties or reversals).
+## 7. Decision rules (pre-registered, no third outcome, TWO independent
+decisions per audit M3)
 
-No partial/ambiguous verdict is defined — `matrix-thinking/src/
-embed_ablation_rd.py`'s `harvest()` function implements exactly this rule
-and only reports `STRENGTHEN`/`DROP`/`PENDING` (pending = not all cells
-landed yet), never a third label. This rule only consumes Arm P (flat-P)
-cells; Arm D (flat-D) is reported in the harvest for context but never
-gates the decision (§4.3).
+For **each** of the two claims (§1a STRENGTHEN-01, §1b STRENGTHEN-04)
+independently, and for each registered size independently: sort each
+arm's 3 seeds' T=1 token-BPB. Compute `seed_spread = max(spread_matrix,
+spread_other)` (max − min within each arm, whichever is larger). Pair the
+seeds (sorted order) and count a "win" per pair where `other_BPB −
+matrix_BPB > seed_spread`. `size_pass = (wins ≥ 2) AND (n_pairs == 3)`.
+
+- **STRENGTHEN** iff `size_pass` is true at **both** S and M, for that
+  claim.
+- **DROP** otherwise (any size failing, including ties or reversals), for
+  that claim.
+- **PENDING** if either size is not yet fully scored (a group has 0
+  qualifying records) — never a silent partial verdict.
+
+`STRENGTHEN-01` and `STRENGTHEN-04` are scored **completely
+independently** — one can be `STRENGTHEN` while the other is `DROP` or
+`PENDING`; neither's outcome constrains the other. `matrix-thinking/src/
+embed_ablation_rd.py`'s `_harvest_records()` implements exactly this and
+only reports `STRENGTHEN`/`DROP`/`PENDING` per claim, never a third
+label, and never averages the two claims together. `flat-D` (§4.3) is
+reported under `flat-D_disclosed_not_gating` for context but is excluded
+from both decisions by construction (its `match` field is `"D"`, and
+both `score()` lookups only read `match="P"` groups).
+
+**F1's exact-3 invariant (FATAL fix, restated):** before either decision
+is scored, `_harvest_records()` groups all `complete=True, non-probe`
+records by `(arm, match, size)` and asserts every group present has
+**exactly 3** records — 0 is fine (not run yet, contributes `PENDING`),
+but 1-2 (a lost/missing seed) or 4+ (a duplicate or a leaked partial/probe
+record) **raises immediately**, before any BPB numbers are even read.
+`--harvest-selftest` (§8b) proves this holds even when probe-labeled and
+`CEILING_STOP` records are physically present in the same directory as
+the 15 clean records it constructs.
 
 ## 8. Smoke test (CPU, run before any box deployment)
 
@@ -366,54 +528,79 @@ gates the decision (§4.3).
 torch venv (this sandbox has no GPU and no pre-installed torch; a fresh
 `venv` + `pip install torch --index-url https://download.pytorch.org/
 whl/cpu` was used to actually execute this, not merely inspected by
-reading):
+reading), IN ORDER:
 
-1. Builds both arms at two TOY configs (`tiny-S`: mat_dim=8, `tiny-M`:
-   mat_dim=12, vocab=97) and runs one real forward + backward pass each,
-   asserting: output shape is `(B, L, vocab)`; loss is finite; **every**
-   trainable parameter receives a gradient (`n_with_grad == n_params`,
-   not just "most"); gradients are finite; and >50% of parameters get a
-   *nonzero* gradient (a coarse dead-parameter check).
+0. **Init check (audit M2):** instantiates a tiny `MatrixThinker` and
+   `VectorThinker`, empirically measures `embed_u.weight.std()` /
+   `embed.weight.std()`, and checks them against `sqrt(TARGET_STD)` /
+   `TARGET_STD` respectively (within 15%, since a small random sample
+   has sampling noise).
+1. **Forward/backward/grad check, ALL THREE arms**, at two TOY configs
+   (`tiny-S`: mat_dim=8, `tiny-M`: mat_dim=12, vocab=97): asserts output
+   shape is `(B, L, vocab)`; loss is finite; **every** trainable
+   parameter receives a gradient (`n_with_grad == n_params`, not just
+   "most"); gradients are finite; and >50% of parameters get a *nonzero*
+   gradient (a coarse dead-parameter check). `flatten` is new in this
+   REV.
 2. **Negative test:** constructs a deliberately mismatched flat model
    (`d_model=4`, ~89% off) against a real matrix model's param count, and
    confirms `check_param_match()` reports `FAIL` (not silently `PASS`) and
    that the `build_arm(match="P")`-style code path **raises**
    `RuntimeError` rather than proceeding.
-3. Confirms the two **registered** sizes (S, M) at the **real GPT-2 vocab
-   scale (50,257)** — the actual configuration the box will run — solve
-   to within the ±1% gate (§4.2's numbers), and confirms Arm D at both
-   sizes is correctly flagged as outside the gate (informational,
-   pre-registered as unmatched, not a failure of the script).
+3. **Registered sizes (S, M) at real GPT-2 vocab scale (50,257)** — the
+   actual configuration the box will run — for **all three arms**: `flat-P`
+   and `flatten-P` both solve within the ±1% gate (§4.2's numbers), and
+   `flat-D` at both sizes is correctly flagged as outside the gate
+   (informational, pre-registered as unmatched, not a script failure).
+4. **`harvest_selftest()` (audit F1, §8b below).**
 
-**Verbatim output** (`DRY_RUN_BYPASS=1 /tmp/embed_ablation_venv/bin/
-python3 matrix-thinking/src/embed_ablation_rd.py --selftest`, CPU,
-`torch==2.14.0`):
+### 8a. Verbatim `--selftest` output (`DRY_RUN_BYPASS=1
+/tmp/embed_ablation_venv/bin/python3 matrix-thinking/src/
+embed_ablation_rd.py --selftest`, CPU, `torch==2.14.0`)
 
 ```
 ==========================================================================
 EMBED ABLATION SELFTEST (CPU, tiny configs)
 ==========================================================================
 
+--- init std check (M2 ruling) ---
+  matrix embed_u std=0.1412 target=sqrt(0.02)=0.1414
+  flat embed std=0.0200 target=TARGET_STD=0.0200
+
 --- size tiny-S: {'mat_dim': 8, 'n_layers': 2, 'n_heads': 2} ---
-  [matrix/tiny-S] forward OK shape=(3, 11, 97) loss=4.6934 grads: 66/66 present, 66/66 nonzero (100%)
-  flat-P/tiny-S param match: matrix=5,806 flat=6,252 ratio=1.0768 diff=7.682% tol=1.0% -> FAIL  [informational at toy vocab=97; real gate is the 'registered sizes at real GPT-2 vocab' section below]
-  [flat-P/tiny-S (d_model=12)] forward OK shape=(3, 11, 97) loss=4.8606 grads: 29/29 present, 29/29 nonzero (100%)
+  [matrix/tiny-S] forward OK shape=(3, 11, 97) loss=4.6740 grads: 66/66 present, 66/66 nonzero (100%)
+  flat-P/tiny-S param match: matrix=5,806 other=6,252 ratio=1.0768 diff=7.682% tol=1.0% -> FAIL  [informational at toy vocab=97; real gate is the 'registered sizes at real GPT-2 vocab' section below]
+  [flat-P/tiny-S (d_model=12)] forward OK shape=(3, 11, 97) loss=4.7367 grads: 29/29 present, 29/29 nonzero (100%)
+  flatten-P/tiny-S param match: matrix=5,806 other=6,028 ratio=1.0382 diff=3.824% tol=1.0% -> FAIL  [informational at toy vocab; real gate below]  n_heads=1
+  [flatten-P/tiny-S (d_model=10)] forward OK shape=(3, 11, 97) loss=4.6561 grads: 33/33 present, 33/33 nonzero (100%)
 
 --- size tiny-M: {'mat_dim': 12, 'n_layers': 2, 'n_heads': 4} ---
-  [matrix/tiny-M] forward OK shape=(3, 11, 97) loss=4.6326 grads: 66/66 present, 66/66 nonzero (100%)
-  flat-P/tiny-M param match: matrix=11,154 flat=9,872 ratio=0.8851 diff=11.494% tol=1.0% -> FAIL  [informational at toy vocab=97; real gate is the 'registered sizes at real GPT-2 vocab' section below]
-  [flat-P/tiny-M (d_model=16)] forward OK shape=(3, 11, 97) loss=4.7868 grads: 29/29 present, 29/29 nonzero (100%)
+  [matrix/tiny-M] forward OK shape=(3, 11, 97) loss=4.6552 grads: 66/66 present, 66/66 nonzero (100%)
+  flat-P/tiny-M param match: matrix=11,154 other=9,872 ratio=0.8851 diff=11.494% tol=1.0% -> FAIL  [informational at toy vocab=97; real gate is the 'registered sizes at real GPT-2 vocab' section below]
+  [flat-P/tiny-M (d_model=16)] forward OK shape=(3, 11, 97) loss=4.7756 grads: 29/29 present, 29/29 nonzero (100%)
+  flatten-P/tiny-M param match: matrix=11,154 other=11,076 ratio=0.9930 diff=0.699% tol=1.0% -> PASS  [informational at toy vocab; real gate below]  n_heads=2
+  [flatten-P/tiny-M (d_model=14)] forward OK shape=(3, 11, 97) loss=4.5830 grads: 33/33 present, 33/33 nonzero (100%)
 
 --- negative test: forced param mismatch must raise ---
-  NEGATIVE param match: matrix=87,890 flat=9,728 ratio=0.1107 diff=88.932% tol=1.0% -> FAIL
+  NEGATIVE param match: matrix=87,890 other=9,728 ratio=0.1107 diff=88.932% tol=1.0% -> FAIL
   negative test correctly reports FAIL for the mismatched pair (as expected)
-  build_arm-style gate correctly RAISED: simulated build_arm(match='P') gate: NEGATIVE-build_arm-path param match: matrix=87,890 flat=9,728 ratio=0.1107 diff=88.932% tol=1.0% -> FAIL
+  build_arm-style gate correctly RAISED: simulated build_arm(match='P') gate: NEGATIVE-build_arm-path param match: matrix=87,890 other=9,728 ratio=0.1107 diff=88.932% tol=1.0% -> FAIL
 
 --- registered sizes at real GPT-2 vocab (50257), match=P ---
-  size S param match: matrix=2,466,562 flat=2,468,016 ratio=1.0006 diff=0.059% tol=1.0% -> PASS  (d_model=24)
-  size S (match=D, expected UNMATCHED) param match: matrix=2,466,562 flat=3,309,120 ratio=1.3416 diff=34.159% tol=1.0% -> FAIL  (d_model=32) -- D is pre-registered as unmatched, this is informational
-  size M param match: matrix=3,755,808 flat=3,765,168 ratio=1.0025 diff=0.249% tol=1.0% -> PASS  (d_model=36)
-  size M (match=D, expected UNMATCHED) param match: matrix=3,755,808 flat=5,075,520 ratio=1.3514 diff=35.138% tol=1.0% -> FAIL  (d_model=48) -- D is pre-registered as unmatched, this is informational
+  size S flat-P param match: matrix=2,466,562 other=2,468,016 ratio=1.0006 diff=0.059% tol=1.0% -> PASS  (d_model=24, n_heads=4)
+  size S flatten-P param match: matrix=2,466,562 other=2,452,544 ratio=0.9943 diff=0.568% tol=1.0% -> PASS  (d_model=16, n_heads=8)
+  size S (match=D, expected UNMATCHED) param match: matrix=2,466,562 other=3,309,120 ratio=1.3416 diff=34.159% tol=1.0% -> FAIL  (d_model=32) -- D is pre-registered as unmatched, this is informational
+  size M flat-P param match: matrix=3,755,808 other=3,765,168 ratio=1.0025 diff=0.249% tol=1.0% -> PASS  (d_model=36, n_heads=4)
+  size M flatten-P param match: matrix=3,755,808 other=3,770,412 ratio=1.0039 diff=0.389% tol=1.0% -> PASS  (d_model=25, n_heads=1)
+  size M (match=D, expected UNMATCHED) param match: matrix=3,755,808 other=5,075,520 ratio=1.3514 diff=35.138% tol=1.0% -> FAIL  (d_model=48) -- D is pre-registered as unmatched, this is informational
+
+--- harvest-selftest: synthetic 15-clean + 2-probe + 1-CEILING_STOP dir ---
+  dir A: 15 files (expect 15)
+  dir B: 18 files (expect 18 = 15 + 2 probes + 1 ceiling-stop)
+  [... full per-decision JSON for both dirs, omitted here for length, see §8b ...]
+  STRENGTHEN-04 decision: A=STRENGTHEN B=STRENGTHEN
+  STRENGTHEN-01 decision: A=PENDING B=PENDING (expected PENDING: flatten/M is missing from both dirs by construction)
+  harvest-selftest: PASS -- probes + the CEILING_STOP cell provably do not change the verdict
 
 ==========================================================================
 SELFTEST: ALL CHECKS PASSED
@@ -421,16 +608,55 @@ SELFTEST: ALL CHECKS PASSED
 ```
 
 **Flag for ruling, not assumption:** the `tiny-S`/`tiny-M` toy-vocab
-sub-checks report `FAIL` on the param-match ratio (7.7% and 11.5% off) —
-this is **expected and disclosed in the script's own print output**, not
-a bug: at `vocab=97` the integer `d_model` search space is too coarse
-(only a handful of multiples of `n_heads` exist below the point where
-`flat_total` overshoots) for ±1% to be achievable at all. This sub-check
-is explicitly excluded from the pass/fail gate (see the code comment
-added after the first run surfaced it) precisely because it is a toy-scale
-artifact; the real precision claim is the "registered sizes at real
-GPT-2 vocab" block, which passes at 0.059% and 0.249%. Anyone re-running
-this selftest should not be alarmed by the tiny-config `FAIL` lines.
+param-match sub-checks report `FAIL` (or, for `flatten-P/tiny-M`, a
+lucky `PASS`) at `vocab=97` — this is **expected and disclosed in the
+script's own print output**, not a bug: at that scale the integer width
+search space is too coarse for ±1% to be reliably achievable. This
+sub-check is explicitly excluded from the pass/fail gate; the real
+precision claim is the "registered sizes at real GPT-2 vocab" block,
+which passes for `flat-P` and `flatten-P` at both sizes (0.059%-0.568%).
+
+### 8b. `--harvest-selftest` (audit F1, standalone flag AND run inside
+`--selftest`)
+
+Builds two temp directories: **A** = 15 clean, `complete=True` records
+across exactly 5 `(arm,match,size)` groups × 3 seeds (`matrix/P/S`,
+`matrix/P/M`, `flat/P/S`, `flat/P/M`, `flatten/P/S` — `flatten/P/M`
+**deliberately missing**, to also exercise the `PENDING` path for
+STRENGTHEN-01 at size M); **B** = the same 15 records **plus** 3 extras:
+a record with `role="probe"`, a record with no `role` field but `"probe"`
+in its filename (exercising **both** detection paths F1 names), and a
+`complete=False` (`CEILING_STOP`) record for the missing `flatten/P/M`
+group. `harvest()` is run on both directories and the two summaries are
+compared field-by-field: `STRENGTHEN-01`, `STRENGTHEN-04`, and
+`flat-D_disclosed_not_gating` must be **byte-identical**, and
+`n_records_valid_after_filter` must be `15` in both (only `n_records_
+loaded` legitimately differs, `15` vs `18`). Verbatim result (from the
+same `--selftest` run as §8a): **PASS** — `STRENGTHEN-04` computes
+`STRENGTHEN` identically in both dirs (matrix consistently beats flat-P
+by more than the seed spread, by construction of the synthetic BPB
+values); `STRENGTHEN-01` reports `PENDING` identically in both dirs
+(flatten/M is missing from both, by construction — not affected by
+whether the 3 extras are present).
+
+Run standalone: `embed_ablation_rd.py --harvest-selftest` (exit code 0
+confirmed independently of the full `--selftest` run).
+
+### 8c. `--check-admission` (audit M4) — verified against 3 synthetic
+scenarios, not just read
+
+Tested against three hand-built synthetic probe-result directories (not
+shown verbatim here for length; reproducible from this file's own
+description): (1) one monotone-improving probe + one non-monotone
+(diverging) probe → **exits 1**, correctly flags the diverging probe by
+name and its exact `last3` values, while still reporting the healthy
+probe's own (a) and (b) checks separately; (2) a probe with a
+realistically slow measured rate (90 min for 500 steps, vs the ~9 min the
+formula anchor predicts) → **exits 1** on check (b), reporting the
+extrapolated `6.000 GPU-h` against the `2.0` ceiling; (3) a normal
+monotone + on-rate probe → **exits 0**. All three confirmed by actually
+running the CLI flag against synthetic JSON, not merely inspecting the
+function body.
 
 ## 6b. Deployment — exactly what must move to the box, and where
 
@@ -443,7 +669,7 @@ code is scp'd there per that doc's own "Environment on the box" section.
 | Local path | Box path | Why |
 |---|---|---|
 | `matrix-thinking/src/embed_ablation_rd.py` | `/home/nvidia/embed_ablation/embed_ablation_rd.py` | the entire runner; self-contained, zero import dependency on any other repo file (deliberately — `lm_pretrain_rd.py` is under concurrent edit and pulls in frozen-bias/DeltaNet machinery this ablation does not need) |
-| *(nothing else)* | — | no other file is required: the corpus loader, both model arms, the training loop, eval, and harvest are all in the one script |
+| *(nothing else)* | — | no other file is required: the corpus loader, all three model arms, the training loop, eval, harvest, and admission-check are all in the one script |
 
 **Data already on the box, not transferred by this design:** the GPT-2
 tokenized `wikitext-mix-ext` corpus must already exist at
@@ -451,8 +677,8 @@ tokenized `wikitext-mix-ext` corpus must already exist at
 see §3's citation of the completed `645_laneB_...` queue spec that trains
 on this exact directory). If a fresh box or fresh data volume does NOT
 have this directory, that is a hard blocker for every cell in this
-design and must be flagged before Wave 0 (the rate probes) launches — do
-not assume it is there without checking `ls /data/deltanet_rd_data/
+design and must be flagged before phase A (the rate probes) launches —
+do not assume it is there without checking `ls /data/deltanet_rd_data/
 wikitext103_mix_eot_extended/meta.json` first.
 
 **Checkpoints:** every cell's `--ckpt-dir` is under
@@ -461,26 +687,32 @@ filesystem, per the task brief and `CLAUDE.md`'s general data-placement
 discipline (mirrors `/data/fixscale_ckpts/...` in the `645_laneB_...`
 spec).
 
-**Outputs:** every cell's `--out` is under
-`/home/nvidia/embed_ablation/results/<cell_name>.json`. The harvest step
+**Outputs (audit F1 fix — probes now separated):** phase-B seeded cells'
+`--out` is under `/home/nvidia/embed_ablation/results/<cell_name>.json`;
+phase-A probe cells' `--out` is under `/home/nvidia/embed_ablation/
+results/probes/<cell_name>.json` — a SEPARATE subdirectory, so `harvest()`'s
+plain top-level `os.listdir(results_dir)` never even sees probe files
+(the `probes/` directory entry does not end in `.json`), on top of the
+explicit `role`/filename filter it also applies. The harvest step
 (`--harvest --results-dir /home/nvidia/embed_ablation/results --out
-.../embed_ablation_summary.json`) runs on the box against that directory
-directly, or against a copy pulled back to the repo's `experiment-runs/`
-archive per that directory's own size-capped hybrid-archive policy
-(`experiment-runs/README.md`) — result JSONs here are tiny (no large
-Z-dumps or checkpoints), so they belong in the committed
-`experiment-runs/` tree, not SSD-only.
+.../embed_ablation_summary.json`) runs on the box against the top-level
+`results/` directory, or against a copy pulled back to the repo's
+`experiment-runs/` archive per that directory's own size-capped
+hybrid-archive policy (`experiment-runs/README.md`) — result JSONs here
+are tiny (no large Z-dumps or checkpoints), so they belong in the
+committed `experiment-runs/` tree, not SSD-only.
 
 **Python:** `/home/nvidia/tdenv/bin/python3` (the box's existing venv,
 per `H100_SETUP.md` and every queue spec's `cmd` field) — already has
 `torch` per that doc's `pip install torch numpy`. No new dependency is
 introduced by this script (it uses only `torch`, stdlib `json`/`math`/
-`argparse`/`time`/`pathlib`).
+`argparse`/`time`/`pathlib`/`zlib`/`tempfile`).
 
 ## 9. Queue specs
 
-22 files at `matrix-thinking/embed_ablation_specs/0640-0661_embed_
-ablation_*.json`, schema copied field-for-field from
+30 files: `matrix-thinking/embed_ablation_specs/phase_A_probes/
+0640-0645_embed_ablation_probe_*.json` (6) and `phase_B_seeded/
+0646-0669_embed_ablation_*.json` (24), schema copied field-for-field from
 `experiment-runs/2026-08-29_box_final_archive/queue/completed/
 005_laneA_probe_K128_s0.json` (`id`, `lane`, `hypothesis`, `cmd`,
 `gpu_h_estimate`, `output_dir`, `validity_check`, `notes`). IDs 0640+ sort
@@ -488,18 +720,24 @@ behind the running 1.31B K=16 grace wave (0478-0485) and the 0600-0629
 recall-strengthening sweep, per the task brief. `lane: "embed-ablation"`
 (a new lane tag — this campaign is independent of lanes A/B used
 elsewhere). Each spec's `notes` field states the exact scp prerequisite
-(§6b) and the formula basis for its `gpu_h_estimate` (§5/§6); each `cmd`
-includes `--ceiling-gpuh` as the hard-stop safety valve; each
-`validity_check` asserts `complete is True`, `steps_completed` reached
-target, and both `T1`/`T8` are present in `final_evals` — a cell that
-silently truncates (Run 22's actual failure mode) fails its own
-validity check rather than being harvested as if it had finished.
+(§6b), the F2 gating dependency (phase-B specs only — restated verbatim
+from each phase's `README.md`), and the formula basis for its
+`gpu_h_estimate` (§5/§6, with the corrected anchor description); each
+`cmd` includes `--ceiling-gpuh` as the hard-stop safety valve and (for
+phase-B) `--eval-batches 50` (audit M1); each `validity_check` asserts
+`complete is True`, `steps_completed` reached target, and both `T1`/`T8`
+are present in `final_evals` — a cell that silently truncates (Run 22's
+actual failure mode) fails its own validity check rather than being
+harvested as if it had finished.
 
-Sequencing: 0640-0643 (probes) → confirm real wall time (§6) → 0644-0652
-(size S: matrix, flat-P, flat-D, 3 seeds each) → 0653-0661 (size M, same
-structure). Nothing in `embed_ablation_specs/` is queued for execution by
-this design — staging only, per the task brief's "queue specs only"
-instruction.
+**Sequencing (restated from §6, and from both phases' own `README.md`):**
+`phase_A_probes/0640-0645` (no dependencies, run first) → confirm real
+wall time AND run `--check-admission` (§6, §8c) → only then
+`phase_B_seeded/0646-0669` (matrix/flatp/flatd/flatten × S/M × 3 seeds).
+Nothing in `embed_ablation_specs/` is queued for execution by this
+design — staging only, per the task brief's "queue specs only"
+instruction and per the coordinator's explicit "still no commit, no
+launch, no staging" instruction on this revision.
 
 ## 10. Flags for the audit round (things that do not transfer cleanly —
 reported, not assumed away)
@@ -510,28 +748,31 @@ reported, not assumed away)
   `round2_matrix_script.py` (uniform start index, no document-boundary
   awareness), NOT `lm_pretrain_rd.py`'s AUDIT-FIX-3 machinery
   (`boundary_stats`, `train_doc_offsets`/`val_doc_offsets`-aware
-  sampling). Both arms see the identical sampling procedure and the
-  corpus IS EOT-separated (so a window that crosses a document boundary
-  still carries an in-band `<|endoftext|>` signal, per that file's own
+  sampling). All three arms see the identical procedure and the corpus IS
+  EOT-separated (so a window that crosses a document boundary still
+  carries an in-band `<|endoftext|>` signal, per that file's own
   comment), so this does not introduce an asymmetry between arms — but it
-  means this design does not inherit `lm_pretrain_rd.py`'s own
-  boundary-crossing-rate quantification. If a future reviewer wants that
-  diagnostic, `boundary_stats()` would need to be ported in; it was left
-  out here to keep the runner import-independent (see §6b).
+  means this design does not inherit that file's own boundary-crossing-
+  rate quantification. (M1's fix — `corpus_fixed_seed` for the EVAL
+  generator specifically — IS ported from `lm_pretrain_rd.py`; only the
+  TRAINING sampler and the boundary-aware windowing remain un-ported.)
 - **`--ceiling-gpuh` is checked only at the top of the training loop, not
   inside an eval pass.** A cell that hits its ceiling mid-eval will run
   that eval to completion before stopping (bounded overshoot of at most
   one `--eval-interval`'s worth of eval batches, small relative to the 2.0
-  GPU-h ceiling).
+  GPU-h ceiling). The forced final eval on `CEILING_STOP` (minor fix)
+  adds one more such bounded overshoot at the very end.
 - **The GPU-h estimates in §5/§6/every spec's `gpu_h_estimate` are
   formula-extrapolated from one empirical anchor** (`exp_d16_v2`, a
-  different-but-architecturally-related run), scaled linearly in
-  batch×steps×params — they are NOT measured for this exact script,
-  this exact flat-arm `d_model`, or this exact box. This is exactly why
-  §6 stages 4 rate-probe cells (0640-0643) ahead of the 18 seeded cells,
-  and why every `cmd` still carries a hard `--ceiling-gpuh` stop
-  regardless of the formula estimate. Treat the ledger as a planning
-  budget, not a guarantee, until the probes report back.
+  different-but-architecturally-related run, now correctly described as
+  12 layers/max_len=2048), scaled linearly in batch×steps×params — they
+  are NOT measured for this exact script, any of the three arms' exact
+  widths, or this exact box. This is exactly why §6 stages 6 rate-probe
+  cells ahead of the 24 seeded cells, and why `--check-admission` (M4) is
+  a hard gate, not a suggestion, before phase B is staged.
+- **~3.3 GB estimated (not measured) host RAM per process** for loading
+  the full corpus tensors (§5) — confirm against the first probe cell's
+  real process RSS.
 - **This design was authored and selftested entirely off-box, on a CPU-
   only scratch venv (`torch==2.14.0`, no CUDA) in a sandbox with no
   access to the H100 box, `/data/deltanet_rd_data`, or the box's own
@@ -539,7 +780,11 @@ reported, not assumed away)
   bf16-autocast training path have been read against `lm_pretrain_rd.py`'s
   contract and written to match it, but have not been exercised against a
   real `wikitext-mix-ext` corpus file or a real GPU — that first real
-  exercise IS what the Wave-0 probes (0640-0643) are for. Do not treat
-  the CPU selftest's "ALL CHECKS PASSED" as evidence the box-side data
-  loading or CUDA path is bug-free; it only certifies the model
-  forward/backward/grad-flow and the parameter-matching arithmetic.
+  exercise IS what the phase-A probes are for. Do not treat the CPU
+  selftest's "ALL CHECKS PASSED" (or the `--harvest-selftest`/
+  `--check-admission` passes, which are pure-Python logic tests against
+  synthetic JSON, no corpus or GPU involved) as evidence the box-side
+  data loading or CUDA path is bug-free; they certify the model
+  forward/backward/grad-flow, the parameter-matching arithmetic, the
+  harvest filtering/grouping/decision logic, and the admission-check
+  logic — not the box-specific I/O and CUDA paths.
