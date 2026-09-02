@@ -5,6 +5,44 @@ transformer arm (Task 1, episodic recall).
 Pre-registration: HEAD_TO_HEAD_DEMO_DESIGN.md sec 1.46 (written and
 committed BEFORE this script's cells run on real GPU cells).
 
+REV-narrow AUDIT (2026-09-01, 4 MAJOR, applied here -- no launch/staging/
+commit happened before or during this revision):
+  M1 every spec's train stage is wrapped `timeout -k 120 <N>h` (see
+     `h2h_strengthen_specs_gen.TIMEOUT_HOURS`); on kill, `train_grammar_cell`
+     never reaches its atomic-dump-at-the-end, so no raw JSON is written,
+     `is_valid_result`/this module's own step_count check both read "not
+     valid", and the GPU frees for the next queue claim.
+  M2 the GPU-h cost model was re-derived as BLOCK-FLOP-scaled (not naive
+     total-param-ratio) with a corrected anchor rate -- see
+     `h2h_strengthen_specs_gen.py`'s own module docstring for the full
+     derivation; both the pre-audit and audit-corrected totals are
+     disclosed in sec 1.46. The pre-audit record's "/data ~95% full, 139
+     GiB free" premise was ALSO wrong (corrected: 914 GB free) -- moot
+     regardless, since checkpoints move to `/ephemeral/` per STATE.md's
+     own disk policy either way.
+  M3 provenance hardening: `_remetric_one` now records the LOADED model's
+     own `n_params_loaded`/`d_model_loaded`/`n_layers_loaded` (read back
+     from the checkpoint after `run_cell_round4` returns, not merely
+     copied from the spec/cell dict); `_valid_remetric` now REQUIRES the
+     remetric record's `provenance.md5` to match the checkpoint file's
+     CURRENT md5 on disk (a stale record from an overwritten/mismatched
+     checkpoint is no longer trusted); `mode_run_cell`'s skip-if-valid
+     path now also requires the existing raw JSON's `step_count` to equal
+     the cell's real target (a stale smoke output sitting at the real
+     `--out` path can no longer be mistaken for a completed real cell);
+     every spec's `validity_check` now also asserts the raw JSON's own
+     `n_params` matches the capacity's formula-derived count. Together
+     these close the "double-dump race" (a probe/smoke and a real run
+     sharing a path) at the SOURCE, not just by convention.
+  M4 a gating probe (`strengthen_specs_probe/0599_h2h_strengthen_probe_C2.json`,
+     300 steps on the SAME cell identity as the real, most-expensive
+     0621 spec, DISTINCT paths) MUST validate and re-price the ledger
+     from its own measured s/step BEFORE any of 0600-0629 are staged.
+  minor: the `capped_M2` training-curve diagnostic's true M-multiplier is
+     capacity-dependent (M~=2 at C0, M~=4 at C1, M~=12 at C2 -- see the
+     "KNOWN NON-TRANSFERRING DETAIL" section below); the md5-provenance
+     rule (M3) closes the double-dump race the minor note also flagged.
+
 WHY: after sec 1.44/1.45's 4-point LR grid (h2h_fix5_lrgrid_rd.py), the
 transformer baseline still reads chance at 20,000 steps / 14.44M params /
 every searched LR (`TUNED_TRANSFORMER_STILL_BELOW_BAR`). The PI wants a
@@ -73,17 +111,30 @@ CPU-torch probe run during this script's build (documented in the sec
 1.46 design record's "reader audit" table).
 
 ONE KNOWN NON-TRANSFERRING DETAIL (disclosed, not fixed here -- flagged
-for coordinator ruling in the sec 1.46 record): `train_grammar_cell`'s own
-`capped_mask_fn` (h2h_cell_train_rd.py, the `task1`+transformer "M2
-capped-cache" REPORT-ONLY training-curve diagnostic) calls
-`cap_length_tokens(2, 2, 256)` with LITERAL hardcoded ints, not a
-`TRANSFORMER_KW` dict lookup -- it does NOT track a capacity override.
-This means `recovered_frac_capped_M2` / `probe_cos_mean_capped_M2` in
-every fresh cell's training curve are computed against the C0 cap-length
-regardless of the cell's real capacity. This is NEVER the decision metric
-(acc_A, from `run_cell_round4`, unaffected) and is disclosed here rather
-than patched -- editing `h2h_cell_train_rd.py` itself is out of this
-script's scope and would touch code shared by every other h2h round.
+for coordinator ruling in the sec 1.46 record; RELABELED per the audit's
+own minor note): `train_grammar_cell`'s own `capped_mask_fn`
+(h2h_cell_train_rd.py, the `task1`+transformer "M2 capped-cache"
+REPORT-ONLY training-curve diagnostic) calls `cap_length_tokens(2, 2,
+256)` with LITERAL hardcoded ints, not a `TRANSFORMER_KW` dict lookup --
+it does NOT track a capacity override. `cap_length_tokens(M, n_layers,
+d_model) = M * CONTENDER_TOTAL_STATE_BYTES / (2*n_layers*d_model*
+bytes_per_elt)` (transformer_baseline_rd.py's own pinned formula) is
+proportional to `M/(n_layers*d_model)`; holding the computed cap-length
+value fixed at C0's own (n_layers=2, d_model=256) but applying it to a
+DIFFERENT capacity's real (n_layers, d_model) is therefore equivalent to
+a DIFFERENT effective M at that capacity: solving `M_eff = 2 *
+(n_layers*d_model)_real / (n_layers*d_model)_C0` gives **M_eff~=4 at C1**
+(product 1024 vs C0's 512, exactly 2x) and **M_eff~=12 at C2** (product
+3072 vs C0's 512, exactly 6x) -- verified by exact arithmetic against the
+pinned formula, not approximated. So `recovered_frac_capped_M2` /
+`probe_cos_mean_capped_M2` in a C1/C2 fresh cell's training curve are
+NOT "the M=2 capped-cache read" their name implies -- they are the M~=4
+(C1) / M~=12 (C2) read, respectively; only at C0 does the column's name
+match its content. This is NEVER the decision metric (`acc_A`, from
+`run_cell_round4`, unaffected) and is RELABELED here (in prose, for any
+downstream consumer of the training curve) rather than patched in code
+-- editing `h2h_cell_train_rd.py` itself is out of this script's scope
+and would touch code shared by every other h2h round.
 
 Run the selftest (CPU, tiny steps, torch required -- same convention as
 every other h2h_*_rd.py module):
@@ -292,7 +343,23 @@ def all_configs() -> list[dict]:
     return configs
 
 
-def _valid_remetric(path: str) -> bool:
+def _md5_of_file(path: str) -> str:
+    import hashlib
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _valid_remetric(path: str, ckpt_path: str | None = None) -> bool:
+    """AUDIT FIX (M3, 2026-09-01): when `ckpt_path` is given, ALSO requires the record's own
+    `provenance.md5` to match the checkpoint file's CURRENT md5 on disk -- closes the
+    "double-dump race" (a stale remetric JSON left behind after its checkpoint was later
+    overwritten, e.g. by a probe/smoke sharing a path, is no longer silently trusted). Without
+    `ckpt_path` this check is skipped (this module's only call site always passes it; the
+    parameter stays optional so a caller with no checkpoint to check against -- there is none
+    today -- is not forced to fabricate one)."""
     if not os.path.isfile(path):
         return False
     try:
@@ -300,7 +367,27 @@ def _valid_remetric(path: str) -> bool:
             doc = json.load(f)
     except (json.JSONDecodeError, OSError):
         return False
-    return "leg_a" in doc and math.isfinite(doc["leg_a"].get("acc_A", float("nan")))
+    if "leg_a" not in doc or not math.isfinite(doc["leg_a"].get("acc_A", float("nan"))):
+        return False
+    if ckpt_path is not None:
+        prov = doc.get("provenance") or {}
+        if not os.path.isfile(ckpt_path) or prov.get("md5") != _md5_of_file(ckpt_path):
+            return False
+    return True
+
+
+def _existing_train_result_is_current(path: str, cell: dict) -> bool:
+    """AUDIT FIX (M3, 2026-09-01): True only if `path` is a valid result (REQUIRED_RESULT_KEYS
+    present, per `is_valid_result`) AND its recorded `step_count` equals `cell`'s REAL target.
+    `is_valid_result` alone would accept a stale smoke output (e.g. a `--steps-override 300`
+    probe run) sitting at a cell's real `--out` path as "already done", forever. Factored out of
+    `mode_run_cell` so it is independently selftest-able without spawning a real training run."""
+    from h2h_sweep_runner_rd import is_valid_result
+    if not is_valid_result(path):
+        return False
+    with open(path) as f:
+        existing = json.load(f)
+    return existing.get("step_count") == cell["steps"]
 
 
 # ---------------------------------------------------------------------------
@@ -324,12 +411,17 @@ def mode_run_cell(args) -> int:
     apply_capacity_override(cell["arch_kw"])
 
     import h2h_cell_train_rd as ct
-    from h2h_sweep_runner_rd import is_valid_result, REQUIRED_RESULT_KEYS
+    from h2h_sweep_runner_rd import REQUIRED_RESULT_KEYS
     ct.require_launch_tokens(args.gates_dir)
     ct.require_margins_frozen(args.margins_token)
-    if is_valid_result(args.out):
-        print(f"SKIP (already valid): {args.out}")
+    # AUDIT FIX (M3, 2026-09-01): skip requires step_count == target, not merely "a valid-shaped
+    # JSON exists" -- see _existing_train_result_is_current's own docstring.
+    if _existing_train_result_is_current(args.out, cell):
+        print(f"SKIP (already valid, step_count matches target {cell['steps']}): {args.out}")
         return 0
+    if os.path.isfile(args.out):
+        print(f"NOT SKIPPING: {args.out} exists but is stale/under-trained for target "
+              f"{cell['steps']} -- retraining")
     steps_override = args.steps_override if args.steps_override is not None else cell["steps"]
     result = ct.run_one_cell(cell, args.device, args.ckpt_dir, steps_override=steps_override)
     result = {**cell, **result}
@@ -341,15 +433,17 @@ def mode_run_cell(args) -> int:
 
 
 def _remetric_one(cell: dict, args) -> None:
-    from h2h_round4_driver_rd import run_cell_round4, _md5_of_file
+    from h2h_round4_driver_rd import run_cell_round4, _md5_of_file as _round4_md5_of_file
     apply_capacity_override(cell["arch_kw"])
     ckpt_path = os.path.join(args.ckpt_dir, f"{cell['name']}_r{args.dial_round}.pt")
     assert os.path.isfile(ckpt_path), f"missing strengthen checkpoint: {ckpt_path}"
-    manifest = {cell["name"]: {"path": ckpt_path, "md5": _md5_of_file(ckpt_path),
+    manifest = {cell["name"]: {"path": ckpt_path, "md5": _round4_md5_of_file(ckpt_path),
                                "mtime": os.path.getmtime(ckpt_path)}}
     out_path = os.path.join(args.remetric_dir, f"{cell['name']}_round4.json")
-    if _valid_remetric(out_path):
-        print(f"SKIP (already valid): {out_path}")
+    # AUDIT FIX (M3, 2026-09-01): pass ckpt_path so the skip check ALSO verifies the record's own
+    # provenance.md5 still matches the checkpoint currently on disk (closes the double-dump race).
+    if _valid_remetric(out_path, ckpt_path=ckpt_path):
+        print(f"SKIP (already valid, provenance md5 matches): {out_path}")
         return
     spec = {"cell_id": cell["name"], "arch": cell["arch"], "task": cell["task"], "K": cell["K"],
             "role": "strengthen_remetric", "fresh": False, "seed": cell["seed"]}
@@ -361,9 +455,20 @@ def _remetric_one(cell: dict, args) -> None:
     r["capacity"] = cell["capacity"]
     r["lr"] = cell["lr"]
     r["steps_target"] = cell["steps"]
+    # AUDIT FIX (M3, 2026-09-01): record the LOADED model's OWN shape/param-count, read back from
+    # the checkpoint AFTER run_cell_round4 has already loaded+evaluated it under the SAME
+    # capacity override -- never merely copied from the spec/cell dict. A capacity-override bug
+    # that silently built the WRONG shape would otherwise pass every check that only compares the
+    # spec's OWN arch_kw against itself (a check with no independent teeth).
+    import h2h_cell_train_rd as ct
+    loaded_model, _, _ = ct.load_h2h_checkpoint(ckpt_path, args.device)
+    r["n_params_loaded"] = sum(p.numel() for p in loaded_model.parameters())
+    r["d_model_loaded"] = loaded_model.d_model
+    r["n_layers_loaded"] = len(loaded_model.blocks)
     from h2h_cell_train_rd import _atomic_dump
     _atomic_dump(out_path, r)
-    print(f"REMETRIC {cell['name']}: acc_A={r['leg_a']['acc_A']:.4f}")
+    print(f"REMETRIC {cell['name']}: acc_A={r['leg_a']['acc_A']:.4f} "
+          f"n_params_loaded={r['n_params_loaded']}")
 
 
 def mode_remetric(args) -> int:
@@ -547,6 +652,80 @@ def mode_harvest(args) -> int:
     return 0
 
 
+def _harvest_scenario(tmp_root: str, accs_by_config: dict, contender_accs: dict) -> dict:
+    """Test-only harness for the selftest's harvest SCENARIO BATTERY (item 13): writes synthetic
+    raw+remetric JSON pairs for every one of the 12 `all_configs()` configs (keyed by
+    `_config_key`) under `tmp_root`, monkeypatches `_repo_root`/`REUSED_C0_20K_CELLS`/
+    `CONTENDER_REFERENCE_REMETRIC` (module globals, restored in `finally` regardless of outcome)
+    so the "reused" configs and the contender reference ALSO resolve to synthetic data instead of
+    the real repo artifacts, then calls the REAL `mode_harvest()` end to end and returns its
+    written `STRENGTHEN_VERDICT.json`. `accs_by_config`: `{config_key: [acc_s0, acc_s1, acc_s2]}`
+    for all 12 keys. `contender_accs`: `{seed_idx: acc_A}` for the 3 contender reference seeds.
+
+    Uses `sys.modules[__name__]` (never `import h2h_strengthen_rd`) to reach this module's OWN
+    globals regardless of whether it is running as `__main__` (invoked directly) or as an
+    imported module -- `import h2h_strengthen_rd` from inside itself would silently create a
+    SECOND, separate module object when run as `__main__`, and patching that second copy's
+    globals would have no effect on the `mode_harvest`/`_load_config_rows` functions actually
+    executing."""
+    self_mod = sys.modules[__name__]
+    raw_dir = os.path.join(tmp_root, "raw")
+    remetric_dir = os.path.join(tmp_root, "remetric")
+    os.makedirs(raw_dir, exist_ok=True)
+    os.makedirs(remetric_dir, exist_ok=True)
+
+    def _write(name: str, acc: float, steps: int, arch_kw: dict) -> None:
+        with open(os.path.join(raw_dir, f"{name}.json"), "w") as f:
+            json.dump({"curve": [], "loss_first": 1.0, "loss_final_mean5": 1.0,
+                      "step_count": steps}, f)
+        with open(os.path.join(remetric_dir, f"{name}_round4.json"), "w") as f:
+            json.dump({"leg_a": {"acc_A": acc, "chance": CHANCE_K32}, "arch_kw": arch_kw,
+                      "steps_target": steps}, f)
+
+    reused_override: dict = {}
+    for cfg in all_configs():
+        accs = accs_by_config[_config_key(cfg)]
+        assert len(accs) == 3, f"need exactly 3 seed accs for {_config_key(cfg)}"
+        for seed_idx, acc in zip(SEED_IDXS, accs):
+            name = _cell_name(cfg["capacity"], cfg["lr"], cfg["steps"], seed_idx)
+            _write(name, acc, cfg["steps"], CAPACITIES[cfg["capacity"]])
+            if cfg["reused"]:
+                reused_override[(cfg["lr"], seed_idx)] = {
+                    "raw": os.path.relpath(os.path.join(raw_dir, f"{name}.json"), tmp_root),
+                    "remetric": os.path.relpath(
+                        os.path.join(remetric_dir, f"{name}_round4.json"), tmp_root),
+                }
+
+    contender_dir = os.path.join(tmp_root, "contender")
+    os.makedirs(contender_dir, exist_ok=True)
+    contender_override: dict = {}
+    for seed_idx, acc in contender_accs.items():
+        p = os.path.join(contender_dir, f"contender_s{seed_idx}.json")
+        with open(p, "w") as f:
+            json.dump({"leg_a": {"acc_A": acc}}, f)
+        contender_override[seed_idx] = os.path.relpath(p, tmp_root)
+
+    orig_repo_root, orig_reused, orig_contender = (
+        self_mod._repo_root, dict(self_mod.REUSED_C0_20K_CELLS), dict(self_mod.CONTENDER_REFERENCE_REMETRIC))
+    self_mod._repo_root = lambda: tmp_root
+    self_mod.REUSED_C0_20K_CELLS.clear()
+    self_mod.REUSED_C0_20K_CELLS.update(reused_override)
+    self_mod.CONTENDER_REFERENCE_REMETRIC.clear()
+    self_mod.CONTENDER_REFERENCE_REMETRIC.update(contender_override)
+    try:
+        out_dir = os.path.join(tmp_root, "out")
+        args = argparse.Namespace(raw_dir=raw_dir, remetric_dir=remetric_dir, out_dir=out_dir)
+        mode_harvest(args)
+        with open(os.path.join(out_dir, "STRENGTHEN_VERDICT.json")) as f:
+            return json.load(f)
+    finally:
+        self_mod._repo_root = orig_repo_root
+        self_mod.REUSED_C0_20K_CELLS.clear()
+        self_mod.REUSED_C0_20K_CELLS.update(orig_reused)
+        self_mod.CONTENDER_REFERENCE_REMETRIC.clear()
+        self_mod.CONTENDER_REFERENCE_REMETRIC.update(orig_contender)
+
+
 # ---------------------------------------------------------------------------
 # Selftest
 # ---------------------------------------------------------------------------
@@ -671,15 +850,163 @@ def mode_selftest() -> int:
         all(k in example_spec for k in required_spec_keys))
 
     # 7) GPU-h ledger arithmetic sanity (catches silent drift if CAPACITIES/STEPS_GRID/LR_GRID
-    #    change without the design-doc ledger being re-derived)
-    from h2h_strengthen_specs_gen import estimate_gpu_h, C0_TRAIN_RATE_20K, RUN_METRIC_RATE_20K
-    ledger = 0.0
-    for c in strengthen_cells():
-        ledger += estimate_gpu_h(c["capacity"], c["steps"])
-    rep("selftest 7: recomputed 30-cell GPU-h ledger from the params-ratio estimator matches "
-        "the design-doc-cited total to 2 decimals (see the module for the method)",
-        24.0 < ledger < 36.0, f"ledger={ledger:.3f} GPU-h "
-        f"(C0 rate={C0_TRAIN_RATE_20K}, remetric ref={RUN_METRIC_RATE_20K})")
+    #    change without the design-doc ledger being re-derived). AUDIT FIX (M2): the ledger is
+    #    now BLOCK-FLOP-scaled (~60.7 GPU-h), not the pre-audit naive param-ratio number
+    #    (~30.35 GPU-h) -- both are exposed and checked so a future regression to the wrong
+    #    model is caught either way.
+    from h2h_strengthen_specs_gen import (estimate_gpu_h, estimate_gpu_h_naive,   # noqa: E402
+                                          block_flop_ratio, param_ratio,
+                                          C0_TRAIN_RATE_20K, RUN_METRIC_RATE_20K)
+    ledger = sum(estimate_gpu_h(c["capacity"], c["steps"]) for c in strengthen_cells())
+    ledger_naive = sum(estimate_gpu_h_naive(c["capacity"], c["steps"]) for c in strengthen_cells())
+    ok7a = 55.0 < ledger < 65.0            # audit's own stated envelope: "~40-60 GPU-h" total;
+                                            # this script's own block-FLOP formula lands at ~60.7,
+                                            # at/near the top of that range -- disclosed, not hidden
+    ok7b = 28.0 < ledger_naive < 33.0       # the pre-audit naive number, unchanged, for comparison
+    ok7c = abs(C0_TRAIN_RATE_20K - 945.0 / 3600.0) < 1e-9   # M2's corrected anchor, exact
+    rep("selftest 7: block-FLOP-scaled ledger (M2 fix) and the retained pre-audit naive ledger "
+        "both compute to their expected envelopes; the anchor rate is the corrected 945s/20k "
+        "figure, not the borrowed 908.79s", ok7a and ok7b and ok7c,
+        f"block_flop_ledger={ledger:.3f} naive_ledger={ledger_naive:.3f} "
+        f"anchor={C0_TRAIN_RATE_20K:.4f}")
+
+    # 8) M2: block_flop_ratio reproduces the audit's own headline figures exactly (block params
+    #    12x, head params 2x, combined ~7.3x at C2) -- proves this script's re-derivation is not
+    #    merely SOME formula that happens to total roughly the right ballpark, but the SAME
+    #    mechanism the audit itself described.
+    from h2h_strengthen_specs_gen import _block_params, _head_params
+    block_ratio_c2 = _block_params("C2") / _block_params("C0")
+    head_ratio_c2 = _head_params("C2") / _head_params("C0")
+    combined_ratio_c2 = block_flop_ratio("C2")
+    rep("selftest 8: block_flop_ratio reproduces the audit's own headline figures -- block 12x, "
+        "head 2x, combined ~7.3x at C2 (vs param_ratio's naive 3.09x)",
+        11.9 < block_ratio_c2 < 12.1 and abs(head_ratio_c2 - 2.0) < 1e-9
+        and 7.2 < combined_ratio_c2 < 7.3 and 3.0 < param_ratio("C2") < 3.2,
+        f"block={block_ratio_c2:.4f} head={head_ratio_c2:.4f} combined={combined_ratio_c2:.4f} "
+        f"naive_param_ratio={param_ratio('C2'):.4f}")
+
+    # 9) M3: _valid_remetric requires provenance.md5 to match the checkpoint CURRENTLY on disk --
+    #    closes the double-dump race. POSITIVE (matching md5 -> valid) and NEGATIVE (checkpoint
+    #    bytes changed after the record was written -> md5 drift -> invalid, never silently
+    #    trusted) both run to completion.
+    tmp_ckpt2 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_strengthen_selftest_ckpt2.pt")
+    with open(tmp_ckpt2, "wb") as f:
+        f.write(b"fake checkpoint bytes v1")
+    tmp_rem = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_strengthen_selftest_rem.json")
+    real_md5 = _md5_of_file(tmp_ckpt2)
+    with open(tmp_rem, "w") as f:
+        json.dump({"leg_a": {"acc_A": 0.5}, "provenance": {"path": tmp_ckpt2, "md5": real_md5}}, f)
+    ok9a = _valid_remetric(tmp_rem, ckpt_path=tmp_ckpt2) is True
+    with open(tmp_ckpt2, "wb") as f:
+        f.write(b"DIFFERENT checkpoint bytes v2 -- simulates an overwritten/re-dumped checkpoint")
+    ok9b = _valid_remetric(tmp_rem, ckpt_path=tmp_ckpt2) is False
+    rep("selftest 9: _valid_remetric requires provenance.md5 == the checkpoint's CURRENT md5 -- "
+        "PASSES when they match, FAILS (stale, not trusted) once the checkpoint changes underneath "
+        "an unchanged remetric record -- the double-dump race, closed", ok9a and ok9b)
+    os.remove(tmp_ckpt2)
+    os.remove(tmp_rem)
+
+    # 10) M3: mode_run_cell's skip-if-valid path now requires step_count == the cell's real
+    #     target, factored into `_existing_train_result_is_current` for direct testability
+    #     (spawning a real training run inside the selftest would defeat the point of a fast CPU
+    #     selftest). A stale smoke output (step_count=300) sitting at a cell's real --out path
+    #     (target 60,000) must NOT be treated as "already done".
+    tmp_out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_strengthen_selftest_out.json")
+    stale_cell = {"name": "x", "steps": 60_000}
+    with open(tmp_out, "w") as f:
+        json.dump({"arch": "transformer", "task": "task1_sweep", "seed_idx": 0,
+                  "final_metric": 0.1, "step_count": 300}, f)   # a 300-step SMOKE's own output
+    ok10a = _existing_train_result_is_current(tmp_out, stale_cell) is False
+    with open(tmp_out, "w") as f:
+        json.dump({"arch": "transformer", "task": "task1_sweep", "seed_idx": 0,
+                  "final_metric": 0.1, "step_count": 60_000}, f)   # the REAL target, trained fully
+    ok10b = _existing_train_result_is_current(tmp_out, stale_cell) is True
+    rep("selftest 10: a stale/under-trained raw JSON (step_count=300) at a cell's real --out path "
+        "(target 60,000) is correctly rejected as NOT current; the same path with the real "
+        "step_count IS accepted", ok10a and ok10b)
+    os.remove(tmp_out)
+
+    # 11) M3: the loaded-model provenance fields (n_params_loaded/d_model_loaded/n_layers_loaded)
+    #     -- simulates exactly what _remetric_one does AFTER run_cell_round4 returns: reload the
+    #     checkpoint under the SAME override and read the LOADED model's own shape, never merely
+    #     copy the spec's own arch_kw back at itself (a check with no independent teeth).
+    tiny_c2 = dict(d_model=40, n_layers=5, n_heads=4, ffn_mult=2)
+    apply_capacity_override(tiny_c2)
+    m11 = ct.build_arm_model("transformer", 500, seed=1, device="cpu")
+    tmp_ckpt3 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_strengthen_selftest_ckpt3.pt")
+    torch.save({"arch": "transformer", "vocab_size_total": 500, "model": m11.state_dict()}, tmp_ckpt3)
+    loaded11, _, _ = ct.load_h2h_checkpoint(tmp_ckpt3, "cpu")
+    n_params_loaded = sum(p.numel() for p in loaded11.parameters())
+    ok11 = (n_params_loaded == sum(p.numel() for p in m11.parameters())
+           and loaded11.d_model == 40 and len(loaded11.blocks) == 5)
+    rep("selftest 11: the loaded-model provenance fields (n_params_loaded/d_model_loaded/"
+        "n_layers_loaded) read back the ACTUAL loaded model's own shape, matching what was saved",
+        ok11, f"n_params_loaded={n_params_loaded} d_model={loaded11.d_model} "
+        f"n_layers={len(loaded11.blocks)}")
+    os.remove(tmp_ckpt3)
+
+    # 12) M4: the probe spec (strengthen_specs_probe/0599_...) exists, targets the correct (most
+    #     expensive) cell identity, checks step_count==300 (never steps_target, which correctly
+    #     stays 60,000 -- the cell's real identity is unchanged), n_params==44,613,632, and uses
+    #     DISTINCT out/remetric/ckpt paths from every main spec.
+    import h2h_strengthen_specs_gen as gen
+    probe_path = os.path.join(gen.PROBE_SPECS_DIR, f"{gen.PROBE_SPEC_ID}.json")
+    ok12 = False
+    detail12 = "probe spec not found -- run h2h_strengthen_specs_gen.py first"
+    if os.path.isfile(probe_path):
+        with open(probe_path) as f:
+            probe_spec = json.load(f)
+        vcheck = probe_spec["validity_check"]
+        main_spec_example = gen._spec_for_cell(strengthen_cells()[0], gen.SPEC_ID_START)
+        ok12 = (f"--steps-override {gen.PROBE_STEPS_OVERRIDE}" in probe_spec["cmd"]
+               and gen.PROBE_CELL_NAME in probe_spec["cmd"]
+               and "step_count') == 300" in vcheck and "n_params') == 44613632" in vcheck
+               and "steps_target" not in vcheck
+               and probe_spec["output_dir"] != main_spec_example["output_dir"]
+               and gen.PROBE_CKPT_DIR != gen.BOX_CKPT_DIR)
+        detail12 = f"cmd_has_override={'--steps-override 300' in probe_spec['cmd']}"
+    rep("selftest 12: the M4 gating probe spec exists, targets steps_override=300 on the most "
+        "expensive cell identity, checks step_count==300 (not steps_target) + n_params==C2's "
+        "44,613,632, and uses paths DISTINCT from every main spec", ok12, detail12)
+
+    # 13) harvest SCENARIO BATTERY -- exercises the REAL mode_harvest() end to end (not just the
+    #     dict-math replica in item 5) across synthetic Outcome A/B/C data, via a monkeypatched
+    #     _repo_root + REUSED_C0_20K_CELLS + CONTENDER_REFERENCE_REMETRIC (restored in `finally`).
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp_root:
+        battery_ok = True
+        target_key = "C2_lr1e-03_st60000"   # a FRESH (non-reused) config -- the most expensive cell
+        assert target_key in [_config_key(c) for c in all_configs() if not c["reused"]]
+
+        def scenario(target_accs, contender_accs=None):
+            accs_by_config = {_config_key(c): [0.02, 0.025, 0.03] for c in all_configs()}
+            accs_by_config[target_key] = target_accs
+            return _harvest_scenario(tmp_root, accs_by_config,
+                                     contender_accs or {0: 1.0, 1: 1.0, 2: 1.0})
+
+        doc_a = scenario([0.03, 0.04, 0.035])
+        battery_ok &= doc_a["outcome"] == "OUTCOME_A_NON_COMPETITIVE" and doc_a["ratio_report"] is None
+        rep("selftest 13a: harvest battery Outcome A (every config below bar) -> "
+            "OUTCOME_A_NON_COMPETITIVE, no ratio_report", battery_ok, f"outcome={doc_a['outcome']}")
+
+        doc_b = scenario([0.15, 0.10, 0.20])   # clears (>=2/3 >= 0.09375), not competitive (<0.50)
+        delta_b = doc_b["ratio_report"]["paired_delta_contender_minus_transformer"]["mean"] if doc_b["ratio_report"] else None
+        ok13b = (doc_b["outcome"] == "OUTCOME_B_CLEARS_NOT_COMPETITIVE"
+                and doc_b["ratio_report"] is not None
+                and doc_b["ratio_report"]["best_config"] == target_key
+                and delta_b is not None and abs(delta_b - 0.85) < 1e-9)   # (1-.15)+(1-.10)+(1-.20) / 3
+        rep("selftest 13b: harvest battery Outcome B (one config clears, none competitive) -> "
+            "OUTCOME_B_CLEARS_NOT_COMPETITIVE, ratio_report's paired delta-CI mean is EXACTLY "
+            "0.85 against a known contender_acc_A=1.0 reference (hand-verified)", ok13b,
+            f"outcome={doc_b['outcome']} delta_mean={delta_b}")
+
+        doc_c = scenario([0.60, 0.55, 0.70])   # competitive (>=2/3 >= 0.50)
+        ok13c = (doc_c["outcome"] == "OUTCOME_C_COMPETITIVE"
+                and doc_c["ratio_report"] is not None
+                and doc_c["ratio_report"]["best_config"] == target_key)
+        rep("selftest 13c: harvest battery Outcome C (one config competitive) -> "
+            "OUTCOME_C_COMPETITIVE, ratio_report points at that config", ok13c,
+            f"outcome={doc_c['outcome']}")
 
     print("=" * 70)
     print("SELFTEST:", "ALL PASS" if ok_all else "FAILURES PRESENT")
@@ -700,7 +1027,7 @@ def main() -> int:
     ap.add_argument("--out-dir", type=str, default="results/h2h_rung1/strengthen")
     ap.add_argument("--raw-dir", type=str, default="results/h2h_rung1/strengthen")
     ap.add_argument("--remetric-dir", type=str, default="results/h2h_rung1/strengthen/remetric")
-    ap.add_argument("--ckpt-dir", type=str, default="/data/h2h_strengthen_ckpts")
+    ap.add_argument("--ckpt-dir", type=str, default="/ephemeral/h2h_strengthen_ckpts")   # M2 fix
     ap.add_argument("--dial-round", type=int, default=4)
     ap.add_argument("--gates-dir", type=str, default="results/h2h_rung1/gates")
     ap.add_argument("--margins-token", type=str, default="results/h2h_rung1/MARGINS_FROZEN.token")

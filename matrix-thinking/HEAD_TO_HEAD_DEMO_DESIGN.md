@@ -5359,13 +5359,29 @@ every point of a 4-point learning-rate grid spanning 10⁻⁴–3×10⁻³ (3
 seeds × 20,000 matched steps, identical frozen protocol)" — strictly
 stronger than the FIX-2/FIX-3 "never searched" hedge it replaces.
 
-### 1.46 BASELINE-STRENGTHENING SWEEP — PRE-RUN RECORD (2026-09-01)
+### 1.46 BASELINE-STRENGTHENING SWEEP — PRE-RUN RECORD (2026-09-01, REV-narrow audit applied same day)
 
 Recorded per the gauntlet-bookkeeping hard rule (record before dispatch)
 and the standing pre-registration discipline. This round has **not been
-launched** — this entry, the new runner (`h2h_strengthen_rd.py`), and the
-30 box queue specs (`strengthen_specs/0600-0629`) are a build-and-audit
+launched, staged, or committed** — this entry, the new runner
+(`h2h_strengthen_rd.py`), the cost-model module (`h2h_strengthen_specs_gen.py`),
+the 30 main box queue specs (`strengthen_specs/0600-0629`), and the 1
+gating probe spec (`strengthen_specs_probe/0599`) are a build-and-audit
 deliverable; nothing here has touched a GPU.
+
+**REV-narrow audit (2026-09-01, same day, 4 MAJOR, 0 FATAL — all applied
+before this record's numbers below were finalized):** an independent
+audit round found the original pre-audit draft's GPU-h ledger used an
+anchor rate borrowed from a DIFFERENT program's task and a scaling law
+(naive total-param-count ratio) that materially understates C2's real
+compute share (M2); no wall-clock ceiling on any train stage, risking a
+wedged worker on a stuck cell (M1); provenance that only compared a
+record against ITSELF rather than the artifact it describes, and a
+train-stage skip check blind to under-training (M3); and no on-box
+calibration gate before committing the full 30-cell budget (M4). All
+four are addressed below; the corrected numbers **supersede, not
+supplement,** the pre-audit figures, which are retained only where
+explicitly marked "pre-audit" for disclosure.
 
 **Charter:** §1.44/§1.45 (FIX-5) searched ONE axis — learning rate — and
 the transformer baseline still read chance at every point
@@ -5446,7 +5462,7 @@ performed before the runner was written):
 | `ProbeRig.__init__` (`build_adapter_arm(TAP_DIM[arch], VALUE_DIM)`) | `TAP_DIM["transformer"]` is a SEPARATE global, hardcoded `256`, never derived from `TRANSFORMER_KW["d_model"]` | **must be overridden in tandem** — verified (CPU probe) that skipping it fails LOUDLY: a `mat1 and mat2 shapes cannot be multiplied` `RuntimeError` at the very first tap→adapter forward pass, never silently |
 | `_transformer_episode_chunks` (the eval VRAM guard, reads `TRANSFORMER_KW["n_heads"]`) | dict lookup at CALL time | safe |
 | `cap_length_tokens(M, TRANSFORMER_KW["n_layers"], TRANSFORMER_KW["d_model"])` (3 call sites, all axis-2 M-sweep machinery) | dict lookup at CALL time | safe, and irrelevant — this sweep never passes `M` |
-| `train_grammar_cell`'s `capped_mask_fn` (`cap_length_tokens(2, 2, 256)`, LITERAL hardcoded ints) | does **NOT** read `TRANSFORMER_KW` at all | **KNOWN NON-TRANSFERRING GAP, disclosed not fixed**: the report-only training-curve columns `recovered_frac_capped_M2`/`probe_cos_mean_capped_M2` are computed against the C0 cap-length for every capacity. Never the decision metric (`acc_A`, from `run_cell_round4`, unaffected). Flagged for coordinator ruling — patching it means editing shared code (`h2h_cell_train_rd.py`) outside this sweep's own file, so it is left alone and disclosed rather than silently assumed fine |
+| `train_grammar_cell`'s `capped_mask_fn` (`cap_length_tokens(2, 2, 256)`, LITERAL hardcoded ints) | does **NOT** read `TRANSFORMER_KW` at all | **KNOWN NON-TRANSFERRING GAP, RELABELED per the audit's minor note (2026-09-01)**: `cap_length_tokens(M,n_layers,d_model) ∝ M/(n_layers·d_model)` (the pinned formula), so holding the computed value fixed at C0's own product (2·256=512) but applying it to a different capacity's real product is equivalent to a DIFFERENT effective M: **M_eff≈4 at C1** (product 1024, 2×) and **M_eff≈12 at C2** (product 3072, 6×) — exact arithmetic against the pinned formula, not approximated. `recovered_frac_capped_M2`/`probe_cos_mean_capped_M2` in a C1/C2 curve are therefore the M≈4/M≈12 read, not "M=2" as the column name implies; only at C0 does the name match the content. Never the decision metric (`acc_A`). Flagged for coordinator ruling, relabeled in prose rather than patched — patching means editing shared code (`h2h_cell_train_rd.py`) outside this sweep's own file |
 
 Checkpoint round-trip (build → save → `load_h2h_checkpoint` under the SAME
 override → a real forward pass through both model and probe adapter) and
@@ -5454,6 +5470,26 @@ the negative case (a MISMATCHED override before load → `RuntimeError`,
 never silent) are both exercised live on CPU-torch during this build and
 pinned as `h2h_strengthen_rd.py --selftest` items 2–4 (ALL PASS, see the
 runner's own docstring for the exact verified error strings).
+
+**Provenance hardening (audit M3, 2026-09-01).** Four independent gaps
+closed, none merely by convention: (1) `_remetric_one` now reads back the
+LOADED model's own `n_params_loaded`/`d_model_loaded`/`n_layers_loaded`
+AFTER `run_cell_round4` returns — an independent check with real teeth,
+never merely the spec's own `arch_kw` echoed at itself; (2) `_valid_remetric`
+now REQUIRES the record's `provenance.md5` to match the checkpoint file's
+CURRENT md5 on disk — a remetric JSON left behind after its checkpoint is
+later overwritten (the "double-dump race": a probe/smoke and a real run
+sharing a path) is no longer silently trusted; (3) `mode_run_cell`'s
+skip-if-valid path (factored into `_existing_train_result_is_current`) now
+also requires the existing raw JSON's `step_count` to equal the cell's
+real target — a stale under-trained output at the real `--out` path can
+no longer be mistaken for "already done"; (4) every spec's `validity_check`
+additionally asserts the raw JSON's own `n_params` matches the capacity's
+formula-derived count. All four are exercised on CPU (items 9–11 of
+`h2h_strengthen_rd.py --selftest`, ALL PASS) and via a live shell simulation
+of `queue_worker.sh`'s exact `bash -c "$vcheck"` invocation (both a passing
+case and a deliberately-corrupted checkpoint correctly failing with
+`AssertionError: checkpoint md5 drift`).
 
 **Decision rule, pinned NOW (least-favorable-resolution discipline):**
 bar = **0.09375** (3× chance at K=32, the frozen §1.31.1 demonstration
@@ -5483,69 +5519,107 @@ bar, verbatim — no new threshold). Per `(capacity, lr, steps)` config
 - **Tie-break:** `argmax(mean_acc_A)` among clearing/competitive configs;
   ALL clearing/competitive configs are disclosed, never just the best.
 
-**GPU-h ledger.** The only DIRECTLY MEASURED rate available is C0 at
-20,000 steps: **0.2524 GPU-h/cell training** (§1.6, 908.79 s/cell) +
-**0.0067 GPU-h/cell re-metric** (`experiment-runs/2026-07-11_h2h_fix5_lrgrid/MANIFEST.md`,
-"~24 s/cell"). C1/C2 have never run, so their rate is an ESTIMATE — stated
-method, not silently assumed: batch (32), context length, and
-queries/episode are IDENTICAL across every capacity in this grid, so
-per-token training compute is well-approximated as proportional to total
-parameter count for a fixed batch/sequence-length regime (Kaplan et al.,
-"Scaling Laws for Neural Language Models," 2020 — the ~6N FLOPs/token
-training heuristic). `n_heads` does not appear in
-`count_transformer_params`'s closed form, and the one term that DOES
-depend on head count — attention-score FLOPs, `n_heads·T²·head_dim` —
-is n_heads-invariant once `head_dim=d_model/n_heads` is substituted
-(`=T²·d_model`), so doubling `n_heads` at C2 changes zero terms in this
-estimate by construction. Re-metric cost (forward-only over a FIXED
-episode set) is treated as step-count-INDEPENDENT, scaled only by the
-params ratio.
+**GPU-h ledger — AUDIT-CORRECTED (M2, 2026-09-01).** Two independent
+bugs in the pre-audit draft, both fixed in `h2h_strengthen_specs_gen.py`:
 
-`GPU-h_train(cap,steps) ≈ 0.2524 · (params(cap)/params(C0)) · (steps/20000)`;
-`GPU-h_remetric(cap) ≈ 0.0067 · (params(cap)/params(C0))`.
+1. **Wrong anchor.** The pre-audit draft cited 908.79 s/cell (§1.6) as
+   "the" C0 rate — but that figure is `FROZEN_BIAS_LM_DESIGN.md`'s own
+   20-cell rate, a DIFFERENT program/task entirely. The transformer ×
+   task1_sweep cells' OWN measured rate is fix5's own MANIFEST:
+   "941-952 s/cell" — midpoint **945 s = 0.2625 GPU-h/cell**, the
+   corrected anchor.
+2. **Wrong scaling law.** Naive total-param-count ratio is not the right
+   FLOP proxy for THIS training loop: the transformer's own tap route
+   (`transformer_native_tap`) replicates the FULL attention+FFN block
+   stack once per query (`N_QUERY_TRAIN=8`, DEPLOY-PIN-1 — 9 total passes
+   per step) but explicitly SKIPS the tied vocab-embedding/output matmul
+   on every one of those replicated passes (`return_hidden=True`, sec
+   1.31.4 item 3's OOM fix: "no LM-head matmul at all"). The vocab
+   projection — the term that DOMINATES raw param count (vocab=50,259 ≫
+   d_model≤512) — runs on 1× the tokens/step; the attention+FFN "block"
+   runs on 9×. A capacity that grows d_model (growing BOTH terms) is
+   therefore CHEAPER in compute than its raw param count implies, because
+   a smaller share of its growth sees the 9× multiplier.
+   `block_flop_ratio(cap) = (9·block_params(cap) + head_params(cap)) /
+   (9·block_params(C0) + head_params(C0))` reproduces the audit's own
+   headline figures exactly: block-param ratio C2/C0 = 18,880,512 /
+   1,573,888 = **11.996 (~12×, "block params scale 12×")**; head-param
+   ratio C2/C0 = 25,732,608 / 12,866,304 = **2.0 exactly ("head 2×")**;
+   combined ratio C2/C0 = **7.238 (~7.3×)** — matching the audit's own
+   number to 2 significant figures, vs the pre-audit naive 3.089×.
 
-| Capacity | param ratio | train @20k | train @60k | remetric | 20k spec total | 60k spec total |
-|---|---|---|---|---|---|---|
-| C0 | 1.000 | 0.2524 (reused, not relaunched) | 0.7572 | 0.0067 | — | 0.7639 |
-| C1 | 1.109 | 0.2799 | 0.8397 | 0.0074 | 0.2873 | 0.8471 |
-| C2 | 3.089 | 0.7798 | 2.3394 | 0.0207 | 0.8005 | 2.3601 |
+`GPU-h_train(cap,steps) = 0.2625 · block_flop_ratio(cap) · (steps/20000)`;
+`GPU-h_remetric(cap) = 0.0067 · block_flop_ratio(cap)` (re-metric stays
+step-count-independent — forward-only over a FIXED episode set; its own
+anchor, 24 s/cell from the SAME fix5 MANIFEST, needed no fix).
 
-**Total, 30 fresh cells: ≈30.35 GPU-h** (C1 6.807 + C2 18.964 + C0 4.583;
-recomputed mechanically by `h2h_strengthen_specs_gen.py` and cross-checked
-by `h2h_strengthen_rd.py --selftest` item 7 — both agree to 3 decimals).
-**This is well under the 50 GPU-h ceremony-tier line** (CLAUDE.md:
-<10 GPU-h → 1 audit round; 10–50 GPU-h → audit + pre-launch
-resource/placement red-team; only >50 GPU-h needs the full gauntlet) — so
-this round needs an audit round PLUS a pre-launch resource/placement
-red-team before dispatch, not the full multi-round gauntlet. **This
-estimate has NOT been calibration-verified on real hardware** (CLAUDE.md's
-"a calibration run before a big sweep is mandatory" rule) — the first
-strengthen cell to actually complete on box should be treated as that
-pilot, and the ledger revised from its realized rate before the remaining
-29 cells are trusted to fit the same envelope, exactly as §1.44 replaced
-its own projection with a realized figure in §1.45.
+| Capacity | block-FLOP ratio | naive param ratio (pre-audit, disclosed) | train @20k | train @60k | remetric | 20k spec total | 60k spec total |
+|---|---|---|---|---|---|---|---|
+| C0 | 1.0000 | 1.0000 | 0.2625 (reused, not relaunched) | 0.7875 | 0.0067 | 0.2692 | 0.7942 |
+| C1 | 1.5240 | 1.1090 | 0.4001 | 1.2002 | 0.0102 | 0.4103 | 1.2104 |
+| C2 | 7.2382 | 3.0895 | 1.9000 | 5.7001 | 0.0485 | 1.9485 | 5.7486 |
+
+**Total, 30 fresh cells: ≈60.67 GPU-h (block-FLOP, audit-corrected) —
+vs ≈31.55 GPU-h under the pre-audit naive model (both disclosed, per the
+audit's own instruction; the pre-audit figure is SUPERSEDED, not an
+alternate reading).** Recomputed mechanically by
+`h2h_strengthen_specs_gen.py` (`estimate_gpu_h` / `estimate_gpu_h_naive`)
+and cross-checked by `h2h_strengthen_rd.py --selftest` items 7–8 (ALL
+PASS; the selftest also independently re-derives the 12×/2×/7.3× figures
+from `_block_params`/`_head_params`, not merely re-imports them).
+
+**This crosses the 50 GPU-h ceremony-tier line** (CLAUDE.md: <10 GPU-h →
+1 audit round; 10–50 GPU-h → audit + pre-launch resource/placement
+red-team; >50 GPU-h or publication-bound → **the full multi-round
+adversarial gauntlet**) — stated loudly, per the standing instruction to
+flag any >50 GPU-h total, and per M4's own "if the re-priced total
+exceeds 50 GPU-h, stop and report" instruction, which fires HERE, at the
+design-time re-derivation, before the on-box probe even runs. **This
+estimate has NOT been calibration-verified on real hardware** — M4 (below)
+gates the entire 30-cell wave behind a single measured probe cell before
+any of 0600-0629 are staged, exactly as §1.44 replaced its own projection
+with a realized figure in §1.45, and exactly as CLAUDE.md's own
+"a calibration run before a big sweep is mandatory" rule requires.
+
+**Train-stage timeout (audit M1, 2026-09-01).** Every spec's train stage
+is wrapped `timeout -k 120 <N>h`, `N` = 2× the audit's own corrected
+upper estimate per (capacity, steps): C0@60k 3h, C1@20k 1.5h, C1@60k 4h,
+C2@20k 5h, C2@60k 12h (`h2h_strengthen_specs_gen.TIMEOUT_HOURS`, applied
+verbatim). On kill, `train_grammar_cell` never reaches its
+atomic-dump-at-the-end, so no raw JSON is written; both
+`is_valid_result` and this round's own step_count check read "not
+valid," and the GPU frees for the queue's next claim — never a silently
+wedged worker, never a partial-write masquerading as a result.
 
 **Checkpoint size** (fp32 model-only, no optimizer state — verified
 against the C0/fix5 precedent, which measures 57.8 MB for 14.44M params
 to the byte): C0 ≈57.8 MB, C1 ≈64.1 MB, C2 ≈178.5 MB. **Total fresh-cell
 checkpoint footprint ≈3.19 GB** (C1: 12×64.1MB≈0.77GB; C2: 12×178.5MB
-≈2.14GB; C0: 6×57.8MB≈0.35GB). Checkpoints write to `/data/h2h_strengthen_ckpts`
-(never the root fs, never the SSD archive path) per the queue-spec cmd.
-**Flagged for coordinator verification, not assumed:** the box `/data`
-volume is reported at ~95% full (2026-08-29 archive-pull correction:
-139 GiB free vs 2.4 TB of ephemeral checkpoints elsewhere on the same
-volume) — 3.19 GB is a small fraction of that headroom in isolation, but
-it is additive on top of whatever the 1.31B K=16 grace wave and any other
-concurrent lane are still holding; verify actual `/data` free space
-immediately before dispatch, and consider deleting a fresh checkpoint
-once its own re-metric JSON validates (the raw+remetric JSONs are this
-sweep's artifacts of record, not the checkpoint itself — mirroring the
-campaign's own precedent of not archiving every checkpoint past its
-re-metric pass).
+≈2.14GB; C0: 6×57.8MB≈0.35GB).
 
-**Queue placement.** 30 spec JSONs,
+**Checkpoint LOCATION, corrected (audit M2, 2026-09-01):** checkpoints
+write to **`/ephemeral/h2h_strengthen_ckpts`** (the probe: its own,
+distinct `/ephemeral/h2h_strengthen_probe_ckpts`) — **never `/data`**,
+per `STATE.md`'s own standing disk policy ("Training checkpoints go to
+`/ephemeral/`, NEVER to [root/`/data`]"). This corrects TWO independent
+errors in the pre-audit draft, not one: (a) the pre-audit draft proposed
+`/data/h2h_strengthen_ckpts`, the wrong volume by campaign convention
+regardless of its free space; (b) the pre-audit draft's OWN stated free
+space for `/data` — "~95% full, 139 GiB free" — was itself wrong; the
+audit's own correction reads **914 GB free**. Both facts point the same
+direction (checkpoints belong on `/ephemeral/`) but for independent
+reasons, and neither excuses the other — a "the disk turned out to have
+room after all" finding would NOT have made `/data` the right target,
+and a "the convention says /ephemeral" finding does not retroactively
+excuse citing the wrong free-space number. The fresh-cell footprint
+(≈3.19 GB) is a small fraction of `/ephemeral`'s own headroom regardless;
+this round adds no new disk-pressure concern once routed correctly.
+
+**Queue placement.** 30 main spec JSONs,
 `matrix-thinking/deltanet_rd/strengthen_specs/0600-0629_h2h_strengthen_*.json`,
-schema copied field-for-field from
+PLUS 1 gating probe spec,
+`matrix-thinking/deltanet_rd/strengthen_specs_probe/0599_h2h_strengthen_probe_C2.json`
+(audit M4, below) — schema copied field-for-field from
 `experiment-runs/2026-08-29_box_final_archive/queue/completed/005_laneA_probe_K128_s0.json`
 (`id`, `lane`, `hypothesis`, `cmd`, `gpu_h_estimate`, `output_dir`,
 `validity_check`, `notes`). IDs 0600-0629 sort AFTER the currently-running
@@ -5553,14 +5627,17 @@ schema copied field-for-field from
 context at the time this record was written — **not independently
 re-verified against the box's live queue state from this workstation**;
 re-check `ls /home/nvidia/queue/pending` before dispatch if that ordering
-is load-bearing). `matrix-thinking/queue/queue_worker.sh` (read in full
-before this record was written) claims files by `ls pending | sort`
-order, one job per free GPU, and exports `CUDA_VISIBLE_DEVICES="$GPU"`
-before running the spec's `cmd` in `bash -c` — **verified, not assumed**
-— so every spec's `cmd` uses `--device cuda` (never `cuda:N`) and is
-itself robust to running on whichever GPU index the worker assigns. Each
-spec's `cmd` chains BOTH stages (train, then re-metric) for its one cell,
-since a queue job is one GPU-claim, one shot; each exports
+is load-bearing); `0599` sorts BEFORE `0600` — the probe runs FIRST by
+filename order alone, needing no separate staging mechanism.
+`matrix-thinking/queue/queue_worker.sh` (read in full before this record
+was written) claims files by `ls pending | sort` order, one job per free
+GPU, and exports `CUDA_VISIBLE_DEVICES="$GPU"` before running the spec's
+`cmd` in `bash -c` — **verified, not assumed** — so every spec's `cmd`
+uses `--device cuda` (never `cuda:N`) and is itself robust to running on
+whichever GPU index the worker assigns. Each spec's `cmd` wraps its train
+stage in `timeout -k 120 <N>h` (audit M1, above) then chains the
+re-metric stage for the SAME cell, since a queue job is one GPU-claim,
+one shot; each exports
 `HEADTOHEAD_PI_SIGNOFF=1 HEADTOHEAD_MATCH_GATE_SIGNOFF=1 H2H_DIAL_ROUND=4`
 itself (`queue_worker.sh`'s `bash -c "$cmd"` starts a bare shell — the
 launch-token env vars are NOT inherited from any wrapping stage script
@@ -5570,14 +5647,48 @@ chain). Gate files (`GATE6_MATCH_GATE_PASSED.token`,
 reused verbatim from the standing campaign state (already satisfied per
 §1.44's own record) — this round adds no new gates.
 
+**Gating probe (audit M4, 2026-09-01).** `0599_h2h_strengthen_probe_C2`
+trains **300 steps** of `h2h_strengthen_C2_lr1e-03_st60000_s0` — the SAME
+cell identity as the real, single most expensive spec (`0615`) — under
+DISTINCT paths (`results/h2h_rung1/strengthen_probe/` +
+`/ephemeral/h2h_strengthen_probe_ckpts`, never the main sweep's own
+`results/h2h_rung1/strengthen/` + `/ephemeral/h2h_strengthen_ckpts`), so
+the probe run can never be mistaken for, or silently clobber, the real
+cell's own artifacts (audit minor note: "any smoke must use distinct
+paths"). Its `validity_check` asserts `step_count==300` (never
+`steps_target`, which correctly stays 60,000 — the cell's real identity
+is unchanged, only how many of those 60,000 steps THIS probe executed),
+a finite `acc_A`, `n_params==44,613,632`, and the same md5-provenance
+check every main spec carries. **`0600-0629` are staged into
+`/home/nvidia/queue/pending/` ONLY AFTER `0599` validates**, and its
+measured wall-clock s/step MUST re-price this section's block-FLOP
+ledger before the 30-cell wave is trusted — if the re-priced total
+EXCEEDS 50 GPU-h (already true of the design-time estimate above, see
+the ledger section's own loud flag), the ceremony tier escalates to the
+full multi-round adversarial gauntlet and this must be reported before
+proceeding, not staged around.
+
 **What this round does NOT do:** it does not touch `papers/` (verified —
-no file under `papers/` was read or written building this record). It
-does not retrain or re-read the contender/ablation arms (cited by
-reference only, for the Outcome B/C ratio report). It does not run the
-mstar horizon fan-out even if Outcome C fires — that is an explicitly
-pre-registered FOLLOW-ON dispatch, never silently folded into this
-sweep's own scope or GPU-h ledger. It does not launch anything — this
-record, the runner, and the specs are a build-and-audit deliverable;
-per this round's own ceremony tier (10–50 GPU-h), an audit round and a
-pre-launch resource/placement red-team are still owed before any spec in
-`strengthen_specs/` is moved into `/home/nvidia/queue/pending/`.
+no file under `papers/` was read or written building this record, before
+or during the audit revision). It does not retrain or re-read the
+contender/ablation arms (cited by reference only, for the Outcome B/C
+ratio report). It does not run the mstar horizon fan-out even if
+Outcome C fires — that is an explicitly pre-registered FOLLOW-ON
+dispatch, never silently folded into this sweep's own scope or GPU-h
+ledger. **It does not launch, stage, or commit anything** — this record,
+the runner, the cost-model module, the 30 main specs, and the 1 gating
+probe spec are a build-and-audit deliverable.
+
+**Ceremony tier, corrected (audit M2, 2026-09-01):** the pre-audit draft
+placed this round in CLAUDE.md's 10–50 GPU-h tier (audit + pre-launch
+resource/placement red-team). The audit-corrected block-FLOP ledger
+(≈60.67 GPU-h, above) crosses into the **>50 GPU-h tier — the full
+multi-round adversarial gauntlet** — BEFORE any cell has run. This round
+therefore owes, in order: (1) this REV-narrow audit itself (M1-M4,
+applied above — one round discharged); (2) the M4 gating probe
+(`0599`), whose measured rate re-prices the ledger one more time; (3) if
+the re-priced total still exceeds 50 GPU-h (the design-time estimate
+already does), the remaining rounds of the full gauntlet before
+`0600-0629` may be staged into `/home/nvidia/queue/pending/`. No spec in
+either `strengthen_specs/` or `strengthen_specs_probe/` has been moved
+there as of this record.
