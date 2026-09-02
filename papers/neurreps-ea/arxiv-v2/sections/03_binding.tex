@@ -1,0 +1,19 @@
+\textbf{The provable foundation (binding).}
+\begin{fact}
+\label{fact:bound}
+If $Z k_j = v_j$ exactly for $K$ bindings with linearly independent keys
+and values, then $Z K_{\mathrm{mat}} = V_{\mathrm{mat}}$, so
+$K = \rank(V_{\mathrm{mat}}) \leq \rank(Z)$.
+\end{fact}
+
+The bound is classical \citep{kohonen1972correlation,
+anderson1972simple}, holding only under exact continuous recovery. A
+companion paper \citep{larson2026companion} establishes on this binding
+testbed that gradient descent recruits effective rank tracking $K$, that
+the recruited rank is causally necessary (a train-time force-rank step
+at the provable bound), and that the trained operator composes exactly
+under repeated self-application, a composition-stability probe
+periodicity-equivalent to depth 5 under the single 8-cycle target
+\citep{liu2023shortcuts} (Appendix~\ref{app:period}); this paper
+inherits that instrument and carries only the group-composition
+program.

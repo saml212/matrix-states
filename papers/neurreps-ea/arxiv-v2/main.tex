@@ -1,0 +1,111 @@
+% arXiv NAMED build, v2 (2026-09-02): the two workshop extended abstracts
+% (papers/neurreps-ea/ and papers/unireps-ea/) merged into one paper. Base
+% text is the first tree; the second tree's equivalence section and
+% instrument appendix are absorbed.
+% Typeset on the NeurIPS kit (neurips.sty, [final] mode) with the venue
+% notice blanked; no venue name appears anywhere in the compiled text.
+
+\documentclass{article}
+
+\usepackage[final]{neurips}
+
+% Blank the notice line (the 2025 kit's final mode prints a NeurIPS
+% conference notice by default; this named arXiv build carries no venue
+% notice).
+\makeatletter
+\renewcommand{\@noticestring}{}
+\makeatother
+
+\usepackage{float}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+\graphicspath{{figures/}}
+\raggedbottom
+
+% Italic body, bold header: the amsthm plain style, matching the jmlr
+% \theorembodyfont{\itshape}\theoremheaderfont{\bfseries} of the base tree.
+\theoremstyle{plain}
+\newtheorem{fact}{Fact}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\dmin}{d_{\min}}
+\newcommand{\dstate}{d_{\mathrm{state}}}
+\newcommand{\recninety}{\mathrm{rec}@0.9}
+
+\title{The Rank the Task Demands:
+A Causal Rank Law for Matrix Memories Trained on Group Composition}
+
+\author{%
+  Samuel Larson\\
+  Pebble ML\\
+  \texttt{samlarson@pebbleml.com}%
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Matrix-valued memories make rank the natural budget of a learned
+representation: the number of independent directions a state spans bounds
+what it can bind, compose, and track. We report causal evidence, on a
+group-composition testbed trained under a hard single-state bottleneck
+with a fixed decoder that cannot launder rank, that gradient descent
+recruits precisely the rank the task's algebra demands. A companion
+paper \citep{larson2026companion} establishes the analogous recruitment
+and causal necessity pattern on a $K$-pair associative-binding testbed,
+where exact recovery provably requires state rank at least $K$; this
+paper inherits that instrument and extends the rank law from a scalar
+capacity bound to a representation-theoretic one.
+On
+group-composition state tracking over five finite groups spanning the
+solvable/non-solvable divide, the recruited rank equals the group's minimal
+faithful real representation dimension $\dmin$ (Spearman $\rho = 0.9747$,
+the design's tie-capped maximum),
+% <!-- evidence: N4 -->
+the dimension-matched solvable/non-solvable
+pair $S_4$/$A_5$ is statistically equivalent under a pre-registered
+test,
+% <!-- evidence: N5 -->
+and a pre-registered force-rank razor is exact in both
+directions: one rank below $\dmin$, recovery is capped by the target's
+tied unit spectrum at $\sqrt{(\dmin{-}1)/\dmin} \le 0.894$, below the
+$0.9$ threshold in every group by construction, with observed cells
+at 76--95\% (mean 88\%) of that ceiling;
+% <!-- evidence: N12 -->
+at $\dmin$, not
+guaranteed a priori, recovery clears the
+anchor-relative bar in all five groups.
+% <!-- evidence: N1 -->
+Representation theory, not
+computational complexity class, sets what gradient descent buys.
+\end{abstract}
+
+\noindent\textbf{Keywords:} effective rank, fast weights, group
+representations, state tracking
+
+\input{sections/01_intro}
+\input{sections/02_setup}
+\input{sections/03_binding}
+\input{sections/04_ranklaw_observed}
+\input{sections/04b_equivalence}
+\input{sections/05_causal_razor}
+\input{sections/06_related}
+\input{sections/07_limitations}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\input{sections/08_appendix}
+
+\end{document}

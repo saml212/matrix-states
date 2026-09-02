@@ -1,0 +1,36 @@
+\section{Introduction}
+\label{sec:intro}
+
+A matrix-valued memory represents by spanning: whatever a $d \times d$
+state binds or tracks, it holds in the geometry of its column space, and
+rank is the budget it spends. Prior work treats this budget
+descriptively \citep{nazari2026rank, sun2026staterank} or through
+hand-built constructions \citep{nichani2025factual}; neither answers
+what a geometric account of learned representations needs answered:
+when a task's algebra fixes a minimal representational dimension, does
+gradient descent recruit exactly that dimension, and is it causally
+load-bearing?
+
+We answer both halves affirmatively under one discipline: a hard
+single-state bottleneck (the decoder reads only one matrix $Z$, verified
+by a gradient blank-out test) and exact-continuous-recovery scoring
+(cosine against the true continuous target, never argmax over a codebook,
+which would let a rank-1 state recover on the order of $d$ associations
+\citep{nichani2025factual}). Section~\ref{sec:setup} includes the
+provable $K$-pair-binding foundation. The headline is
+group-composition state tracking, where representation theory
+supplies the ground truth: across five finite groups spanning the
+solvable/non-solvable divide, the minimal faithful real representation
+dimension $\dmin$ predicts the recruited rank almost perfectly
+(Section~\ref{sec:observed}), a
+matched-dimension solvable/non-solvable pair lands statistically
+equivalent (Section~\ref{sec:equivalence}),
+% <!-- evidence: N4, N5 -->
+and a pre-registered force-rank
+razor is exact in both directions (Section~\ref{sec:razor}): $\dmin{-}1$
+is analytically incapable of exact recovery under the $0.9$ threshold
+($\sqrt{(\dmin{-}1)/\dmin} \le 0.894$), and $\dmin$ suffices, which is not
+guaranteed a priori.
+% <!-- evidence: N1, N12 -->
+Correcting the target's padding (Appendix~\ref{app:instrument}) recovers the
+razor's sufficiency result.
