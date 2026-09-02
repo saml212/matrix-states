@@ -11,7 +11,9 @@ design does not touch `matrix-thinking/deltanet_rd/h2h_strengthen_rd.py`
 or `HEAD_TO_HEAD_DEMO_DESIGN.md` (both under edit by another agent as of
 this writing) and shares no code with either.
 
-## Audit REV-narrow changelog (what changed since the first pass, and why)
+## Audit changelog
+
+### Round 1 (F1/F2 FATAL, M1-M4 MAJOR, minor)
 
 | Item | Fix |
 |---|---|
@@ -22,6 +24,18 @@ this writing) and shares no code with either.
 | M3 (MAJOR, RULING) third arm | Added the **`flatten`** arm (§2.1b, §4): the matrix arm's own outer-product embedding, flattened to a `d²` vector, resized into the flat arm's own dense backbone family, `d_model` solved to ±1% params. The pre-registered claim is now **two independent decisions**: `STRENGTHEN-01` (matrix vs flatten — embedding mechanism, finding 01) and `STRENGTHEN-04` (matrix vs flat-P — architecture at equal params, finding 04). §1 and §7 rewritten accordingly. Ledger grows from 22→30 cells, 15.622→**20.434 GPU-h**, still ≤30 GPU-h total and ≤2 GPU-h/cell. |
 | M4 (MAJOR) admission | Added `check_admission()` / `--check-admission`: reads phase-A probe JSONs, asserts the last three T=1 evals are monotone non-increasing per arm, extrapolates the measured rate to the intended `--steps`, and reports/stops if that would exceed 2 GPU-h/cell. §6 and both phase READMEs state this is mandatory before phase B is staged. |
 | minor | `LambdaLR`'s warmup fixed (`(step+1)/warmup`, not `step/warmup` — step 0 no longer trains at LR=0); `CEILING_STOP` now forces one more eval pass before saving so `final_evals` is never stale/empty; the empirical anchor is corrected to `exp_d16_v2`'s **actual** `CONFIG`/class-default values — `n_thinking_layers=12`, `max_len=2048` (the historical `SUMMARY.txt`'s own prose, "8 layers", was wrong — verified by reading the script's `CONFIG` dict and `MatrixThinker.__init__` default directly, not the stale summary text); `_gen_specs.py`'s dead `f"T{8 if steps > 500 else 8}"` ternary replaced with the literal `T8`; ~3.3 GB estimated host RAM per process disclosed (§5). |
+
+### Round 2 (no FATAL, six MAJOR, minor) — REV-narrow
+
+| Item | Fix |
+|---|---|
+| MJ-1 (MAJOR) probes | Every phase-A `cmd` now carries `--eval-interval 100` (was the 250 default) — at `--steps 500` that is 5 eval points (100,200,300,400,500), not 2. `check_admission()` now asserts `len(t1_seq) >= 3` per probe and FAILS LOUDLY (prints the short curve, sets `all_ok=False`) rather than silently judging monotonicity on whatever few points happened to exist. |
+| MJ-2 (MAJOR) admission set | `check_admission()` now first computes the SET of `(arm,size)` found among the probe records' own fields and asserts it equals `{matrix,flat,flatten}×{S,M}` (6 combos) exactly — a probe that crashed and wrote nothing (or wrote a record missing `arm`/`size`) silently shrinks this set; that is now a loud, independent FAIL, checked before any per-probe (a)/(b) checks. |
+| MJ-3 (MAJOR) flatten heads | `solve_matched_width()`'s candidate order for the flatten arm changed from `(8,4,2,1)` to `(registered_n_heads, 2, 1, 8)` — since `nn.MultiheadAttention`'s param count is head-count-invariant, trying the registered `n_heads` first can only find an equal-or-better match. Size S now lands on `n_heads=4, d_model=16` (IDENTICAL 2,452,544 params to the first pass's `n_heads=8` answer — same width, more conventional head count, `head_dim=4`). Size M is unaffected and remains disclosed as forced to `n_heads=1, d_model=25` (no multiple of 4 or 2 clears ±1% there). `head_dim` is now printed in `--selftest` for both flat-P and flatten-P. |
+| MJ-4 (MAJOR) resize_in init | `FlattenThinker.resize_in` now has explicit init: `bias` zeroed, `weight ~ N(0,(1/mat_dim)²)` — derived (§4.4) so the backbone's input lands at `std ≈ TARGET_STD`, matching the matrix arm's own `M` and the flat arm's own embed output. `--selftest` now prints backbone-input std for ALL THREE arms at both sizes (target `≈0.02`) via a new `_embed()` helper each class exposes. |
+| MJ-5 (MAJOR) steps coupling | `harvest()` now filters to `steps_completed == steps_target` (exact, replacing the first pass's `steps_target>=2000` threshold) and asserts a SINGLE shared `steps_target` across all valid records (raises if cells trained to different step budgets are ever mixed). `_gen_specs.py` now generates every `--steps`/eval-interval value AND every validity_check's exact-match threshold from ONE constant per phase (`STEPS_A=500`, `STEPS_B=2000`) — both READMEs state "`--steps` and the validity_check always move together." |
+| MJ-6 (MAJOR) phase-A/B vcheck | Every `validity_check` (both phases) now asserts `steps_completed == STEPS_{A,B}` EXACTLY — the first pass's `>= steps - 1` slack is gone from both phases. Phase-A also now asserts `d.get('complete') is True` (not just `'T1' in final_evals`). |
+| minor | `harvest()` also requires `status=="COMPLETED"` (redundant with `complete is True` given how `run_cell` sets both, but asserted explicitly, defensively) and asserts, per group, `seeds == {0,1,2}` exactly; and, across ALL valid records globally, that `corpus`/`batch_size`/`seq_len` are each a single shared value. `check_admission()` now also requires `t1_seq[-1] < t1_seq[0]` (net improvement over the whole probe, not just local non-increase). §6b gets the `ssh … mkdir -p /home/nvidia/embed_ablation` step before the `scp`. §4.2 discloses `embed+head` is 95.5%-99.0% of total params in every arm (96.6%-99.0% for the three `-P`/primary arms) and that `--lr 3e-4` is shared, untuned, and never swept for any of the three architectures. |
 
 ## 0. What this fixes
 
@@ -269,31 +283,70 @@ reports T∈{1, 8}. The `flatten` arm's OWN `n_heads` is solved independently
 
 Vocab `V = 50,257` (GPT-2), `max_len = 512`.
 
-| Size | Arm | Config | total params | ratio vs matrix | diff |
-|---|---|---|---|---|---|
-| S | matrix | mat_dim=16, L=6 | **2,466,562** | 1.0 | — |
-| S | flat-P (primary, params-matched) | d_model=24, n_heads=4, L=6 | **2,468,016** | 1.0006 | **0.059%** |
-| S | flatten-P (primary, params-matched, NEW) | mat_dim=16→resize→d_model=16, n_heads=8, L=6 | **2,452,544** | 0.9943 | **0.568%** |
-| S | flat-D (disclosed control, unmatched) | d_model=32 (=2·mat_dim), L=6 | **3,309,120** | 1.3416 | 34.159% |
-| M | matrix | mat_dim=24, L=8 | **3,755,808** | 1.0 | — |
-| M | flat-P (primary, params-matched) | d_model=36, n_heads=4, L=8 | **3,765,168** | 1.0025 | **0.249%** |
-| M | flatten-P (primary, params-matched, NEW) | mat_dim=24→resize→d_model=25, n_heads=1, L=8 | **3,770,412** | 1.0039 | **0.389%** |
-| M | flat-D (disclosed control, unmatched) | d_model=48 (=2·mat_dim), L=8 | **5,075,520** | 1.3514 | 35.138% |
+| Size | Arm | Config | total params | ratio vs matrix | diff | embed+head share |
+|---|---|---|---|---|---|---|
+| S | matrix | mat_dim=16, L=6 | **2,466,562** | 1.0 | — | 98.5% |
+| S | flat-P (primary, params-matched) | d_model=24, n_heads=4, head_dim=6, L=6 | **2,468,016** | 1.0006 | **0.059%** | 98.2% |
+| S | flatten-P (primary, params-matched, NEW) | mat_dim=16→resize→d_model=16, n_heads=4, head_dim=4, L=6 | **2,452,544** | 0.9943 | **0.568%** | 99.0% |
+| S | flat-D (disclosed control, unmatched) | d_model=32 (=2·mat_dim), L=6 | **3,309,120** | 1.3416 | 34.159% | 97.7% |
+| M | matrix | mat_dim=24, L=8 | **3,755,808** | 1.0 | — | 97.0% |
+| M | flat-P (primary, params-matched) | d_model=36, n_heads=4, head_dim=9, L=8 | **3,765,168** | 1.0025 | **0.249%** | 96.6% |
+| M | flatten-P (primary, params-matched, NEW) | mat_dim=24→resize→d_model=25, n_heads=1, head_dim=25, L=8 | **3,770,412** | 1.0039 | **0.389%** | 98.0% |
+| M | flat-D (disclosed control, unmatched) | d_model=48 (=2·mat_dim), L=8 | **5,075,520** | 1.3514 | 35.138% | 95.5% |
 
 All four `-P` (params-matched) rows are within the ±1% gate; both `-D`
 rows are outside it by construction (pre-registered as unmatched, §4.3).
 
-**Why `flatten`'s `n_heads` differs from `flat`'s (audit-discovered
-during this REV):** solving `flatten`'s width at size M with `n_heads`
-fixed at 4 (matching `flat`'s registered value) tops out at **1.09%**
-mismatch — just outside the ±1% gate, because the valid-width step size
-(multiples of 4) is too coarse near the target. `solve_matched_width()`
-now tries `n_heads ∈ {8,4,2,1}` in order and stops at the first that hits
-tol, which is how size M's `flatten` arm lands at `n_heads=1` (plain,
-single-head attention — a perfectly valid `nn.MultiheadAttention`
-configuration) at 0.389%. `flat`'s own solve is untouched (kept at its
-already-verified `n_heads=4` for both sizes, 0.059%/0.249%) — only the
-new `flatten` arm needed the wider search.
+**Disclosure (audit round-2, minor):** `embed+head` (the embedding
+tables plus the output head, excluding the backbone/resize) is
+**95.5%-99.0% of total params in every arm/size**, computed directly
+from `param_breakdown()` — the "primary" `-P` arms (the ones the two
+decisions are actually scored on) cluster tighter, at **96.6%-99.0%**;
+only the disclosed, non-gating `flat-D` control dips to 95.5% (size M),
+since its `d_model=2·mat_dim` deliberately blows up the backbone/head
+relative to the params-matched arms. This is the same structural fact
+§2.3/§4.2's original "key upshot" already leaned on (vocab dominates,
+which is WHY total-param matching at equal depth is achievable at all in
+this regime) — stated here as an explicit number rather than left
+implicit, per the audit's request. It also means the backbone/resize
+that actually differs between arms (RowThenCol vs full Linear vs
+Linear-then-full-Linear) is a **small** fraction of what "total params"
+measures — a real limitation to keep in mind when interpreting either
+decision: a large T=1 BPB gap driven by embed/head differences would
+still count as a win/loss under §1's rule, even though the operations
+comparison (§2.2) is the part motivating the ablation. Reported, not
+adjusted for — the pre-registered rule (§7) reads total-params-matched
+T=1 BPB, full stop, and does not try to isolate "backbone-only" credit.
+
+**LR is shared and untuned (audit round-2, minor disclosure):** every
+cell uses `--lr 3e-4` (the script's own default, unchanged across all 3
+arms, both sizes, and both `--match` conditions) — this value was never
+swept or tuned for any of the three model families; it is simply the
+value `round1_vector_script.py`/`round2_matrix_script.py` used
+historically. A result that hinges on whether 3e-4 happens to suit one
+architecture better than another is a real, disclosed confound this
+design does not control for — pre-registering it here means a `DROP`
+verdict driven by a bad LR for one arm is a known risk to flag in the
+harvest write-up, not a surprise discovered after the fact.
+
+**Why `flatten`'s `n_heads` can differ from `flat`'s (audit-discovered):**
+`nn.MultiheadAttention`'s own parameter count is **head-count-invariant**
+(`in_proj_weight` is `(3·embed_dim, embed_dim)` regardless of
+`num_heads` — `num_heads` only changes how attention is computed, not how
+many parameters exist), so `solve_matched_width()` (audit round-2 MJ-3)
+tries the **registered `n_heads` first**, then `2`, then `1`, then `8`,
+for the `flatten` arm's own independent search (the `flat` arm's own
+solve is untouched — single-candidate, already verified at 0.059%/
+0.249%). At size S this lands on the SAME `d_model=16` (hence the
+IDENTICAL 2,452,544 params) as the first pass's `n_heads=8` search found
+— because 16 is a multiple of both 4 and 8, trying the registered
+`n_heads=4` first finds it too, just labeled with a smaller, more
+conventional head count (`head_dim=4` instead of `head_dim=2`). At size M,
+no multiple of 4 clears the ±1% tol (best achievable is 1.09% at
+`d_model=24`) or of 2 either — the search falls through to `n_heads=1`
+(`d_model=25`, `head_dim=25`, plain single-head attention, 0.389% — this
+outcome is UNCHANGED from the first pass and remains a disclosed,
+forced-by-the-integer-search oddity of size M specifically, not a choice).
 
 ### 4.3 The three pre-registered arms, and which are the verdict carriers
 
@@ -342,10 +395,27 @@ throughout (matching the CLAUDE.md example value):
   `std = sqrt(TARGET_STD) ≈ 0.1414`, so the **constructed** `M = u⊗v`
   entries have `std ≈ TARGET_STD = 0.02` (verified empirically in §8:
   `embed_u std=0.1412` vs the theoretical `0.1414`).
-- **flat (and flatten's post-flatten backbone has no analogous table):**
-  `embed.weight, pos.weight` init at `std = TARGET_STD = 0.02` directly
-  — no factoring to compensate for, so the direct std IS the target
-  (verified in §8: `flat embed std=0.0200` exactly).
+- **flat:** `embed.weight, pos.weight` init at `std = TARGET_STD = 0.02`
+  directly — no factoring to compensate for, so the direct std IS the
+  target (verified in §8: `flat embed std=0.0200` exactly).
+- **flatten's `resize_in` (audit round-2 MJ-4, NEW):** `resize_in`
+  (`nn.Linear(mat_dim², d_model)`) is the one weight with no analog in
+  either other arm — a freshly-initialized Linear has no reason to land
+  its OUTPUT (the tensor the backbone actually sees) anywhere near
+  `TARGET_STD`. Explicit init: `bias` zeroed, `weight ~ N(0, (1/mat_dim)²)`.
+  Derivation: `h_k = Σ_i W_ki · M_flat_i` over `mat_dim²` terms; with
+  `W ~ N(0, (1/mat_dim)²)` and `M_flat_i` at `std ≈ TARGET_STD` (the
+  matrix arm's own construction, approx-iid across the flattened entries),
+  `Var(h_k) ≈ mat_dim² · (1/mat_dim)² · TARGET_STD² = TARGET_STD²`, i.e.
+  `std(h_k) ≈ TARGET_STD` — so the backbone-input scale is matched across
+  ALL THREE arms, not just the two that share a table. Verified empirically
+  in §8's new backbone-input-std print (target `≈0.02`): size S measured
+  `matrix=0.0193 flat-P=0.0208 flatten-P=0.0205`; size M measured
+  `matrix=0.0207 flat-P=0.0198 flatten-P=0.0205` — all three arms, both
+  sizes, land within ~15% of `TARGET_STD`, closing what would otherwise
+  have been an unexamined (and, for `flatten`, previously literally
+  unset) init asymmetry at the one place all three architectures'
+  "first thing the backbone sees" tensors can be compared apples-to-apples.
 - **Positional-term scaling parity:** the matrix arm has always scaled
   its positional outer-product contribution by `*0.1` before adding it to
   the token embedding (`M = M + pos_outer_product * 0.1`). The historical
@@ -474,16 +544,24 @@ embed_ablation_rd.py --check-admission \
 ```
 
 **This must exit 0 before ANY `phase_B_seeded/` spec is queued.** It
-checks, per probe (audit M4): (a) the last three T=1 evals are monotone
-non-increasing (a coarse "is this actually learning" check — FAILS
-LOUDLY, never silently passes, on a diverging/flat-then-rising curve);
+checks: (0, audit round-2 MJ-2) the SET of `(arm,size)` found among the
+probe records' own fields equals `{matrix,flat,flatten}×{S,M}` (6 combos)
+exactly — a crashed/missing probe fails this independent of every other
+check (§8c scenario 4); then per probe present: (a, tightened by audit
+round-2 MJ-1) `len(t1_seq) >= 3` (FAILS LOUDLY on a 1-2-point curve, §8c
+scenario 5 — not silently judged on whatever few points exist), and the
+last three T=1 evals are monotone non-increasing (a coarse "is this
+actually learning" check); (a2, audit round-2 minor) the LAST T1 value is
+strictly less than the FIRST (net improvement over the whole probe run);
 (b) the probe's measured wall time, linearly extrapolated to
 `--intended-steps 2000 --intended-batch 64`, does not exceed 2.0 GPU-h/
-cell. If it exits nonzero, STOP — re-derive `--steps` for every
-`phase_B_seeded/` spec's `cmd` (and re-run this generator's `gpuh()` cost
-model with the measured rate) before staging or queuing anything in that
-directory. This document does not authorize skipping that check, and
-neither does either phase's own `README.md`.
+cell. If it exits nonzero, STOP — re-derive `--steps` (updating
+`_gen_specs.py`'s shared `STEPS_B` constant, audit round-2 MJ-5, so every
+`phase_B_seeded/` spec's `cmd` AND its validity_check's exact-match value
+move together) and re-run this generator's `gpuh()` cost model with the
+measured rate before staging or queuing anything in that directory. This
+document does not authorize skipping that check, and neither does either
+phase's own `README.md`.
 
 ## 7. Decision rules (pre-registered, no third outcome, TWO independent
 decisions per audit M3)
@@ -512,12 +590,18 @@ reported under `flat-D_disclosed_not_gating` for context but is excluded
 from both decisions by construction (its `match` field is `"D"`, and
 both `score()` lookups only read `match="P"` groups).
 
-**F1's exact-3 invariant (FATAL fix, restated):** before either decision
-is scored, `_harvest_records()` groups all `complete=True, non-probe`
-records by `(arm, match, size)` and asserts every group present has
-**exactly 3** records — 0 is fine (not run yet, contributes `PENDING`),
-but 1-2 (a lost/missing seed) or 4+ (a duplicate or a leaked partial/probe
-record) **raises immediately**, before any BPB numbers are even read.
+**F1's exact-3 invariant (FATAL fix, restated, tightened by round-2
+MJ-5/MJ-6/minor):** before either decision is scored, `_harvest_records()`
+filters to `status=="COMPLETED" AND complete==True AND
+steps_completed==steps_target AND non-probe` (the exact-equality
+threshold is round-2's MJ-5/MJ-6 fix — the first pass used a looser
+`steps_target>=2000`), asserts a single shared `steps_target` and shared
+`corpus`/`batch_size`/`seq_len` across ALL valid records globally, then
+groups by `(arm, match, size)` and asserts every group present has
+**exactly 3** records with `seeds == {0,1,2}` exactly — 0 records is fine
+(not run yet, contributes `PENDING`), but 1-2 (a lost/missing seed), 4+
+(a duplicate or a leaked partial/probe record), or a seed set other than
+`{0,1,2}` **raises immediately**, before any BPB numbers are even read.
 `--harvest-selftest` (§8b) proves this holds even when probe-labeled and
 `CEILING_STOP` records are physically present in the same directory as
 the 15 clean records it constructs.
@@ -554,9 +638,10 @@ reading), IN ORDER:
    (informational, pre-registered as unmatched, not a script failure).
 4. **`harvest_selftest()` (audit F1, §8b below).**
 
-### 8a. Verbatim `--selftest` output (`DRY_RUN_BYPASS=1
+### 8a. Verbatim `--selftest` output, ROUND-2 (`DRY_RUN_BYPASS=1
 /tmp/embed_ablation_venv/bin/python3 matrix-thinking/src/
-embed_ablation_rd.py --selftest`, CPU, `torch==2.14.0`)
+embed_ablation_rd.py --selftest`, CPU, `torch==2.14.0`, re-run after
+MJ-1 through MJ-6/minor)
 
 ```
 ==========================================================================
@@ -571,15 +656,15 @@ EMBED ABLATION SELFTEST (CPU, tiny configs)
   [matrix/tiny-S] forward OK shape=(3, 11, 97) loss=4.6740 grads: 66/66 present, 66/66 nonzero (100%)
   flat-P/tiny-S param match: matrix=5,806 other=6,252 ratio=1.0768 diff=7.682% tol=1.0% -> FAIL  [informational at toy vocab=97; real gate is the 'registered sizes at real GPT-2 vocab' section below]
   [flat-P/tiny-S (d_model=12)] forward OK shape=(3, 11, 97) loss=4.7367 grads: 29/29 present, 29/29 nonzero (100%)
-  flatten-P/tiny-S param match: matrix=5,806 other=6,028 ratio=1.0382 diff=3.824% tol=1.0% -> FAIL  [informational at toy vocab; real gate below]  n_heads=1
-  [flatten-P/tiny-S (d_model=10)] forward OK shape=(3, 11, 97) loss=4.6561 grads: 33/33 present, 33/33 nonzero (100%)
+  flatten-P/tiny-S param match: matrix=5,806 other=4,784 ratio=0.8240 diff=17.602% tol=1.0% -> FAIL  [informational at toy vocab; real gate below]  n_heads=8 head_dim=1
+  [flatten-P/tiny-S (d_model=8)] forward OK shape=(3, 11, 97) loss=4.8023 grads: 33/33 present, 33/33 nonzero (100%)
 
 --- size tiny-M: {'mat_dim': 12, 'n_layers': 2, 'n_heads': 4} ---
-  [matrix/tiny-M] forward OK shape=(3, 11, 97) loss=4.6552 grads: 66/66 present, 66/66 nonzero (100%)
+  [matrix/tiny-M] forward OK shape=(3, 11, 97) loss=4.6294 grads: 66/66 present, 66/66 nonzero (100%)
   flat-P/tiny-M param match: matrix=11,154 other=9,872 ratio=0.8851 diff=11.494% tol=1.0% -> FAIL  [informational at toy vocab=97; real gate is the 'registered sizes at real GPT-2 vocab' section below]
-  [flat-P/tiny-M (d_model=16)] forward OK shape=(3, 11, 97) loss=4.7756 grads: 29/29 present, 29/29 nonzero (100%)
-  flatten-P/tiny-M param match: matrix=11,154 other=11,076 ratio=0.9930 diff=0.699% tol=1.0% -> PASS  [informational at toy vocab; real gate below]  n_heads=2
-  [flatten-P/tiny-M (d_model=14)] forward OK shape=(3, 11, 97) loss=4.5830 grads: 33/33 present, 33/33 nonzero (100%)
+  [flat-P/tiny-M (d_model=16)] forward OK shape=(3, 11, 97) loss=4.6733 grads: 29/29 present, 29/29 nonzero (100%)
+  flatten-P/tiny-M param match: matrix=11,154 other=11,076 ratio=0.9930 diff=0.699% tol=1.0% -> PASS  [informational at toy vocab; real gate below]  n_heads=2 head_dim=7
+  [flatten-P/tiny-M (d_model=14)] forward OK shape=(3, 11, 97) loss=4.8138 grads: 33/33 present, 33/33 nonzero (100%)
 
 --- negative test: forced param mismatch must raise ---
   NEGATIVE param match: matrix=87,890 other=9,728 ratio=0.1107 diff=88.932% tol=1.0% -> FAIL
@@ -587,12 +672,14 @@ EMBED ABLATION SELFTEST (CPU, tiny configs)
   build_arm-style gate correctly RAISED: simulated build_arm(match='P') gate: NEGATIVE-build_arm-path param match: matrix=87,890 other=9,728 ratio=0.1107 diff=88.932% tol=1.0% -> FAIL
 
 --- registered sizes at real GPT-2 vocab (50257), match=P ---
-  size S flat-P param match: matrix=2,466,562 other=2,468,016 ratio=1.0006 diff=0.059% tol=1.0% -> PASS  (d_model=24, n_heads=4)
-  size S flatten-P param match: matrix=2,466,562 other=2,452,544 ratio=0.9943 diff=0.568% tol=1.0% -> PASS  (d_model=16, n_heads=8)
+  size S flat-P param match: matrix=2,466,562 other=2,468,016 ratio=1.0006 diff=0.059% tol=1.0% -> PASS  (d_model=24, n_heads=4, head_dim=6)
+  size S flatten-P param match: matrix=2,466,562 other=2,452,544 ratio=0.9943 diff=0.568% tol=1.0% -> PASS  (d_model=16, n_heads=4, head_dim=4)
   size S (match=D, expected UNMATCHED) param match: matrix=2,466,562 other=3,309,120 ratio=1.3416 diff=34.159% tol=1.0% -> FAIL  (d_model=32) -- D is pre-registered as unmatched, this is informational
-  size M flat-P param match: matrix=3,755,808 other=3,765,168 ratio=1.0025 diff=0.249% tol=1.0% -> PASS  (d_model=36, n_heads=4)
-  size M flatten-P param match: matrix=3,755,808 other=3,770,412 ratio=1.0039 diff=0.389% tol=1.0% -> PASS  (d_model=25, n_heads=1)
+  size S backbone-input std (target~=0.02): matrix=0.0193 flat-P=0.0208 flatten-P=0.0205
+  size M flat-P param match: matrix=3,755,808 other=3,765,168 ratio=1.0025 diff=0.249% tol=1.0% -> PASS  (d_model=36, n_heads=4, head_dim=9)
+  size M flatten-P param match: matrix=3,755,808 other=3,770,412 ratio=1.0039 diff=0.389% tol=1.0% -> PASS  (d_model=25, n_heads=1, head_dim=25)
   size M (match=D, expected UNMATCHED) param match: matrix=3,755,808 other=5,075,520 ratio=1.3514 diff=35.138% tol=1.0% -> FAIL  (d_model=48) -- D is pre-registered as unmatched, this is informational
+  size M backbone-input std (target~=0.02): matrix=0.0207 flat-P=0.0198 flatten-P=0.0205
 
 --- harvest-selftest: synthetic 15-clean + 2-probe + 1-CEILING_STOP dir ---
   dir A: 15 files (expect 15)
@@ -606,6 +693,18 @@ EMBED ABLATION SELFTEST (CPU, tiny configs)
 SELFTEST: ALL CHECKS PASSED
 ==========================================================================
 ```
+
+**Round-2 headline numbers (per the coordinator's explicit report
+request):** `flatten-S` (size S's flatten-P arm) now solves at
+**`n_heads=4, head_dim=4, d_model=16`** — the SAME `d_model=16` and the
+IDENTICAL `2,452,544` total params the first pass's `n_heads=8` search
+found (verified: `other=2,452,544` in both the round-1 and round-2
+transcripts), just reached via the registered-`n_heads`-first candidate
+order (MJ-3) rather than starting at 8. The new backbone-input-std print
+(MJ-4) confirms the `resize_in` init derivation empirically: all three
+arms, both sizes, land within `0.0193`-`0.0208` against a `TARGET_STD`
+of `0.02` (3.5%-9.5% off, well inside the informal 15% band this print
+is meant to sanity-check, not gate).
 
 **Flag for ruling, not assumption:** the `tiny-S`/`tiny-M` toy-vocab
 param-match sub-checks report `FAIL` (or, for `flatten-P/tiny-M`, a
@@ -642,21 +741,56 @@ whether the 3 extras are present).
 Run standalone: `embed_ablation_rd.py --harvest-selftest` (exit code 0
 confirmed independently of the full `--selftest` run).
 
-### 8c. `--check-admission` (audit M4) — verified against 3 synthetic
-scenarios, not just read
+### 8c. `--check-admission` (audit M4, extended by round-2 MJ-1/MJ-2/
+minor) — verified against 5 synthetic scenarios, not just read
 
-Tested against three hand-built synthetic probe-result directories (not
-shown verbatim here for length; reproducible from this file's own
-description): (1) one monotone-improving probe + one non-monotone
-(diverging) probe → **exits 1**, correctly flags the diverging probe by
-name and its exact `last3` values, while still reporting the healthy
-probe's own (a) and (b) checks separately; (2) a probe with a
-realistically slow measured rate (90 min for 500 steps, vs the ~9 min the
-formula anchor predicts) → **exits 1** on check (b), reporting the
-extrapolated `6.000 GPU-h` against the `2.0` ceiling; (3) a normal
-monotone + on-rate probe → **exits 0**. All three confirmed by actually
-running the CLI flag against synthetic JSON, not merely inspecting the
-function body.
+**Round 1 (3 scenarios, unchanged by round 2):** (1) one monotone-
+improving probe + one non-monotone (diverging) probe → **exits 1**,
+correctly flags the diverging probe by name and its exact `last3` values,
+while still reporting the healthy probe's own checks separately; (2) a
+probe with a realistically slow measured rate (90 min for 500 steps, vs
+the ~9 min the formula anchor predicts) → **exits 1** on check (b),
+reporting the extrapolated `6.000 GPU-h` against the `2.0` ceiling; (3) a
+normal monotone + on-rate probe → **exits 0**.
+
+**Round 2 (2 new scenarios, per the coordinator's explicit report
+request) — both actually run against synthetic JSON, verbatim below:**
+
+**Scenario 4 — 5 of 6 required probes present (`matrix/S` missing,
+simulating a crash that never wrote a result file):**
+
+```
+  ADMISSION SET FAIL: missing probe(s) for (arm,size) in [('matrix', 'S')] -- a probe crashed, never wrote its result, or wrote one with a missing/wrong arm/size field. Expected all 6 of [('flat', 'M'), ('flat', 'S'), ('flatten', 'M'), ('flatten', 'S'), ('matrix', 'M'), ('matrix', 'S')], found [('flat', 'M'), ('flat', 'S'), ('flatten', 'M'), ('flatten', 'S'), ('matrix', 'M')].
+  [... each of the 5 present probes reports OK (a)/(a2)/(b) individually ...]
+ADMISSION CHECK: FAIL -- STOP, do NOT stage phase B; re-derive --steps or investigate the failing arm/missing probe first
+exit code: 1
+```
+
+The MJ-2 admission-SET check fails **independent of** every present
+probe individually passing (a)/(a2)/(b) — this is the case F1/MJ-2 was
+written for: "5 of 6 looked fine" is not admission, because the missing
+6th tells you nothing about whether ITS arm/size combo would also have
+passed.
+
+**Scenario 5 — all 6 probes present, but `matrix/S`'s `training_curve`
+has only a 2-point T1 sequence (simulating `--eval-interval` set too high
+relative to `--steps` for that one cell):**
+
+```
+  ADMISSION SET OK: all 6 of [('flat', 'M'), ('flat', 'S'), ('flatten', 'M'), ('flatten', 'S'), ('matrix', 'M'), ('matrix', 'S')] present.
+  [... the 5 other probes report OK (a)/(a2)/(b) individually ...]
+  [embed_ablation_probe_matrix_S] FAIL (a): only 2 T1 eval point(s) in training_curve (need >=3 to judge monotonicity at all) -- t1_seq=[9.0, 6.2]. Check --eval-interval is set low enough relative to --steps for this probe.
+  [embed_ablation_probe_matrix_S] (b) extrapolated to steps=2000 batch=64: 0.587 GPU-h (within the 2.0 GPU-h/cell ceiling)
+ADMISSION CHECK: FAIL -- STOP, do NOT stage phase B; re-derive --steps or investigate the failing arm/missing probe first
+exit code: 1
+```
+
+This is exactly the failure mode MJ-1's `--eval-interval 100` fix (§6,
+`_gen_specs.py`) prevents in practice — every REGISTERED phase-A probe
+now gets 5 eval points, not 2, so scenario 5 should never arise from a
+correctly-generated spec; `check_admission()` still catches it loudly if
+it ever does (e.g. a hand-edited `cmd`, or a future re-registration that
+forgets the coupling).
 
 ## 6b. Deployment — exactly what must move to the box, and where
 
@@ -665,6 +799,20 @@ has **neither** `matrix-thinking/src/` nor the historical
 `experiment-runs/8xh100-session1/*.py` scripts deployed by default — only
 `matrix-thinking/chapter2/` and `matrix-thinking/deltanet_rd/`-derived
 code is scp'd there per that doc's own "Environment on the box" section.
+
+**Directory must exist before the `scp` (audit round-2, minor):**
+
+```
+ssh youthful-indigo-turkey "mkdir -p /home/nvidia/embed_ablation"
+scp matrix-thinking/src/embed_ablation_rd.py \
+    youthful-indigo-turkey:/home/nvidia/embed_ablation/embed_ablation_rd.py
+```
+
+(`youthful-indigo-turkey` per `matrix-thinking/H100_SETUP.md`'s own "the
+tunnel — `ssh youthful-indigo-turkey` then works directly" convention —
+`scp` does not create intermediate directories on its own, and nothing
+else in this design's deployment path creates `/home/nvidia/embed_
+ablation/` for it.)
 
 | Local path | Box path | Why |
 |---|---|---|
@@ -723,12 +871,19 @@ elsewhere). Each spec's `notes` field states the exact scp prerequisite
 (§6b), the F2 gating dependency (phase-B specs only — restated verbatim
 from each phase's `README.md`), and the formula basis for its
 `gpu_h_estimate` (§5/§6, with the corrected anchor description); each
-`cmd` includes `--ceiling-gpuh` as the hard-stop safety valve and (for
-phase-B) `--eval-batches 50` (audit M1); each `validity_check` asserts
-`complete is True`, `steps_completed` reached target, and both `T1`/`T8`
-are present in `final_evals` — a cell that silently truncates (Run 22's
-actual failure mode) fails its own validity check rather than being
-harvested as if it had finished.
+`cmd` includes `--ceiling-gpuh` as the hard-stop safety valve, phase-A
+`cmd`s carry `--eval-interval 100` (audit round-2 MJ-1), and phase-B
+`cmd`s carry `--eval-batches 50` (audit M1); every `validity_check`
+(both phases, audit round-2 MJ-6) asserts `steps_completed ==
+STEPS_{A,B}` EXACTLY — no `-1` slack — plus `complete is True`
+(phase-A also checks `role=='probe'`; phase-B also checks
+`status=='COMPLETED'` and both `T1`/`T8` present in `final_evals`) — a
+cell that silently truncates (Run 22's actual failure mode) or overshoots
+fails its own validity check rather than being harvested as if it had
+finished. `_gen_specs.py` generates every `--steps` value and every
+validity_check's exact-match threshold from ONE constant per phase
+(`STEPS_A=500`, `STEPS_B=2000`, audit round-2 MJ-5) so the two can never
+be hand-edited out of sync.
 
 **Sequencing (restated from §6, and from both phases' own `README.md`):**
 `phase_A_probes/0640-0645` (no dependencies, run first) → confirm real

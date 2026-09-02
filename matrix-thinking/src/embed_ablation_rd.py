@@ -347,13 +347,19 @@ class MatrixThinker(nn.Module):
                 M = layer(M)
         return M
 
-    def forward(self, token_ids, n_iterations=1):
+    def _embed(self, token_ids):
+        """The tensor that enters the FIRST backbone layer -- factored out
+        of forward() so the selftest can measure its std directly (audit
+        round-2 M4: 'add backbone-input std for all three arms')."""
         B, L = token_ids.shape
         u, v = self.embed_u(token_ids), self.embed_v(token_ids)
         M = torch.einsum('...i,...j->...ij', u, v)
         pos = torch.arange(L, device=token_ids.device).unsqueeze(0).expand(B, -1)
         pu, pv = self.pos_u(pos), self.pos_v(pos)
-        M = M + torch.einsum('...i,...j->...ij', pu, pv) * 0.1
+        return M + torch.einsum('...i,...j->...ij', pu, pv) * 0.1
+
+    def forward(self, token_ids, n_iterations=1):
+        M = self._embed(token_ids)
         for _ in range(n_iterations):
             M = self._one_iteration(M)
         M_n = self.final_norm(M)
@@ -427,10 +433,15 @@ class VectorThinker(nn.Module):
                 h = layer(h)
         return h
 
-    def forward(self, token_ids, n_iterations=1):
+    def _embed(self, token_ids):
+        """The tensor that enters the FIRST backbone layer (audit round-2
+        M4's backbone-input-std diagnostic)."""
         B, L = token_ids.shape
         pos_ids = torch.arange(L, device=token_ids.device).unsqueeze(0)
-        h = self.embed(token_ids) + self.pos(pos_ids) * 0.1  # matches matrix arm's pos-term scaling
+        return self.embed(token_ids) + self.pos(pos_ids) * 0.1  # matches matrix arm's pos-term scaling
+
+    def forward(self, token_ids, n_iterations=1):
+        h = self._embed(token_ids)
         for _ in range(n_iterations):
             h = self._one_iteration(h)
         h = self.norm(h)
@@ -472,6 +483,16 @@ class FlattenThinker(nn.Module):
         _init_outer_product_embedding(self.embed_u, self.embed_v, target_std)
         _init_outer_product_embedding(self.pos_u, self.pos_v, target_std)
         self.resize_in = nn.Linear(d * d, d_model)
+        # audit round-2 M4: explicit resize_in init so the BACKBONE INPUT
+        # (post-resize) lands at std ~= target_std, matching the matrix
+        # arm's own M (std=target_std, sec 4.4) and the flat arm's own
+        # embed output (std=target_std directly). Derivation: h_k = sum_i
+        # W_ki * M_flat_i over d^2 terms; with W~N(0,(1/mat_dim)^2) and
+        # M_flat_i~std(target_std) (approx iid), Var(h_k) ~= d^2 *
+        # (1/mat_dim)^2 * target_std^2 = target_std^2 (since d=mat_dim),
+        # i.e. std(h_k) ~= target_std. Bias zeroed (no reason to offset).
+        nn.init.normal_(self.resize_in.weight, std=1.0 / mat_dim)
+        nn.init.zeros_(self.resize_in.bias)
         self.layers = nn.ModuleList([VectorThinkingBlock(d_model, n_heads, dropout)
                                       for _ in range(n_layers)])
         self.norm = nn.LayerNorm(d_model)
@@ -485,7 +506,9 @@ class FlattenThinker(nn.Module):
                 h = layer(h)
         return h
 
-    def forward(self, token_ids, n_iterations=1):
+    def _embed(self, token_ids):
+        """The tensor that enters the FIRST backbone layer, i.e. AFTER
+        resize_in (audit round-2 M4's backbone-input-std diagnostic)."""
         B, L = token_ids.shape
         d = self.mat_dim
         u, v = self.embed_u(token_ids), self.embed_v(token_ids)
@@ -493,7 +516,10 @@ class FlattenThinker(nn.Module):
         pos = torch.arange(L, device=token_ids.device).unsqueeze(0).expand(B, -1)
         pu, pv = self.pos_u(pos), self.pos_v(pos)
         M = M + torch.einsum('...i,...j->...ij', pu, pv) * 0.1
-        h = self.resize_in(M.reshape(B, L, d * d))  # FLATTEN, then dense resize -- structure gone here
+        return self.resize_in(M.reshape(B, L, d * d))  # FLATTEN, then dense resize -- structure gone here
+
+    def forward(self, token_ids, n_iterations=1):
+        h = self._embed(token_ids)
         for _ in range(n_iterations):
             h = self._one_iteration(h)
         h = self.norm(h)
@@ -561,11 +587,23 @@ def solve_matched_width(target_params, params_fn, n_heads_candidates, hi=8192, t
     n_heads a priori (e.g. 4) can leave gaps of >1% between adjacent valid
     widths for some (mat_dim, n_layers) combinations -- this is exactly
     what happened when the flatten arm's size-M search was first tried at
-    a fixed n_heads=4 (best achievable was 1.09% off, outside tol) and
-    fixed by allowing n_heads in {8,4,2,1} instead (found 0.39% off at
-    n_heads=1, d_model=25). Registered flat-P arms did not need this
-    (both hit <=0.25% at a fixed n_heads=4) and keep their original
-    single-candidate call for reproducibility of already-verified numbers.
+    a fixed n_heads=4 (best achievable was 1.09% off, outside tol).
+    Registered flat-P arms did not need this (both hit <=0.25% at a fixed
+    n_heads=4) and keep their original single-candidate call for
+    reproducibility of already-verified numbers.
+
+    Candidate ORDER (audit round-2 MJ-3): the registered n_heads for that
+    size FIRST, then 2, then 1, then 8. nn.MultiheadAttention's own
+    parameter count is head-count-invariant (in_proj_weight is
+    (3*embed_dim, embed_dim) regardless of num_heads -- num_heads only
+    changes how attention is computed, not how many parameters exist), so
+    trying the REGISTERED n_heads first can only ever find an
+    equal-or-better match than a larger n_heads would (its candidate widths
+    are a superset when it divides more finely) -- this is why size S lands
+    on n_heads=4 with the IDENTICAL d_model/params as an n_heads=8 search
+    would have found (16 is a multiple of both). Only sizes where no
+    multiple of the registered n_heads clears tol (size M: 1.09% at
+    n_heads=4) fall through to 2, then 1.
     """
     last_best = None
     for nh in n_heads_candidates:
@@ -593,13 +631,15 @@ def solve_matched_d_model(target_params, n_layers, n_heads, vocab_size=GPT2_VOCA
     return d_model, real
 
 
-def solve_matched_d_model_flatten(target_params, mat_dim, n_layers, vocab_size=GPT2_VOCAB_SIZE,
-                                   max_len=MAX_LEN, hi=8192):
-    """flatten-P arm: searches n_heads in {8,4,2,1} (its own, independent
-    of the matrix/flat-P arms' n_heads) for the first that hits tol, then
-    verified by REAL instantiation."""
+def solve_matched_d_model_flatten(target_params, mat_dim, n_layers, registered_n_heads,
+                                   vocab_size=GPT2_VOCAB_SIZE, max_len=MAX_LEN, hi=8192):
+    """flatten-P arm: searches n_heads in (registered_n_heads, 2, 1, 8)
+    (audit round-2 MJ-3 -- see solve_matched_width's docstring for why
+    this order, not (8,4,2,1)) for the first that hits tol, then verified
+    by REAL instantiation."""
     fn = lambda c: flatten_params_analytic(mat_dim, c, n_layers, vocab_size, max_len)
-    d_model, _, n_heads = solve_matched_width(target_params, fn, (8, 4, 2, 1), hi=hi)
+    candidates = (registered_n_heads, 2, 1, 8)
+    d_model, _, n_heads = solve_matched_width(target_params, fn, candidates, hi=hi)
     real = FlattenThinker(mat_dim=mat_dim, d_model=d_model, n_layers=n_layers, n_heads=n_heads,
                            max_len=max_len, vocab_size=vocab_size).count_params()
     return d_model, n_heads, real
@@ -677,7 +717,7 @@ def build_arm(arm, size, match, dropout=0.1, vocab_size=GPT2_VOCAB_SIZE, max_len
             raise ValueError("arm='flatten' is only registered for --match P (params-matched by "
                               "construction) -- no unmatched control is defined for this arm.")
         d_model, n_heads_flatten, flatten_total = solve_matched_d_model_flatten(
-            matrix_total, mat_dim, n_layers, vocab_size, max_len)
+            matrix_total, mat_dim, n_layers, n_heads, vocab_size, max_len)
         ok, ratio, msg = check_param_match(matrix_total, flatten_total, PARAM_MATCH_TOL,
                                             label=f"flatten-P {size}")
         if not ok:
@@ -863,16 +903,45 @@ def _is_probe(r):
 
 
 def _harvest_records(records, out_path=None):
-    """F1: filters to complete==True AND steps_target>=2000 AND not a
-    probe (role field OR filename), then enforces the exact-3 invariant
-    per (arm, match, size) group, then scores the two independent
-    decisions. A group with 1-2 or 4+ valid records raises loudly --
-    that is a bug (lost/duplicate seed or a leaked partial/probe record),
-    never silently averaged over or dropped."""
+    """F1 (+ audit round-2 MJ-5, MJ-6, minor): filters to
+    `status=="COMPLETED" AND complete==True AND steps_completed==
+    steps_target AND not a probe` (role field OR filename), asserts a
+    SINGLE shared steps_target across all valid records (never compare
+    cells trained to different step budgets), asserts corpus/batch_size/
+    seq_len are identical across all valid records (never compare cells
+    run on different data/config), enforces the exact-3-with-seeds-
+    {0,1,2} invariant per (arm, match, size) group, then scores the two
+    independent decisions. A group with 1-2 or 4+ valid records, or with
+    a seed set other than exactly {0,1,2}, raises loudly -- that is a bug
+    (lost/duplicate seed or a leaked partial/probe record), never silently
+    averaged over or dropped.
+
+    MJ-6 rationale for the exact `steps_completed==steps_target` filter
+    (replacing the first pass's `steps_target>=2000` threshold): a cell
+    that stopped early (CEILING_STOP) or overshot is not comparable to one
+    that ran exactly to its own declared budget -- exact equality is the
+    only value that can't silently drift from whatever `--steps` a given
+    cell was actually launched with."""
     valid = [r for r in records
-             if r.get("complete") is True
-             and r.get("steps_target", 0) >= 2000
+             if r.get("status") == "COMPLETED"
+             and r.get("complete") is True
+             and r.get("steps_completed") == r.get("steps_target")
              and not _is_probe(r)]
+
+    if valid:
+        steps_targets = {r.get("steps_target") for r in valid}
+        assert len(steps_targets) == 1, (
+            f"MJ-5 INVARIANT VIOLATED: valid records span multiple steps_target values "
+            f"{steps_targets} -- comparing cells trained to different step budgets is not a "
+            f"valid ablation. Investigate before trusting any harvest output."
+        )
+        for field in ("corpus", "batch_size", "seq_len"):
+            vals = {r.get(field) for r in valid}
+            assert len(vals) == 1, (
+                f"minor INVARIANT VIOLATED: valid records have inconsistent {field!r} values "
+                f"{vals} -- every cell in this ablation must share the same {field}. "
+                f"Investigate before trusting any harvest output."
+            )
 
     groups = {}
     for r in valid:
@@ -881,10 +950,17 @@ def _harvest_records(records, out_path=None):
     for key, recs in groups.items():
         assert len(recs) == 3, (
             f"F1 INVARIANT VIOLATED: group (arm,match,size)={key} has {len(recs)} valid seed "
-            f"records after filtering (complete=True, steps_target>=2000, non-probe); expected "
-            f"exactly 3 (the pre-registered seed count) or 0 (not yet run). 1-2 means a missing "
-            f"or lost seed; 4+ means a duplicate or a partial/probe record leaked through the "
-            f"filter -- do not trust ANY harvest output until this is resolved. Offending files: "
+            f"records after filtering (status=COMPLETED, complete=True, "
+            f"steps_completed==steps_target, non-probe); expected exactly 3 (the pre-registered "
+            f"seed count) or 0 (not yet run). 1-2 means a missing or lost seed; 4+ means a "
+            f"duplicate or a partial/probe record leaked through the filter -- do not trust ANY "
+            f"harvest output until this is resolved. Offending files: "
+            f"{[r.get('_source_filename') for r in recs]}"
+        )
+        seeds = {r.get("seed") for r in recs}
+        assert seeds == {0, 1, 2}, (
+            f"minor INVARIANT VIOLATED: group (arm,match,size)={key} has seeds {seeds}, expected "
+            f"exactly {{0,1,2}} -- a duplicate or substitute seed slipped in. Offending files: "
             f"{[r.get('_source_filename') for r in recs]}"
         )
 
@@ -946,8 +1022,11 @@ def harvest(results_dir, out_path=None):
 
 def _make_synth_record(arm, match, size, seed, t1_bpb, role="cell", complete=True):
     rec = {"experiment": "embed_ablation_rd", "arm": arm, "match": match, "size": size,
-           "seed": seed, "steps_target": 2000, "steps_completed": 2000 if complete else 480,
-           "complete": complete, "status": "COMPLETED" if complete else "CEILING_STOP"}
+           "seed": seed, "steps_target": 2000,
+           "steps_completed": 2000 if complete else 480,  # MJ-6: exact match only when complete
+           "complete": complete, "status": "COMPLETED" if complete else "CEILING_STOP",
+           # MJ-5/minor: shared-config fields the harvest global-consistency asserts now check
+           "corpus": "wikitext-mix-ext", "batch_size": 64, "seq_len": 512}
     if role is not None:
         rec["role"] = role
     if t1_bpb is not None:
@@ -1029,36 +1108,84 @@ def harvest_selftest():
 # whether phase-B may be staged.
 # ═══════════════════════════════════════════════════════════════════════
 
+EXPECTED_PROBE_ARMS = ("matrix", "flat", "flatten")
+EXPECTED_PROBE_SIZES = tuple(SIZE_CONFIGS)  # ("S", "M")
+
+
 def check_admission(probe_results_dir, intended_steps, intended_batch, ceiling_gpuh=2.0):
-    """M4: run AFTER the phase-A probes land and BEFORE phase-B is
-    staged. For every probe result JSON in probe_results_dir, checks:
-      (a) the last three T=1 evals in its training_curve are monotone
-          NON-INCREASING (loss going down or flat -- a coarse 'is this
-          actually learning, not diverging' check). FAILS LOUDLY, never
-          silently passes, if not.
-      (b) the probe's measured wall time, extrapolated linearly (per
+    """M4 (+ audit round-2 MJ-1, MJ-2, minor-4): run AFTER the phase-A
+    probes land and BEFORE phase-B is staged. Checks:
+      (0, MJ-2) the SET of (arm,size) found among the loaded probe
+          records' own fields equals {matrix,flat,flatten} x {S,M} (6
+          combos) exactly. A crashed probe writes no file (or an
+          incomplete one missing arm/size) and so silently shrinks this
+          set -- this check makes that loud instead of silent. FAILS the
+          whole admission on any missing combo, independent of (a)/(b).
+      For every probe record found:
+        (a, MJ-1) the last three T=1 evals in its training_curve are
+          monotone NON-INCREASING (loss going down or flat). Requires
+          len(t1_seq) >= 3 first -- FAILS LOUDLY (not silently) if the
+          curve has fewer than 3 points to judge monotonicity from at all
+          (a 1-2 point curve tells you almost nothing about convergence).
+        (a2, minor) the LAST T1 value is strictly less than the FIRST T1
+          value -- net improvement over the whole probe run, not just
+          local non-increase.
+        (b) the probe's measured wall time, extrapolated linearly (per
           step x per batch-unit) to intended_steps x intended_batch, does
-          not exceed ceiling_gpuh. If it does, this is reported and the
-          caller MUST NOT stage phase B without first re-deriving --steps
-          (or investigating the non-monotone arm).
-    Returns True only if EVERY probe passes BOTH checks."""
+          not exceed ceiling_gpuh.
+    Returns True only if the admission-set check AND every probe passes
+    ALL of (a), (a2), (b)."""
     results = _load_results_dir(probe_results_dir)
     if not results:
         print(f"ADMISSION CHECK: no probe results found in {probe_results_dir} -- cannot admit phase B.")
         return False
+
     all_ok = True
+
+    # (0, MJ-2) admission-set check, from the records' OWN arm/size fields.
+    expected_set = {(a, s) for a in EXPECTED_PROBE_ARMS for s in EXPECTED_PROBE_SIZES}
+    found_set = {(r.get("arm"), r.get("size")) for r in results}
+    missing = expected_set - found_set
+    unexpected = found_set - expected_set
+    if missing:
+        all_ok = False
+        print(f"  ADMISSION SET FAIL: missing probe(s) for (arm,size) in {sorted(missing)} -- "
+              f"a probe crashed, never wrote its result, or wrote one with a missing/wrong "
+              f"arm/size field. Expected all 6 of {sorted(expected_set)}, found "
+              f"{sorted(found_set)}.")
+    else:
+        print(f"  ADMISSION SET OK: all 6 of {sorted(expected_set)} present.")
+    if unexpected:
+        print(f"  NOTE: unexpected extra (arm,size) combos present (not fatal, but check the dir "
+              f"is not stale/mixed): {sorted(unexpected)}")
+
     for r in results:
         label = r.get("id") or r.get("_source_filename") or "?"
         curve = r.get("training_curve", [])
         t1_seq = [c["evals"]["T1"]["token_bpb"] for c in curve
                   if "T1" in c.get("evals", {}) and c["evals"]["T1"].get("token_bpb") is not None]
-        last3 = t1_seq[-3:]
-        monotone = all(a >= b for a, b in zip(last3, last3[1:])) if len(last3) >= 2 else True
-        if not monotone:
+
+        if len(t1_seq) < 3:
             all_ok = False
-            print(f"  [{label}] FAIL (a): last-3 T1 token_bpb not monotone non-increasing: {last3}")
+            print(f"  [{label}] FAIL (a): only {len(t1_seq)} T1 eval point(s) in training_curve "
+                  f"(need >=3 to judge monotonicity at all) -- t1_seq={t1_seq}. Check --eval-interval "
+                  f"is set low enough relative to --steps for this probe.")
         else:
-            print(f"  [{label}] OK (a): last-3 T1 token_bpb monotone non-increasing: {last3}")
+            last3 = t1_seq[-3:]
+            monotone = all(a >= b for a, b in zip(last3, last3[1:]))
+            if not monotone:
+                all_ok = False
+                print(f"  [{label}] FAIL (a): last-3 T1 token_bpb not monotone non-increasing: {last3}")
+            else:
+                print(f"  [{label}] OK (a): last-3 T1 token_bpb monotone non-increasing: {last3}")
+
+            improved = t1_seq[-1] < t1_seq[0]
+            if not improved:
+                all_ok = False
+                print(f"  [{label}] FAIL (a2): last T1 ({t1_seq[-1]}) is NOT < first T1 "
+                      f"({t1_seq[0]}) -- no net improvement over the whole probe run")
+            else:
+                print(f"  [{label}] OK (a2): last T1 ({t1_seq[-1]}) < first T1 ({t1_seq[0]})")
 
         probe_steps = r.get("steps_completed", 0)
         probe_batch = r.get("batch_size", 0)
@@ -1076,7 +1203,7 @@ def check_admission(probe_results_dir, intended_steps, intended_batch, ceiling_g
         if not within:
             all_ok = False
 
-    print(f"ADMISSION CHECK: {'PASS -- phase B may be staged' if all_ok else 'FAIL -- STOP, do NOT stage phase B; re-derive --steps or investigate the failing arm first'}")
+    print(f"ADMISSION CHECK: {'PASS -- phase B may be staged' if all_ok else 'FAIL -- STOP, do NOT stage phase B; re-derive --steps or investigate the failing arm/missing probe first'}")
     return all_ok
 
 
@@ -1172,11 +1299,13 @@ def selftest():
 
         try:
             d_model_f, n_heads_f, flatten_total = solve_matched_d_model_flatten(
-                matrix_total, cfg["mat_dim"], cfg["n_layers"], vocab_size=tiny_vocab,
+                matrix_total, cfg["mat_dim"], cfg["n_layers"], cfg["n_heads"], vocab_size=tiny_vocab,
                 max_len=L, hi=512)
             ok, ratio, msg = check_param_match(matrix_total, flatten_total, PARAM_MATCH_TOL,
                                                 label=f"flatten-P/{size}")
-            print(f"  {msg}  [informational at toy vocab; real gate below]  n_heads={n_heads_f}")
+            head_dim_f = d_model_f // n_heads_f
+            print(f"  {msg}  [informational at toy vocab; real gate below]  "
+                  f"n_heads={n_heads_f} head_dim={head_dim_f}")
             fm = FlattenThinker(mat_dim=cfg["mat_dim"], d_model=d_model_f, n_layers=cfg["n_layers"],
                                  n_heads=n_heads_f, max_len=L, vocab_size=tiny_vocab)
             _grad_check(fm, x, y, tiny_vocab, f"flatten-P/{size} (d_model={d_model_f})")
@@ -1222,15 +1351,17 @@ def selftest():
 
         d_model, flat_total = solve_matched_d_model(matrix_total, cfg["n_layers"], cfg["n_heads"])
         ok, ratio, msg = check_param_match(matrix_total, flat_total, PARAM_MATCH_TOL, label=f"size {size} flat-P")
-        print(f"  {msg}  (d_model={d_model}, n_heads={cfg['n_heads']})")
+        head_dim = d_model // cfg["n_heads"]
+        print(f"  {msg}  (d_model={d_model}, n_heads={cfg['n_heads']}, head_dim={head_dim})")
         if not ok:
             failures.append(f"registered size {size} flat-P failed params-matched gate: {msg}")
 
         d_model_f, n_heads_f, flatten_total = solve_matched_d_model_flatten(
-            matrix_total, cfg["mat_dim"], cfg["n_layers"])
+            matrix_total, cfg["mat_dim"], cfg["n_layers"], cfg["n_heads"])
         ok_f, ratio_f, msg_f = check_param_match(matrix_total, flatten_total, PARAM_MATCH_TOL,
                                                   label=f"size {size} flatten-P")
-        print(f"  {msg_f}  (d_model={d_model_f}, n_heads={n_heads_f})")
+        head_dim_f = d_model_f // n_heads_f
+        print(f"  {msg_f}  (d_model={d_model_f}, n_heads={n_heads_f}, head_dim={head_dim_f})")
         if not ok_f:
             failures.append(f"registered size {size} flatten-P failed params-matched gate: {msg_f}")
 
@@ -1239,6 +1370,20 @@ def selftest():
         okd, ratiod, msgd = check_param_match(matrix_total, flat_d_total, PARAM_MATCH_TOL,
                                                label=f"size {size} (match=D, expected UNMATCHED)")
         print(f"  {msgd}  (d_model={d_model_d}) -- D is pre-registered as unmatched, this is informational")
+
+        # ---- audit round-2 M4: backbone-input std for ALL THREE arms
+        #      (target ~= TARGET_STD = 0.02, verifying the resize_in init
+        #      derivation, sec 4.4/MJ-4 in the design doc). ----
+        toy_ids = torch.randint(0, GPT2_VOCAB_SIZE, (2, 16))
+        vm_probe = VectorThinker(d_model=d_model, n_layers=cfg["n_layers"], n_heads=cfg["n_heads"],
+                                  max_len=MAX_LEN, vocab_size=GPT2_VOCAB_SIZE)
+        fm_probe = FlattenThinker(mat_dim=cfg["mat_dim"], d_model=d_model_f, n_layers=cfg["n_layers"],
+                                   n_heads=n_heads_f, max_len=MAX_LEN, vocab_size=GPT2_VOCAB_SIZE)
+        matrix_in_std = mm._embed(toy_ids).std().item()
+        flat_in_std = vm_probe._embed(toy_ids).std().item()
+        flatten_in_std = fm_probe._embed(toy_ids).std().item()
+        print(f"  size {size} backbone-input std (target~={TARGET_STD}): "
+              f"matrix={matrix_in_std:.4f} flat-P={flat_in_std:.4f} flatten-P={flatten_in_std:.4f}")
 
     # ---- 4. Harvest selftest (audit F1) ----
     harvest_ok = harvest_selftest()

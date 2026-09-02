@@ -27,6 +27,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PHASE_A_DIR = os.path.join(HERE, "phase_A_probes")
 PHASE_B_DIR = os.path.join(HERE, "phase_B_seeded")
 
+# Audit round-2 MJ-5 ("steps coupling"): ONE constant per phase drives
+# BOTH --steps in the cmd AND the exact-match value the validity_check
+# asserts against (MJ-6: no "-1" slack, exact equality) -- these two
+# numbers can never drift apart because they are the same Python name.
+# MJ-1: --eval-interval 100 for phase-A gives 5 eval points at
+# STEPS_A=500 (100,200,300,400,500), enough for check_admission's
+# len(t1_seq)>=3 assert and the last-3-monotone + first-vs-last checks.
+STEPS_A = 500
+EVAL_INTERVAL_A = 100
+STEPS_B = 2000
+
 PREREQ_NOTE = (
     "PREREQ (see EMBEDDING_ABLATION_DESIGN.md S6 'Deployment'): before this cmd can "
     "run, scp matrix-thinking/src/embed_ablation_rd.py to "
@@ -46,11 +57,16 @@ GATING_NOTE = (
     "until ALL 6 phase-A probe cells (phase_A_probes/0640-0645) have completed, their "
     "result JSONs have been read, and "
     "`embed_ablation_rd.py --check-admission --probe-results-dir "
-    f"{PROBE_OUT_DIR} --intended-steps 2000 --intended-batch 64` "
-    "exits 0. If it exits nonzero (non-monotone T1 curve in any arm, or extrapolated "
-    "GPU-h/cell > 2.0), STOP -- re-derive --steps for every phase-B cmd below (or "
-    "investigate the failing arm) before staging ANY of phase_B_seeded/. See "
-    "phase_B_seeded/README.md and phase_A_probes/README.md."
+    f"{PROBE_OUT_DIR} --intended-steps {STEPS_B} --intended-batch 64` "
+    "exits 0 -- this now ALSO asserts the (arm,size) set found among the probe records "
+    "equals {matrix,flat,flatten}x{S,M} exactly (audit round-2 MJ-2: a crashed/missing "
+    "probe fails admission outright, not just a slow one). If it exits nonzero (missing "
+    "probe, non-monotone or non-improving T1 curve in any arm, or extrapolated GPU-h/"
+    f"cell > 2.0), STOP -- re-derive --steps (and STEPS_B in this generator, and this "
+    "spec's own steps_completed==... exact-match validity_check -- audit round-2 MJ-5: "
+    "--steps and the validity_check ALWAYS move together, they are generated from the "
+    "same STEPS_B constant, never edit one without the other) before staging ANY of "
+    "phase_B_seeded/. See phase_B_seeded/README.md and phase_A_probes/README.md."
 )
 
 SPECS_A = []
@@ -69,14 +85,19 @@ def add_probe(name, arm, size, gpu_h_estimate):
     cmd = (
         f"mkdir -p {ckpt_dir} {PROBE_OUT_DIR} && cd {CODE_DIR} && {PY} embed_ablation_rd.py "
         f"--run-cell --arm {arm} --size {size} --match P --seed 0 "
-        f"--steps 500 --batch-size 64 --seq-len 512 "
+        f"--steps {STEPS_A} --eval-interval {EVAL_INTERVAL_A} --batch-size 64 --seq-len 512 "
         f"--data-dir {DATA_DIR} --corpus {CORPUS} --role probe "
         f"--ckpt-dir {ckpt_dir} --out {out_path} --ceiling-gpuh 0.5"
     )
+    # MJ-6: exact equality, no "-1" slack -- steps_completed must equal
+    # STEPS_A precisely (a cell that hit --ceiling-gpuh early is NOT a
+    # valid probe reading and must fail this check, not slide through
+    # on a fuzzy ">=".
     validity = (
         f"{PY} -c \"import json; d=json.load(open('{out_path}')); "
         f"assert d.get('role') == 'probe'; "
-        f"assert d.get('steps_completed', 0) >= 500 - 1; "
+        f"assert d.get('complete') is True; "
+        f"assert d.get('steps_completed') == {STEPS_A}; "
         f"assert 'T1' in d.get('final_evals', {{}})\""
     )
     hyp = (
@@ -112,14 +133,21 @@ def add_seeded(name, arm, size, match, seed, gpu_h_estimate, hyp):
     cmd = (
         f"mkdir -p {ckpt_dir} {OUT_DIR} && cd {CODE_DIR} && {PY} embed_ablation_rd.py "
         f"--run-cell --arm {arm} --size {size} --match {match} --seed {seed} "
-        f"--steps 2000 --batch-size 64 --seq-len 512 --eval-batches 50 "
+        f"--steps {STEPS_B} --batch-size 64 --seq-len 512 --eval-batches 50 "
         f"--data-dir {DATA_DIR} --corpus {CORPUS} --role cell "
         f"--ckpt-dir {ckpt_dir} --out {out_path} --ceiling-gpuh 2.0"
     )
+    # MJ-6: exact equality, no "-1" slack (same rationale as phase A).
+    # harvest()'s own MJ-5 filter (steps_completed==steps_target) means a
+    # cell that fails THIS validity check would also be silently excluded
+    # from every decision rather than counted as a completed seed -- this
+    # check catches that at queue-completion time instead of at harvest
+    # time, which is strictly earlier and cheaper to notice.
     validity = (
         f"{PY} -c \"import json; d=json.load(open('{out_path}')); "
+        f"assert d.get('status') == 'COMPLETED'; "
         f"assert d.get('complete') is True; "
-        f"assert d.get('steps_completed', 0) >= 2000 - 1; "
+        f"assert d.get('steps_completed') == {STEPS_B}; "
         f"assert 'T1' in d.get('final_evals', {{}}) and 'T8' in d.get('final_evals', {{}})\""
     )
     spec = {
@@ -160,12 +188,12 @@ def gpuh(params, batch, steps):
 
 
 # ── Phase A: 6 rate/admission probes (500 steps) ────────────────────────
-add_probe("matrix_S", "matrix", "S", gpuh(PARAMS[("matrix", "S")], 64, 500))
-add_probe("flat_S", "flat", "S", gpuh(PARAMS[("flat", "P", "S")], 64, 500))
-add_probe("flatten_S", "flatten", "S", gpuh(PARAMS[("flatten", "S")], 64, 500))
-add_probe("matrix_M", "matrix", "M", gpuh(PARAMS[("matrix", "M")], 64, 500))
-add_probe("flat_M", "flat", "M", gpuh(PARAMS[("flat", "P", "M")], 64, 500))
-add_probe("flatten_M", "flatten", "M", gpuh(PARAMS[("flatten", "M")], 64, 500))
+add_probe("matrix_S", "matrix", "S", gpuh(PARAMS[("matrix", "S")], 64, STEPS_A))
+add_probe("flat_S", "flat", "S", gpuh(PARAMS[("flat", "P", "S")], 64, STEPS_A))
+add_probe("flatten_S", "flatten", "S", gpuh(PARAMS[("flatten", "S")], 64, STEPS_A))
+add_probe("matrix_M", "matrix", "M", gpuh(PARAMS[("matrix", "M")], 64, STEPS_A))
+add_probe("flat_M", "flat", "M", gpuh(PARAMS[("flat", "P", "M")], 64, STEPS_A))
+add_probe("flatten_M", "flatten", "M", gpuh(PARAMS[("flatten", "M")], 64, STEPS_A))
 
 # ── Phase B: 4 arm-configs x 2 sizes x 3 seeds = 24 seeded cells ────────
 HYP = {
@@ -211,21 +239,21 @@ HYP["flatten_M"] = HYP["flatten_S"].replace("size S", "size M").replace("matrix_
     "at this size, see solve_matched_width's docstring)")
 
 for seed in (0, 1, 2):
-    add_seeded(f"matrix_S_s{seed}", "matrix", "S", "P", seed, gpuh(PARAMS[("matrix", "S")], 64, 2000), HYP["matrix_S"])
+    add_seeded(f"matrix_S_s{seed}", "matrix", "S", "P", seed, gpuh(PARAMS[("matrix", "S")], 64, STEPS_B), HYP["matrix_S"])
 for seed in (0, 1, 2):
-    add_seeded(f"flatp_S_s{seed}", "flat", "S", "P", seed, gpuh(PARAMS[("flat", "P", "S")], 64, 2000), HYP["flatp_S"])
+    add_seeded(f"flatp_S_s{seed}", "flat", "S", "P", seed, gpuh(PARAMS[("flat", "P", "S")], 64, STEPS_B), HYP["flatp_S"])
 for seed in (0, 1, 2):
-    add_seeded(f"flatd_S_s{seed}", "flat", "S", "D", seed, gpuh(PARAMS[("flat", "D", "S")], 64, 2000), HYP["flatd_S"])
+    add_seeded(f"flatd_S_s{seed}", "flat", "S", "D", seed, gpuh(PARAMS[("flat", "D", "S")], 64, STEPS_B), HYP["flatd_S"])
 for seed in (0, 1, 2):
-    add_seeded(f"flatten_S_s{seed}", "flatten", "S", "P", seed, gpuh(PARAMS[("flatten", "S")], 64, 2000), HYP["flatten_S"])
+    add_seeded(f"flatten_S_s{seed}", "flatten", "S", "P", seed, gpuh(PARAMS[("flatten", "S")], 64, STEPS_B), HYP["flatten_S"])
 for seed in (0, 1, 2):
-    add_seeded(f"matrix_M_s{seed}", "matrix", "M", "P", seed, gpuh(PARAMS[("matrix", "M")], 64, 2000), HYP["matrix_M"])
+    add_seeded(f"matrix_M_s{seed}", "matrix", "M", "P", seed, gpuh(PARAMS[("matrix", "M")], 64, STEPS_B), HYP["matrix_M"])
 for seed in (0, 1, 2):
-    add_seeded(f"flatp_M_s{seed}", "flat", "M", "P", seed, gpuh(PARAMS[("flat", "P", "M")], 64, 2000), HYP["flatp_M"])
+    add_seeded(f"flatp_M_s{seed}", "flat", "M", "P", seed, gpuh(PARAMS[("flat", "P", "M")], 64, STEPS_B), HYP["flatp_M"])
 for seed in (0, 1, 2):
-    add_seeded(f"flatd_M_s{seed}", "flat", "M", "D", seed, gpuh(PARAMS[("flat", "D", "M")], 64, 2000), HYP["flatd_M"])
+    add_seeded(f"flatd_M_s{seed}", "flat", "M", "D", seed, gpuh(PARAMS[("flat", "D", "M")], 64, STEPS_B), HYP["flatd_M"])
 for seed in (0, 1, 2):
-    add_seeded(f"flatten_M_s{seed}", "flatten", "M", "P", seed, gpuh(PARAMS[("flatten", "M")], 64, 2000), HYP["flatten_M"])
+    add_seeded(f"flatten_M_s{seed}", "flatten", "M", "P", seed, gpuh(PARAMS[("flatten", "M")], 64, STEPS_B), HYP["flatten_M"])
 
 
 total_gpu_h = sum(s["gpu_h_estimate"] for _, s in SPECS_A + SPECS_B)
@@ -246,55 +274,82 @@ for fname, spec in SPECS_B:
         f.write("\n")
     print("wrote phase_B_seeded/" + fname)
 
-README_A = """# Phase A -- rate/admission probes (0640-0645)
+README_A = f"""# Phase A -- rate/admission probes (0640-0645)
 
 Audit F2 (FATAL) gating fix. These 6 cells have NO dependency on phase B
 and may be queued/run as soon as the PREREQ in each spec's `notes` field
 is met (embed_ablation_rd.py scp'd to the box, wikitext-mix-ext corpus
 confirmed present).
 
-Each probe trains 500 steps and writes its result JSON to
+Each probe trains {STEPS_A} steps with `--eval-interval {EVAL_INTERVAL_A}`
+(audit round-2 MJ-1: {STEPS_A}/{EVAL_INTERVAL_A} = 5 eval points, so
+`--check-admission`'s monotonicity/improvement checks have enough of a
+curve to judge, not a 1-2-point stub) and writes its result JSON to
 `/home/nvidia/embed_ablation/results/probes/` (a SEPARATE subdirectory
 from the phase-B seeded cells' `results/`, per audit F1 -- this keeps
 `harvest()`'s plain top-level `os.listdir(results_dir)` from ever seeing
 probe files at all, in addition to the explicit `role`/filename filter
 `_is_probe()` already applies).
 
+**All 6 probes must exist and be complete -- audit round-2 MJ-2:**
+`--check-admission` asserts the SET of `(arm,size)` found among the probe
+records' own fields equals exactly `{{matrix,flat,flatten}}x{{S,M}}` (6
+combos). A probe that crashed and never wrote a file (or wrote one
+missing its `arm`/`size` field) makes this set incomplete and FAILS
+admission outright -- independent of whether the other 5 probes look
+fine. Do not proceed on "5 of 6 looked good."
+
 **After all 6 land, before ANY phase_B_seeded/ spec is queued:**
 
 ```
 /home/nvidia/tdenv/bin/python3 embed_ablation_rd.py --check-admission \\
     --probe-results-dir /home/nvidia/embed_ablation/results/probes \\
-    --intended-steps 2000 --intended-batch 64
+    --intended-steps {STEPS_B} --intended-batch 64
 ```
 
-This must exit 0. It checks, per probe: (a) the last three T=1 evals are
-monotone non-increasing (a basic "is this actually learning" check), and
-(b) the measured rate extrapolated to 2000 steps/batch=64 does not exceed
-2.0 GPU-h/cell (audit M4). If it exits nonzero, STOP -- re-derive --steps
-for every phase_B_seeded/ spec's `cmd` (or investigate the failing arm)
-before staging any of them. See EMBEDDING_ABLATION_DESIGN.md S6 for the
-identical sentence in the pre-registration itself.
+This must exit 0. It checks, per probe: (0) the 6-probe admission SET
+above; (a) the last three T=1 evals are monotone non-increasing, requiring
+>=3 eval points to even judge this (audit round-2 MJ-1 -- a probe with
+fewer than 3 points FAILS this check, it is not silently skipped); (a2)
+the LAST T1 value is strictly less than the FIRST (net improvement over
+the whole probe run, not just local non-increase); and (b) the measured
+rate extrapolated to {STEPS_B} steps/batch=64 does not exceed 2.0 GPU-h/
+cell (audit M4). If it exits nonzero, STOP -- re-derive `--steps` (audit
+round-2 MJ-5: `--steps` and this generator's `STEPS_B` constant and every
+phase_B_seeded/ spec's exact-match `validity_check` all move together --
+they are generated from the SAME constant, never hand-edit one without
+regenerating the others) before staging any of phase_B_seeded/. See
+EMBEDDING_ABLATION_DESIGN.md S6 for the identical sentence in the
+pre-registration itself.
 """
 
-README_B = """# Phase B -- seeded cells (0646-0669)
+README_B = f"""# Phase B -- seeded cells (0646-0669)
 
 Audit F2 (FATAL) gating fix. **DO NOT QUEUE ANY FILE IN THIS DIRECTORY**
 until phase_A_probes/'s 6 probes have completed AND
 `embed_ablation_rd.py --check-admission --probe-results-dir
-/home/nvidia/embed_ablation/results/probes --intended-steps 2000
---intended-batch 64` has exited 0 (see phase_A_probes/README.md).
+/home/nvidia/embed_ablation/results/probes --intended-steps {STEPS_B}
+--intended-batch 64` has exited 0 (see phase_A_probes/README.md, including
+its MJ-2 6-probe admission-SET requirement -- a single missing/crashed
+probe fails this on its own).
 
-If the admission check fails (non-monotone T1 in any arm, or extrapolated
-GPU-h/cell > 2.0), every `cmd` below needs its `--steps` (and this
-generator's `gpuh()` cost model) re-derived from the ACTUAL measured
-probe rate before anything here is trusted or queued -- see
+If the admission check fails (missing probe, non-monotone or
+non-improving T1 in any arm, or extrapolated GPU-h/cell > 2.0), **--steps
+and every validity_check in this directory move together** (audit
+round-2 MJ-5): re-run `_gen_specs.py` with an updated `STEPS_B` constant
+(and re-derive `gpuh()`'s cost model from the ACTUAL measured probe rate)
+rather than hand-editing individual spec files -- see
 EMBEDDING_ABLATION_DESIGN.md S6's identical gating sentence.
 
 24 cells: 4 arm-configs (matrix, flatp, flatd, flatten) x 2 sizes (S, M)
 x 3 seeds. matrix/flatp/flatten feed the pre-registered decisions
 (STRENGTHEN-01: matrix vs flatten; STRENGTHEN-04: matrix vs flatp);
-flatd is a disclosed, non-gating params-UNMATCHED control.
+flatd is a disclosed, non-gating params-UNMATCHED control. Every spec's
+`validity_check` requires `steps_completed == {STEPS_B}` EXACTLY (audit
+round-2 MJ-6, no "-1" slack) -- `harvest()` itself independently re-checks
+this (MJ-5's `steps_completed==steps_target` filter), so a cell that fails
+this validity_check would also be silently excluded from every decision;
+catching it here, at queue-completion time, is strictly cheaper.
 """
 
 with open(os.path.join(PHASE_A_DIR, "README.md"), "w") as f:
