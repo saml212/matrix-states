@@ -5692,3 +5692,172 @@ already does), the remaining rounds of the full gauntlet before
 `0600-0629` may be staged into `/home/nvidia/queue/pending/`. No spec in
 either `strengthen_specs/` or `strengthen_specs_probe/` has been moved
 there as of this record.
+
+---
+
+### 1.46 ROUND-2 AUDIT (2026-09-01) — PASS-STAGE-30-AFTER-PROBE, 0 FATAL/0 MAJOR, 4 minor, all applied
+
+**m1 (anchor citation, corrected again).** The round-1 fix's own citation
+was itself wrong: "941-952 s/cell" and "~24 s/cell" are NOT literal
+`fix5 MANIFEST.md` text — they are `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.44's
+own PRE-fix5 cost PROJECTION (based on the REUSED round-4-sweep cells'
+rate, a related but DIFFERENT measurement from fix5's own 9 fresh
+cells). Re-cited directly from the fix5 round's own raw/re-metric JSONs
+(`experiment-runs/2026-07-11_h2h_fix5_lrgrid/results/*.json` and
+`results/remetric/*.json`, `wall_s` field, re-read and re-verified for
+this correction):
+
+| | values (s) | mean (s) | GPU-h/20k-cell |
+|---|---|---|---|
+| **fast-cluster** (6/9 cells, no contention) | 941.7734, 943.0457, 944.8535, 948.2702, 948.5031, 952.6023 | 946.5080 | **0.262919** |
+| co-tenant contention outliers (3/9 — fix5's own MANIFEST calls these "the two outliers," undercounting by one) | 992.3003, 1080.8125, 1162.6606 | — | — |
+| **realized** (all 9 cells, contention included) | (the 6 above + the 3 outliers) | 990.5357 | **0.275149** |
+| re-metric (all 9 cells, both anchors) | sum 186.1601 (matches the MANIFEST's own "186.2 s" total to the first decimal — an independent cross-check) | 20.6845 | **0.0057457** |
+
+The primary per-spec ledger anchor stays FAST-CLUSTER (0.262919, stated
+first, per this round's own "60.67 vs ≈63.4" framing); REALIZED
+(0.275149) is disclosed alongside it. The re-metric rate is corrected
+from the round-1 fix's own wrong "~24 s"/0.0067 citation to 0.0057457 —
+used for BOTH anchors (no comparable contention pattern in the re-metric
+timings). Re-priced 30-cell totals: **fast-cluster 60.661 GPU-h,
+realized 63.453 GPU-h** (both ≈ the round-1 figures — the remetric-rate
+correction is a small fraction of the total either way).
+
+**m2 (re-metric timeout).** Round 1 wrapped only the train stage in
+`timeout -k 120 <N>h`. Every spec's `cmd` now ALSO wraps the re-metric
+stage: `timeout -k 60 30m` (generous vs fix5's own realized ~19–32 s/cell
+re-metric time at C0; re-metric cost scales with capacity the same way
+training does, so a much larger C2 re-metric could plausibly run
+minutes, not seconds — 30 m stays a safe multiple even then).
+
+**m3 (provenance, a second independent check).** `_validity_check_lines`
+now ALSO asserts the re-metric JSON's own `n_params_loaded` (the
+LOADED-model provenance field `_remetric_one` writes, read back from the
+checkpoint AFTER `run_cell_round4` returns) matches the capacity's
+formula-derived count — independent of, and a different bug class from,
+the pre-existing raw-JSON `n_params` check (that one catches a mixup at
+TRAIN time; this one catches a mixup that survived to RE-METRIC time,
+e.g. a capacity override left stale between a chained cmd's two stages).
+
+**m4 (`_valid_remetric`'s `ckpt_path`, made required).** Round 1 made the
+checkpoint-md5 check OPTIONAL (skipped when `ckpt_path` was omitted).
+`ckpt_path` is now a REQUIRED positional argument — this module's own
+single call site always had one in hand anyway, so requiring it costs
+nothing and removes a silent-skip footgun for any future caller.
+
+**TRIM (coordinator election, pre-registered narrowing BEFORE
+staging).** `C2 × lr=3e-4 × 60,000 steps` (specs `0621-0623`, the three
+single most expensive cells in the sweep) moves to
+`strengthen_specs_deferred/` (with its own `README.md` recording the
+rationale and the conditional re-add, below) — NOT staged into
+`strengthen_specs/` this wave.
+
+| | n cells | fast-cluster GPU-h | realized GPU-h |
+|---|---|---|---|
+| **Staged** (27) | 27 | **43.409** | **45.404** |
+| Deferred (3) | 3 | 17.252 | 18.049 |
+| All 30 (unchanged total) | 30 | 60.661 | 63.453 |
+
+(pre-audit naive param-ratio, disclosed for the staged-27 set only:
+24.185 GPU-h — retained per the standing "state all disclosed numbers"
+convention, never the ledger figure of record.)
+
+**Ceremony tier, DE-ESCALATED by the TRIM.** The staged-27 ledger
+(43.409/45.404 GPU-h) is BELOW the 50 GPU-h line the untrimmed 30-cell
+estimate (60.661/63.453) crossed — the design-time estimate now sits back
+in CLAUDE.md's 10–50 GPU-h tier (audit + pre-launch resource/placement
+red-team), not the full multi-round gauntlet §1.46's earlier record
+flagged. This is stated as the current design-time READ, not a final
+clearance: the 0599 probe's own measured rate (`strengthen_reprice.py`,
+below) is what actually governs whether `0600-0629` may be staged, and
+if it re-prices the staged-27 total back above 50 GPU-h, the ceremony
+tier re-escalates and this must be reported before proceeding.
+
+**Pre-registered conditional re-add (decided NOW, before any cell's
+result exists):** once the 27 staged cells' harvest reports `mean_acc_A`
+for both `C2 × lr=3e-4 × 20,000` and `C2 × lr=1e-3 × 20,000`, IF the
+former exceeds the latter (the frozen-default LR beating C2's own
+currently-best LR at the SAME, cheaper step count), the 3 deferred cells
+run as a SEPARATE follow-on, budgeted at ≤17.25 GPU-h (fast-cluster
+anchor, re-priced before that follow-on launches). `mode_harvest` now
+computes this trigger mechanically (`doc["deferred_reactivation"]`), not
+merely as asserted prose, and SKIPS the deferred config when building the
+decision-rule table (its cells were never staged/trained, so its raw/
+re-metric JSONs do not exist — `mode_harvest` no longer crashes trying to
+open them, `doc["deferred_configs"]` records what was skipped and why).
+**Outcomes A/B/C are UNCHANGED by this TRIM** — these 3 cells were never
+load-bearing for any of the three outcomes.
+
+**RE-PRICE RULE (verbatim, pinned by the coordinator, 2026-09-01):**
+
+```
+r_C2 = probe raw wall_s / 300
+C2@60k = 60000*r_C2 + O,  C2@20k = 20000*r_C2 + O
+O = job-log START->END - train wall_s - remetric wall_s
+r_C1 = r_C0 * (r_C2/r_C0)^0.213, with r_C0 = 0.0472 s/step
+kill thresholds: C2@60k r>0.720, C2@20k r>0.900, C1@60k r>0.240,
+                 C1@20k r>0.270, C0@60k r>0.180
+if r_C2 > 0.51: regenerate TIMEOUT_HOURS = 2x re-priced before staging
+```
+
+The `0.213` exponent is `log(block_flop_ratio(C1))/log(block_flop_ratio(C2))`
+from this design's own block-FLOP model (§1.46's earlier ledger section) —
+a log-space interpolation between the pinned `r_C0` and the MEASURED
+`r_C2`, since C1 itself is never probed. The 5 kill thresholds are
+EXACTLY `TIMEOUT_HOURS[(cap,steps)] * 3600 / steps` for the round-1-pinned
+timeout table (verified by exact arithmetic: 12h→0.720, 5h→0.900,
+4h→0.240, 1.5h→0.270, 3h→0.180) — the rate at which a cell's OWN
+currently-configured timeout would kill it before it legitimately
+finishes. The rule as stated prices ONLY the training-time term
+(`steps*r + O`); `strengthen_reprice.py` (below) additionally scales the
+probe's own measured re-metric `wall_s` by the same `r_cap/r_C2` ratio
+and adds it on top — re-metric is real cost, not covered by the verbatim
+formula, and this is disclosed as an explicit completion, never a silent
+deviation.
+
+**`matrix-thinking/deltanet_rd/strengthen_reprice.py`** (new, stdlib-only
+— `json`, `glob`, `re`, `argparse`, `datetime`; deliberately NO project
+imports and NO torch, so an on-box watcher can run it with nothing but a
+bare `python3`). Interface (pinned):
+
+```
+python3 strengthen_reprice.py --probe-dir <dir containing the 0599 raw
+    JSON and remetric/ subdir> [--joblog <path to
+    /home/nvidia/queue/logs/0599_h2h_strengthen_probe_C2.log>]
+```
+
+Prints `r_C2`, `r_C1`, `r_C0`, `O` (and a WARNING, never a silent zero,
+if `--joblog` is omitted or its START/END markers don't parse), the
+re-priced per-config and total GPU-h for the 27 STAGED cells, and a
+final line: `REPRICE: PASS` (exit 0) or `REPRICE: STOP <reason(s)>`
+(exit 1, every violated threshold listed, not just the first). Verified
+live (synthetic probe artifacts): a healthy case (r_C2≈0.34 s/step)
+re-prices the 27-cell total to ≈42.7 GPU-h (tracking the design-time
+fast-cluster estimate of 43.4 closely) and prints `PASS`; an unhealthy
+case (r_C2≈0.67, then ≈1.0 s/step) correctly prints `STOP` with the
+`>0.51` reason and, at the higher rate, ALSO both C2 kill-threshold
+reasons together; a synthetic job-log correctly derives `O` by exact
+subtraction.
+
+**The 0599 probe's own exact artifact filenames** (queue-watcher
+interface contract, confirmed against `h2h_strengthen_specs_gen.py`'s
+own `PROBE_RAW_FILENAME`/`PROBE_REMETRIC_FILENAME`):
+- raw: `h2h_strengthen_C2_lr1e-03_st60000_s0.json` (directly in the
+  spec's own `output_dir`)
+- re-metric: `remetric/h2h_strengthen_C2_lr1e-03_st60000_s0_round4.json`
+  (in `output_dir`'s own `remetric/` subdirectory)
+
+Both are duplicated as pinned constants inside `strengthen_reprice.py`
+(never imported from `h2h_strengthen_specs_gen.py`, to keep the reprice
+script torch-free and dependency-free) — kept in sync by hand; a drift
+between the two copies would be a real bug, flagged here for future
+attention rather than silently risked.
+
+**What round 2 does NOT do:** no spec has been staged into
+`/home/nvidia/queue/pending/`; nothing has been committed. The staged-27
+ledger (43.409/45.404 GPU-h, fast-cluster/realized) is BELOW the 50
+GPU-h ceremony line that the pre-trim, pre-round-2 30-cell estimate
+crossed — the TRIM was elected specifically to buy back headroom under
+that line — but the 0599 probe's own re-priced number is what actually
+governs staging (`strengthen_reprice.py`'s `PASS`/`STOP`), never the
+design-time estimate alone.

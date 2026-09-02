@@ -329,17 +329,29 @@ def strengthen_cells() -> list[dict]:
 def all_configs() -> list[dict]:
     """The 12 (capacity, lr, steps) CONFIGS the harvest's decision rule is applied to (each
     backed by 3 seeds -- either 3 fresh cells or the 3 reused C0@20k points). Order matches
-    `strengthen_cells()` plus the 2 reused C0@20k configs appended last."""
+    `strengthen_cells()` plus the 2 reused C0@20k configs appended last.
+
+    AUDIT FIX (round 2, TRIM, 2026-09-01): `C2 x lr=3e-4 x 60,000 steps` is marked
+    `"deferred": True` -- its 3 cells (specs 0621-0623) are NOT staged this wave (see
+    `h2h_strengthen_specs_gen.is_deferred` / `strengthen_specs_deferred/README.md`), so
+    `mode_harvest` must skip it rather than crash trying to open raw/remetric JSONs that were
+    never written. Outcomes A/B/C are computed over the remaining 11 configs -- unchanged in
+    kind, per the audit's own "Outcomes A/B/C unchanged" instruction."""
     configs = []
     for cap_id in ("C1", "C2"):
         for lr in LR_GRID:
             for steps in STEPS_GRID:
-                configs.append({"capacity": cap_id, "lr": lr, "steps": steps, "reused": False})
+                deferred = (cap_id == "C2" and lr == 3e-4 and steps == LONG_STEPS)
+                configs.append({"capacity": cap_id, "lr": lr, "steps": steps, "reused": False,
+                               "deferred": deferred})
     for lr in LR_GRID:
-        configs.append({"capacity": "C0", "lr": lr, "steps": LONG_STEPS, "reused": False})
+        configs.append({"capacity": "C0", "lr": lr, "steps": LONG_STEPS, "reused": False,
+                        "deferred": False})
     for lr in LR_GRID:
-        configs.append({"capacity": "C0", "lr": lr, "steps": FULL_STEPS_C0, "reused": True})
+        configs.append({"capacity": "C0", "lr": lr, "steps": FULL_STEPS_C0, "reused": True,
+                        "deferred": False})
     assert len(configs) == 12, f"expected 12 (capacity,lr,steps) configs, got {len(configs)}"
+    assert sum(1 for c in configs if c["deferred"]) == 1, "expected exactly 1 deferred config"
     return configs
 
 
@@ -352,14 +364,16 @@ def _md5_of_file(path: str) -> str:
     return h.hexdigest()
 
 
-def _valid_remetric(path: str, ckpt_path: str | None = None) -> bool:
-    """AUDIT FIX (M3, 2026-09-01): when `ckpt_path` is given, ALSO requires the record's own
-    `provenance.md5` to match the checkpoint file's CURRENT md5 on disk -- closes the
-    "double-dump race" (a stale remetric JSON left behind after its checkpoint was later
-    overwritten, e.g. by a probe/smoke sharing a path, is no longer silently trusted). Without
-    `ckpt_path` this check is skipped (this module's only call site always passes it; the
-    parameter stays optional so a caller with no checkpoint to check against -- there is none
-    today -- is not forced to fabricate one)."""
+def _valid_remetric(path: str, ckpt_path: str) -> bool:
+    """AUDIT FIX (round 1, M3; round 2, m4 -- `ckpt_path` made a REQUIRED argument, not optional
+    with a skip-the-check default): requires the record's own `provenance.md5` to match the
+    checkpoint file's CURRENT md5 on disk -- closes the "double-dump race" (a stale remetric JSON
+    left behind after its checkpoint was later overwritten, e.g. by a probe/smoke sharing a path,
+    is no longer silently trusted). Round 1 made this check optional (skipped when `ckpt_path` was
+    omitted); round 2's audit found that an optional check a future call site could silently omit
+    is not the same guarantee as one that cannot be skipped by construction -- this module's own
+    single call site (`_remetric_one`) always had a `ckpt_path` in hand anyway, so requiring it
+    costs nothing and removes the silent-skip footgun for any future caller."""
     if not os.path.isfile(path):
         return False
     try:
@@ -369,10 +383,9 @@ def _valid_remetric(path: str, ckpt_path: str | None = None) -> bool:
         return False
     if "leg_a" not in doc or not math.isfinite(doc["leg_a"].get("acc_A", float("nan"))):
         return False
-    if ckpt_path is not None:
-        prov = doc.get("provenance") or {}
-        if not os.path.isfile(ckpt_path) or prov.get("md5") != _md5_of_file(ckpt_path):
-            return False
+    prov = doc.get("provenance") or {}
+    if not os.path.isfile(ckpt_path) or prov.get("md5") != _md5_of_file(ckpt_path):
+        return False
     return True
 
 
@@ -559,10 +572,20 @@ def mode_harvest(args) -> int:
                  h2h_mstar_harvest_rd.py's protocol) as a FOLLOW-ON, never
                  run by this script itself.
     Torch-free (pure JSON math); safe to run off box-downloaded
-    artifacts."""
+    artifacts.
+
+    AUDIT FIX (round 2, TRIM): configs marked `"deferred"` (currently exactly one, `C2 x lr=3e-4
+    x 60,000 steps`) are SKIPPED here -- their cells were never staged/trained this wave, so their
+    raw/remetric JSONs do not exist. They are recorded in the output doc's own `deferred_configs`
+    list, never silently dropped without a trace, and the decision rule is applied over the
+    remaining (non-deferred) configs only."""
     configs = all_configs()
     by_config = {}
+    deferred_configs = []
     for cfg in configs:
+        if cfg.get("deferred"):
+            deferred_configs.append(_config_key(cfg))
+            continue
         rows = _load_config_rows(cfg, args)
         accs = [r["acc_A"] for r in rows]
         n_clear = sum(1 for a in accs if a >= BAR_K32)
@@ -632,7 +655,28 @@ def mode_harvest(args) -> int:
                       "h2h_mstar_harvest_rd.py's protocol) as a FOLLOW-ON -- NOT run by this "
                       "script; a separate dispatch applies once this verdict is recorded.")
 
-    doc = {"configs": [_config_key(c) for c in configs], "bar": BAR_K32,
+    # AUDIT FIX (round 2, TRIM): the pre-registered conditional re-add trigger for the deferred
+    # C2 x lr=3e-4 x 60,000 cells (strengthen_specs_deferred/README.md / sec 1.46) -- fires iff
+    # C2's frozen-default LR (3e-4) OUTPERFORMS C2's own currently-best LR (1e-3) at the SAME,
+    # cheaper (20,000-step) point. Computed here (not merely asserted in prose) whenever both
+    # sides of the comparison exist in this harvest's own by_config table.
+    deferred_reactivation = None
+    k_3e4_20k, k_1e3_20k = "C2_lr3e-04_st20000", "C2_lr1e-03_st20000"
+    if k_3e4_20k in by_config and k_1e3_20k in by_config:
+        mean_3e4 = by_config[k_3e4_20k]["mean_acc_A"]
+        mean_1e3 = by_config[k_1e3_20k]["mean_acc_A"]
+        fires = mean_3e4 > mean_1e3
+        deferred_reactivation = {
+            "trigger_configs": [k_3e4_20k, k_1e3_20k],
+            "mean_acc_A_lr3e-04_st20000": mean_3e4, "mean_acc_A_lr1e-03_st20000": mean_1e3,
+            "fires": fires,
+            "note": ("C2 x lr=3e-4 x 60,000 steps (strengthen_specs_deferred/, <=17.25 GPU-h "
+                    "fast-cluster) should run as a follow-on." if fires else
+                    "deferred cells stay deferred -- the condition did not fire."),
+        }
+
+    doc = {"configs": [_config_key(c) for c in configs], "deferred_configs": deferred_configs,
+          "deferred_reactivation": deferred_reactivation, "bar": BAR_K32,
           "competitive_bar": COMPETITIVE_BAR, "chance": CHANCE_K32,
           "by_config": by_config, "any_clears": any_clears, "any_competitive": any_competitive,
           "clearing_configs": clearing_keys, "competitive_configs": competitive_keys,
@@ -850,25 +894,34 @@ def mode_selftest() -> int:
         all(k in example_spec for k in required_spec_keys))
 
     # 7) GPU-h ledger arithmetic sanity (catches silent drift if CAPACITIES/STEPS_GRID/LR_GRID
-    #    change without the design-doc ledger being re-derived). AUDIT FIX (M2): the ledger is
-    #    now BLOCK-FLOP-scaled (~60.7 GPU-h), not the pre-audit naive param-ratio number
-    #    (~30.35 GPU-h) -- both are exposed and checked so a future regression to the wrong
-    #    model is caught either way.
+    #    change without the design-doc ledger being re-derived). AUDIT FIX (round 2, m1): the
+    #    anchor is now cited directly from the fix5 raw/remetric JSONs' own wall_s (fast-cluster
+    #    AND realized), not the round-1 fix's own mis-cited "941-952s"/"~24s" strings.
     from h2h_strengthen_specs_gen import (estimate_gpu_h, estimate_gpu_h_naive,   # noqa: E402
-                                          block_flop_ratio, param_ratio,
-                                          C0_TRAIN_RATE_20K, RUN_METRIC_RATE_20K)
-    ledger = sum(estimate_gpu_h(c["capacity"], c["steps"]) for c in strengthen_cells())
+                                          estimate_gpu_h_realized, block_flop_ratio, param_ratio,
+                                          FAST_CLUSTER_TRAIN_RATE_20K, REALIZED_TRAIN_RATE_20K,
+                                          RUN_METRIC_RATE_20K, C0_TRAIN_RATE_20K)
+    ledger_fast = sum(estimate_gpu_h(c["capacity"], c["steps"]) for c in strengthen_cells())
+    ledger_realized = sum(estimate_gpu_h_realized(c["capacity"], c["steps"])
+                          for c in strengthen_cells())
     ledger_naive = sum(estimate_gpu_h_naive(c["capacity"], c["steps"]) for c in strengthen_cells())
-    ok7a = 55.0 < ledger < 65.0            # audit's own stated envelope: "~40-60 GPU-h" total;
-                                            # this script's own block-FLOP formula lands at ~60.7,
-                                            # at/near the top of that range -- disclosed, not hidden
-    ok7b = 28.0 < ledger_naive < 33.0       # the pre-audit naive number, unchanged, for comparison
-    ok7c = abs(C0_TRAIN_RATE_20K - 945.0 / 3600.0) < 1e-9   # M2's corrected anchor, exact
-    rep("selftest 7: block-FLOP-scaled ledger (M2 fix) and the retained pre-audit naive ledger "
-        "both compute to their expected envelopes; the anchor rate is the corrected 945s/20k "
-        "figure, not the borrowed 908.79s", ok7a and ok7b and ok7c,
-        f"block_flop_ledger={ledger:.3f} naive_ledger={ledger_naive:.3f} "
-        f"anchor={C0_TRAIN_RATE_20K:.4f}")
+    ok7a = 59.0 < ledger_fast < 62.0        # all-30 fast-cluster: ~60.66
+    ok7b = 62.0 < ledger_realized < 65.0    # all-30 realized: ~63.45
+    ok7c = 30.0 < ledger_naive < 33.0       # pre-audit naive (~31.5 -- unaffected in ratio terms
+                                            # by the m1 anchor fix; the corrected remetric rate
+                                            # only nudges it slightly from round 1's own ~31.55)
+    ok7d = C0_TRAIN_RATE_20K == FAST_CLUSTER_TRAIN_RATE_20K   # the primary ledger anchor IS
+                                                              # fast-cluster, exactly, not realized
+    ok7e = abs(RUN_METRIC_RATE_20K - 186.1600570678711 / 9 / 3600.0) < 1e-9   # m1's corrected
+                                                                              # remetric rate,
+                                                                              # exact -- never the
+                                                                              # round-1 fix's wrong
+                                                                              # 0.0067/"~24s"
+    rep("selftest 7: block-FLOP-scaled ledger computes correctly at BOTH the fast-cluster and "
+        "realized anchors (m1); the remetric rate is the corrected all-9-fix5-cell mean, never "
+        "the round-1 fix's own mis-cited '~24s' figure", ok7a and ok7b and ok7c and ok7d and ok7e,
+        f"fast={ledger_fast:.3f} realized={ledger_realized:.3f} naive={ledger_naive:.3f} "
+        f"remetric_rate={RUN_METRIC_RATE_20K:.6f}")
 
     # 8) M2: block_flop_ratio reproduces the audit's own headline figures exactly (block params
     #    12x, head params 2x, combined ~7.3x at C2) -- proves this script's re-derivation is not
@@ -1007,6 +1060,78 @@ def mode_selftest() -> int:
         rep("selftest 13c: harvest battery Outcome C (one config competitive) -> "
             "OUTCOME_C_COMPETITIVE, ratio_report points at that config", ok13c,
             f"outcome={doc_c['outcome']}")
+
+    # 14) round-2 audit TRIM: exactly 27 staged / 3 deferred cells, the deferred set is EXACTLY
+    #     C2 x lr=3e-4 x 60,000 steps (specs 0621-0623), and the staged/deferred ledgers land at
+    #     the audit's own stated figures (~43.4/45.4 staged, ~17.25/18.05 deferred).
+    from h2h_strengthen_specs_gen import staged_cells, deferred_cells, is_deferred, total_gpu_h
+    staged, deferred = staged_cells(), deferred_cells()
+    ledger = total_gpu_h()
+    ok14a = (len(staged) == 27 and len(deferred) == 3
+            and all(is_deferred(c) for c in deferred) and not any(is_deferred(c) for c in staged)
+            and {c["name"] for c in deferred} == {
+                "h2h_strengthen_C2_lr3e-04_st60000_s0", "h2h_strengthen_C2_lr3e-04_st60000_s1",
+                "h2h_strengthen_C2_lr3e-04_st60000_s2"})
+    ok14b = (43.0 < ledger["staged_fast"] < 44.0 and 45.0 < ledger["staged_realized"] < 46.0
+            and 17.0 < ledger["deferred_fast"] < 17.5 and 17.9 < ledger["deferred_realized"] < 18.2)
+    rep("selftest 14: TRIM (round 2) leaves EXACTLY 27 staged + 3 deferred cells, the deferred "
+        "set is exactly C2 x lr=3e-4 x 60,000 steps (0621-0623), and the split ledgers match the "
+        "audit's own stated figures", ok14a and ok14b,
+        f"staged_fast={ledger['staged_fast']:.3f} staged_realized={ledger['staged_realized']:.3f} "
+        f"deferred_fast={ledger['deferred_fast']:.3f}")
+
+    # 15) round-2 m2: EVERY staged/probe spec's cmd wraps BOTH the train AND the re-metric stage
+    #     in a timeout -- round 1 only wrapped train.
+    import h2h_strengthen_specs_gen as gen
+    sample_cell = staged[0]
+    sample_spec = gen._spec_for_cell(sample_cell, gen.SPEC_ID_START)
+    n_timeouts_in_cmd = sample_spec["cmd"].count("timeout -k")
+    probe_spec_live = gen.build_probe_spec()
+    n_timeouts_in_probe_cmd = probe_spec_live["cmd"].count("timeout -k")
+    rep("selftest 15: round-2 m2 -- a staged spec's cmd contains TWO `timeout -k` wrappers "
+        "(train AND re-metric), and so does the probe's own cmd",
+        n_timeouts_in_cmd == 2 and n_timeouts_in_probe_cmd == 2,
+        f"staged_cmd_timeouts={n_timeouts_in_cmd} probe_cmd_timeouts={n_timeouts_in_probe_cmd}")
+
+    # 16) round-2 m3: every validity_check asserts n_params_loaded (the remetric JSON's OWN
+    #     loaded-model provenance field), independent of the pre-existing raw-JSON n_params check.
+    vcheck = sample_spec["validity_check"]
+    ok16 = ("n_params_loaded') ==" in vcheck and "n_params') ==" in vcheck)
+    rep("selftest 16: round-2 m3 -- validity_check asserts BOTH n_params_loaded (remetric JSON, "
+        "the loaded-model provenance field) AND n_params (raw JSON) -- two independent checks, "
+        "two different bug classes", ok16)
+
+    # 17) round-2 m4: _valid_remetric's ckpt_path is now a REQUIRED positional argument -- a
+    #     caller that tries to omit it gets a loud TypeError, never a silent skip-the-check.
+    raised17 = False
+    try:
+        _valid_remetric("/nonexistent/path/that/will/never/exist.json")   # ckpt_path omitted
+    except TypeError:
+        raised17 = True
+    rep("selftest 17: round-2 m4 -- calling _valid_remetric WITHOUT ckpt_path raises TypeError "
+        "(the argument is required, not optional-with-a-skip-default)", raised17)
+
+    # 18) round-2 TRIM: mode_harvest SKIPS the deferred config (never crashes trying to open a
+    #     JSON that was never written) and correctly computes the deferred_reactivation trigger
+    #     in both directions (fires / does not fire).
+    with tempfile.TemporaryDirectory() as tmp_root18:
+        def scenario18(acc_3e4_20k, acc_1e3_20k):
+            accs_by_config = {_config_key(c): [0.02, 0.025, 0.03] for c in all_configs()}
+            accs_by_config["C2_lr3e-04_st20000"] = acc_3e4_20k
+            accs_by_config["C2_lr1e-03_st20000"] = acc_1e3_20k
+            return _harvest_scenario(tmp_root18, accs_by_config, {0: 1.0, 1: 1.0, 2: 1.0})
+
+        doc18_no_fire = scenario18([0.02, 0.02, 0.02], [0.90, 0.90, 0.90])
+        doc18_fire = scenario18([0.90, 0.90, 0.90], [0.02, 0.02, 0.02])
+        ok18 = (doc18_no_fire["deferred_configs"] == ["C2_lr3e-04_st60000"]
+               and doc18_no_fire["deferred_reactivation"]["fires"] is False
+               and doc18_fire["deferred_reactivation"]["fires"] is True
+               and "C2_lr3e-04_st60000" not in doc18_fire["by_config"])
+        rep("selftest 18: mode_harvest skips the deferred config (no crash opening a JSON that "
+            "was never written) and the pre-registered reactivation trigger fires/doesn't fire "
+            "correctly in both directions", ok18,
+            f"no_fire={doc18_no_fire['deferred_reactivation']['fires']} "
+            f"fire={doc18_fire['deferred_reactivation']['fires']}")
 
     print("=" * 70)
     print("SELFTEST:", "ALL PASS" if ok_all else "FAILURES PRESENT")
