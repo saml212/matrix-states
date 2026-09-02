@@ -103,12 +103,17 @@ C0_TRAIN_RATE_20K = FAST_CLUSTER_TRAIN_RATE_20K
 # 120 <N>h`. N = 2x the auditor's own corrected upper estimate per (capacity, steps) cell -- a
 # SEPARATELY pinned table (not re-derived from the anchors above); superseded by the RE-PRICE
 # RULE (strengthen_reprice.py) if the 0599 probe's own measured rate says otherwise. ---
+# --- RE-PRICE (2026-09-02, strengthen_reprice.py on probe 0599): r_C2 = 0.5860 s/step > 0.51 fired the
+# pre-registered rule "regenerate TIMEOUT_HOURS = 2x re-priced" (sec 1.46). Values below are exactly 2x the
+# re-priced train-stage wall-clock per cell (C0@60k 2848s, C1@20k 1630s, C1@60k 4859s, C2@20k 11736s,
+# C2@60k 35175s; log ~/strengthen_staging/stage_after_probe.log). Superseded table (round-1 M1 pins):
+# C0@60k 3.0, C1@20k 1.5, C1@60k 4.0, C2@20k 5.0, C2@60k 12.0. Re-priced ledger: 64.8 GPU-h for the 27 staged cells. ---
 TIMEOUT_HOURS = {
-    ("C0", 60_000): 3.0,
-    ("C1", 20_000): 1.5,
-    ("C1", 60_000): 4.0,
-    ("C2", 20_000): 5.0,
-    ("C2", 60_000): 12.0,
+    ("C0", 60_000): 1.6,
+    ("C1", 20_000): 0.9,
+    ("C1", 60_000): 2.7,
+    ("C2", 20_000): 6.5,
+    ("C2", 60_000): 19.5,
 }
 TIMEOUT_KILL_GRACE_S = 120   # `timeout -k 120` -- SIGKILL 120s after SIGTERM if still alive
 

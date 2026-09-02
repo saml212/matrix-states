@@ -23,13 +23,14 @@ matches exactly.
 ## Abstract (plain text)
 
 Continuous chain-of-thought models compress reasoning into latent tokens.
-Matrix-valued variants introduce rank as a single-sample structural observable on
-the latent matrix Z. If matrix latents carry parallel reasoning paths via
+Matrix-valued variants, which route each latent token through a d x d matrix
+bottleneck, introduce rank as a single-sample structural observable on the latent
+matrix Z. If matrix latents carry parallel reasoning paths via
 superposition, rank should track them, and truncating Z to low rank should hurt
 accuracy on tasks whose solutions plausibly require multiple components. Across four
 training regimes of a matrix-CODI model (three on ProsQA, one on GSM8K-Aug below the
 learning threshold), the rank-k projection ablation curve is flat to within 0.6
-percentage points. A three-seed replication yields 81.5 +/- 1.2 percentage points
+percentage points. A three-seed replication yields 81.0 +/- 2.0 percentage points
 accuracy while the final effective rank of Z spans {4, 12, 13}; the loss does not
 reward any particular rank. To test whether rank-blindness arises from the
 flatten-then-project readout alone, we trained four readouts: a bilinear

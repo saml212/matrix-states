@@ -17,9 +17,14 @@ reaches 96.6\% on ProsQA \emph{without} feeding back any latent
 tokens, against 99.0\% with latents and 85.3\% for explicit CoT. They
 named this the \emph{Illusion of Superposition}.
 
-Matrix-valued latents \citep[e.g.,][]{shen2025codi} make the
-measurement concrete: a $d\times d$ thought $\Z$ has a computable
-rank via its SVD. If each singular direction encodes a separate
+In this paper we study \emph{matrix-CODI}, our variant of CODI in
+which each continuous latent token passes through a $d\times d$
+matrix bottleneck on the feedback path: the 768-dim latent state is
+projected to $d^2$ numbers, reshaped into a matrix $\Z$, and read
+back out to 768 dims before being fed back as the next latent
+position (\S\ref{sec:background}). The latent token is otherwise
+CODI's; what the matrix adds is a structural observable, since a
+$d\times d$ thought $\Z$ has a computable rank via its SVD. If each singular direction encodes a separate
 reasoning path, truncating $\Z$ to rank $k$ at inference should
 degrade accuracy when the task needs more than $k$ paths, making
 the rank-$k$ ablation curve a natural probe.
@@ -46,7 +51,7 @@ the multiplicative thinker on or off, and on GSM8K-Aug as well as
 ProsQA. Range across $k\!\in\!\{1,2,4,8,16\}$ is $\leq 0.6$pp.
 \item Three seeds at otherwise identical hyperparameters land at
 effective ranks $\{4, 12, 13\}$ and accuracy of
-$81.51\!\pm\!1.2$pp.
+$80.99\!\pm\!2.0$pp (seeds 1337/42/7: $78.91/81.25/82.81\%$).
 \item Four nonlinear-in-$\Z$ readouts (bilinear, bilinear+GELU,
 SVD-augmented, quadratic in $\Z\Z^\top$) also give flat curves;
 Spearman $p$ in $[0.14,\,0.82]$.

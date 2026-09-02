@@ -6,12 +6,14 @@
 ProsQA \emph{without} latent feedback, against $99.0\%$ with it.
 Our vanilla SFT at GPT-2 small reaches $81.77\%$, roughly $15$pp
 below that; we did not close the gap. The qualitative phenomenon
-replicates at our operating point: matrix-CODI at $82.03\%$ and
-pure SFT at $81.77\%$ differ by less than the three-seed standard
-deviation. The scale sweep in \S\ref{sec:depth-scale} places
-matrix-CODI a comparable margin below this baseline instead; in
-either direction the difference is within seed noise, which is the
-substantive point: latent feedback does not move accuracy beyond it. Our
+replicates at our operating point under the $\gamma=1$
+(distillation-loss-active) configuration: matrix-CODI reaches
+$82.03\%$ against pure SFT's $81.77\%$, a single-seed comparison. The
+$\gamma=0$ configuration used in \S\ref{sec:flat}--\S\ref{sec:depth-scale}
+removes the distillation loss and averages $80.99\pm2.0$pp over three
+seeds ($78.91/81.25/82.81\%$); the $\gamma=1$ point falls inside that
+spread. Latent feedback does not move accuracy beyond vanilla SFT under
+either setting. Our
 contribution relative to that work is a structural argument about
 the training objective: the matrix-bottleneck produces
 rank-indifferent gradients, and four nonlinear-in-$\Z$ readouts

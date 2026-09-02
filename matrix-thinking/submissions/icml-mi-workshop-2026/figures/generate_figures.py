@@ -90,8 +90,8 @@ def fig1_rank_curves():
 def fig2_seed_decoupling():
     # From EXPERIMENT_LOG.md and PAPER_RESULTS_SUMMARY.md
     seeds = [1337, 42, 7]
-    z_rank = np.array([12.9, 4.0, 12.0])
-    acc    = np.array([80.47, 81.25, 82.81])
+    z_rank = np.array([12.7, 4.0, 12.0])
+    acc    = np.array([78.91, 81.25, 82.81])
 
     fig, ax = plt.subplots(figsize=(4.2, 3.0))
     ax.scatter(z_rank, acc, s=60, c="#8B2E1F", marker="o", zorder=3,
@@ -102,12 +102,12 @@ def fig2_seed_decoupling():
     # reference band for mean +/- std
     m = acc.mean(); sd = acc.std(ddof=1)
     ax.axhspan(m - sd, m + sd, color="#8B2E1F", alpha=0.08, zorder=1,
-               label=fr"mean $\pm$ std ({m:.2f}\% $\pm$ {sd:.2f}pp)")
+               label=fr"mean $\pm$ std ({m:.2f}% $\pm$ {sd:.2f}pp)")
     ax.axhline(m, color="#8B2E1F", linestyle="--", linewidth=0.8, zorder=2)
     ax.set_xlabel(r"Final effective rank of $Z$ (exp of singular-value entropy)")
     ax.set_ylabel("ProsQA best accuracy (%)")
     ax.set_xlim(0, 16)
-    ax.set_ylim(79.5, 84.0)
+    ax.set_ylim(78.0, 84.0)
     ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.6)
     ax.legend(loc="lower right", frameon=False)
     fig.tight_layout()
@@ -123,7 +123,7 @@ def fig2_seed_decoupling():
 def fig3_scale_sweep():
     models = ["GPT-2 small\n(124M)", "GPT-2 medium\n(355M)", "GPT-2 large\n(774M)"]
     vanilla = [81.77, 80.47, 68.75]
-    matrix  = [80.47, 79.69, np.nan]  # large matrix-CODI pending (OOM x2)
+    matrix  = [80.99, 79.69, np.nan]  # large matrix-CODI pending (OOM x2)
 
     x = np.arange(len(models))
     w = 0.36

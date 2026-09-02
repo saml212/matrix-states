@@ -39,7 +39,7 @@ backward is documented as unconditionally numerically stable (in
 contrast to full \texttt{torch.linalg.svd}, whose backward is
 unstable at near-coincident singular values). This variant
 explicitly exposes rank to the optimizer. SVD-augmented's best
-accuracy ($78.12\%$) is below the flatten baseline ($80.47\%$), so
+accuracy ($78.12\%$) is below the flatten baseline ($78.91\%$, a one-problem margin on the 128-problem split), so
 the optimizer is not zeroing the \texttt{sigma\_proj} branch and
 falling back to flatten alone.
 

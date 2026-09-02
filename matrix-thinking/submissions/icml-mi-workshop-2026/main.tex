@@ -52,7 +52,7 @@ Rank-Indifference in Matrix-CODI on ProsQA}
 
 \icmlaffiliation{pebble}{Pebble ML}
 
-\icmlcorrespondingauthor{Samuel Larson}{samlarson@pebbleml.com}
+\icmlcorrespondingauthor{Samuel Larson}{\mbox{samlarson@pebbleml.com}}
 
 \icmlkeywords{continuous chain-of-thought, matrix-valued latents,
 mechanistic interpretability, rank, superposition}
@@ -64,7 +64,8 @@ mechanistic interpretability, rank, superposition}
 
 \begin{abstract}
 Continuous chain-of-thought models compress reasoning into latent
-tokens. Matrix-valued variants introduce rank as a single-sample
+tokens. Matrix-valued variants, which route each latent token through a
+$d\times d$ matrix bottleneck, introduce rank as a single-sample
 structural observable on the latent matrix $\Z$. If matrix latents
 carry parallel reasoning paths via superposition, rank should track
 them, and truncating $\Z$ to low rank should hurt accuracy on tasks
@@ -72,7 +73,7 @@ whose solutions plausibly require multiple components. Across four
 training regimes of a matrix-CODI model (three on ProsQA, one on
 GSM8K-Aug below the learning threshold), the rank-$k$ projection
 ablation curve is flat to within 0.6 percentage points. A three-seed
-replication yields $81.5 \pm 1.2$pp accuracy while the final
+replication yields $81.0 \pm 2.0$pp accuracy while the final
 effective rank of $\Z$ spans $\{4, 12, 13\}$; the loss does not
 reward any particular rank. To test whether rank-blindness arises
 from the flatten-then-project readout alone, we trained four
