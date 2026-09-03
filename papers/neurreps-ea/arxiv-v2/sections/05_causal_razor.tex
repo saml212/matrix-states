@@ -1,28 +1,28 @@
 \section{The Causal Razor}
 \label{sec:razor}
 
-The decisive test intervenes on rank: the encoder's output is
-spectrally truncated to rank $k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$
-throughout training, against the zero-padded target
-$\rho_G(\cdot) \oplus 0$ of rank exactly $\dmin$, alongside an
-unconstrained anchor from the same family. Pre-registered reading:
-below $\dmin$, a sound readout pins recovery to zero by geometry,
-making that arm an integrity control whose registered trigger (any
-recovery there) would indicate an instrument leak; the live prediction
-is that $k \geq \dmin$ recovers past $0.9\times$ the anchor's
-crosscheck $\recninety$.
+The causal test intervenes on rank by spectrally truncating the encoder's output
+to rank $k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$ throughout training, against
+the zero-padded target $\rho_G(\cdot) \oplus 0$ of rank exactly $\dmin$,
+alongside an unconstrained anchor from the same family. The pre-registration
+treats the below-$\dmin$ arm as an integrity control: a sound readout pins
+recovery to zero by geometry, and its registered trigger is any recovery there,
+which would indicate an instrument leak. The live prediction is that
+$k \geq \dmin$ recovers past $0.9\times$ the anchor's crosscheck $\recninety$.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{fig1_razor_step.pdf}
-\caption{Exact recovery is a step function at $\dmin$: per group,
-crosscheck $\recninety$ on held-out words at force-rank
-$k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$, vs.\ the unconstrained anchor
-(dashed) and the $0.9\times$anchor bar (dotted).
-$S_3$ overlays its four seeds (thin lines; bold mean); its
-below-$\dmin$ zero is unanimous. The other four groups are drawn at
-seed 0; their four-seed sufficiency verdicts are in
-Table~\ref{tab:razor}, where $S_5$ fails at $n = 4$.}
+\caption{Exact recovery is a step function at $\dmin$. For each group, the plot
+reports crosscheck $\recninety$ on held-out words at force-rank
+$k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$. Dashed lines mark the unconstrained
+anchor, dotted lines mark the $0.9\times$anchor bar, and gray vertical lines
+mark the group threshold. Filled markers denote solvable groups; open markers
+denote non-solvable groups.
+$S_3$ overlays its four seeds (thin marked lines; bold mean); its
+below-$\dmin$ zero is unanimous. The plot draws the other four groups at
+seed 0; Table~\ref{tab:razor} gives their four-seed sufficiency verdicts,
+and $S_5$ fails at $n = 4$.}
 % <!-- evidence: N1, N16 -->
 \label{fig:razor}
 \end{figure}
@@ -42,18 +42,18 @@ $S_5$ & 0.500 & 0.000 & \textbf{0.600} & 0.550 & 0.450 & 0.4125 (fails) \\
 $A_6$ & 0.650 & 0.000 & \textbf{0.650} & 0.700 & 0.585 & \textbf{0.6750} \\
 \bottomrule
 \end{tabular}
-\caption{The causal razor on the zero-padded rank-$\dmin$ target
+\caption{The table reports the causal razor on the zero-padded rank-$\dmin$ target
 (crosscheck $\recninety$ by force-rank $k$). The anchor, $k$, and bar
-columns are seed 0, one seed per cell; the bar is $0.9\times$ the seed-0
-anchor, fixed before any further seed ran, and bold there marks a
-seed-0 cell that clears it. The last column is the seed-mean of
+columns use seed 0, one seed per cell. The seed-0 anchor fixes the
+$0.9\times$ bar before any further seed ran. Bold marks a seed-0 cell that
+clears it. The last column is the seed-mean of
 $k{=}\dmin$ over seeds 0--3, judged against that fixed bar by the
 pre-registered rule: $S_3$, $S_4$, $A_5$, $A_6$ confirm (bold) and
-$S_5$ fails at $n = 4$ (0.4125 against 0.450). Exactly 0.000 one rank
-below $\dmin$ in all four seeds of every group (the forced ceiling is
-$\le 0.894$). Per-seed own-bar clears ($0.9\times$ each seed's own
-anchor; disclosed, not decisional): $S_3$ 2/4, $S_4$ 4/4, $A_5$ 4/4,
-$S_5$ 2/4, $A_6$ 4/4.
+$S_5$ fails at $n = 4$ (0.4125 against 0.450). Recovery is exactly 0.000
+one rank below $\dmin$ in all four seeds of every group (the forced
+ceiling is $\le 0.894$). The per-seed own-bar clears ($0.9\times$ each
+seed's own anchor; disclosed, not decisional) are $S_3$ 2/4, $S_4$ 4/4,
+$A_5$ 4/4, $S_5$ 2/4, $A_6$ 4/4.
 $^{\ast}$$S_3$'s seed-0 cell sat inside the pre-stated $\pm 0.05$
 marginality trigger and was extended first (seed-mean 0.5625 against
 the fixed 0.495 bar); the other four groups were extended under a
@@ -63,10 +63,10 @@ separate pre-registration (Appendices~\ref{app:s3causal},
 \label{tab:razor}
 \end{table}
 
-Table~\ref{tab:razor} and Figure~\ref{fig:razor} show the result on the
-pre-pinned crosscheck readout. Necessity below $\dmin$ is an analytically
-forced floor: against a $\dmin$-tied-unit-singular-value target, the
-maximum cosine any rank-$(\dmin{-}1)$ operator can reach is
+The result in Table~\ref{tab:razor} and Figure~\ref{fig:razor} uses the
+pre-pinned crosscheck readout. Necessity below $\dmin$ is
+an analytically forced floor: against a $\dmin$-tied-unit-singular-value
+target, the maximum cosine any rank-$(\dmin{-}1)$ operator can reach is
 $\sqrt{(\dmin{-}1)/\dmin} \le 0.894$, below the $0.9$ threshold in every
 group by construction, so $\recninety = 0.000$ at $k = \dmin{-}1$ follows
 regardless of training quality; observed cells still reach 76--95\% of
@@ -76,11 +76,11 @@ near-optimal training under the cap.
 The zero is noiseless in all four seeds of every group.
 % <!-- evidence: N1, N2, N16 -->
 Sufficiency at $\dmin$ carries the causal claim, since no such bound
-guarantees a rank-exactly-$\dmin$ solution is reachable. Every group
-was run at four seeds, and the pre-registered rule compares the
-seed-mean of $k{=}\dmin$ against the bar fixed from seed 0 before the
-further seeds ran, never against a bar recomputed from the seeds being
-judged. $S_3$, whose seed-0 cell sat inside the pre-stated $\pm 0.05$
+guarantees a rank-exactly-$\dmin$ solution is reachable. We ran every group
+at four seeds. The pre-registered rule compares the seed-mean of
+$k{=}\dmin$ against the bar fixed from seed 0 before the further seeds ran,
+never against a bar recomputed from the seeds being judged. $S_3$, whose
+seed-0 cell sat inside the pre-stated $\pm 0.05$
 marginality trigger, confirms at seed-mean 0.5625 against the fixed
 0.495 bar;
 % <!-- evidence: N3 -->
@@ -96,14 +96,14 @@ grammar, $S_5$ is reported as failing with no re-tries and the
 sufficiency claim narrows to four of five groups (per-seed detail in
 Appendices~\ref{app:s3causal} and \ref{app:ext4causal}).
 % <!-- evidence: N16 -->
-Both marquee groups confirm at $\dmin$, meeting the causal criterion.
+Both groups in the dimension-matched pair confirm at $\dmin$, meeting the
+causal criterion.
 Table~\ref{tab:wmrank} adds an instrument-independent reading: on the
-zero-padded target the unconstrained anchor's whole-matrix effective
-rank, taken over the full $\dstate \times \dstate$ state with no
-subspace lens, lands at $1.82/2.82/2.83/3.57/4.67$ (four-seed means)
-against $\dmin = 2/3/3/4/5$ with two ambient dimensions available, so
-the recruited rank equals $\dmin$ without any restriction to the
-model's dominant subspace.
+zero-padded target the unconstrained anchor's whole-matrix effective rank,
+taken over the full $\dstate \times \dstate$ state with no subspace lens,
+lands at $1.82/2.82/2.83/3.57/4.67$ (four-seed means) against
+$\dmin = 2/3/3/4/5$ with two ambient dimensions available, so the recruited
+rank equals $\dmin$ without any restriction to the model's dominant subspace.
 % <!-- evidence: N15, N17 -->
 
 Identity-padding the target confounds the razor by handing every capped

@@ -133,22 +133,25 @@ def _ranks(repo, group):
 
 
 def fig1_convergence(repo, out_dir):
-    """Evidence U1/U2: convergence to d_min + the marquee equivalence inset.
+    """Evidence U1/U2: convergence to d_min + the matched equivalence panel.
 
     Main panel: restricted effective rank of every unconstrained cell vs its
     group's d_min, with the pre-registered [0.7, 1.3] x d_min band and the
-    identity line. Inset: S4 vs A5 per-seed values at matched d_min = 3 with
-    the observed mean difference against the pre-registered +/-0.5 rank-unit
-    TOST margin.
+    identity line. Lower panel: S4 vs A5 per-seed values at matched d_min = 3
+    with the observed mean difference against the pre-registered +/-0.5
+    rank-unit TOST margin.
     """
-    fig, ax = plt.subplots(figsize=(3.5, 2.9))
+    fig = plt.figure(figsize=(5.5, 3.55), constrained_layout=True)
+    grid = fig.add_gridspec(2, 1, height_ratios=(2.25, 1.0))
+    ax = fig.add_subplot(grid[0])
+    equivalence_ax = fig.add_subplot(grid[1])
     band_x = [1.5, 5.5]
     ax.fill_between(band_x, [0.7 * x for x in band_x], [1.3 * x for x in band_x],
                     color="#000000", alpha=0.07, lw=0,
                     label="[0.7, 1.3] $\\cdot$ $d_{\\min}$ band")
     ax.plot(band_x, band_x, color="#555555", lw=0.8, ls="--",
             label="rank = $d_{\\min}$")
-    jitter = {"S3": 0.0, "S4": -0.09, "A5": 0.09, "S5": 0.0, "A6": 0.0}
+    jitter = {"S3": 0.0, "S4": -0.20, "A5": 0.20, "S5": 0.0, "A6": 0.0}
     ranks = {}
     for g in GROUPS:
         vals = _ranks(repo, g)
@@ -157,47 +160,67 @@ def fig1_convergence(repo, out_dir):
         # occlude instead of blending, so the open/filled encoding stays
         # legible at print size (round-2 render-inspection finding).
         face = COLOR[g] if SOLVABLE[g] else "white"
-        ax.scatter([DMIN[g] + jitter[g]] * len(vals), vals, s=30,
+        # Presentation-only horizontal dodge keeps coincident seeds visible;
+        # every marker retains its group's categorical d_min coordinate.
+        seed_offsets = [0.32 * (i / (len(vals) - 1) - 0.5)
+                        if len(vals) > 1 else 0.0 for i in range(len(vals))]
+        x_positions = [DMIN[g] + jitter[g] + offset
+                       for offset in seed_offsets]
+        ax.scatter(x_positions, vals, s=24,
                    marker=MARKER[g], facecolors=face, edgecolors=COLOR[g],
                    linewidths=0.9, zorder=3)
         lab_y = max(vals) + 0.2 if g != "S4" else min(vals) - 0.32
-        ax.annotate(g, (DMIN[g] + jitter[g] * 3.2, lab_y), color=COLOR[g],
+        ax.annotate(g, (DMIN[g] + jitter[g], lab_y), color=COLOR[g],
                     ha="center", fontsize=7.5, fontweight="bold")
     ax.scatter([], [], s=30, marker="o", facecolors="#333333",
                edgecolors="#333333", label="solvable (filled)")
     ax.scatter([], [], s=30, marker="^", facecolors="white",
                edgecolors="#333333", linewidths=0.9,
                label="non-solvable (open)")
-    ax.set_xlabel("minimal faithful real representation dimension $d_{\\min}$")
-    ax.set_ylabel("restricted effective rank")
+    ax.set_xlabel("minimal faithful real representation dimension "
+                  "$d_{\\min}$ (dimensions)")
+    ax.set_ylabel("restricted effective rank\n(rank units)")
     ax.set_xticks([2, 3, 4, 5])
     ax.set_xlim(1.6, 5.6)
     ax.set_ylim(1.2, 6.9)
-    ax.legend(loc="upper left", frameon=False, handlelength=1.6,
-              borderaxespad=0.1)
+    ax.tick_params(labelsize=7.25)
+    ax.legend(loc="upper left", ncol=2, frameon=False, handlelength=1.6,
+              columnspacing=0.9, borderaxespad=0.1, fontsize=7.25)
 
-    # Marquee inset: recomputed from the same raws (mean diff vs TOST margin).
-    # Placed low-right with clear whitespace from the S5 markers/label
-    # (round-2 render-inspection v3 crowding finding).
-    ins = ax.inset_axes([0.66, 0.05, 0.33, 0.27])
+    # Full-width matched-dimension panel: the same raw differences and TOST
+    # references as before, separated vertically by seed for print legibility.
     s4, a5 = ranks["S4"], ranks["A5"]
     diff = sum(s4) / len(s4) - sum(a5) / len(a5)
-    ins.axvspan(-0.5, 0.5, color="#000000", alpha=0.07, lw=0)
-    ins.axvline(0.0, color="#555555", lw=0.6, ls="--")
-    for v in [x - sum(a5) / len(a5) for x in s4]:
-        ins.plot(v, 1.0, marker=MARKER["S4"], color=COLOR["S4"], ms=3.5,
-                 alpha=0.8, ls="none")
-    ins.axvline(diff, color="#333333", lw=1.2)
-    ins.set_xlim(-0.62, 0.62)
-    ins.set_yticks([])
-    ins.set_xticks([-0.5, 0, 0.5])
-    ins.tick_params(length=2, labelsize=6)
-    ins.set_title("S4$-$A5 rank diff vs $\\pm$0.5\nTOST margin", fontsize=6,
-                  pad=1.5)
-    ins.grid(False)
-    fig.tight_layout(pad=0.3)
-    fig.savefig(os.path.join(out_dir, "fig1_convergence.pdf"),
-                bbox_inches="tight")
+    equivalence_ax.axvspan(-0.5, 0.5, color="#000000", alpha=0.07, lw=0)
+    equivalence_ax.axvline(0.0, color="#555555", lw=0.8, ls="--")
+    for seed, v in enumerate([x - sum(a5) / len(a5) for x in s4]):
+        equivalence_ax.plot(v, seed, marker=MARKER["S4"],
+                            color=COLOR["S4"], ms=5.0, alpha=0.85,
+                            ls="none")
+    equivalence_ax.axvline(diff, color="#333333", lw=1.2)
+    equivalence_ax.set_xlim(-0.62, 0.62)
+    equivalence_ax.set_ylim(-0.65, len(s4) - 0.25)
+    equivalence_ax.set_yticks(range(len(s4)))
+    equivalence_ax.set_xticks([-0.5, 0, 0.5])
+    equivalence_ax.set_xlabel(
+        "rank difference $S_4-\\overline{A_5}$ (rank units)")
+    equivalence_ax.set_ylabel("$S_4$ seed")
+    equivalence_ax.tick_params(length=2, labelsize=7.25)
+    equivalence_ax.set_title("Matched-dimension solvability contrast",
+                             fontsize=8, loc="left", pad=2)
+    equivalence_ax.grid(axis="x")
+    equivalence_ax.text(
+        0.98, 0.92, "shaded: pre-registered $\\pm 0.5$ equivalence margin",
+        transform=equivalence_ax.transAxes, ha="right", va="top",
+        fontsize=7.25)
+    reference_transform = equivalence_ax.get_xaxis_transform()
+    equivalence_ax.text(-0.01, 0.49, "zero difference",
+                        transform=reference_transform, ha="right", va="center",
+                        fontsize=7.25, color="#555555")
+    equivalence_ax.text(0.18, 0.03, f"mean {diff:+.3f}",
+                        transform=reference_transform, ha="left", va="bottom",
+                        fontsize=7.25, color="#333333")
+    fig.savefig(os.path.join(out_dir, "fig1_convergence.pdf"))
     plt.close(fig)
 
 

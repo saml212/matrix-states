@@ -17,10 +17,10 @@ $S_5$ & 120 & 4 & no  & standard (zero-sum) \\
 $A_6$ & 360 & 5 & no  & standard (zero-sum) \\
 \bottomrule
 \end{tabular}
-\caption{The five task groups. $\dmin$ is the minimal faithful real
+\caption{The table lists the five task groups. $\dmin$ is the minimal faithful real
 representation dimension; each reference representation is orthogonal by
 construction and verified faithful (injective on $G$) at build time.
-$S_4$/$A_5$ form the marquee pair: matched $\dmin$, opposite solvability.}
+$S_4$/$A_5$ form the comparison pair: matched $\dmin$, opposite solvability.}
 \label{tab:groups}
 \end{table}
 
@@ -41,17 +41,17 @@ $S_5$ & 4 & 3 & $3.591 \pm 0.069$ & $[2.8, 5.2]$ & 3/3 \\
 $A_6$ & 5 & 3 & $4.736 \pm 0.023$ & $[3.5, 6.5]$ & 3/3 \\
 \bottomrule
 \end{tabular}
-\caption{Restricted effective rank of the unconstrained trained state
-(mean $\pm$ sd over seeds) against each group's $\dmin$, with the
-pre-registered $[0.7, 1.3] \cdot \dmin$ band. Every seed of every group is
+\caption{The table reports restricted effective rank of the unconstrained
+trained state (mean $\pm$ sd over seeds) against each group's $\dmin$, with
+the pre-registered $[0.7, 1.3] \cdot \dmin$ band. Every seed of every group is
 in band; Spearman $\rho = 0.9747$ is the tie-capped maximum; the
 dimension-matched pair $S_4$/$A_5$ differs by 0.019 rank-units.}
 % <!-- evidence: N4 -->
 \label{tab:m1}
 \end{table}
 
-Per-group deviation of the mean from $\dmin$ (Table~\ref{tab:m1}):
-$S_3$ 6.1\%, $S_4$ 4.9\%, $A_5$ 5.6\%, $S_5$ 10.2\%, $A_6$ 5.3\%.
+The per-group deviations of the mean from $\dmin$ (Table~\ref{tab:m1}) are
+$S_3$ 6.1\%, $S_4$ 4.9\%, $A_5$ 5.6\%, $S_5$ 10.2\%, and $A_6$ 5.3\%.
 % <!-- evidence: N4 -->
 
 $S_4$ and $S_5$'s seed-0 razor $k{=}\dmin$ cells (Table~\ref{tab:razor}) numerically exceed their own unconstrained anchor by 0.10--0.15;
@@ -80,15 +80,15 @@ $S_5$ & 4 & 6 & $5.510 \pm 0.084$ ($n{=}3$) & $3.567 \pm 0.071$ ($n{=}4$) \\
 $A_6$ & 5 & 7 & $6.717 \pm 0.022$ ($n{=}3$) & $4.669 \pm 0.097$ ($n{=}4$) \\
 \bottomrule
 \end{tabular}
-\caption{Whole-matrix effective rank of the unconstrained trained state:
-the entropy effective rank of the full $\dstate \times \dstate$ state
-with no subspace lens, so unlike the restricted quantity of
-Table~\ref{tab:m1} it can range up to $\dstate = \dmin + 2$. Observational
-arm: mean $\pm$ sd over seeds against the eye-padded target of rank
-$\dmin + 2$, which the state recruits ($3.77/4.84/4.78/5.51/6.72$ against
-$\dstate = 4/5/5/6/7$). Zero-padded anchor: the
-causal wave's unconstrained arm against the rank-$\dmin$ target, mean
-$\pm$ sd over four seeds in every group. On the
+\caption{For the unconstrained trained state, whole-matrix effective rank is
+the entropy effective rank of the full $\dstate \times \dstate$ state with no
+subspace lens, so unlike the restricted quantity of Table~\ref{tab:m1} it can
+range up to $\dstate = \dmin + 2$. The observational arm reports mean $\pm$ sd
+over seeds against the eye-padded target of rank $\dmin + 2$, which the state
+recruits ($3.77/4.84/4.78/5.51/6.72$ against $\dstate = 4/5/5/6/7$). The
+zero-padded anchor is the causal wave's unconstrained arm against the
+rank-$\dmin$ target, reported as mean $\pm$ sd over four seeds in every group.
+On the
 zero-padded target the unconstrained state recruits $\dmin$
 ($1.82/2.82/2.83/3.57/4.67$ against $\dmin = 2/3/3/4/5$) and leaves the
 two spare dimensions unused.}
@@ -110,9 +110,9 @@ $S_5$ & 2.824 & 3.496 & 3.577 & 3.547 \\
 $A_6$ & 3.887 & 4.631 & 4.708 & 4.730 \\
 \bottomrule
 \end{tabular}
-\caption{Whole-matrix effective rank of every zero-padded razor cell
-(seed 0; $S_3$ mean $\pm$ sd over its four seeds), for completeness
-alongside Table~\ref{tab:wmrank}. The capped cells sit at or below their
+\caption{The table reports whole-matrix effective rank of every zero-padded
+razor cell (seed 0; $S_3$ mean $\pm$ sd over its four seeds), alongside
+Table~\ref{tab:wmrank}. The capped cells sit at or below their
 cap $k$; at $k \geq \dmin$ they land where the unconstrained anchor does.}
 % <!-- evidence: N15 -->
 \label{tab:wmrank_cells}
@@ -162,9 +162,9 @@ The sweep verdict was registered as inconclusive with the tax as
 mechanism; the zero-padded causal wave of Section~\ref{sec:razor} is
 the registered fix.
 % <!-- evidence: N7 -->
-The zero-padded grid's 30 cells were configuration-verified one-by-one
-against a manifest re-derived independently from the design record (steps,
-padding mode, and force-rank value per cell; zero skipped steps).
+A manifest re-derived independently from the design record verified the
+zero-padded grid's 30 cells one-by-one (steps, padding mode, and force-rank
+value per cell; zero skipped steps).
 % <!-- evidence: N8 -->
 
 \textbf{The observational band's non-binding upper half.}
@@ -215,7 +215,7 @@ $1.451/2.156/2.078/2.362/3.340$ against $\dmin = 2/3/3/4/5$, that is
 $0.59$--$0.73 \cdot \dmin$, outside the pre-registered band, which was
 written for the entropy estimator, while the group ordering is
 unchanged (Spearman 0.975 on group means). The ordinal law is therefore
-estimator-robust; the point estimate ``equals $\dmin$'' is a property
+unchanged across estimators; the point estimate ``equals $\dmin$'' is a property
 of the entropy estimator on a near-flat spectrum with one weak
 direction, which stable rank penalizes; and the causal razor caps
 algebraic rank and is estimator-free.
@@ -223,16 +223,17 @@ algebraic rank and is estimator-free.
 
 \textbf{Primary and crosscheck degauging.} The design record's default
 pipeline treats scale-only degauging ($\hat{Q} = I$) as the primary
-metric, with the fitted-$(c, Q)$ Procrustes score retained as a
-robustness cross-check, after calibration on unconstrained checkpoints
-found $\hat{Q} \approx I$ empirically. Under the force-rank grid's
-zero-padded target this equivalence breaks: the informative block's
-degenerate singular spectrum makes the scale-only fit's basis
-arbitrary, so the pre-registration for the causal wave specifically
-pins the fitted-$(c, Q)$ score, denoted crosscheck $\recninety$
-throughout Section~\ref{sec:razor} and Table~\ref{tab:razor} and Figure~\ref{fig:razor}, as decisional; the scale-only score informs no
-reported conclusion. The two diverge sharply on this grid, which is why
-the distinction is disclosed here.
+metric and retains the fitted-$(c, Q)$ Procrustes score as a robustness
+cross-check. This choice followed calibration on unconstrained
+checkpoints, which found $\hat{Q} \approx I$ empirically. Under the
+force-rank grid's zero-padded target, this equivalence breaks. The
+informative block's degenerate singular spectrum makes the scale-only
+fit's basis arbitrary. The pre-registration for the causal wave therefore
+pins the fitted-$(c, Q)$ score, denoted crosscheck $\recninety$ throughout
+Section~\ref{sec:razor}, Table~\ref{tab:razor}, and
+Figure~\ref{fig:razor}, as decisional. The scale-only score informs no
+reported conclusion. The two diverge sharply on this grid, which is why the
+distinction is disclosed here.
 
 \section{$S_3$ Per-Seed Causal Detail}
 \label{app:s3causal}
@@ -250,8 +251,9 @@ seed & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & own bar & clea
 3 & 0.600 & 0.000 & 0.650 & 0.600 & 0.540 & yes ($+0.110$) \\
 \bottomrule
 \end{tabular}
-\caption{$S_3$ four-seed causal detail (crosscheck $\recninety$) behind
-the seed-mean confirmation in Section~\ref{sec:razor}; the own bar is
+\caption{The table reports the $S_3$ four-seed causal detail (crosscheck
+$\recninety$) behind the seed-mean confirmation in
+Section~\ref{sec:razor}; the own bar is
 $0.9 \times$ each seed's anchor. $k = \dmin{-}1$ reads exactly 0.000 in
 all four seeds; $k = \dmin$ clears each seed's own bar in 2 of 4 (seeds
 1, 3), missing in the other 2 because the anchor itself ranges
@@ -300,7 +302,7 @@ seed & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & own bar & clea
 3 & 0.500 & 0.000 & 0.550 & 0.550 & 0.450 & yes ($+0.100$) \\
 \bottomrule
 \end{tabular}
-\caption{Four-seed causal detail (crosscheck $\recninety$) for the four
+\caption{The table reports four-seed causal detail (crosscheck $\recninety$) for the four
 groups extended under a pre-registration recorded before launch, on the
 same build, manifest, step pins, and decisional readout as seed 0. The
 own bar is $0.9\times$ each seed's anchor and is disclosed, not
@@ -312,7 +314,7 @@ by the pre-registered outcome grammar is reported as failing with no
 re-tries. The self-referential bar ($0.9\times$ the four-seed anchor
 mean: 0.5625/0.5625/0.3825/0.5850) is reported for symmetry with
 Table~\ref{tab:s3seeds}; $S_5$ clears it by $+0.030$, which does not
-change the verdict. Own-bar clears: $S_4$ 4/4, $A_5$ 4/4, $S_5$ 2/4,
+change the verdict. The own-bar clears are $S_4$ 4/4, $A_5$ 4/4, $S_5$ 2/4,
 $A_6$ 4/4.}
 % <!-- evidence: N16 -->
 \label{tab:ext4seeds}
@@ -332,8 +334,8 @@ $S_3$ & 0.914 & 0.665 & 0.900 & 0.903 & fail (all 4) \\
 $S_5$ & 0.876 & 0.801 & 0.879 & 0.877 & fail (all 4) \\
 \bottomrule
 \end{tabular}
-\caption{Convergence health (gate1a, min validation cosine over
-$L \in [2, 5]$) for every $S_3$/$S_5$ razor cell at the shortest pinned
+\caption{The table reports convergence health (gate1a, min validation cosine
+over $L \in [2, 5]$) for every $S_3$/$S_5$ razor cell at the shortest pinned
 step budget. All eight cells fall short of the 0.92 margin; $S_5$'s
 0.876--0.879 range is a larger shortfall than $S_3$'s 0.900--0.914. The
 necessity leg (Section~\ref{sec:razor}) is unaffected by construction; the

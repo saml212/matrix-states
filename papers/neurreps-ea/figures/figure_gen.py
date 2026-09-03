@@ -156,10 +156,15 @@ def fig1_razor_step(repo, out_dir):
     shows all four independent seeds (thin lines) with their mean bold.
     """
     arms = ["k_dmin_minus_1", "k_dmin", "k_dmin_plus_1"]
-    fig, axes = plt.subplots(1, 5, figsize=(6.8, 1.35), sharey=True)
+    fig, axes_grid = plt.subplots(2, 3, figsize=(5.5, 3.25), sharey=True,
+                                  constrained_layout=True)
+    all_axes = axes_grid.ravel()
+    axes = all_axes[:5]
+    key_ax = all_axes[5]
     for ax, g in zip(axes, GROUPS):
         dm = DMIN[g]
         xs = [dm - 1, dm, dm + 1]
+        face = COLOR[g] if SOLVABLE[g] else "white"
         if g == "S3":
             # seed 0 from the fix wave + seeds 1-3 from the extension
             seed_src = [(M3FIX, 0), (S3EXT, 1), (S3EXT, 2), (S3EXT, 3)]
@@ -168,22 +173,26 @@ def fig1_razor_step(repo, out_dir):
                 ys = [_razor_cell(repo, src, g, a, s) for a in arms]
                 per_seed.append(ys)
                 anchors.append(_razor_cell(repo, src, g, "unconstrained", s))
-                ax.plot(xs, ys, color=COLOR[g], alpha=0.35, lw=0.8, zorder=2)
+                ax.plot(xs, ys, color=COLOR[g], marker=MARKER[g], ms=3.5,
+                        markerfacecolor=face, markeredgecolor=COLOR[g],
+                        markeredgewidth=0.8, alpha=0.32, lw=0.8, zorder=2)
             mean = [sum(v) / len(v) for v in zip(*per_seed)]
             # The pre-registered decisional bar is 0.9 x the SEED-0 anchor
             # (the fixed literal pinned in the design record before the
             # extension ran), not a recompute from extension anchors.
             anchor, bar = anchors[0], 0.9 * anchors[0]
-            ax.plot(xs, mean, color=COLOR[g], marker=MARKER[g], ms=4, lw=1.6,
-                    zorder=3)
-            ax.set_title(f"{g}  ($d_{{\\min}}$={dm}, 4 seeds)", pad=2)
+            ax.plot(xs, mean, color=COLOR[g], marker=MARKER[g], ms=4.5,
+                    markerfacecolor=face, markeredgecolor=COLOR[g],
+                    markeredgewidth=0.9, lw=1.7, zorder=3)
+            ax.set_title(f"{g} ($d_{{\\min}}={dm}$)\n4 seeds + mean", pad=2)
         else:
             ys = [_razor_cell(repo, M3FIX, g, a, 0) for a in arms]
             anchor = _razor_cell(repo, M3FIX, g, "unconstrained", 0)
             bar = 0.9 * anchor
-            ax.plot(xs, ys, color=COLOR[g], marker=MARKER[g], ms=4, lw=1.6,
-                    zorder=3)
-            ax.set_title(f"{g}  ($d_{{\\min}}$={dm})", pad=2)
+            ax.plot(xs, ys, color=COLOR[g], marker=MARKER[g], ms=4.5,
+                    markerfacecolor=face, markeredgecolor=COLOR[g],
+                    markeredgewidth=0.9, lw=1.7, zorder=3)
+            ax.set_title(f"{g} ($d_{{\\min}}={dm}$)\nseed 0 shown", pad=2)
         ax.axhline(anchor, color="#555555", ls="--", lw=0.8, zorder=1)
         # Coarse dot pitch so dotted reads distinctly from dashed at print
         # size (round-2 render-inspection finding, mirrored from the
@@ -191,22 +200,31 @@ def fig1_razor_step(repo, out_dir):
         ax.axhline(bar, color="#555555", ls=(0, (1, 2)), lw=1.0, zorder=1)
         ax.axvline(dm, color="#bbbbbb", lw=0.6, zorder=0)
         ax.set_xticks(xs)
-        ax.set_xticklabels([f"$d_{{\\min}}$$-$1", "$d_{\\min}$",
-                            f"$d_{{\\min}}$$+$1"])
+        ax.set_xticklabels(["$d_{\\min}-1$", "$d_{\\min}$",
+                            "$d_{\\min}+1$"])
+        ax.set_xlim(dm - 1.15, dm + 1.15)
         ax.set_ylim(-0.05, 1.0)
-        ax.tick_params(length=2)
-    axes[0].set_ylabel("exact recovery\n(rec@0.9, crosscheck)")
-    # shared key for the two reference lines, drawn once
-    axes[-1].plot([], [], color="#555555", ls="--", lw=0.8,
-                  label="unconstrained anchor")
-    axes[-1].plot([], [], color="#555555", ls=(0, (1, 2)), lw=1.0,
-                  label="0.9 $\\times$ anchor bar")
-    axes[-1].legend(loc="lower right", frameon=False, handlelength=1.6,
-                    borderaxespad=0.1)
-    fig.supxlabel("train-time force-rank $k$", y=-0.08, fontsize=8)
-    fig.tight_layout(pad=0.4)
-    fig.savefig(os.path.join(out_dir, "fig1_razor_step.pdf"),
-                bbox_inches="tight")
+        ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
+        ax.tick_params(length=2, labelsize=7.25)
+
+    # One shared key occupies the unused sixth panel, away from every datum.
+    key_ax.axis("off")
+    key_ax.plot([], [], color="#555555", ls="--", lw=0.8,
+                label="unconstrained anchor")
+    key_ax.plot([], [], color="#555555", ls=(0, (1, 2)), lw=1.0,
+                label="0.9 $\\times$ anchor bar")
+    key_ax.plot([], [], color="#bbbbbb", ls="-", lw=0.8,
+                label="$d_{\\min}$ threshold")
+    key_ax.plot([], [], color="#333333", marker="o", ms=4.5, ls="none",
+                markerfacecolor="#333333", label="solvable (filled)")
+    key_ax.plot([], [], color="#333333", marker="^", ms=4.5, ls="none",
+                markerfacecolor="white", markeredgecolor="#333333",
+                label="non-solvable (open)")
+    key_ax.legend(loc="center", frameon=False, handlelength=1.7,
+                  labelspacing=0.55, fontsize=7.25)
+    fig.supxlabel("train-time force-rank $k$ (rank units)", fontsize=8)
+    fig.supylabel("exact recovery, crosscheck rec@0.9 (fraction)", fontsize=8)
+    fig.savefig(os.path.join(out_dir, "fig1_razor_step.pdf"))
     plt.close(fig)
 
 
