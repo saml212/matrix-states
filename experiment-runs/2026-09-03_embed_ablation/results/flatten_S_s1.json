@@ -1,0 +1,223 @@
+{
+  "experiment": "embed_ablation_rd",
+  "arm": "flatten",
+  "size": "S",
+  "match": "P",
+  "mat_dim": 16,
+  "d_model": 16,
+  "n_layers": 6,
+  "n_heads": 4,
+  "params_total": 2452544,
+  "params_breakdown": {
+    "embed": 1624608,
+    "resize_in": 4112,
+    "backbone": 19680,
+    "head": 804144,
+    "total": 2452544
+  },
+  "matrix_twin_params": 2466562,
+  "params_ratio_vs_matrix": 0.9943167858744276,
+  "seed": 1,
+  "steps_target": 2000,
+  "batch_size": 64,
+  "seq_len": 512,
+  "corpus": "wikitext-mix-ext",
+  "n_iterations_train": 8,
+  "eval_iterations": [
+    1,
+    8
+  ],
+  "role": "cell",
+  "corpus_seed_used_for_eval": 1014265422,
+  "status": "COMPLETED",
+  "complete": true,
+  "steps_completed": 2000,
+  "time_min": 8.882970690727234,
+  "gpu_h_actual_approx": 0.14804951151212056,
+  "final_evals": {
+    "T1": {
+      "val_loss_nats": 8.358793544769288,
+      "token_bpb": 12.059189994853332,
+      "ppl": 4267.543059721942
+    },
+    "T8": {
+      "val_loss_nats": 7.396716442108154,
+      "token_bpb": 10.671206129891292,
+      "ppl": 1630.6213901543542
+    }
+  },
+  "training_curve": [
+    {
+      "step": 250,
+      "train_loss_nats": 10.056673049926758,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 10.248228092193603,
+          "token_bpb": 14.785067846506674,
+          "ppl": 28232.472236053945
+        },
+        "T8": {
+          "val_loss_nats": 10.055718097686768,
+          "token_bpb": 14.507334632110101,
+          "ppl": 23288.57317739492
+        }
+      }
+    },
+    {
+      "step": 500,
+      "train_loss_nats": 8.80721664428711,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 9.206419277191163,
+          "token_bpb": 13.282055435548246,
+          "ppl": 9960.865826691834
+        },
+        "T8": {
+          "val_loss_nats": 8.771537494659423,
+          "token_bpb": 12.654653644516753,
+          "ppl": 6448.078733610325
+        }
+      }
+    },
+    {
+      "step": 750,
+      "train_loss_nats": 7.996890068054199,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 8.659014720916748,
+          "token_bpb": 12.492317596851123,
+          "ppl": 5761.854829807611
+        },
+        "T8": {
+          "val_loss_nats": 7.986130142211914,
+          "token_bpb": 11.521550352063002,
+          "ppl": 2939.897930496651
+        }
+      }
+    },
+    {
+      "step": 1000,
+      "train_loss_nats": 7.653726577758789,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 8.57526523590088,
+          "token_bpb": 12.371492630141725,
+          "ppl": 5298.956725406316
+        },
+        "T8": {
+          "val_loss_nats": 7.644954767227173,
+          "token_bpb": 11.029338330499082,
+          "ppl": 2090.0740338519963
+        }
+      }
+    },
+    {
+      "step": 1250,
+      "train_loss_nats": 7.556133270263672,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 8.380345668792724,
+          "token_bpb": 12.090283137302567,
+          "ppl": 4360.515960007254
+        },
+        "T8": {
+          "val_loss_nats": 7.498899192810058,
+          "token_bpb": 10.818624677593322,
+          "ppl": 1806.0532034362802
+        }
+      }
+    },
+    {
+      "step": 1500,
+      "train_loss_nats": 7.370684623718262,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 8.371743202209473,
+          "token_bpb": 12.077872401423496,
+          "ppl": 4323.165649907007
+        },
+        "T8": {
+          "val_loss_nats": 7.429289770126343,
+          "token_bpb": 10.718199508688382,
+          "ppl": 1684.6106875491632
+        }
+      }
+    },
+    {
+      "step": 1750,
+      "train_loss_nats": 7.3951215744018555,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 8.359170989990234,
+          "token_bpb": 12.059734533201798,
+          "ppl": 4269.154127480804
+        },
+        "T8": {
+          "val_loss_nats": 7.401472043991089,
+          "token_bpb": 10.678067013144243,
+          "ppl": 1638.3944444340623
+        }
+      }
+    },
+    {
+      "step": 2000,
+      "train_loss_nats": 7.49117374420166,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 8.358793544769288,
+          "token_bpb": 12.059189994853332,
+          "ppl": 4267.543059721942
+        },
+        "T8": {
+          "val_loss_nats": 7.396716442108154,
+          "token_bpb": 10.671206129891292,
+          "ppl": 1630.6213901543542
+        }
+      }
+    }
+  ],
+  "corpus_train_meta": {
+    "vocab_size": 50257,
+    "tokenizer": "gpt2",
+    "eot_separated": true,
+    "eot_token_id": 50256,
+    "source": "mix: base=Salesforce/wikitext (train only, 117,948,614 tok, 28,474 docs) + augment=HuggingFaceFW/fineweb-edu[sample-10BT] (streamed train subset, 300,160,038 tok, 289,000 docs)",
+    "mix_composition": {
+      "base_corpus_dir": "wikitext103_eot",
+      "base_train_tokens": 117948614,
+      "base_train_docs": 28474,
+      "augment": {
+        "repo_id": "HuggingFaceFW/fineweb-edu",
+        "config": "sample-10BT",
+        "target_tokens": 300000000,
+        "n_tokens": 300160038,
+        "n_docs": 289000,
+        "n_skipped_empty_docs": 0,
+        "n_skipped_eot_literal_docs": 0,
+        "stream_exhausted_before_target": false,
+        "wall_s": 250.10588717460632,
+        "shuffle_seed": 0,
+        "shuffle_buffer": 10000,
+        "license_verification": {
+          "repo_id": "HuggingFaceFW/fineweb-edu",
+          "license_tag": "odc-by",
+          "expected": "odc-by",
+          "verified_at_utc": "2026-07-04T05:24:43Z",
+          "source_url": "https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu/raw/main/README.md"
+        }
+      },
+      "mix_total_train_tokens": 418108652
+    },
+    "epoch_cap_discipline": "get_batch (lm_pretrain_rd.py) samples window start positions UNIFORMLY AT RANDOM over the whole flat mix tensor every training step, unmodified by this build -- for a training budget of B tokens over this mix (size M), EVERY source (base + augment) is seen in EXPECTATION B/M times. sec 5.4's <=5-physical-epoch cap on the base corpus is therefore exactly the constraint M>=B/5: this mix (M=418,108,652 train tokens) supports planning budgets up to B<=2,090,543,260 tokens before the base corpus would be repeated more than 5x in expectation. If a real rung's Wave -1-calibrated budget exceeds this, pull more augmentation before that rung's Wave 1 launch (documented follow-on).",
+    "val_test_note": "val/test are the BASE corpus's own original held-out windows, UNCHANGED and un-augmented -- comparisons against archived Wave C val numbers stay on identical windows; only TRAIN is domain-blended.",
+    "split": "train=mix (base train + augment subset, concatenated, base material first, shuffled at read time by get_batch's random-window sampler); val/test=base corpus's own splits, unchanged",
+    "rebuild": "SCALE_TRANSFER_DESIGN.md sec 5.4 (build_mix_corpora_rd.py)",
+    "out_suffix_note": "built with --out-suffix '_extended' into 'wikitext103_mix_eot_extended' -- a side-by-side EXTENDED build; the original 'wikitext103_mix_eot' (and everything already trained on it) is untouched. Re-pointing a launcher/corpus map at this directory is a separate, explicitly-consented change.",
+    "train_tokens": 418108652,
+    "train_docs": 317474,
+    "val_tokens": 247349,
+    "val_docs": 60,
+    "test_tokens": 283347,
+    "test_docs": 60
+  }
+}

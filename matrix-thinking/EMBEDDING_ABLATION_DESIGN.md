@@ -943,3 +943,9 @@ reported, not assumed away)
   forward/backward/grad-flow, the parameter-matching arithmetic, the
   harvest filtering/grouping/decision logic, and the admission-check
   logic — not the box-specific I/O and CUDA paths.
+
+## §9 Harvest record (2026-09-03)
+
+- Phase A (500-step probes, 0640–0645): admission FAILED on flat_M (T=1 rising over the last three evals). Phase A′ (1000-step probes, 0670–0675, `probes_1000/`): admission FAILED on all six arms by 0.0007–0.013 bpb increases on plateaued curves (flat_M passed). Both logs archived (`stage_phase_b*.log`).
+- Author override (Sam, 2026-09-03 11:04 PDT, on the agent's recommendation that the second failure was gate miscalibration, not a model pathology): phase B (0646–0669) staged and run. The pre-registered decision rules were not changed.
+- Verdict: STRENGTHEN-01 DROP (matrix vs flatten never beats the flatten arm's seed spread at either size; wins 1/3 S, 0/3 M); STRENGTHEN-04 DROP (flat-P beats matrix at both sizes, 0/3, 0/3). Numbers in `experiment-runs/2026-09-03_embed_ablation/results/harvest_phaseB.json` and EXPERIMENT_LOG.md 2026-09-03 #4. Cluster 4 dropped.

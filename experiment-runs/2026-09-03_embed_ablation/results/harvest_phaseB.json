@@ -1,0 +1,101 @@
+{
+  "STRENGTHEN-01 (matrix vs flatten)": {
+    "per_size": {
+      "S": {
+        "status": "SCORED",
+        "matrix_t1_bpb": [
+          10.902135696751207,
+          11.080106673448164,
+          11.132991201002355
+        ],
+        "flatten_t1_bpb": [
+          11.136785440969856,
+          12.059189994853332,
+          12.236073408300678
+        ],
+        "seed_spread": 1.099287967330822,
+        "wins": 1,
+        "n_pairs": 3,
+        "size_pass": false
+      },
+      "M": {
+        "status": "SCORED",
+        "matrix_t1_bpb": [
+          10.71219086138421,
+          10.803747710500879,
+          10.87935294861223
+        ],
+        "flatten_t1_bpb": [
+          10.816119248094166,
+          10.972874073498158,
+          12.099809765402506
+        ],
+        "seed_spread": 1.2836905173083402,
+        "wins": 0,
+        "n_pairs": 3,
+        "size_pass": false
+      }
+    },
+    "decision": "DROP"
+  },
+  "STRENGTHEN-04 (matrix vs flat-P)": {
+    "per_size": {
+      "S": {
+        "status": "SCORED",
+        "matrix_t1_bpb": [
+          10.902135696751207,
+          11.080106673448164,
+          11.132991201002355
+        ],
+        "flat_t1_bpb": [
+          10.750682284715202,
+          10.753330198400947,
+          11.750140225664742
+        ],
+        "seed_spread": 0.9994579409495401,
+        "wins": 0,
+        "n_pairs": 3,
+        "size_pass": false
+      },
+      "M": {
+        "status": "SCORED",
+        "matrix_t1_bpb": [
+          10.71219086138421,
+          10.803747710500879,
+          10.87935294861223
+        ],
+        "flat_t1_bpb": [
+          10.504186485574023,
+          10.542514552903919,
+          10.5782605139896
+        ],
+        "seed_spread": 0.16716208722801973,
+        "wins": 0,
+        "n_pairs": 3,
+        "size_pass": false
+      }
+    },
+    "decision": "DROP"
+  },
+  "flat-D_disclosed_not_gating": {
+    "S": {
+      "n": 3,
+      "t1_bpb": [
+        10.508474494611454,
+        10.914616436448485,
+        11.053137716242452
+      ]
+    },
+    "M": {
+      "n": 3,
+      "t1_bpb": [
+        10.092799072885674,
+        10.252992106652657,
+        10.316792249229604
+      ]
+    }
+  },
+  "n_records_loaded": 24,
+  "n_records_valid_after_filter": 24,
+  "rule": "STRENGTHEN-XX iff the named arm beats its comparison arm's T=1 token_bpb on >=2/3 seed pairs by more than the seed spread, at BOTH sizes S and M. Else DROP. PENDING if not all sizes scored yet. No third outcome per size; 01 and 04 are decided completely independently."
+}

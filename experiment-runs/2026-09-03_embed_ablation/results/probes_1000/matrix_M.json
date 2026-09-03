@@ -1,0 +1,251 @@
+{
+  "experiment": "embed_ablation_rd",
+  "arm": "matrix",
+  "size": "M",
+  "match": "P",
+  "mat_dim": 24,
+  "n_layers": 8,
+  "n_heads": 4,
+  "params_total": 3755808,
+  "params_breakdown": {
+    "embed": 2436912,
+    "backbone": 111000,
+    "head": 1207896,
+    "total": 3755808
+  },
+  "seed": 0,
+  "steps_target": 1000,
+  "batch_size": 64,
+  "seq_len": 512,
+  "corpus": "wikitext-mix-ext",
+  "n_iterations_train": 8,
+  "eval_iterations": [
+    1,
+    8
+  ],
+  "role": "probe",
+  "corpus_seed_used_for_eval": 1014265422,
+  "status": "COMPLETED",
+  "complete": true,
+  "steps_completed": 1000,
+  "time_min": 23.792030568917593,
+  "gpu_h_actual_approx": 0.3965338428152932,
+  "final_evals": {
+    "T1": {
+      "val_loss_nats": 7.800731401443482,
+      "token_bpb": 11.254076508169325,
+      "ppl": 2442.3876903907403
+    },
+    "T8": {
+      "val_loss_nats": 7.639795837402343,
+      "token_bpb": 11.021895568024506,
+      "ppl": 2079.3192540126897
+    }
+  },
+  "training_curve": [
+    {
+      "step": 100,
+      "train_loss_nats": 10.772089004516602,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 10.812363491058349,
+          "token_bpb": 15.59894318883876,
+          "ppl": 49630.631420543294
+        },
+        "T8": {
+          "val_loss_nats": 10.799197025299073,
+          "token_bpb": 15.579947993981818,
+          "ppl": 48981.454472551944
+        }
+      }
+    },
+    {
+      "step": 200,
+      "train_loss_nats": 8.79430103302002,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 8.93847454071045,
+          "token_bpb": 12.895492892995222,
+          "ppl": 7619.56484969215
+        },
+        "T8": {
+          "val_loss_nats": 8.879316997528075,
+          "token_bpb": 12.810146598814836,
+          "ppl": 7181.883815873157
+        }
+      }
+    },
+    {
+      "step": 300,
+      "train_loss_nats": 7.841916561126709,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 7.877194185256958,
+          "token_bpb": 11.364388987189592,
+          "ppl": 2636.464740439957
+        },
+        "T8": {
+          "val_loss_nats": 7.85132417678833,
+          "token_bpb": 11.327066454264147,
+          "ppl": 2569.134053091321
+        }
+      }
+    },
+    {
+      "step": 400,
+      "train_loss_nats": 7.736635684967041,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 7.7750843334198,
+          "token_bpb": 11.217075610318217,
+          "ppl": 2380.544051048808
+        },
+        "T8": {
+          "val_loss_nats": 7.75317720413208,
+          "token_bpb": 11.18547030353471,
+          "ppl": 2328.960254202131
+        }
+      }
+    },
+    {
+      "step": 500,
+      "train_loss_nats": 7.697877883911133,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 7.759456453323364,
+          "token_bpb": 11.194529345203481,
+          "ppl": 2343.630386500729
+        },
+        "T8": {
+          "val_loss_nats": 7.697687644958496,
+          "token_bpb": 11.105415791693865,
+          "ppl": 2203.247406729404
+        }
+      }
+    },
+    {
+      "step": 600,
+      "train_loss_nats": 7.693843841552734,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 7.771043891906738,
+          "token_bpb": 11.211246485384322,
+          "ppl": 2370.9450072875575
+        },
+        "T8": {
+          "val_loss_nats": 7.671005268096923,
+          "token_bpb": 11.066921258916546,
+          "ppl": 2145.2368998771426
+        }
+      }
+    },
+    {
+      "step": 700,
+      "train_loss_nats": 7.631870269775391,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 7.785365610122681,
+          "token_bpb": 11.231908357231472,
+          "ppl": 2405.145332727689
+        },
+        "T8": {
+          "val_loss_nats": 7.6567653560638425,
+          "token_bpb": 11.046377408443725,
+          "ppl": 2114.905386710325
+        }
+      }
+    },
+    {
+      "step": 800,
+      "train_loss_nats": 7.6033782958984375,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 7.79755841255188,
+          "token_bpb": 11.249498852830616,
+          "ppl": 2434.650303193535
+        },
+        "T8": {
+          "val_loss_nats": 7.648331966400146,
+          "token_bpb": 11.034210598998026,
+          "ppl": 2097.1445627224753
+        }
+      }
+    },
+    {
+      "step": 900,
+      "train_loss_nats": 7.656720161437988,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 7.799339752197266,
+          "token_bpb": 11.252068782703153,
+          "ppl": 2438.991107376714
+        },
+        "T8": {
+          "val_loss_nats": 7.640604705810547,
+          "token_bpb": 11.023062518465753,
+          "ppl": 2081.001830067399
+        }
+      }
+    },
+    {
+      "step": 1000,
+      "train_loss_nats": 7.620331764221191,
+      "evals": {
+        "T1": {
+          "val_loss_nats": 7.800731401443482,
+          "token_bpb": 11.254076508169325,
+          "ppl": 2442.3876903907403
+        },
+        "T8": {
+          "val_loss_nats": 7.639795837402343,
+          "token_bpb": 11.021895568024506,
+          "ppl": 2079.3192540126897
+        }
+      }
+    }
+  ],
+  "corpus_train_meta": {
+    "vocab_size": 50257,
+    "tokenizer": "gpt2",
+    "eot_separated": true,
+    "eot_token_id": 50256,
+    "source": "mix: base=Salesforce/wikitext (train only, 117,948,614 tok, 28,474 docs) + augment=HuggingFaceFW/fineweb-edu[sample-10BT] (streamed train subset, 300,160,038 tok, 289,000 docs)",
+    "mix_composition": {
+      "base_corpus_dir": "wikitext103_eot",
+      "base_train_tokens": 117948614,
+      "base_train_docs": 28474,
+      "augment": {
+        "repo_id": "HuggingFaceFW/fineweb-edu",
+        "config": "sample-10BT",
+        "target_tokens": 300000000,
+        "n_tokens": 300160038,
+        "n_docs": 289000,
+        "n_skipped_empty_docs": 0,
+        "n_skipped_eot_literal_docs": 0,
+        "stream_exhausted_before_target": false,
+        "wall_s": 250.10588717460632,
+        "shuffle_seed": 0,
+        "shuffle_buffer": 10000,
+        "license_verification": {
+          "repo_id": "HuggingFaceFW/fineweb-edu",
+          "license_tag": "odc-by",
+          "expected": "odc-by",
+          "verified_at_utc": "2026-07-04T05:24:43Z",
+          "source_url": "https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu/raw/main/README.md"
+        }
+      },
+      "mix_total_train_tokens": 418108652
+    },
+    "epoch_cap_discipline": "get_batch (lm_pretrain_rd.py) samples window start positions UNIFORMLY AT RANDOM over the whole flat mix tensor every training step, unmodified by this build -- for a training budget of B tokens over this mix (size M), EVERY source (base + augment) is seen in EXPECTATION B/M times. sec 5.4's <=5-physical-epoch cap on the base corpus is therefore exactly the constraint M>=B/5: this mix (M=418,108,652 train tokens) supports planning budgets up to B<=2,090,543,260 tokens before the base corpus would be repeated more than 5x in expectation. If a real rung's Wave -1-calibrated budget exceeds this, pull more augmentation before that rung's Wave 1 launch (documented follow-on).",
+    "val_test_note": "val/test are the BASE corpus's own original held-out windows, UNCHANGED and un-augmented -- comparisons against archived Wave C val numbers stay on identical windows; only TRAIN is domain-blended.",
+    "split": "train=mix (base train + augment subset, concatenated, base material first, shuffled at read time by get_batch's random-window sampler); val/test=base corpus's own splits, unchanged",
+    "rebuild": "SCALE_TRANSFER_DESIGN.md sec 5.4 (build_mix_corpora_rd.py)",
+    "out_suffix_note": "built with --out-suffix '_extended' into 'wikitext103_mix_eot_extended' -- a side-by-side EXTENDED build; the original 'wikitext103_mix_eot' (and everything already trained on it) is untouched. Re-pointing a launcher/corpus map at this directory is a separate, explicitly-consented change.",
+    "train_tokens": 418108652,
+    "train_docs": 317474,
+    "val_tokens": 247349,
+    "val_docs": 60,
+    "test_tokens": 283347,
+    "test_docs": 60
+  }
+}
