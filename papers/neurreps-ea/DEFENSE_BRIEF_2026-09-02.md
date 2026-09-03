@@ -113,6 +113,21 @@ one sentence in §5. Sam decides whether it goes in (recommend yes; it
 is descriptive, single-seed outside S3, and computed from files already
 md5-pinned in figure_gen.py).
 
+8. ESTIMATOR DEPENDENCE (found 2026-09-02, not in the paper). The
+   pre-registered instrument is the entropy effective rank. The raw JSONs
+   also carry `restricted_stable_rank` (Frobenius² over spectral²), the
+   estimator Nazari et al. use. Under stable rank the same unconstrained
+   states read 1.451 / 2.156 / 2.078 / 2.362 / 3.340 against d_min
+   2/3/3/4/5, i.e. 0.59–0.73·d_min, OUTSIDE the [0.7,1.3] band in every
+   group; the ordering survives (Spearman of group means 0.975, the same
+   tie-capped maximum). Sam says: "the ordinal law (rank tracks d_min) is
+   estimator-robust; the point estimate `equals d_min` is a property of
+   the entropy estimator on a near-flat spectrum with one weak direction,
+   which stable rank penalizes; the causal razor caps ALGEBRAIC rank and
+   does not depend on the estimator at all." Decide whether to disclose
+   this in the instrument appendix (recommend yes, one sentence with the
+   five numbers).
+
 ## Hostile-reviewer questions (agent asks these; log the answers)
 
 Q1. Your necessity result is a tautology: the metric's own geometry
@@ -176,6 +191,16 @@ Q11. The two "papers" (neurreps/unireps) were the same result with two
 headlines. Which is the claim? (Answer: one paper now. Headline = the
 causal rank law; the equivalence result is its second leg, not a
 separate finding.)
+
+Q12. Would stable rank give the same d_min? (Answer: control 8. No for
+the point estimate, yes for the ordering; the razor is estimator-free.)
+
+Q13. He et al. (2026) and Shutman et al. (2025) already prove GD finds
+low-rank, irrep-structured solutions on group composition. What is new?
+(Answer: those are two-layer MLPs on the binary operation g1⋆g2 with
+rank-one Fourier coefficients per irrep; no sequential state, no
+faithful-dimension target, no intervention. This paper measures a
+recurrent matrix state against d_min and caps it.)
 
 ## Holes logged (fill during the pass)
 

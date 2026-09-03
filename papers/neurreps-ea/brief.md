@@ -189,3 +189,36 @@ an explicit camera-ready deferral.
     Necessity and Sufficiency of d_min in Trained Matrix States"
 - **Actual submission** (venue portal, final CFP compliance check) —
   not performed here.
+
+## Novelty re-verification gate — 2026-09-02 (before the arXiv post; CLAUDE.md gate: two external sweeps + coordinator spot-check)
+
+Two independent web sweeps (by task; by mechanism), ~210 tool calls, every
+hit read on its arXiv page; coordinator spot-checked the three load-bearing
+hits (DeltaProduct §5.2 text, arXiv:2607.20594 abstract, arXiv:2602.03655
+abstract) by direct fetch. VERDICT: NOT SCOOPED on any of (1) rank = d_min
+across five groups, (2) S4/A5 equivalence, (3) force-rank razor, (4) the
+eye-padding lesson. OVERLAPS, now cited and distinguished in arxiv-v2 §4/§6:
+Siems et al. 2502.10297 §5.2 (S4/A5 extrapolate with n_h=2, keys of size 3,
+SO(3) embedding, 3-dim PCA of keys: the precursor observation, one
+architecture, PCA of keys not state rank, no S5/A6, no test, no
+intervention); Zhang et al. 2607.20594 (looped transformers: "NC1-completeness
+costs nothing (A5 generalizes fully), while group order does"; learnability,
+not rank); Marchetti et al. 2602.03655 (ICML 2026; sequential composition,
+irreps learned one at a time, width ~ irrep dims, cyclic/dihedral only);
+He et al. 2606.02993 and Shutman et al. 2509.06931 (two-layer MLPs on the
+binary operation recover irrep-structured low-rank solutions, with proofs;
+no sequential state, no d_min, no intervention); Nazari 2602.04852 / Sun
+2602.02195 read low state rank as under-used capacity (distinction now
+explicit). ADJACENT, cited: Stander 2312.06581, Wu 2410.07476, Kazanskii
+2607.11666, Parnichkun 2504.19561 (entropy effective rank as a memory
+instrument: the estimator is standard, not claimed new), Truong 2604.13123,
+Shakerinava 2603.01959 (ICLR 2026) and Nowak 2606.01765 (ICML 2026) (the
+solvability-by-depth side; orthogonal axis), Barnfield 2605.05189 (argmax
+capacity threshold; next to Nichani). Coverage gaps: Semantic Scholar and
+arXiv export API rate-limited both sweeps; re-run the arXiv HTML search on
+2026-09-07 before posting. Estimator note (coordinator, from the raws):
+restricted STABLE rank of the unconstrained states = 1.451/2.156/2.078/
+2.362/3.340 (0.59–0.73·d_min, outside the band; group-mean Spearman 0.975);
+the ordinal law is estimator-robust, the "equals d_min" point estimate is
+entropy-rank-specific; the razor is estimator-free. Disclosure decision
+pending Sam (DEFENSE_BRIEF control 8).

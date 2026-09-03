@@ -28,3 +28,16 @@ item below against the 2026 CFP before submitting).
 - **Review:** double-blind, OpenReview, >= 3 reviews.
 - **Deadline (2025 reference):** Aug 29 -> Sep 4 extended, AoE; 2026
   expected similar (late August).
+
+## Venue scout after the missed NeurReps deadline (2026-09-02, web-verified on each venue's own page)
+
+NeurReps 2026 EA/Proceedings closed Aug 24 (extended Aug 28); only its Findings track is open (Sep 8 11:59 UTC) and its scope (experimentalist+theorist neuroscience collaborations) does not fit. Every on-topic NeurIPS 2026 workshop (Interpretability as a Science, ATTRIB, MATH-AI, Interp4Discovery, GDDL, AXIOM, Representations for the Physical Sciences) closed Aug 28–Sep 6; all NeurIPS workshops are non-archival with mandatory Sep 29 notification.
+
+Ranked options for this paper (arXiv v1 posts ~Sep 8 regardless):
+1. **UniReps 2026 Extended Abstract track** (NeurIPS Paris; https://unireps.org/2026/call-for-papers): non-archival, 4 pp main text, NeurIPS 2026 style, anonymized; topics list names symmetry/equivariance, identifiability, learning dynamics, mechanistic interpretability. Deadline officially "TBD"; the OpenReview form carries a placeholder duedate 2026-09-25 22:00 UTC but was closed Sep 1. WATCH unireps.org/2026 daily; if it reopens this is the home. Preprint policy unpublished.
+2. **ICLR 2027 workshops** (CFPs ~Dec 2026, paper deadlines ~late Jan/early Feb 2027 by the 2026 template): best expected non-archival fit (Sci4DL-type, interpretability, geometry). Nothing to submit to yet.
+3. **TMLR** (rolling, ~9-week decisions, short papers welcome, double-blind, arXiv allowed): archival; a later conference version would need substantially new content.
+4. ICLR 2027 main (abstract Sep 18, paper Sep 25 AoE, 9 pp main text, reciprocal reviewing): not realistic for a 4-page body without a full-paper expansion; archival.
+5. NLDL 2027 EA track (Sep 15 CET, 2 pp, non-archival, in-person Tromsø required): feasible but generic-DL, weak fit.
+6. CPAL 2027 Recent Spotlight (non-archival, accepts arXiv work; 2027 not announced, ~Jan 2027 if it runs), AAAI-27 workshops (calls Oct 2, papers ~Nov 20), ESANN 2027 (Nov 25, proceedings).
+Unverified: UniReps live deadline/preprint policy; AISTATS 2027 (Dates page Oct 6 AoE, trackers Oct 8, CFP "not announced").

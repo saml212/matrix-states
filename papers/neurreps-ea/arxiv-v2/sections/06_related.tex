@@ -2,22 +2,47 @@
 \label{sec:related}
 
 \citet{chughtai2023universality} reverse-engineers group multiplication
-via representation theory; here, rank itself, not an irrep decomposition,
-is the measured and manipulated quantity.
+via representation theory, \citet{stander2024cosets} and
+\citet{wu2025unified} dispute and refine that account (coset circuits;
+verified per-argument equivariance), \citet{he2026spectral} prove that
+two-layer networks on $g_1 \star g_2$ learn spectral representations with
+a rank-one alignment of Fourier coefficients, and \citet{shutman2025words}
+frame word learning as a low-rank 3-tensor; all four study the binary
+operation, not a sequential state, and none relates a learned dimension
+to $\dmin$. On sequential composition, \citet{marchetti2026sequential}
+show recurrent networks acquire irreps one at a time with width scaling in
+the irrep dimensions on cyclic and dihedral groups, and
+\citet{zhang2026recurrence} find on looped transformers that
+$\mathrm{NC}^1$-completeness costs nothing while group order does;
+neither measures state rank. \citet{kazanskii2026grokking} regularizes
+representation dimensionality on permutation composition to speed
+grokking, without a necessity threshold. Here, rank itself, not an irrep
+decomposition, is the measured and manipulated quantity, and the
+required dimension is fixed in closed form by $\dmin$.
 \citet{nazari2026rank} and \citet{sun2026staterank} measure
-effective-rank dynamics in pretrained linear-attention models,
-observationally, with no task algebra fixing a required dimension;
+state-rank dynamics in pretrained linear-attention models,
+observationally, with no task algebra fixing a required dimension, and
+read low rank as under-used capacity where this paper reads it as the
+rank the task demands; \citet{parnichkun2025ess} apply an entropy
+effective rank to sequence-model memory as a utilization measure, and
+\citet{truong2026spectral} track spectral-entropy collapse of
+representation covariances on group tasks, so the estimator here is
+standard, not new;
 \citet{mishra2026m2rnn} train matrix-state RNNs on $S_3$ composition
 without a rank intervention. \citet{grazzi2025negative},
-\citet{siems2025deltaproduct}, and \citet{merrill2024illusion}
+\citet{siems2025deltaproduct}, \citet{merrill2024illusion},
+\citet{shakerinava2026diagonal}, and \citet{nowak2026algebraic}
 characterize which word problems recurrent architectures can express,
+sorting them by solvability and by the depth a subnormal series demands,
+an axis orthogonal to the one measured here (dimension governs state
+rank; series length governs depth),
 and \citet{deletang2023chomsky} benchmark sequence architectures across
 the formal-language hierarchy; the marquee equivalence instead sorts by
 representation dimension. A bolt-on-latent negative result
 \citep{larson2026gradient} is this result's counterpart.
-\citet{nichani2025factual} prove associative-memory capacity
-under argmax decoding, the loophole our exact-continuous-recovery
-scoring closes.
+\citet{nichani2025factual} and \citet{barnfield2026sharp} prove
+associative-memory capacity under argmax (winner-take-all) decoding, the
+loophole our exact-continuous-recovery scoring closes.
 \citet{huh2024platonic} propose that models trained on different tasks
 converge to a shared representation; the present law is a narrower,
 algebra-driven instance of that convergence.
