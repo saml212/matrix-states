@@ -1,0 +1,10 @@
+=== S5 at 20000 steps (d_min=4); 8k reference: seed-mean k=d_min 0.4125 vs fixed bar 0.450 (FAIL) ===
+seed  anchor  k=dmin-1  k=dmin  k=dmin+1  own-bar clears  | gate1a min-val: anchor k=dmin | whole rank: anchor k=dmin
+0     0.750   0.000     0.700   0.750     0.675  yes (+0.025)  |  0.981  0.981  |  3.860  3.766
+1     0.600   0.000     0.600   0.650     0.540  yes (+0.060)  |  0.974  0.960  |  3.740  3.660
+2     0.700   0.000     0.750   0.650     0.630  yes (+0.120)  |  0.974  0.970  |  3.705  3.817
+3     0.650   0.000     0.750   0.700     0.585  yes (+0.165)  |  0.959  0.967  |  3.761  3.793
+necessity: OK (0.000 x4)
+seed-mean k=dmin = 0.7000; seed-mean anchor = 0.6750; decisional bar 0.9 x anchor-mean = 0.6075
+VERDICT: S5 CONFIRMS at the 20k pin (n=4)  (margin +0.0925); own-bar clears 4/4; vs the 8k fixed literal 0.450: clears (+0.2500)
+A3 config-match: none (24 cells)

@@ -1,0 +1,20 @@
+{
+ "seed_mean_k_dmin": 0.7,
+ "seed_mean_anchor": 0.675,
+ "bar": 0.6075,
+ "confirms": true,
+ "necessity_ok": true,
+ "own_clears": 4,
+ "k_dmin": [
+  0.7,
+  0.6,
+  0.75,
+  0.75
+ ],
+ "anchors": [
+  0.75,
+  0.6,
+  0.7,
+  0.65
+ ]
+}
