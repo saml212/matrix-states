@@ -54,11 +54,14 @@ Per-group deviation of the mean from $\dmin$ (Table~\ref{tab:m1}):
 $S_3$ 6.1\%, $S_4$ 4.9\%, $A_5$ 5.6\%, $S_5$ 10.2\%, $A_6$ 5.3\%.
 % <!-- evidence: N4 -->
 
-$S_4$ and $S_5$'s razor $k{=}\dmin$ cells (Table~\ref{tab:razor}) numerically exceed their own unconstrained anchor by 0.10--0.15;
+$S_4$ and $S_5$'s seed-0 razor $k{=}\dmin$ cells (Table~\ref{tab:razor}) numerically exceed their own unconstrained anchor by 0.10--0.15;
 plausibly the capped arm skips the ambient dimensions the zero-padded
 anchor must still learn to null under the same fixed step budget, an
 unconfirmed hypothesis.
 % <!-- evidence: N14 -->
+At four seeds the inversion holds in 3 of 4 $S_4$ seeds and 2 of 4
+$S_5$ seeds (Appendix~\ref{app:ext4causal}), so it stays unconfirmed.
+% <!-- evidence: N16 -->
 
 \section{Whole-Matrix Effective Rank}
 \label{app:wmrank}
@@ -71,10 +74,10 @@ unconfirmed hypothesis.
 $G$ & $\dmin$ & $\dstate$ & observational arm ($\rho_G \oplus I_2$) & zero-padded anchor ($\rho_G \oplus 0$) \\
 \midrule
 $S_3$ & 2 & 4 & $3.769 \pm 0.071$ ($n{=}3$) & $1.824 \pm 0.064$ ($n{=}4$) \\
-$S_4$ & 3 & 5 & $4.835 \pm 0.066$ ($n{=}5$) & 2.952 \\
-$A_5$ & 3 & 5 & $4.781 \pm 0.066$ ($n{=}5$) & 2.882 \\
-$S_5$ & 4 & 6 & $5.510 \pm 0.084$ ($n{=}3$) & 3.547 \\
-$A_6$ & 5 & 7 & $6.717 \pm 0.022$ ($n{=}3$) & 4.730 \\
+$S_4$ & 3 & 5 & $4.835 \pm 0.066$ ($n{=}5$) & $2.817 \pm 0.101$ ($n{=}4$) \\
+$A_5$ & 3 & 5 & $4.781 \pm 0.066$ ($n{=}5$) & $2.833 \pm 0.077$ ($n{=}4$) \\
+$S_5$ & 4 & 6 & $5.510 \pm 0.084$ ($n{=}3$) & $3.567 \pm 0.071$ ($n{=}4$) \\
+$A_6$ & 5 & 7 & $6.717 \pm 0.022$ ($n{=}3$) & $4.669 \pm 0.097$ ($n{=}4$) \\
 \bottomrule
 \end{tabular}
 \caption{Whole-matrix effective rank of the unconstrained trained state:
@@ -84,12 +87,12 @@ Table~\ref{tab:m1} it can range up to $\dstate = \dmin + 2$. Observational
 arm: mean $\pm$ sd over seeds against the eye-padded target of rank
 $\dmin + 2$, which the state recruits ($3.77/4.84/4.78/5.51/6.72$ against
 $\dstate = 4/5/5/6/7$). Zero-padded anchor: the
-causal wave's unconstrained arm against the rank-$\dmin$ target; $S_3$ is
-a four-seed mean $\pm$ sd, the other four groups are single-seed. On the
+causal wave's unconstrained arm against the rank-$\dmin$ target, mean
+$\pm$ sd over four seeds in every group. On the
 zero-padded target the unconstrained state recruits $\dmin$
-($1.82/2.95/2.88/3.55/4.73$ against $\dmin = 2/3/3/4/5$) and leaves the
+($1.82/2.82/2.83/3.57/4.67$ against $\dmin = 2/3/3/4/5$) and leaves the
 two spare dimensions unused.}
-% <!-- evidence: N15 -->
+% <!-- evidence: N15, N17 -->
 \label{tab:wmrank}
 \end{table}
 
@@ -204,6 +207,20 @@ $S_3$ 86.3\%, $S_4$ 91.2\%, $A_5$ 94.9\%, $S_5$ 75.7\%, and $A_6$
 soft-convergence flag (Appendix~\ref{app:gate1a}).
 % <!-- evidence: N12 -->
 
+\textbf{Estimator dependence.} The pre-registered instrument is the
+entropy effective rank; under the stable-rank estimator (squared
+Frobenius norm over squared spectral norm, the estimator of
+\citet{nazari2026rank}) the same unconstrained states read
+$1.451/2.156/2.078/2.362/3.340$ against $\dmin = 2/3/3/4/5$, that is
+$0.59$--$0.73 \cdot \dmin$, outside the pre-registered band, which was
+written for the entropy estimator, while the group ordering is
+unchanged (Spearman 0.975 on group means). The ordinal law is therefore
+estimator-robust; the point estimate ``equals $\dmin$'' is a property
+of the entropy estimator on a near-flat spectrum with one weak
+direction, which stable rank penalizes; and the causal razor caps
+algebraic rank and is estimator-free.
+% <!-- evidence: N18 -->
+
 \textbf{Primary and crosscheck degauging.} The design record's default
 pipeline treats scale-only degauging ($\hat{Q} = I$) as the primary
 metric, with the fitted-$(c, Q)$ Procrustes score retained as a
@@ -246,6 +263,59 @@ recomputing the bar as $0.9\times$ the four-seed anchor mean (raw mean
 0.6375, bar 0.574) would put the seed-mean value 0.011 below it.}
 % <!-- evidence: N2, N3 -->
 \label{tab:s3seeds}
+\end{table}
+
+\section{Per-Seed Razor Detail for $S_4$, $A_5$, $S_5$, $A_6$}
+\label{app:ext4causal}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+seed & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & own bar & clears \\
+\midrule
+\multicolumn{7}{l}{$S_4$ ($\dmin = 3$, 20k steps): seed-mean 0.6875 vs.\ fixed bar 0.585, confirmed; self-referential bar 0.5625} \\
+0 & 0.650 & 0.000 & 0.800 & 0.950 & 0.585 & yes ($+0.215$) \\
+1 & 0.500 & 0.000 & 0.600 & 0.600 & 0.450 & yes ($+0.150$) \\
+2 & 0.700 & 0.000 & 0.700 & 0.650 & 0.630 & yes ($+0.070$) \\
+3 & 0.650 & 0.000 & 0.650 & 0.650 & 0.585 & yes ($+0.065$) \\
+\midrule
+\multicolumn{7}{l}{$A_5$ ($\dmin = 3$, 20k steps): seed-mean 0.6500 vs.\ fixed bar 0.630, confirmed; self-referential bar 0.5625} \\
+0 & 0.700 & 0.000 & 0.700 & 0.750 & 0.630 & yes ($+0.070$) \\
+1 & 0.700 & 0.000 & 0.750 & 0.750 & 0.630 & yes ($+0.120$) \\
+2 & 0.550 & 0.000 & 0.600 & 0.550 & 0.495 & yes ($+0.105$) \\
+3 & 0.550 & 0.000 & 0.550 & 0.450 & 0.495 & yes ($+0.055$) \\
+\midrule
+\multicolumn{7}{l}{$S_5$ ($\dmin = 4$, 8k steps): seed-mean 0.4125 vs.\ fixed bar 0.450, \textbf{fails}; self-referential bar 0.3825} \\
+0 & 0.500 & 0.000 & 0.600 & 0.550 & 0.450 & yes ($+0.150$) \\
+1 & 0.400 & 0.000 & 0.250 & 0.500 & 0.360 & no ($-0.110$) \\
+2 & 0.250 & 0.000 & 0.350 & 0.350 & 0.225 & yes ($+0.125$) \\
+3 & 0.550 & 0.000 & 0.450 & 0.500 & 0.495 & no ($-0.045$) \\
+\midrule
+\multicolumn{7}{l}{$A_6$ ($\dmin = 5$, 40k steps): seed-mean 0.6750 vs.\ fixed bar 0.585, confirmed; self-referential bar 0.5850} \\
+0 & 0.650 & 0.000 & 0.650 & 0.700 & 0.585 & yes ($+0.065$) \\
+1 & 0.600 & 0.000 & 0.650 & 0.700 & 0.540 & yes ($+0.110$) \\
+2 & 0.850 & 0.000 & 0.850 & 0.800 & 0.765 & yes ($+0.085$) \\
+3 & 0.500 & 0.000 & 0.550 & 0.550 & 0.450 & yes ($+0.100$) \\
+\bottomrule
+\end{tabular}
+\caption{Four-seed causal detail (crosscheck $\recninety$) for the four
+groups extended under a pre-registration recorded before launch, on the
+same build, manifest, step pins, and decisional readout as seed 0. The
+own bar is $0.9\times$ each seed's anchor and is disclosed, not
+decisional. $k = \dmin{-}1$ reads exactly 0.000 in all 16 cells. The
+decisional comparison is the seed-mean of $k = \dmin$ over seeds 0--3
+against the bar fixed from seed 0 (0.585/0.630/0.450/0.585): $S_4$
+0.6875, $A_5$ 0.6500, and $A_6$ 0.6750 confirm; $S_5$ 0.4125 fails, and
+by the pre-registered outcome grammar is reported as failing with no
+re-tries. The self-referential bar ($0.9\times$ the four-seed anchor
+mean: 0.5625/0.5625/0.3825/0.5850) is reported for symmetry with
+Table~\ref{tab:s3seeds}; $S_5$ clears it by $+0.030$, which does not
+change the verdict. Own-bar clears: $S_4$ 4/4, $A_5$ 4/4, $S_5$ 2/4,
+$A_6$ 4/4.}
+% <!-- evidence: N16 -->
+\label{tab:ext4seeds}
 \end{table}
 
 \section{Soft Convergence at the Shortest Pinned Budgets}

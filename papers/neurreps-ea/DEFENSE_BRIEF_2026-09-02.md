@@ -19,7 +19,10 @@ dimension d_min = 2, 3, 3, 4, 5, with two spare dimensions available in
 every case (d_state = d_min + 2). Capping the state's rank at d_min − 1
 during training drives exact recovery to 0.000 in every group and every
 seed; restoring rank d_min brings recovery back above the pre-registered
-0.9×anchor bar in all five groups. The solvable/non-solvable pair
+0.9×anchor bar at four seeds per group in four of the five groups (S3, S4,
+A5, A6, both marquee members); S5 fails that rule at n=4 (seed-mean 0.4125
+vs its fixed 0.450 bar) and clears only the self-referential one. [Updated
+2026-09-03 after the §1.36b extension; was "all five groups" on one seed.] The solvable/non-solvable pair
 matched at d_min = 3 (S4 vs A5) is statistically equivalent in
 recruited rank under a pre-registered equivalence test.
 
@@ -201,6 +204,17 @@ low-rank, irrep-structured solutions on group composition. What is new?
 rank-one Fourier coefficients per irrep; no sequential state, no
 faithful-dimension target, no intervention. This paper measures a
 recurrent matrix state against d_min and caps it.)
+
+Q14 (NEW, the first question now). S5 fails your own rule. Why is the law
+not 4/5 with a convenient story about the fifth? (Answer: it IS 4/5, and the
+paper says so in the abstract. S5 fails by the rule written before the data
+(0.4125 vs 0.450), clears the softer bar we said we would only disclose, and
+is the group with soft convergence at the shortest budget and anchors
+ranging 0.25–0.55. No re-tries, no extra seeds, by pre-registration. The
+necessity floor still holds in all four S5 seeds and the whole-matrix rank
+of its anchors is 3.57 of 4 at n=4. If a reviewer wants S5 fixed, the
+honest next experiment is a longer pinned budget for S5, pre-registered,
+not more seeds at 8k.)
 
 ## Holes logged (fill during the pass)
 

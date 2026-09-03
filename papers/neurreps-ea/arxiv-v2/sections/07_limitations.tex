@@ -1,11 +1,15 @@
 
 \textbf{Limitations.} All results are on sub-1M-parameter synthetic
 testbeds, not claims about pretrained language models. Razor cells are
-single-seed except $S_3$ (four seeds); $S_4$/$S_5$'s anchor-bar margins
-and $S_3$/$S_5$'s soft convergence at the shortest pinned budget
-(Appendices~\ref{app:m1}, \ref{app:gate1a}) both read directionally, not
-as an unqualified 5/5, and the zero-padded whole-matrix anchors
-(Appendix~\ref{app:wmrank}) are single-seed outside $S_3$. A companion paper \citep{larson2026companion}
+now four seeds per group; $S_5$ fails the pre-registered sufficiency
+rule at $n = 4$ (Appendix~\ref{app:ext4causal}) and is the group with
+soft convergence at the shortest pinned budget and the noisiest anchors
+(0.25--0.55), which is disclosed, not offered as an explanation.
+% <!-- evidence: N16 -->
+$S_3$ shares the soft-convergence flag at its own shortest pinned budget
+(Appendix~\ref{app:gate1a}), so its confirmation reads directionally.
+% <!-- evidence: N13 -->
+A companion paper \citep{larson2026companion}
 carries the binding-task program (the recruitment grid, force-rank
 staircase, and composition mechanism) in full; this paper shares no
 figures or tables with it.
