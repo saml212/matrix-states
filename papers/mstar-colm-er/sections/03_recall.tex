@@ -59,3 +59,28 @@ associative recall well in other regimes \citep{arora2023zoology,
 nichani2024understanding}; under this task distribution, tokenizer,
 parameter count, and step count, the attention arm did not get there
 while the fast-weight arm reached ceiling in every seed.
+
+\textbf{Baseline strengthening.} Because ``did not get there'' at one
+configuration invites the objection that the transformer was simply
+under-provisioned, a separate search was pre-registered, with its three
+outcomes written down before any cell ran, and executed after the
+primary comparison: three capacities (the matched two-layer, 256-wide
+model at 14{,}440{,}448 parameters; four layers at 16{,}014{,}336; six
+layers, 512-wide, eight heads at 44{,}613{,}632), two training lengths
+(20{,}000 and 60{,}000 steps), and two learning rates ($10^{-3}$ and
+$3\times10^{-4}$), three seeds each, 27 cells (the three most expensive
+cells, six layers at $3\times10^{-4}$ for 60{,}000 steps, were deferred
+under a pre-registered trim whose re-activation trigger did not fire).
+No configuration clears the demonstration bar in any seed: per-config
+mean accuracy runs 0.0283 to 0.0346 against chance 0.03125 and the bar
+0.09375, the best being the six-layer model at $10^{-3}$ for 20{,}000
+steps. Every cell optimized (training loss falls from 23.6 to 7.1--7.7)
+without learning the task, where the fast-weight arm's loss reaches
+1.38 at the matched budget. % <!-- evidence: C12 -->
+The registered outcome is the first of the three, non-competitive after
+a capacity, training-length, and learning-rate search; the other two
+(a competitive baseline, which would have anchored a memory-multiplier
+ratio, or a clearing-but-not-competitive one) did not occur. This
+widens the region over which the comparison holds, to $3.1\times$ the
+matched parameter count and $3\times$ the matched steps; it does not
+change what the comparison licenses.

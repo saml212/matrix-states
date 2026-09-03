@@ -19,7 +19,11 @@ span, with the state fixed at 32{,}768 bytes; % <!-- evidence: C3 -->
 the transformer reads chance uncapped and at every KV-cache budget from one
 to thirty-two times those bytes, % <!-- evidence: C4 -->
 so no memory multiplier is claimed and the baseline is reported as
-non-competitive at the matched budget. State-zeroing localizes the recall
+non-competitive at the matched budget; it stays at chance after a
+separately pre-registered 27-cell search over transformer capacity (14M to
+45M parameters, two to six layers), training length (20{,}000 and 60{,}000
+steps), and learning rate. % <!-- evidence: C12 -->
+State-zeroing localizes the recall
 to the first block's fast-weight state. % <!-- evidence: C5 -->
 A multi-hop variant separates only as seed variance, and at higher load
 every arm reads chance. % <!-- evidence: C7 -->
