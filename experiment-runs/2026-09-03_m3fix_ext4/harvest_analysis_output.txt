@@ -1,0 +1,47 @@
+
+=== S4 (d_min=3, steps 20000, fixed bar 0.585) ===
+seed  anchor  k=dmin-1  k=dmin  k=dmin+1  own-bar  clears   |  whole-matrix rank: anchor  k=dmin
+0     0.650   0.000     0.800   0.950     0.585    yes (+0.215)  |  2.952   2.937
+1     0.500   0.000     0.600   0.600     0.450    yes (+0.150)  |  2.682   2.794
+2     0.700   0.000     0.700   0.650     0.630    yes (+0.070)  |  2.862   2.811
+3     0.650   0.000     0.650   0.650     0.585    yes (+0.065)  |  2.772   2.818
+necessity (k=dmin-1 == 0.000 in all 4 seeds): OK
+seed-mean k=dmin (seeds 0-3) = 0.6875  vs fixed bar 0.585  -> CONFIRMED at n=4
+disclosed: extension-only mean 0.6500; own-bar clears 4/4; self-referential bar 0.9x4-seed-anchor-mean = 0.5625 (clears by +0.1250)
+disclosed: whole-matrix rank of anchors mean 2.817 +- 0.101 vs d_min 3
+
+=== A5 (d_min=3, steps 20000, fixed bar 0.63) ===
+seed  anchor  k=dmin-1  k=dmin  k=dmin+1  own-bar  clears   |  whole-matrix rank: anchor  k=dmin
+0     0.700   0.000     0.700   0.750     0.630    yes (+0.070)  |  2.882   2.824
+1     0.700   0.000     0.750   0.750     0.630    yes (+0.120)  |  2.932   2.880
+2     0.550   0.000     0.600   0.550     0.495    yes (+0.105)  |  2.773   2.807
+3     0.550   0.000     0.550   0.450     0.495    yes (+0.055)  |  2.744   2.704
+necessity (k=dmin-1 == 0.000 in all 4 seeds): OK
+seed-mean k=dmin (seeds 0-3) = 0.6500  vs fixed bar 0.63  -> CONFIRMED at n=4
+disclosed: extension-only mean 0.6333; own-bar clears 4/4; self-referential bar 0.9x4-seed-anchor-mean = 0.5625 (clears by +0.0875)
+disclosed: whole-matrix rank of anchors mean 2.833 +- 0.077 vs d_min 3
+
+=== S5 (d_min=4, steps 8000, fixed bar 0.45) ===
+seed  anchor  k=dmin-1  k=dmin  k=dmin+1  own-bar  clears   |  whole-matrix rank: anchor  k=dmin
+0     0.500   0.000     0.600   0.550     0.450    yes (+0.150)  |  3.547   3.496
+1     0.400   0.000     0.250   0.500     0.360    no  (-0.110)  |  3.604   3.518
+2     0.250   0.000     0.350   0.350     0.225    yes (+0.125)  |  3.462   3.440
+3     0.550   0.000     0.450   0.500     0.495    no  (-0.045)  |  3.653   3.499
+necessity (k=dmin-1 == 0.000 in all 4 seeds): OK
+seed-mean k=dmin (seeds 0-3) = 0.4125  vs fixed bar 0.45  -> FAILS at n=4 (report as failing)
+disclosed: extension-only mean 0.3500; own-bar clears 2/4; self-referential bar 0.9x4-seed-anchor-mean = 0.3825 (clears by +0.0300)
+disclosed: whole-matrix rank of anchors mean 3.567 +- 0.071 vs d_min 4
+
+=== A6 (d_min=5, steps 40000, fixed bar 0.585) ===
+seed  anchor  k=dmin-1  k=dmin  k=dmin+1  own-bar  clears   |  whole-matrix rank: anchor  k=dmin
+0     0.650   0.000     0.650   0.700     0.585    yes (+0.065)  |  4.730   4.631
+1     0.600   0.000     0.650   0.700     0.540    yes (+0.110)  |  4.656   4.639
+2     0.850   0.000     0.850   0.800     0.765    yes (+0.085)  |  4.773   4.818
+3     0.500   0.000     0.550   0.550     0.450    yes (+0.100)  |  4.516   4.537
+necessity (k=dmin-1 == 0.000 in all 4 seeds): OK
+seed-mean k=dmin (seeds 0-3) = 0.6750  vs fixed bar 0.585  -> CONFIRMED at n=4
+disclosed: extension-only mean 0.6833; own-bar clears 4/4; self-referential bar 0.9x4-seed-anchor-mean = 0.5850 (clears by +0.0900)
+disclosed: whole-matrix rank of anchors mean 4.669 +- 0.097 vs d_min 5
+
+=== A3 config-match problems === none (48 cells: 4 groups x 4 seeds x 3... zero_pad 4/seed + tax 2/seed = 24 cells/group incl. seed0)
+=== OVERALL === S4: CONFIRMED at n=4 ; A5: CONFIRMED at n=4 ; S5: FAILS at n=4 (report as failing) ; A6: CONFIRMED at n=4
