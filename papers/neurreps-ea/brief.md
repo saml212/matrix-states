@@ -229,3 +229,5 @@ restricted STABLE rank of the unconstrained states = 1.451/2.156/2.078/
 the ordinal law is estimator-robust, the "equals d_min" point estimate is
 entropy-rank-specific; the razor is estimator-free. Disclosure decision
 pending Sam (DEFENSE_BRIEF control 8).
+
+**arXiv re-check 2026-09-03 12:40 PDT (coordinator, arXiv's own search, announced-date order, ≥2026-08-25):** queries "state tracking", "word problem" group, "fast weight": no new paper on learned state rank/dimension on group word problems or on rank interventions in matrix memories. Only hits: arXiv:2607.20594 (already cited) and arXiv:2412.05562 (Dec 2024, "Modern Hopfield Networks Require Chain-of-Thought", TC⁰ limits on the S5 word problem: expressivity-side, adjacent, optional cite for Will's pass). Gate stays PASSED for the Friday post.
