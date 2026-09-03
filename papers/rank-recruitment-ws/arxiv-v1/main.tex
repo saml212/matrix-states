@@ -1,0 +1,107 @@
+% arXiv NAMED build, v1 (2026-09-03): the NeurReps extended abstract
+% (papers/rank-recruitment-ws/) retypeset for arXiv as the companion to
+% "The Rank the Task Demands" (papers/neurreps-ea/arxiv-v2/). Body text,
+% numbers, and evidence tags are carried over unchanged; only the
+% template, author block, keywords line, companion-paper citation, and the
+% code-availability sentence differ from the review build.
+% Typeset on the NeurIPS kit (neurips.sty, [final] mode) with the venue
+% notice blanked; no venue name appears anywhere in the compiled text.
+
+\documentclass{article}
+
+\usepackage[final]{neurips}
+
+% Blank the notice line (the 2025 kit's final mode prints a NeurIPS
+% conference notice by default; this named arXiv build carries no venue
+% notice).
+\makeatletter
+\renewcommand{\@noticestring}{}
+\makeatother
+
+\usepackage{float}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+\graphicspath{{figures/}}
+\raggedbottom
+
+% Italic body, bold header: the amsthm plain style, matching the jmlr
+% \theorembodyfont{\itshape}\theoremheaderfont{\bfseries} of the base tree.
+\theoremstyle{plain}
+\newtheorem{fact}{Fact}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\recninety}{\mathrm{rec}@0.9}
+\newcommand{\Kmat}{K_{\mathrm{mat}}}
+\newcommand{\Vmat}{V_{\mathrm{mat}}}
+
+\title{When the Gradient Sees Rank: Provable
+Necessity, Causal Recruitment, and Exact Composition in Trained Matrix
+Memories}
+
+\author{%
+  Samuel Larson\\
+  Pebble ML\\
+  \texttt{samlarson@pebbleml.com}%
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Matrix-valued fast-weight memories make rank a structural budget: the
+directions a state spans bound what it can bind and compose. A recent
+negative result reported that a matrix latent bolted onto a
+vector-pretrained reasoner never uses its rank, but the probed task admits
+a rank-1 solution, leaving the general question open. We answer it on
+testbeds where the exact solution provably requires
+$\rank(Z) \geq K$ and where every rank-evading shortcut is closed by
+construction: the readout is pinned to exact continuous recovery, since
+argmax decoding lets a rank-$m$ memory store roughly $md$ associations; a
+single-matrix-state bottleneck forecloses position decomposition; and no
+cell is called dead without re-testing at 2--2.5$\times$ budget. Under
+these conditions gradient descent recruits the rank the task demands in
+this architecture family:
+learned effective rank tracks $K$ across the tested grid (Spearman
+$\rho = 1.0$ at $d = 16$),
+% <!-- evidence: R1 -->
+train-time rank caps show a causal step at $k \approx K$ (at $d = 8$,
+$K = 4$: rank 3 gives at most 0.0004 recovery, rank 4 gives 0.97),
+% <!-- evidence: R2 -->
+and the trained operator composes exactly through 21-fold self-application
+in four of five seeds.
+% <!-- evidence: R3 -->
+An entity-subspace decomposition supplies the mechanism, restricted rank
+exactly $K$ on the key subspace,
+% <!-- evidence: R5 -->
+and in the single converged rank-starved seed, the depth-decay curve is
+predicted from its eigenspectrum alone.
+% <!-- evidence: R4 -->
+\end{abstract}
+
+\noindent\textbf{Keywords:} effective rank, fast weights, associative
+memory, composition
+
+\input{sections/01_intro}
+\input{sections/02_setup}
+\input{sections/03_recruitment}
+\input{sections/04_composition}
+\input{sections/05_frontier}
+\input{sections/06_related}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\input{sections/07_limitations}
+
+\end{document}
