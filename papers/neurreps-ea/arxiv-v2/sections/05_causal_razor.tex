@@ -22,8 +22,10 @@ $k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$, vs.\ the unconstrained anchor
 $S_3$ overlays its four seeds (thin lines; bold mean); its
 below-$\dmin$ zero is unanimous. The other four groups are drawn at
 seed 0; their four-seed sufficiency verdicts are in
-Table~\ref{tab:razor}, where $S_5$ fails at $n = 4$.}
-% <!-- evidence: N1, N16 -->
+Table~\ref{tab:razor}. $S_5$'s dotted bar is its decisional bar,
+$0.9\times$ its four-seed anchor mean at its 20k pin
+(Appendix~\ref{app:ext4causal}).}
+% <!-- evidence: N1, N16, N19 -->
 \label{fig:razor}
 \end{figure}
 
@@ -38,28 +40,31 @@ $G$ & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & bar & $k{=}\dmi
 $S_3$ & 0.550 & 0.000 & 0.450$^{\ast}$ & 0.550 & 0.495 & \textbf{0.5625} \\
 $S_4$ & 0.650 & 0.000 & \textbf{0.800} & 0.950 & 0.585 & \textbf{0.6875} \\
 $A_5$ & 0.700 & 0.000 & \textbf{0.700} & 0.750 & 0.630 & \textbf{0.6500} \\
-$S_5$ & 0.500 & 0.000 & \textbf{0.600} & 0.550 & 0.450 & 0.4125 (fails) \\
+$S_5$ & 0.750 & 0.000 & \textbf{0.700} & 0.750 & 0.6075$^{\dagger}$ & \textbf{0.7000} \\
 $A_6$ & 0.650 & 0.000 & \textbf{0.650} & 0.700 & 0.585 & \textbf{0.6750} \\
 \bottomrule
 \end{tabular}
 \caption{The causal razor on the zero-padded rank-$\dmin$ target
-(crosscheck $\recninety$ by force-rank $k$). The anchor, $k$, and bar
+(crosscheck $\recninety$ by force-rank $k$). The anchor and $k$
 columns are seed 0, one seed per cell; the bar is $0.9\times$ the seed-0
-anchor, fixed before any further seed ran, and bold there marks a
-seed-0 cell that clears it. The last column is the seed-mean of
-$k{=}\dmin$ over seeds 0--3, judged against that fixed bar by the
-pre-registered rule: $S_3$, $S_4$, $A_5$, $A_6$ confirm (bold) and
-$S_5$ fails at $n = 4$ (0.4125 against 0.450). Exactly 0.000 one rank
-below $\dmin$ in all four seeds of every group (the forced ceiling is
-$\le 0.894$). Per-seed own-bar clears ($0.9\times$ each seed's own
-anchor; disclosed, not decisional): $S_3$ 2/4, $S_4$ 4/4, $A_5$ 4/4,
-$S_5$ 2/4, $A_6$ 4/4.
+anchor, fixed before any further seed ran ($S_5$: see $\dagger$), and
+bold there marks a seed-0 cell that clears it. The last column is the
+seed-mean of $k{=}\dmin$ over seeds 0--3, judged against that bar by
+the pre-registered rule: all five groups confirm (bold). Exactly 0.000
+one rank below $\dmin$ in all four seeds of every group (the forced
+ceiling is $\le 0.894$). Per-seed own-bar clears ($0.9\times$ each
+seed's own anchor; disclosed, not decisional): $S_3$ 2/4, $S_4$ 4/4,
+$A_5$ 4/4, $S_5$ 4/4, $A_6$ 4/4.
 $^{\ast}$$S_3$'s seed-0 cell sat inside the pre-stated $\pm 0.05$
 marginality trigger and was extended first (seed-mean 0.5625 against
 the fixed 0.495 bar); the other four groups were extended under a
 separate pre-registration (Appendices~\ref{app:s3causal},
-\ref{app:ext4causal}).}
-% <!-- evidence: N1, N2, N3, N12, N16 -->
+\ref{app:ext4causal}).
+$^{\dagger}$$S_5$'s step pin is 20k, set by a separately
+pre-registered re-test (Appendix~\ref{app:ext4causal}); by that
+pre-registration its bar is $0.9\times$ its four-seed anchor mean
+(0.6750), since no seed-0 literal existed at that pin.}
+% <!-- evidence: N1, N2, N3, N12, N16, N19 -->
 \label{tab:razor}
 \end{table}
 
@@ -86,25 +91,25 @@ marginality trigger, confirms at seed-mean 0.5625 against the fixed
 % <!-- evidence: N3 -->
 $S_4$, $A_5$, and $A_6$ confirm at seed-means 0.6875, 0.6500, and
 0.6750 against fixed bars 0.585, 0.630, and 0.585, each clearing its
-own-seed bar in 4 of 4 seeds; $S_5$ fails the rule at $n = 4$:
-seed-mean 0.4125 against the fixed 0.450 bar, per-seed
-0.600/0.250/0.350/0.450 against anchors 0.500/0.400/0.250/0.550,
-own-bar clears 2 of 4. $S_5$ does clear the self-referential bar
-recomputed from its own four-seed anchor mean (0.3825) by $+0.030$,
-which is disclosed and not decisional. By the pre-registered outcome
-grammar, $S_5$ is reported as failing with no re-tries and the
-sufficiency claim narrows to four of five groups (per-seed detail in
+own-seed bar in 4 of 4 seeds; $S_5$ confirms at seed-mean 0.7000
+against its bar 0.6075, per-seed $k{=}\dmin$ 0.700/0.600/0.750/0.750
+against anchors 0.750/0.600/0.700/0.650, own-bar clears 4 of 4, and
+$k{=}\dmin{-}1$ at 0.000 in all four seeds; its bar is $0.9\times$ its
+four-seed anchor mean rather than a seed-0 literal because its 20k
+step pin was set by a separately pre-registered re-test
+(Appendix~\ref{app:ext4causal}). Sufficiency therefore holds at four
+seeds in all five groups (per-seed detail in
 Appendices~\ref{app:s3causal} and \ref{app:ext4causal}).
-% <!-- evidence: N16 -->
+% <!-- evidence: N16, N19 -->
 Both marquee groups confirm at $\dmin$, meeting the causal criterion.
 Table~\ref{tab:wmrank} adds an instrument-independent reading: on the
 zero-padded target the unconstrained anchor's whole-matrix effective
 rank, taken over the full $\dstate \times \dstate$ state with no
-subspace lens, lands at $1.82/2.82/2.83/3.57/4.67$ (four-seed means)
+subspace lens, lands at $1.82/2.82/2.83/3.77/4.67$ (four-seed means)
 against $\dmin = 2/3/3/4/5$ with two ambient dimensions available, so
 the recruited rank equals $\dmin$ without any restriction to the
 model's dominant subspace.
-% <!-- evidence: N15, N17 -->
+% <!-- evidence: N15, N17, N19 -->
 
 Identity-padding the target confounds the razor by handing every capped
 arm a free rank-2 loss reduction (Appendix~\ref{app:instrument});

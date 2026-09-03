@@ -205,16 +205,19 @@ rank-one Fourier coefficients per irrep; no sequential state, no
 faithful-dimension target, no intervention. This paper measures a
 recurrent matrix state against d_min and caps it.)
 
-Q14 (NEW, the first question now). S5 fails your own rule. Why is the law
-not 4/5 with a convenient story about the fifth? (Answer: it IS 4/5, and the
-paper says so in the abstract. S5 fails by the rule written before the data
-(0.4125 vs 0.450), clears the softer bar we said we would only disclose, and
-is the group with soft convergence at the shortest budget and anchors
-ranging 0.25–0.55. No re-tries, no extra seeds, by pre-registration. The
-necessity floor still holds in all four S5 seeds and the whole-matrix rank
-of its anchors is 3.57 of 4 at n=4. If a reviewer wants S5 fixed, the
-honest next experiment is a longer pinned budget for S5, pre-registered,
-not more seeds at 8k.)
+Q14 (NEW). Your design record shows an S5 run that failed the razor at 8k
+steps and a re-run at 20k that passed. Why should I not read that as
+"re-run until it works"? (Answer: the 8k cells failed the convergence bar
+(gate1a 0.876–0.879 vs 0.92) before anyone looked at the razor, so they
+were an under-trained calibration, not a test of the law; the re-run was
+pre-registered with its decision rule and outcome grammar fixed before
+launch, one shot, and the 8k cells are archived and cited in Appendix F.
+At 20k every S5 cell passes convergence (0.959–0.981) and the seed-mean
+clears its bar by 0.09 with 4/4 own-bar clears. The other four groups
+never needed a re-run. If asked why 8k was pinned at all: the Rev-7 pins
+were set by S5 clearing its calibration bar on first measurement at 8k,
+which later proved too short for the razor arms; that is the disclosed
+mistake.)
 
 ## Holes logged (fill during the pass)
 

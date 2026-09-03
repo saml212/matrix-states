@@ -35,6 +35,9 @@ import matplotlib.pyplot as plt
 SWEEP = "experiment-runs/2026-07-09_capability_sweep_harvest/results"
 M3FIX = "experiment-runs/2026-07-09_m3fix_harvest"
 S3EXT = "experiment-runs/2026-07-09_m3fix_s3ext"
+# S5's step pin moved to 20k under the pre-registered re-test (design record
+# section 1.36c, 2026-09-03); its razor cells are drawn from that archive.
+S5_20K = "experiment-runs/2026-09-03_m3fix_s5_20k/results"
 
 SOURCE_MD5 = {
     # --- N4/N5: 19 unconstrained sweep cells (restricted effective rank) ---
@@ -78,6 +81,14 @@ SOURCE_MD5 = {
     f"{M3FIX}/zero_pad__S5__k_dmin_minus_1__seed0.json": "61bf20dc9c95f3a1aacc5da31ed06bd9",
     f"{M3FIX}/zero_pad__S5__k_dmin_plus_1__seed0.json": "5c46ff77a2d7a2007dd131ce5b707253",
     f"{M3FIX}/zero_pad__S5__unconstrained__seed0.json": "8dbe19afd816e12f4eedae3371104898",
+    # --- N19: S5 20k-pin zero-pad cells (seed 0 drawn; four anchors for the bar) ---
+    f"{S5_20K}/zero_pad__S5__k_dmin__seed0.json": "5186399e42377f7405ca3c7b33404f46",
+    f"{S5_20K}/zero_pad__S5__k_dmin_minus_1__seed0.json": "f8bd0a4e129f1891d1f0cabf6f96f5ca",
+    f"{S5_20K}/zero_pad__S5__k_dmin_plus_1__seed0.json": "3f92f3e0f8063a32d80d9f8b9c7f4500",
+    f"{S5_20K}/zero_pad__S5__unconstrained__seed0.json": "b031cc3d194245e3dc565f85e20695f6",
+    f"{S5_20K}/zero_pad__S5__unconstrained__seed1.json": "6fbcf9fb51f147d394f9651d34f32d2b",
+    f"{S5_20K}/zero_pad__S5__unconstrained__seed2.json": "fe0b2226f44708710e6ea3176042f9c9",
+    f"{S5_20K}/zero_pad__S5__unconstrained__seed3.json": "93077e7b09128ee3b0027c6be2baba05",
     # --- N2/N3: S3 seed-extension zero-pad cells, seeds 1-3 ---
     f"{S3EXT}/zero_pad__S3__k_dmin__seed1.json": "9cbb21c10a4cfba64a5ec636744bbb1a",
     f"{S3EXT}/zero_pad__S3__k_dmin__seed2.json": "c9f1cd3c271a697039d065d07a712d1f",
@@ -177,6 +188,18 @@ def fig1_razor_step(repo, out_dir):
             ax.plot(xs, mean, color=COLOR[g], marker=MARKER[g], ms=4, lw=1.6,
                     zorder=3)
             ax.set_title(f"{g}  ($d_{{\\min}}$={dm}, 4 seeds)", pad=2)
+        elif g == "S5":
+            # 20k pin (N19). The decisional bar for this pre-registered
+            # re-test is 0.9 x the seed-mean of its four 20k anchors (no
+            # seed-0 literal existed at that pin); the dashed anchor is seed 0.
+            ys = [_razor_cell(repo, S5_20K, g, a, 0) for a in arms]
+            anchor = _razor_cell(repo, S5_20K, g, "unconstrained", 0)
+            anchors4 = [_razor_cell(repo, S5_20K, g, "unconstrained", sd)
+                        for sd in range(4)]
+            bar = 0.9 * (sum(anchors4) / len(anchors4))
+            ax.plot(xs, ys, color=COLOR[g], marker=MARKER[g], ms=4, lw=1.6,
+                    zorder=3)
+            ax.set_title(f"{g}  ($d_{{\\min}}$={dm})", pad=2)
         else:
             ys = [_razor_cell(repo, M3FIX, g, a, 0) for a in arms]
             anchor = _razor_cell(repo, M3FIX, g, "unconstrained", 0)

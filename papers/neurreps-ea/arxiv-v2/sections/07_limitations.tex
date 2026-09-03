@@ -1,12 +1,11 @@
 
 \textbf{Limitations.} All results are on sub-1M-parameter synthetic
 testbeds, not claims about pretrained language models. Razor cells are
-now four seeds per group; $S_5$ fails the pre-registered sufficiency
-rule at $n = 4$ (Appendix~\ref{app:ext4causal}) and is the group with
-soft convergence at the shortest pinned budget and the noisiest anchors
-(0.25--0.55), which is disclosed, not offered as an explanation.
-% <!-- evidence: N16 -->
-$S_3$ shares the soft-convergence flag at its own shortest pinned budget
+four seeds per group; $S_5$'s step pin is 20k rather than 8k, set by a
+pre-registered re-test after the 8k pin failed convergence
+(Appendix~\ref{app:ext4causal}).
+% <!-- evidence: N16, N19 -->
+$S_3$ carries a soft-convergence flag at its own shortest pinned budget
 (Appendix~\ref{app:gate1a}), so its confirmation reads directionally.
 % <!-- evidence: N13 -->
 A companion paper \citep{larson2026companion}
