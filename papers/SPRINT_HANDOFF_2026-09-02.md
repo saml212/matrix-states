@@ -295,3 +295,5 @@ state and are superseded where they conflict. Log entries of record:
   publish again from the same file path.
 - Claude in Chrome: `form_input` works for text/select/radio; some submit
   buttons need a coordinate click; refs go stale after navigation.
+
+**Update 2026-09-03 ~14:45 PDT (supersedes A.9 above):** the GPT scrub ran on the rank-law paper only; its branch `scrub/rank-law` was reviewed (numbers, cites, evidence tags identical to main; figures restyled with data/computation code byte-identical) and MERGED into main (494f648) with the S5-20k text kept everywhere it conflicted; figures regenerated; `ranklaw-arxiv-v2.pdf` on both Desktops is now the scrubbed 12-page build. `papers/neurreps-ea/SCRUB_LOG.md` §"Needs author" lists 24 sentences left unchanged on purpose: Sam's Friday-morning read. The recall and companion papers were NOT scrubbed and ship as built. Friday: no scrub step remains; go straight to §B.2.
