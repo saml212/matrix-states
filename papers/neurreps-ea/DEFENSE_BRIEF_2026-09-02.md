@@ -19,10 +19,13 @@ dimension d_min = 2, 3, 3, 4, 5, with two spare dimensions available in
 every case (d_state = d_min + 2). Capping the state's rank at d_min − 1
 during training drives exact recovery to 0.000 in every group and every
 seed; restoring rank d_min brings recovery back above the pre-registered
-0.9×anchor bar at four seeds per group in four of the five groups (S3, S4,
-A5, A6, both marquee members); S5 fails that rule at n=4 (seed-mean 0.4125
-vs its fixed 0.450 bar) and clears only the self-referential one. [Updated
-2026-09-03 after the §1.36b extension; was "all five groups" on one seed.] The solvable/non-solvable pair
+0.9×anchor bar at four seeds per group in all five groups (S3, S4, A5,
+S5, A6). [As of 2026-09-03 13:00: S4/A5/A6 by the §1.36b extension at
+their seed-0 pins; S5 at a 20k pin set by the separately pre-registered
+§1.36c re-test after its 8k pin under-trained (every 8k S5 cell failed the
+0.92 convergence bar); the 8k failure is disclosed in one Appendix F
+sentence, by Sam's decision. Was "all five groups" on ONE seed before
+Sept 3.] The solvable/non-solvable pair
 matched at d_min = 3 (S4 vs A5) is statistically equivalent in
 recruited rank under a pre-registered equivalence test.
 
@@ -30,9 +33,14 @@ Numbers: restricted effective rank 1.877 / 2.852 / 2.832 / 3.591 / 4.736
 (S3/S4/A5/S5/A6, n = 3/5/5/3/3), all 19 seeds in [0.7, 1.3]·d_min;
 Spearman ρ = 0.9747 (tie-capped maximum; exact null P(ρ ≥ 0.8) = 8/120).
 TOST S4 − A5: Δ = +0.019, se 0.037, t = 13.06/14.12 vs t_crit 1.865 at
-margin ±0.5. Razor (crosscheck rec@0.9, one seed per cell): k = d_min − 1
-→ 0.000 ×5; k = d_min → 0.450* / 0.800 / 0.700 / 0.600 / 0.650 vs bars
-0.495 / 0.585 / 0.630 / 0.450 / 0.585; *S3 by four-seed mean 0.5625.
+margin ±0.5. Razor (crosscheck rec@0.9), seed-0 cells: k = d_min − 1 →
+0.000 ×5; k = d_min → 0.450* / 0.800 / 0.700 / 0.700 (S5 at its 20k pin) /
+0.650 vs bars 0.495 / 0.585 / 0.630 / 0.6075 (0.9×four-seed anchor mean, S5
+only) / 0.585. Seed-means over seeds 0–3 at k = d_min: S3 0.5625, S4
+0.6875, A5 0.6500, S5 0.7000, A6 0.6750; own-bar clears 2/4, 4/4, 4/4,
+4/4, 4/4; k = d_min − 1 is 0.000 in all 20 cells. *S3 by the §1.36a
+trigger. Whole-matrix rank of the zero-padded anchors at n=4:
+1.82 / 2.82 / 2.83 / 3.77 / 4.67.
 
 ## Held fixed / grew / falsifier (the three sentences)
 
