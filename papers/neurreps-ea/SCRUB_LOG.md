@@ -1216,3 +1216,35 @@ mechanically certain.
   at final placement. Both figures are legible, their legends and annotations
   do not cover data, all displayed values remain visible within the retained
   quantitative ranges, and the plot/caption/text purposes agree.
+
+## Follow-up aesthetic refinements
+
+### Figure 1 label clearance
+
+- A final reader review found that several direct labels sat on the identity
+  or grid lines even though they did not cover data. Inside
+  `papers/unireps-ea/figures/figure_gen.py::fig1_convergence`, the five group
+  labels now occupy clear space above or below their markers. Both panel grids
+  are suppressed so they cannot cross the legend or lower-panel annotation;
+  the quantitative reference lines remain unchanged.
+- The lower-panel band label is shortened to
+  `$\pm 0.5$ equivalence margin (shaded)` and placed wholly to the right of
+  the zero and observed-mean lines. The value and meaning are unchanged.
+- The edit changes only annotation positions, annotation wording, and grid
+  presentation. The figure still has 24 data marks in 10 data artists, two
+  bands, and three reference lines; no datum, statistic, axis limit, or
+  reference value changed. The 200 dpi `fig1_convergence-after.png` was
+  regenerated from the revised PDF.
+
+### Equal table-caption spacing
+
+- The NeurIPS table wrapper assumed captions above their tabular bodies. With
+  this paper's below-table captions, it produced a 0 pt body-to-caption gap and
+  a 7 pt after-caption gap. A table-only override in `arxiv-v2/main.tex` now
+  uses the venue style's 7 pt caption gap on both sides.
+- Float placement, `\intextsep`, and `\textfloatsep` are unchanged. All eight
+  tables retain the same body, caption text, numbers, labels, and evidence
+  comments. At 200 dpi, pages 4, 7, 8, 10, and 11 were checked after the
+  spacing change; no table, caption, or following text collides or clips.
+- Tectonic 0.16.9 still produces an 11-page paper with 2 figures and 8 tables,
+  no undefined references, and no unresolved citations.

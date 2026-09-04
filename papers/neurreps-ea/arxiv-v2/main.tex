@@ -31,6 +31,16 @@
 \graphicspath{{figures/}}
 \raggedbottom
 
+% This draft places table captions below the tabular body. Match the venue
+% style's 7 pt after-caption gap on the body side as well.
+\makeatletter
+\renewenvironment{table}
+  {\setlength{\abovecaptionskip}{\@neuripsabovecaptionskip}%
+   \setlength{\belowcaptionskip}{\@neuripsabovecaptionskip}%
+   \@float{table}}
+  {\end@float}
+\makeatother
+
 % Italic body, bold header: the amsthm plain style, matching the jmlr
 % \theorembodyfont{\itshape}\theoremheaderfont{\bfseries} of the base tree.
 \theoremstyle{plain}

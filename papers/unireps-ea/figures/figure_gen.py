@@ -169,9 +169,16 @@ def fig1_convergence(repo, out_dir):
         ax.scatter(x_positions, vals, s=24,
                    marker=MARKER[g], facecolors=face, edgecolors=COLOR[g],
                    linewidths=0.9, zorder=3)
-        lab_y = max(vals) + 0.2 if g != "S4" else min(vals) - 0.32
+        lab_y = {
+            "S3": min(vals) - 0.30,
+            "S4": min(vals) - 0.32,
+            "A5": max(vals) + 0.50,
+            "S5": min(vals) - 0.32,
+            "A6": min(vals) - 0.32,
+        }[g]
         ax.annotate(g, (DMIN[g] + jitter[g], lab_y), color=COLOR[g],
-                    ha="center", fontsize=7.5, fontweight="bold")
+                    ha="center", va="center", fontsize=7.5,
+                    fontweight="bold")
     ax.scatter([], [], s=30, marker="o", facecolors="#333333",
                edgecolors="#333333", label="solvable (filled)")
     ax.scatter([], [], s=30, marker="^", facecolors="white",
@@ -184,6 +191,7 @@ def fig1_convergence(repo, out_dir):
     ax.set_xlim(1.6, 5.6)
     ax.set_ylim(1.2, 6.9)
     ax.tick_params(labelsize=7.25)
+    ax.grid(False)
     ax.legend(loc="upper left", ncol=2, frameon=False, handlelength=1.6,
               columnspacing=0.9, borderaxespad=0.1, fontsize=7.25)
 
@@ -208,9 +216,9 @@ def fig1_convergence(repo, out_dir):
     equivalence_ax.tick_params(length=2, labelsize=7.25)
     equivalence_ax.set_title("Matched-dimension solvability contrast",
                              fontsize=8, loc="left", pad=2)
-    equivalence_ax.grid(axis="x")
+    equivalence_ax.grid(False)
     equivalence_ax.text(
-        0.98, 0.92, "shaded: pre-registered $\\pm 0.5$ equivalence margin",
+        0.98, 0.92, "$\\pm 0.5$ equivalence margin (shaded)",
         transform=equivalence_ax.transAxes, ha="right", va="top",
         fontsize=7.25)
     reference_transform = equivalence_ax.get_xaxis_transform()
